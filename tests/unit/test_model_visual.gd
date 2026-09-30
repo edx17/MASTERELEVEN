@@ -1,0 +1,80 @@
+extends GutTest
+## Modelo humano con esqueleto (CC0): animación por velocidad, gestos sin
+## acumulación, colores por zona y costo acotado.
+
+func _visual() -> ModelVisual:
+	var v := ModelVisual.new()
+	add_child_autofree(v)
+	v.setup({"shirt": Color.RED, "shorts": Color.BLACK}, 3)
+	v._anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	return v
+
+
+func _step(v: ModelVisual, speed: float, frames: int) -> void:
+	for i in frames:
+		v.update(1.0 / 60.0, speed, 8.4, PlayerVisual.Pose.NORMAL, 0.0)
+		v._anim.advance(1.0 / 60.0)
+
+
+func test_models_are_imported() -> void:
+	assert_true(ModelVisual.available(), "assets/models/players + assets/animations importados")
+
+
+func test_locomotion_follows_speed() -> void:
+	var v := _visual()
+	_step(v, 0.0, 5)
+	assert_eq(v._current, "Idle")
+	_step(v, 4.5, 5)
+	assert_eq(v._current, "Jog_Fwd")
+	_step(v, 8.0, 5)
+	assert_eq(v._current, "Sprint")
+
+
+func test_gestures_do_not_accumulate() -> void:
+	var v := _visual()
+	var b := v._skel.find_bone("spine_03")
+	var heights: Array[float] = []
+	for i in 6:
+		_step(v, 0.0, 30)
+		v._skel.force_update_all_bone_transforms()
+		heights.append(v._skel.get_bone_global_pose(b).origin.y)
+	assert_gt(heights.min(), 1.15, "el torso no se va doblando cuadro a cuadro (%s)" % [heights])
+
+
+func test_kick_moves_the_right_leg_forward() -> void:
+	var v := _visual()
+	_step(v, 0.0, 10)
+	var foot := v._skel.find_bone("foot_r")
+	v._skel.force_update_all_bone_transforms()
+	var before := v._skel.get_bone_global_pose(foot).origin.z
+	v.play(PlayerVisual.Event.KICK)
+	var max_z := before
+	for i in 20:
+		_step(v, 0.0, 1)
+		v._skel.force_update_all_bone_transforms()
+		max_z = maxf(max_z, v._skel.get_bone_global_pose(foot).origin.z)
+	assert_gt(max_z - before, 0.25, "el pie derecho sale hacia adelante (+Z)")
+
+
+func test_body_regions() -> void:
+	assert_eq(ModelVisual._region(Vector3(0, 0.05, 0.05)), 4, "botines")
+	assert_eq(ModelVisual._region(Vector3(0.1, 0.3, 0)), 2, "medias")
+	assert_eq(ModelVisual._region(Vector3(0.1, 0.8, 0)), 1, "short")
+	assert_eq(ModelVisual._region(Vector3(0, 1.2, 0.1)), 0, "camiseta")
+	assert_eq(ModelVisual._region(Vector3(0, 1.65, 0.08)), 3, "cara")
+	assert_eq(ModelVisual._region(Vector3(0.85, 1.4, 0)), 6, "manos")
+
+
+func test_22_animated_players_fit_the_frame_budget() -> void:
+	var vs: Array[ModelVisual] = []
+	for i in 22:
+		vs.append(_visual())
+	var t := Time.get_ticks_usec()
+	for f in 30:
+		for v in vs:
+			v.update(1.0 / 60.0, 6.0, 8.4, PlayerVisual.Pose.NORMAL, 2.0)
+			v._anim.advance(1.0 / 60.0)
+			v._skel.force_update_all_bone_transforms()
+	var ms := (Time.get_ticks_usec() - t) / 1000.0 / 30.0
+	gut.p("animación de 22 jugadores: %.2f ms por cuadro" % ms)
+	assert_lt(ms, 6.0, "bien por debajo de 16,6 ms (60 FPS)")

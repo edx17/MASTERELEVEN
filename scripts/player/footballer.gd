@@ -341,11 +341,15 @@ func _build_visuals() -> void:
 	collision_layer = 2
 	collision_mask = 0
 
-	# Presentación (separada de la simulación): humanoide con los colores del club.
-	visual = PlayerVisual.new()
+	# Presentación (separada de la simulación): modelo humano con esqueleto si
+	# está importado (assets/), si no el humanoide armado por piezas.
+	visual = ModelVisual.new() if ModelVisual.available() else PlayerVisual.new()
 	add_child(visual)
 	var shirt := team.keeper_color if is_keeper() else team.color
-	visual.setup({"shirt": shirt, "shorts": team.secondary_color, "socks": shirt}, team.index * 100 + number)
+	var colors := {"shirt": shirt, "shorts": team.secondary_color, "socks": shirt}
+	if is_keeper():
+		colors["gloves"] = Color(0.95, 0.95, 0.9)
+	visual.setup(colors, team.index * 100 + number)
 
 	var label := Label3D.new()
 	label.text = str(number)
