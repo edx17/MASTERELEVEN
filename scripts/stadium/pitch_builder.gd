@@ -1,10 +1,9 @@
 class_name PitchBuilder
 extends RefCounted
-## Genera por código la cancha reglamentaria: pasto a franjas, líneas, áreas,
-## círculo central, medialunas, arcos con postes y red, banderines y un
-## entorno simple. Todo placeholder hasta la Fase 6.
+## Genera por código la cancha reglamentaria: césped (shader), líneas, áreas,
+## círculo central, medialunas, arcos con postes y red y banderines. El
+## estadio alrededor lo arma StadiumBuilder.
 
-const STRIPES := 14
 const LINE_Y := 0.012
 
 
@@ -16,7 +15,6 @@ static func build() -> Node3D:
 	for side: int in [-1, 1]:
 		_build_goal(root, side)
 	_build_corner_flags(root)
-	_build_boards(root)
 	return root
 
 
@@ -30,25 +28,15 @@ static func _flat_material(color: Color, unshaded: bool = false) -> StandardMate
 
 
 static func _build_grass(root: Node3D) -> void:
-	# Pasto exterior.
-	var outer := MeshInstance3D.new()
+	# Un solo plano con shader: franjas de corte + variación natural.
+	var grass := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
-	plane.size = Vector2(Pitch.HALF_LENGTH * 2.0 + 30.0, Pitch.HALF_WIDTH * 2.0 + 24.0)
-	outer.mesh = plane
-	outer.material_override = _flat_material(Color(0.17, 0.42, 0.18))
-	outer.position.y = -0.01
-	root.add_child(outer)
-	# Franjas de corte.
-	var stripe_w := (Pitch.HALF_LENGTH * 2.0 + 6.0) / STRIPES
-	for i in STRIPES:
-		var stripe := MeshInstance3D.new()
-		var sp := PlaneMesh.new()
-		sp.size = Vector2(stripe_w, Pitch.HALF_WIDTH * 2.0 + 6.0)
-		stripe.mesh = sp
-		var c := Color(0.22, 0.55, 0.22) if i % 2 == 0 else Color(0.19, 0.49, 0.2)
-		stripe.material_override = _flat_material(c)
-		stripe.position = Vector3(-Pitch.HALF_LENGTH - 3.0 + stripe_w * (i + 0.5), 0.0, 0.0)
-		root.add_child(stripe)
+	plane.size = Vector2(Pitch.HALF_LENGTH * 2.0 + 10.0, Pitch.HALF_WIDTH * 2.0 + 10.0)
+	grass.mesh = plane
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://scripts/stadium/grass.gdshader")
+	grass.material_override = mat
+	root.add_child(grass)
 
 
 static func _build_lines(root: Node3D) -> void:
@@ -227,29 +215,3 @@ static func _build_corner_flags(root: Node3D) -> void:
 			flag.material_override = flag_mat
 			flag.position = pole.position + Vector3(0.2, 0.6, 0.0)
 			root.add_child(flag)
-
-
-## Carteles perimetrales lisos (sin marcas) para dar referencia de profundidad.
-static func _build_boards(root: Node3D) -> void:
-	var colors := [Color(0.1, 0.25, 0.6), Color(0.85, 0.85, 0.85), Color(0.7, 0.1, 0.1), Color(0.1, 0.45, 0.2)]
-	var i := 0
-	var x := -Pitch.HALF_LENGTH
-	while x < Pitch.HALF_LENGTH:
-		var board := MeshInstance3D.new()
-		var box := BoxMesh.new()
-		box.size = Vector3(7.5, 0.9, 0.15)
-		board.mesh = box
-		board.material_override = _flat_material(colors[i % colors.size()])
-		board.position = Vector3(x + 3.75, 0.45, -Pitch.HALF_WIDTH - 4.0)
-		root.add_child(board)
-		i += 1
-		x += 7.5
-	# Tribuna de fondo (bloque) para que el plano de TV no quede vacío.
-	var stand := MeshInstance3D.new()
-	var sbox := BoxMesh.new()
-	sbox.size = Vector3(Pitch.HALF_LENGTH * 2.0 + 30.0, 10.0, 12.0)
-	stand.mesh = sbox
-	stand.material_override = _flat_material(Color(0.3, 0.32, 0.36))
-	stand.position = Vector3(0.0, 2.0, -Pitch.HALF_WIDTH - 12.0)
-	stand.rotation_degrees = Vector3(-25.0, 0.0, 0.0)
-	root.add_child(stand)

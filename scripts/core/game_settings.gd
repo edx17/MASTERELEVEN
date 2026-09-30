@@ -25,6 +25,16 @@ func _ready() -> void:
 		tuning = Tuning.new()
 	InputRouter.setup_for_mode(mode)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
+	_check_capture_mode()
+
+
+## Herramienta de desarrollo: `-- --capture=<carpeta>` saca capturas y sale.
+func _check_capture_mode() -> void:
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--capture="):
+			var runner: Node = load("res://tools/capture_runner.gd").new()
+			runner.set("out_dir", arg.trim_prefix("--capture="))
+			get_tree().root.add_child.call_deferred(runner)
 
 
 func set_mode(new_mode: int) -> void:

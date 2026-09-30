@@ -6,9 +6,9 @@ extends Resource
 ## rotando, lo que da la vista diagonal cerca de los arcos (como en la TV).
 
 ## Altura de la cámara sobre el césped (m).
-@export var camera_height: float = 24.0
+@export var camera_height: float = 19.0
 ## Distancia horizontal desde la zona de la pelota hacia la tribuna (m).
-@export var camera_distance: float = 30.0
+@export var camera_distance: float = 33.0
 ## Giro extra (grados) alrededor del eje vertical: 0 = lateral puro.
 @export var camera_angle: float = 0.0
 ## Qué tan rápido sigue a la pelota (mayor = más pegada, menor = más suave).
@@ -18,11 +18,11 @@ extends Resource
 ## Zoom (1 = campo de visión base; >1 acerca).
 @export var zoom: float = 1.0
 ## Campo de visión base (grados).
-@export var base_fov: float = 34.0
+@export var base_fov: float = 36.0
 ## Corrimiento del punto mirado a lo largo de la cancha (m, + = hacia la derecha).
 @export var horizontal_offset: float = 0.0
 ## Corrimiento del punto mirado a lo ancho (m, + = hacia la cámara).
-@export var vertical_offset: float = 2.0
+@export var vertical_offset: float = -3.0
 ## 1 = la cámara se desliza por la tribuna siguiendo la pelota; 0 = queda fija
 ## en la mitad de cancha y sólo rota.
 @export_range(0.0, 1.0) var track_factor: float = 0.72

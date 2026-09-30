@@ -103,30 +103,9 @@ func attack_dirs() -> Array[int]:
 # --- Construcción -------------------------------------------------------------
 
 func _build_world() -> void:
-	var env := WorldEnvironment.new()
-	var environment := Environment.new()
-	var sky := Sky.new()
-	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.3, 0.5, 0.85)
-	sky_mat.sky_horizon_color = Color(0.7, 0.8, 0.9)
-	sky_mat.ground_horizon_color = Color(0.35, 0.4, 0.35)
-	sky.sky_material = sky_mat
-	environment.background_mode = Environment.BG_SKY
-	environment.sky = sky
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	environment.ambient_light_energy = 0.9
-	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.environment = environment
-	add_child(env)
-
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-55.0, -30.0, 0.0)
-	sun.light_energy = 1.1
-	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 90.0
-	add_child(sun)
-
+	_build_lighting()
 	add_child(PitchBuilder.build())
+	add_child(StadiumBuilder.build(GameSettings.home_team()))
 
 	ball = Ball.new()
 	ball.name = "Ball"
@@ -156,6 +135,41 @@ func _build_world() -> void:
 
 	var pause := PauseMenu.new()
 	add_child(pause)
+
+
+## Iluminación de tarde: sol bajo desde atrás de la tribuna principal (sombras
+## largas sobre el césped), cielo, ambiente moderado y tonemapping fílmico.
+func _build_lighting() -> void:
+	var env := WorldEnvironment.new()
+	var environment := Environment.new()
+	var sky := Sky.new()
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color(0.32, 0.5, 0.78)
+	sky_mat.sky_horizon_color = Color(0.75, 0.8, 0.85)
+	sky_mat.ground_bottom_color = Color(0.2, 0.2, 0.2)
+	sky_mat.ground_horizon_color = Color(0.5, 0.52, 0.5)
+	sky.sky_material = sky_mat
+	environment.background_mode = Environment.BG_SKY
+	environment.sky = sky
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	environment.ambient_light_energy = 0.45
+	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	environment.tonemap_exposure = 1.05
+	environment.adjustment_enabled = true
+	environment.adjustment_contrast = 1.08
+	environment.adjustment_saturation = 0.95
+	env.environment = environment
+	add_child(env)
+
+	var sun := DirectionalLight3D.new()
+	# Luz desde atrás de la tribuna principal (-Z), baja y algo lateral.
+	sun.rotation_degrees = Vector3(-38.0, 160.0, 0.0)
+	sun.light_energy = 1.15
+	sun.light_color = Color(1.0, 0.96, 0.88)
+	sun.shadow_enabled = true
+	sun.directional_shadow_max_distance = 160.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	add_child(sun)
 
 
 func _setup_controllers() -> void:

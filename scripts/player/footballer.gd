@@ -71,6 +71,11 @@ func setup(p_team: Team, p_data: PlayerData, p_role: int, p_spot: Vector2, tunin
 	_build_visuals()
 
 
+## Energía 0..1 (la fatiga llega en la Fase 4; por ahora siempre llena).
+func stamina_fraction() -> float:
+	return 1.0
+
+
 func is_keeper() -> bool:
 	return role == Role.GK
 
