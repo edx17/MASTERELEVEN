@@ -43,24 +43,35 @@ extends Resource
 @export var turn_rate_ball_factor: float = 0.85
 
 @export_group("Conducción y robo")
-## Cuánto se adelanta la pelota en cada toque, trotando / en sprint (jugador
-## de control promedio; ver Dribble.touch_distance).
-@export var dribble_distance: float = 0.45
-@export var dribble_distance_sprint: float = 1.35
+## Máximo que se adelanta la pelota en cada toque, trotando / en sprint
+## (jugador de control promedio; ver Dribble.touch_distance).
+@export var dribble_distance: float = 0.3
+@export var dribble_distance_sprint: float = 0.9
+## Aceleración máxima con la que el "resorte" de conducción corrige la pelota
+## (más alto = más pegada; más bajo = más suelta en los giros).
+@export var dribble_steer_accel: float = 70.0
 ## Si la pelota queda más lejos que esto del pie, el conductor la pierde.
-@export var dribble_lose_distance: float = 3.0
+@export var dribble_lose_distance: float = 2.5
 ## Radio (horizontal) para tomar una pelota suelta.
-@export var control_radius: float = 0.75
+@export var control_radius: float = 0.8
+## Radio extra para el receptor designado de un pase (recepción segura).
+@export var receive_radius: float = 1.1
 ## Altura máxima a la que un jugador de campo controla la pelota.
 @export var control_height: float = 1.1
-## Radio de contacto para robar la pelota al rival.
-@export var steal_radius: float = 0.95
-## Probabilidad de robo por segundo de contacto (normal / presionando).
-@export var steal_rate: float = 0.9
-@export var steal_rate_pressing: float = 2.2
 ## Probabilidad por segundo de que un rival se quede con una pelota expuesta
-## (entre toques) si está dentro de control_radius.
-@export var intercept_rate: float = 7.0
+## (lejos del pie del conductor, p. ej. en sprint) si está dentro de control_radius.
+@export var intercept_rate: float = 4.0
+
+@export_group("Entradas")
+## Distancia a la pelota desde la que se intenta una entrada.
+@export var tackle_range: float = 1.3
+## Probabilidad base de éxito de frente / de costado / de atrás.
+@export var tackle_front: float = 0.7
+@export var tackle_side: float = 0.45
+@export var tackle_back: float = 0.18
+## Tiempo entre intentos y desbalance si falla.
+@export var tackle_cooldown: float = 0.7
+@export var tackle_fail_stagger: float = 0.4
 ## Tiempo sin poder tocar la pelota tras patearla o perderla.
 @export var touch_cooldown: float = 0.28
 @export var lost_ball_cooldown: float = 0.6
@@ -89,14 +100,15 @@ extends Resource
 @export var long_pass_free_min: float = 18.0
 @export var long_pass_free_max: float = 55.0
 ## Velocidad de tiro (mín/máx según potencia).
-@export var shot_speed_min: float = 17.0
-@export var shot_speed_max: float = 31.0
-## Elevación del tiro (grados) según potencia.
-@export var shot_angle_min: float = 1.5
-@export var shot_angle_max: float = 14.0
+@export var shot_speed_min: float = 15.0
+@export var shot_speed_max: float = 32.0
+## Altura (m) a la que el tiro llega al arco según potencia (el travesaño
+## está a 2,44 m; a potencia >95 % se suma ~0,9 m y se puede ir por arriba).
+@export var shot_height_min: float = 0.2
+@export var shot_height_max: float = 1.9
 ## Ayuda al pasar (0 = el pase sale exactamente hacia el stick, 1 = va
 ## directo al receptor elegido). WE: ayuda leve, se puede fallar.
-@export var pass_assist: float = 0.8
+@export var pass_assist: float = 0.88
 ## Cono (grados) para buscar receptor en la dirección del stick.
 @export var pass_cone_degrees: float = 50.0
 ## Tiempo durante el que se recuerda un pase/tiro pedido antes de recibir (toque de primera).

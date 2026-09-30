@@ -106,9 +106,11 @@ func tick(dt: float) -> void:
 		else:
 			p.look_at_point(ball.flat_pos())
 
-	# Sin pelota: pase corto mantenido = presionar (corre hacia la pelota).
+	# Sin pelota: pase corto mantenido = presionar (corre hacia la pelota) y,
+	# al llegar a distancia, intentar la entrada (como en WE). Se puede fallar.
 	if opponent_has_ball and input.pressed(&"pass_short") and not is_charging():
 		p.pressing = true
+		p.wants_tackle = true
 		var to_ball := ball.flat_pos() - p.flat_pos()
 		if move.length_squared() < 0.04 and to_ball.length() > 0.3:
 			p.desired_move = to_ball.normalized()

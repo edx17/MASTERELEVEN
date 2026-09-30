@@ -37,7 +37,10 @@ var kick_count: int = 0
 ## Trayectoria predicha de la pelota suelta (cada FORECAST_STEP segundos).
 var ball_forecast: Array[Vector3] = []
 ## Estadísticas simples del partido, por equipo.
-var stats := {"shots": [0, 0], "saves": [0, 0]}
+var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won": [0, 0]}
+## Atajada planificada para el último remate (ver SaveModel):
+## {keeper, will_save, parry, point, time_left, chance}. Vacío si no hay.
+var save_plan := {}
 ## Datos de la última patada (depuración / futuras repeticiones).
 var last_kick := {}
 ## Mensaje grande para el HUD ("¡GOL!", "CÓRNER", ...).
@@ -193,7 +196,6 @@ func _physics_process(dt: float) -> void:
 		h.tick(dt)
 	for a in ais:
 		a.tick(dt)
-	_assist_carrier()
 	for p in all_players():
 		p.tick(dt, ball.owner_player == p)
 	_separate_players()
@@ -216,6 +218,10 @@ func _physics_process(dt: float) -> void:
 
 func _update_phase(dt: float) -> void:
 	_phase_timer -= dt
+	if not save_plan.is_empty():
+		save_plan["time_left"] -= dt
+		if save_plan["time_left"] <= 0.0 or not ball.is_loose():
+			save_plan = {}
 	match phase:
 		Phase.RESTART:
 			_restart_elapsed += dt
@@ -277,34 +283,12 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float) -> 
 	var receiver := kicks.execute(kind, player, dir, clampf(power, 0.0, 1.0))
 	kicks.throw_in_mode = false
 	kick_count += 1
+	save_plan = {}
 	if kind == KickActions.Kind.SHOT:
 		stats["shots"][player.team.index] += 1
+		_plan_save(player)
 	last_kick = {"kind": kind, "team": player.team.index, "pos": player.flat_pos(), "keeper": player.is_keeper()}
 	return receiver
-
-
-## Asistencia de conducción (estilo WE): si la pelota quedó adelantada, el
-## conductor curva hacia ella; la dirección pedida se guarda en intent_dir y el
-## próximo toque sale para ese lado. Así se puede girar con la pelota sin que
-## quede "pegada".
-func _assist_carrier() -> void:
-	var p := ball.owner_player
-	if p == null or p.locked or ball.state.pos.y > 0.5:
-		return
-	var wish := p.desired_move
-	p.intent_dir = wish
-	var foot := Dribble.foot_point(p.global_position, p.facing)
-	var to_ball := ball.flat_pos() - foot
-	var dist := to_ball.length()
-	if dist < Dribble.TOUCH_REACH * 0.8:
-		return
-	var chase := (ball.flat_pos() - p.flat_pos()).normalized()
-	if wish.length_squared() < 0.04:
-		# Sin dirección: acompaña la pelota hasta pisarla.
-		p.desired_move = chase * clampf(dist, 0.3, 1.0)
-		return
-	var w := clampf((dist - 0.3) / 1.2, 0.3, 0.85)
-	p.desired_move = (chase * w + wish.normalized() * (1.0 - w)).normalized() * wish.length()
 
 
 ## Primer punto de la trayectoria predicha de la pelota suelta al que `p`
@@ -325,6 +309,26 @@ func loose_ball_intercept(p: Footballer) -> Vector3:
 	return Vector3(last.x, 0.0, last.z)
 
 
+## Decide al momento del remate si el arquero rival llega (SaveModel).
+func _plan_save(shooter: Footballer) -> void:
+	var defenders := opponents_of(shooter.team)
+	var gk := defenders.keeper()
+	if gk == null:
+		return
+	var goal_x := defenders.own_side() * Pitch.HALF_LENGTH
+	var plan := SaveModel.predict_crossing(ball.state, goal_x, tuning)
+	if not plan.on_target:
+		return
+	var reaction := gk.data.reaction if gk.data else 60
+	var gk_skill := gk.data.goalkeeping if gk.data else 60
+	SaveModel.evaluate(plan, gk.flat_pos(), reaction, gk_skill)
+	var will_save := randf() < plan.chance
+	# Embolsa si le llega cómoda y no tan fuerte; si no, da rebote.
+	var parry := ball.speed() > 20.0 or plan.margin < 0.5
+	save_plan = {"keeper": gk, "will_save": will_save, "parry": parry, "point": plan.point,
+		"time_left": plan.time + 0.3, "chance": plan.chance}
+
+
 ## El jugador tiene la pelota al alcance del pie para patearla ahora.
 func can_kick(player: Footballer) -> bool:
 	if ball.owner_player == player and ball.state.pos.y > 0.5:
@@ -343,16 +347,30 @@ func _update_possession(dt: float) -> void:
 		_try_take_loose_ball()
 	else:
 		var carrier := ball.owner_player
-		var opp := _nearest_opponent_distance(carrier)
-		carrier.dribble_pressure = Dribble.pressure_from_distance(opp)
+		var opp := _nearest_opponent(carrier)
+		carrier.dribble_pressure = 0.0 if opp == null else Dribble.pressure_from_distance(opp.flat_pos().distance_to(carrier.flat_pos()))
+		if opp != null:
+			carrier.shield_from = opp.flat_pos()
 		_try_steal(dt)
+	# Los pedidos de entrada valen sólo para este tick.
+	for p in all_players():
+		p.wants_tackle = false
+
+
+func _nearest_opponent(p: Footballer) -> Footballer:
+	var best: Footballer = null
+	var best_d := INF
+	for o in opponents_of(p.team).players:
+		var d := o.flat_pos().distance_to(p.flat_pos())
+		if d < best_d:
+			best_d = d
+			best = o
+	return best
 
 
 func _nearest_opponent_distance(p: Footballer) -> float:
-	var best := INF
-	for o in opponents_of(p.team).players:
-		best = minf(best, o.flat_pos().distance_to(p.flat_pos()))
-	return best
+	var o := _nearest_opponent(p)
+	return INF if o == null else o.flat_pos().distance_to(p.flat_pos())
 
 
 func _try_take_loose_ball() -> void:
@@ -360,6 +378,7 @@ func _try_take_loose_ball() -> void:
 	var h := ball.state.pos.y
 	var best: Footballer = null
 	var best_d := INF
+	var plan_keeper: Footballer = save_plan.get("keeper")
 	for p in all_players():
 		if not p.can_touch_ball():
 			continue
@@ -371,9 +390,17 @@ func _try_take_loose_ball() -> void:
 				return
 			continue
 		var reach := tuning.control_radius
+		if p == ball.intended_receiver:
+			reach = tuning.receive_radius
 		var hmax := tuning.control_height
 		if p.is_keeper() and Pitch.in_penalty_area(bp, p.team.own_side()):
-			reach = tuning.keeper_reach if ball.speed() > 8.0 else 1.1
+			if p == plan_keeper:
+				# Remate en curso: sólo la toca si el modelo dice que llega.
+				if not save_plan["will_save"]:
+					continue
+				reach = tuning.keeper_reach + 0.4
+			else:
+				reach = tuning.keeper_reach if ball.speed() > 8.0 else 1.1
 			hmax = tuning.keeper_catch_height
 		if d < reach and h < hmax and d < best_d:
 			best = p
@@ -382,12 +409,12 @@ func _try_take_loose_ball() -> void:
 		return
 	var v := ball.state.vel
 	if best.is_keeper() and Pitch.in_penalty_area(bp, best.team.own_side()):
-		# Tiros fuertes y lejos del cuerpo: a veces da rebote en vez de atajar.
-		if ball.speed() > 19.0 and best_d > 0.9 and randf() < 0.35:
+		if best == plan_keeper and save_plan["parry"]:
 			# Rebote hacia afuera (al costado del arco), no al medio del área.
 			var wide := signf(bp.z) if absf(bp.z) > 0.3 else (1.0 if randf() < 0.5 else -1.0)
 			var parry := Vector3(-v.x * 0.25, absf(v.y) * 0.3 + 3.0, wide * randf_range(5.0, 9.0))
 			stats["saves"][best.team.index] += 1
+			save_plan = {}
 			ball.kick(parry, Vector3.ZERO, best)
 			best.touch_block = 0.5
 			return
@@ -401,6 +428,7 @@ func _try_take_loose_ball() -> void:
 	var receiver := ball.intended_receiver
 	if receiver != null and receiver != best:
 		receiver.clear_pass_target()
+	save_plan = {}
 	ball.give_to(best, true)
 
 
@@ -428,32 +456,61 @@ func _try_steal(dt: float) -> void:
 			continue
 		if o.state != Footballer.State.NORMAL or ball.state.pos.y > tuning.control_height:
 			continue
-		var def_edge := 0.0
-		if o.data != null and carrier.data != null:
-			def_edge = PlayerData.centered(o.data.defense) - PlayerData.centered(carrier.data.ball_control)
-		# Entre toques la pelota queda expuesta: el rival bien ubicado se la queda.
+		# Entrada pedida por su controlador (humano: presión encima del
+		# portador; IA: cuando llega a distancia).
+		if o.wants_tackle and o.tackle_cooldown <= 0.0 and d < tuning.tackle_range:
+			if _resolve_tackle(o, carrier):
+				return
+			continue
+		# Pelota expuesta (lejos del pie, p. ej. en sprint): quien se cruza bien
+		# ubicado se la puede quedar sin hacer nada más.
 		if d < tuning.control_radius and Dribble.is_exposed(ball.state.pos, carrier.global_position, carrier.facing):
-			if randf() < tuning.intercept_rate * (1.0 + 0.3 * def_edge) * dt:
+			var edge := _duel_edge(o, carrier)
+			if randf() < tuning.intercept_rate * (1.0 + 0.3 * edge) * dt:
 				carrier.touch_block = tuning.lost_ball_cooldown
 				ball.give_to(o, true)
 				return
-			continue
-		# Pelota en el pie: sólo con contacto y con bastante menos probabilidad.
-		if d > tuning.steal_radius:
-			continue
-		var rate := tuning.steal_rate_pressing if o.pressing else tuning.steal_rate
-		rate *= 1.0 + 0.5 * def_edge
-		# Desde atrás es mucho más difícil sacarla limpia.
-		if carrier.facing.dot((o.flat_pos() - carrier.flat_pos()).normalized()) < -0.2:
-			rate *= 0.4
-		if randf() < rate * dt:
-			carrier.touch_block = tuning.lost_ball_cooldown
-			if randf() < 0.5:
-				ball.give_to(o, true)
-			else:
-				var away := (bp - carrier.flat_pos()).normalized() * 3.0 + o.facing * 3.0
-				ball.kick(away, Vector3.ZERO, o)
-			return
+
+
+## Ventaja del defensor en un duelo (-2..2): defensa contra control.
+func _duel_edge(defender: Footballer, carrier: Footballer) -> float:
+	if defender.data == null or carrier.data == null:
+		return 0.0
+	return PlayerData.centered(defender.data.defense) - PlayerData.centered(carrier.data.ball_control)
+
+
+## Probabilidad de éxito de una entrada (pura salvo por los datos de los
+## jugadores): de frente es mucho más fácil que de atrás; la pelota expuesta
+## ayuda y el conductor que la cubre quieto la protege.
+func tackle_chance(defender: Footballer, carrier: Footballer) -> float:
+	var to_def := (defender.flat_pos() - carrier.flat_pos()).normalized()
+	var front := carrier.facing.dot(to_def)
+	var base := tuning.tackle_side
+	if front > 0.35:
+		base = tuning.tackle_front
+	elif front < -0.35:
+		base = tuning.tackle_back
+	var chance := base + 0.2 * _duel_edge(defender, carrier)
+	if Dribble.is_exposed(ball.state.pos, carrier.global_position, carrier.facing):
+		chance += 0.15
+	var carrier_speed := Vector3(carrier.velocity.x, 0.0, carrier.velocity.z).length()
+	if carrier_speed < Dribble.SHIELD_SPEED * 2.0 and carrier.dribble_pressure > 0.6:
+		chance -= 0.12
+	return clampf(chance, 0.05, 0.92)
+
+
+## Resuelve una entrada. Si sale bien, el defensor se queda con la pelota; si
+## no, queda desbalanceado un instante. Devuelve true si robó.
+func _resolve_tackle(defender: Footballer, carrier: Footballer) -> bool:
+	defender.tackle_cooldown = tuning.tackle_cooldown
+	stats["tackles"][defender.team.index] += 1
+	if randf() < tackle_chance(defender, carrier):
+		carrier.touch_block = tuning.lost_ball_cooldown
+		ball.give_to(defender, true)
+		stats["tackles_won"][defender.team.index] += 1
+		return true
+	defender.stagger(tuning.tackle_fail_stagger)
+	return false
 
 
 ## Separación suave entre jugadores (sin física de cuerpos, decisión B).

@@ -24,7 +24,8 @@ var frozen: bool = false
 var _tuning: Tuning
 var _mesh: MeshInstance3D
 var _shadow: MeshInstance3D
-var _touch_timer: float = 0.0
+## Fase 0..1 del ciclo de toque de la conducción.
+var _touch_phase: float = 0.0
 
 
 func setup(tuning: Tuning) -> void:
@@ -65,13 +66,14 @@ func give_to(player: Footballer, receive: bool = false) -> void:
 	if intended_receiver != player:
 		intended_receiver = null
 	player.clear_pass_target()
-	_touch_timer = 0.0
+	_touch_phase = 0.0
 	if receive:
 		var pv := Vector3(player.velocity.x, 0.0, player.velocity.z)
 		var rel := state.vel - pv
 		var control := PlayerData.unit(player.data.ball_control) if player.data else 0.6
-		# Cuanto más rápida viene y peor el control, más rebota.
-		var keep := clampf(0.35 - control * 0.3 + rel.length() * 0.008, 0.02, 0.45)
+		# Primer control seguro: se amortigua casi toda la velocidad relativa.
+		# Sólo un pase muy fuerte a alguien de poco control se escapa un poco.
+		var keep := clampf(0.1 - control * 0.08 + maxf(rel.length() - 14.0, 0.0) * 0.012, 0.0, 0.25)
 		state.vel = pv + rel * keep
 		state.vel.y = minf(state.vel.y, 0.0) * 0.3
 		state.spin = Vector3.ZERO
@@ -128,49 +130,45 @@ func _hold_in_hands(dt: float) -> void:
 	_sync_node(dt)
 
 
-## Toques de conducción. La pelota sigue rodando con su física; acá sólo se
-## decide cuándo el conductor la vuelve a tocar y con qué velocidad.
+## Conducción guiada (ver Dribble): un resorte lleva la pelota hacia un punto
+## delante del pie que "late" con los toques. La física sigue actuando (rueda,
+## pica), así que en los giros la pelota queda un instante atrás y la sigue.
 func _dribble(dt: float) -> void:
 	var p := owner_player
-	_touch_timer = maxf(0.0, _touch_timer - dt)
 	var foot := Dribble.foot_point(p.global_position, p.facing)
-	var to_ball := Vector3(state.pos.x - foot.x, 0.0, state.pos.z - foot.z)
-	var dist := to_ball.length()
-	# Se le escapó: la pelota queda libre.
+	var dist := Vector3(state.pos.x - foot.x, 0.0, state.pos.z - foot.z).length()
+	# Sólo se pierde si algo la sacó lejos (un rebote, un golpe).
 	if dist > _tuning.dribble_lose_distance or state.pos.y > _tuning.control_height:
 		owner_player = null
 		return
-	var body_dist := Vector3(state.pos.x - p.global_position.x, 0.0, state.pos.z - p.global_position.z).length()
-	# Se puede tocar con el pie de adelante, pegada al cuerpo o, si se pide un
-	# giro, estirando la pierna.
-	var reach := Dribble.reach_for(p.intent_dir, state.vel)
-	if (dist > reach and body_dist > reach) or _touch_timer > 0.0:
-		return
 	var pv := Vector3(p.velocity.x, 0.0, p.velocity.z)
 	var speed := pv.length()
-	if speed < Dribble.SHIELD_SPEED:
-		# Quieto o casi: la pisa y la acomoda en el pie.
-		var pull := (foot - Vector3(state.pos.x, 0.0, state.pos.z)) * 5.0
-		state.vel = Vector3(pull.x, 0.0, pull.z).limit_length(2.0) + pv
-		return
-	var dir := p.intent_dir if p.intent_dir.length_squared() > 0.04 else pv
-	dir = Vector3(dir.x, 0.0, dir.z).normalized()
-	# Sólo se toca si el jugador la está alcanzando (si la pelota ya va más
-	# rápido en esa dirección, se la deja rodar: evita que se "acelere sola").
-	if state.vel.dot(dir) > pv.dot(dir) + 0.3:
-		return
-	# 0 = trote (o menos), 1 = sprint a fondo.
 	var jog := _tuning.run_speed * _tuning.dribble_speed_factor
 	var sprint := _tuning.sprint_speed * _tuning.dribble_speed_factor
 	var frac := clampf(inverse_lerp(jog, sprint, speed), 0.0, 1.0)
-	var control := PlayerData.centered(p.data.ball_control) if p.data else 0.0
-	var d := Dribble.touch_distance(frac, control, p.dribble_pressure, _tuning)
-	var along := pv.dot(dir)
-	state.vel = Dribble.touch_velocity(maxf(along, 0.0), dir, d, _tuning)
-	state.vel.y = 0.0
+	var control_c := PlayerData.centered(p.data.ball_control) if p.data else 0.0
+	var control_u := PlayerData.unit(p.data.ball_control) if p.data else 0.6
+	var target: Vector3
+	var shielding := speed < Dribble.SHIELD_SPEED * 2.0 and p.dribble_pressure > 0.6
+	if speed < Dribble.SHIELD_SPEED and not shielding:
+		# Quieto: la pisa en el pie.
+		target = foot
+		_touch_phase = 0.0
+	else:
+		var period := Dribble.touch_period(frac)
+		var before := _touch_phase
+		_touch_phase = fmod(_touch_phase + dt / period, 1.0)
+		if _touch_phase < before:
+			p.touches += 1
+		var d := Dribble.touch_distance(frac, control_c, p.dribble_pressure, _tuning)
+		target = Dribble.dribble_target(p.global_position, p.facing, Dribble.pulse(_touch_phase, d),
+			p.shield_from, shielding)
+	var to_target := target - Vector3(state.pos.x, 0.0, state.pos.z)
+	var desired := pv + to_target * Dribble.spring_rate(control_u)
+	var hv := Vector3(state.vel.x, 0.0, state.vel.z).move_toward(desired, _tuning.dribble_steer_accel * dt)
+	state.vel.x = hv.x
+	state.vel.z = hv.z
 	state.spin = Vector3.ZERO
-	_touch_timer = Dribble.TOUCH_COOLDOWN
-	p.touches += 1
 
 
 func _sync_node(dt: float) -> void:

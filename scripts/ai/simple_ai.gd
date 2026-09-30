@@ -164,6 +164,10 @@ func _chase(p: Footballer, ball: Ball, pressing: bool) -> void:
 	if p.desired_move.length_squared() < 0.01:
 		p.desired_move = (ball.flat_pos() - p.flat_pos()).normalized() * 0.5
 	p.pressing = pressing
+	# Entrada: la IA no la intenta en cada cuadro (si no, sería infalible por
+	# insistencia); en promedio ~2 intentos por segundo estando a distancia.
+	if pressing and randf() < 0.035:
+		p.wants_tackle = true
 	# Barrida ocasional si el portador está justo adelante.
 	if pressing and ball.owner_player != null:
 		var d := p.flat_pos().distance_to(ball.flat_pos())
@@ -304,7 +308,16 @@ func _keeper(p: Footballer, ball: Ball, dt: float) -> void:
 
 	var bp := ball.flat_pos()
 	var v := ball.state.vel
-	# Pelota viniendo al arco: se tira hacia el punto donde va a cruzar la línea.
+	# Remate en curso: se tira al punto de cruce. Si el modelo dice que no
+	# llega, igual lo intenta pero sale tarde (se lanza más lento).
+	var plan: Dictionary = _match.save_plan
+	if plan.get("keeper") == p:
+		var pt: Vector3 = plan["point"]
+		var spot0 := Vector3(goal.x - own * 0.4, 0.0, clampf(pt.z, -Pitch.GOAL_HALF_WIDTH, Pitch.GOAL_HALF_WIDTH))
+		p.speed_override = _match.tuning.keeper_dive_speed * (1.0 if plan["will_save"] else 0.55)
+		_go_to(p, spot0, true)
+		return
+	# Pelota viniendo al arco (no remate): se ubica donde va a cruzar la línea.
 	if ball.is_loose() and v.x * own > 4.0 and absf(bp.x - goal.x) < 35.0:
 		var t_cross := (goal.x - own * 0.6 - bp.x) / v.x
 		if t_cross > 0.0 and t_cross < 2.0:

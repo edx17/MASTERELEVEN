@@ -54,8 +54,8 @@ func test_sprint_dribble_keeps_ball_with_touches() -> void:
 	var info := _run(3.0)
 	assert_false(info["lost"], "no pierde la pelota corriendo derecho")
 	assert_gt(p.touches, 3, "conduce con toques")
-	assert_gt(info["max_gap"], 0.9, "la pelota no va pegada al pie")
-	assert_lt(info["max_gap"], 2.6, "pero tampoco se le escapa")
+	assert_gt(info["max_gap"], 0.7, "la pelota no va pegada al pie")
+	assert_lt(info["max_gap"], 1.8, "pero tampoco se le escapa")
 	assert_gt(p.global_position.x, -20.0 + 15.0, "avanzó en sprint")
 
 

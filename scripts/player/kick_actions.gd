@@ -191,22 +191,33 @@ func shoot(player: Footballer, dir: Vector3, power: float) -> void:
 	if randomize_error:
 		flat = flat.rotated(Vector3.UP, deg_to_rad(randf_range(-err, err)))
 	var speed := lerpf(tuning.shot_speed_min, tuning.shot_speed_max, power)
-	var angle := lerpf(tuning.shot_angle_min, tuning.shot_angle_max, power)
-	# Desde lejos hace falta algo más de elevación para que no muera rodando.
-	angle += clampf((to.length() - 16.0) * 0.12, 0.0, 4.0)
-	if power > 0.95:
-		angle += 5.0
 	if header:
 		speed *= 0.6
-		angle = -4.0 + power * 8.0
-	elif volley:
-		angle *= 0.6
-	var a := deg_to_rad(angle)
-	var vel := flat * cos(a) * speed + Vector3.UP * sin(a) * speed
+	# La potencia define a qué altura llega al arco: floja = rasante, fuerte =
+	# a media altura / arriba; a fondo (>95 %) se puede ir por arriba.
+	var aim_height := lerpf(tuning.shot_height_min, tuning.shot_height_max, power)
+	if power > 0.95:
+		aim_height += 0.9
+	if header:
+		aim_height = lerpf(0.3, 1.6, power)
+	if randomize_error:
+		aim_height += randf_range(-1.0, 1.0) * err * 0.06
+	var vel := shot_velocity(ball.state.pos, flat, to.length(), maxf(aim_height, 0.15), speed, tuning)
 	# Un poco de comba natural hacia el centro del arco.
 	var curl := Vector3(0.0, signf(aim_z) * side * randf_range(0.0, 3.0), 0.0) if randomize_error else Vector3.ZERO
 	ball.intended_receiver = null
 	ball.kick(vel, curl, player)
+
+
+## Velocidad de salida para que un remate a `speed` recorra `distance` en la
+## dirección `flat` y llegue a la línea a `aim_height`. Aproximación balística
+## con el tiempo de vuelo estimado (el arrastre se compensa un poco).
+static func shot_velocity(from: Vector3, flat: Vector3, distance: float, aim_height: float, speed: float, t: Tuning) -> Vector3:
+	var time := distance / maxf(speed * 0.93, 1.0)
+	var vy := (aim_height - from.y + 0.5 * t.gravity * time * time) / maxf(time, 0.05)
+	vy = clampf(vy, -speed * 0.3, speed * 0.6)
+	var vh := sqrt(maxf(speed * speed - vy * vy, speed * speed * 0.5))
+	return flat * vh + Vector3.UP * vy
 
 
 func _throw_in(kind: int, player: Footballer, dir: Vector3, power: float) -> Footballer:

@@ -49,9 +49,12 @@ var touches: int = 0
 ## Depuración (F9): hacia dónde va y qué está haciendo según su controlador.
 var debug_target: Vector3 = Vector3.ZERO
 var debug_state: String = ""
-## Dirección que el controlador quiere dar a la pelota (antes de la asistencia
-## de conducción, que puede desviar `desired_move` hacia la pelota).
-var intent_dir: Vector3 = Vector3.ZERO
+## Posición del rival más cercano (la fija el partido; sirve para cubrir la pelota).
+var shield_from: Vector3 = Vector3.ZERO
+## Tiempo hasta poder intentar otra entrada.
+var tackle_cooldown: float = 0.0
+## El controlador pide una entrada este tick (la resuelve el partido).
+var wants_tackle: bool = false
 
 var _tuning: Tuning
 var _arrow: Label3D
@@ -120,6 +123,15 @@ func start_slide(direction: Vector3) -> void:
 	velocity = facing * _tuning.slide_speed
 
 
+## Desbalance breve (entrada fallida): no puede tocar la pelota ni acelerar.
+func stagger(duration: float) -> void:
+	if state != State.NORMAL:
+		return
+	state = State.RECOVERING
+	state_timer = duration
+	velocity *= 0.4
+
+
 ## Mueve instantáneamente al jugador (reubicaciones de pelota parada).
 func teleport(pos: Vector3, look_dir: Vector3 = Vector3.ZERO) -> void:
 	global_position = Vector3(pos.x, 0.0, pos.z)
@@ -133,6 +145,7 @@ func teleport(pos: Vector3, look_dir: Vector3 = Vector3.ZERO) -> void:
 ## Avanza un paso de simulación. `has_ball` lo informa el partido.
 func tick(dt: float, has_ball: bool) -> void:
 	touch_block = maxf(0.0, touch_block - dt)
+	tackle_cooldown = maxf(0.0, tackle_cooldown - dt)
 	pass_target_timer = maxf(0.0, pass_target_timer - dt)
 	possession_time = possession_time + dt if has_ball else 0.0
 
