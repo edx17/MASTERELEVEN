@@ -89,7 +89,8 @@ func tick(dt: float) -> void:
 	if p == null:
 		return
 
-	var move := input.move_vector()
+	# El stick está en coordenadas de pantalla: se traduce según la cámara.
+	var move := _match.screen_to_world(input.move_vector())
 	var opponent_has_ball := ball.owner_player != null and ball.owner_player.team != team
 
 	p.wants_sprint = input.pressed(&"sprint")

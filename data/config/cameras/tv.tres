@@ -4,3 +4,4 @@
 
 [resource]
 script = ExtResource("1_cam")
+display_name = "TV"

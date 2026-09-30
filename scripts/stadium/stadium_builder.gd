@@ -93,7 +93,8 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 				# Escaleras cada 24 butacas.
 				if s % 24 == 0:
 					c = CONCRETE.lightened(0.2)
-				elif tier_i == 0 and letters.has(Vector2i(s, rows - 1 - r)):
+				# El eje X local de la tribuna mira al revés que la cámara: se invierte.
+				elif tier_i == 0 and letters.has(Vector2i(seats_per_row - 1 - s, rows - 1 - r)):
 					c = text_color
 				elif (s / 24 + r / 6) % 2 == 1:
 					c = seat_color.darkened(0.08)
@@ -143,6 +144,20 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 	roof.material_override = _mat(Color(0.3, 0.3, 0.33))
 	roof.position = Vector3(0, roof_y + 0.6, z + 0.5 - roof_depth * 0.275)
 	stand.add_child(roof)
+
+
+## La tribuna `stand_name` (entre la cámara y la cancha) pasa a proyectar sólo
+## sombra: no tapa la vista pero la cancha conserva su sombra. Las demás se ven.
+static func set_camera_side(root: Node3D, stand_name: String) -> void:
+	for stand in root.get_children():
+		if not stand.name.begins_with("Stand"):
+			continue
+		var mode := GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		if stand_name != "" and String(stand.name).begins_with(stand_name):
+			mode = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		for child in stand.get_children():
+			if child is GeometryInstance3D:
+				(child as GeometryInstance3D).cast_shadow = mode
 
 
 ## Caja alineada a los ejes agregada a un SurfaceTool.
@@ -201,7 +216,12 @@ static func _perimeter(root: Node3D) -> void:
 
 
 ## Bancos de suplentes, túnel y marcas del área técnica (lado de la cámara).
-static func _technical_area(root: Node3D) -> void:
+static func _technical_area(parent: Node3D) -> void:
+	# Van en su propio nodo "StandSouthTech": del lado de la cámara de TV, así
+	# que se ocultan junto con la tribuna sur (sólo proyectan sombra).
+	var root := Node3D.new()
+	root.name = "StandSouthTech"
+	parent.add_child(root)
 	var line := _mat(Color(0.95, 0.95, 0.95))
 	for side in [-1, 1]:
 		var cx: float = side * 9.0
@@ -216,7 +236,8 @@ static func _technical_area(root: Node3D) -> void:
 			m.mesh = b
 			m.material_override = line
 			m.position = seg[0] + Vector3(seg[1].x * 0.5 if seg[1].x > 1.0 else 0.0, 0, 0)
-			root.add_child(m)
+			# Las líneas están en el césped: siempre visibles.
+			parent.add_child(m)
 		# Banco con techito.
 		var bench := MeshInstance3D.new()
 		var bb := BoxMesh.new()

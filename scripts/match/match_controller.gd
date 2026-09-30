@@ -36,6 +36,11 @@ var restart_taker: Footballer = null
 var kick_count: int = 0
 ## Trayectoria predicha de la pelota suelta (cada FORECAST_STEP segundos).
 var ball_forecast: Array[Vector3] = []
+## Nodo raíz del estadio (la cámara oculta la tribuna que la tapa).
+var stadium: Node3D
+## Aviso corto en pantalla (p. ej. al cambiar de cámara).
+var toast_text: String = ""
+var _toast_timer: float = 0.0
 ## Estadísticas simples del partido, por equipo.
 var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won": [0, 0]}
 ## Atajada planificada para el último remate (ver SaveModel):
@@ -108,7 +113,8 @@ func attack_dirs() -> Array[int]:
 func _build_world() -> void:
 	_build_lighting()
 	add_child(PitchBuilder.build())
-	add_child(StadiumBuilder.build(GameSettings.home_team()))
+	stadium = StadiumBuilder.build(GameSettings.home_team())
+	add_child(stadium)
 
 	ball = Ball.new()
 	ball.name = "Ball"
@@ -135,6 +141,7 @@ func _build_world() -> void:
 	add_child(_camera)
 	_camera.setup(self)
 	_camera.current = true
+	_camera.mode_changed.connect(func(n: String) -> void: show_toast("Cámara: %s" % n))
 
 	var pause := PauseMenu.new()
 	add_child(pause)
@@ -214,6 +221,23 @@ func _physics_process(dt: float) -> void:
 	clock.advance(dt)
 	if clock.is_half_over() and phase == Phase.PLAYING:
 		_end_half()
+
+
+func show_toast(text: String, seconds: float = 1.5) -> void:
+	toast_text = text
+	_toast_timer = seconds
+
+
+## Dirección de pantalla (stick) -> cancha, según la cámara actual.
+func screen_to_world(v: Vector3) -> Vector3:
+	return _camera.screen_to_world(v) if _camera != null else v
+
+
+func _process(dt: float) -> void:
+	if _toast_timer > 0.0:
+		_toast_timer -= dt
+		if _toast_timer <= 0.0:
+			toast_text = ""
 
 
 func _update_phase(dt: float) -> void:

@@ -87,6 +87,7 @@ Si esto no funciona, NO se agregan sistemas: se corrige el gameplay primero.
 | Sprint                 | R1 / RB        | Shift       |
 | Cambiar jugador        | L1 / LB        | Q           |
 | Pausa                  | Start          | Esc         |
+| Cambiar cámara         | Select / Back  | C           |
 | Debug                  | —              | F9          |
 La potencia de tiro y pase se gradúa manteniendo el botón (barra de potencia).
 Todo definido en el Input Map de Godot, nunca hardcodeado.

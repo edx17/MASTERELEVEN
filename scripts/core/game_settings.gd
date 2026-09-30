@@ -16,6 +16,8 @@ var tuning: Tuning
 ## Equipos del próximo partido (rutas a TeamData).
 var home_team_path: String = DEFAULT_HOME
 var away_team_path: String = DEFAULT_AWAY
+## Modo de cámara elegido (índice en MatchCamera.PRESETS); se recuerda entre partidos.
+var camera_preset: int = 0
 
 
 func _ready() -> void:

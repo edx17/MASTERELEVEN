@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CameraConfig" format=3]
+
+[ext_resource type="Script" path="res://scripts/camera/camera_config.gd" id="1_cam"]
+
+[resource]
+script = ExtResource("1_cam")
+display_name = "Vertical"
+mode = 1
+camera_height = 15.0
+camera_distance = 22.0
+base_fov = 48.0
+horizontal_offset = 6.0
+track_z = 0.8
+follow_speed = 3.0
