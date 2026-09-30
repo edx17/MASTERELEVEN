@@ -78,3 +78,29 @@ func test_22_animated_players_fit_the_frame_budget() -> void:
 	var ms := (Time.get_ticks_usec() - t) / 1000.0 / 30.0
 	gut.p("animación de 22 jugadores: %.2f ms por cuadro" % ms)
 	assert_lt(ms, 6.0, "bien por debajo de 16,6 ms (60 FPS)")
+
+
+func test_mixamo_clips_when_present() -> void:
+	# Las animaciones de Mixamo no van en el repo: el test sólo corre si están.
+	var lib := MixamoLibrary.library(ModelVisual._body_scene)
+	if lib == null:
+		pass_test("sin animaciones de Mixamo en esta copia")
+		return
+	var v := _visual()
+	_step(v, 0.0, 5)
+	v.play(PlayerVisual.Event.KICK)
+	assert_eq(v._clip, "kick", "la patada usa la animación de Mixamo")
+	var foot := v._skel.find_bone("foot_r")
+	var max_z := -INF
+	for i in 20:
+		_step(v, 0.0, 1)
+		v._skel.force_update_all_bone_transforms()
+		max_z = maxf(max_z, v._skel.get_bone_global_pose(foot).origin.z)
+	assert_gt(max_z, 0.3, "el pie derecho sale adelante con la animación retargeteada")
+	v.play(PlayerVisual.Event.DIVE_RIGHT)
+	assert_eq(v._clip, "gk_dive_px")
+	for i in 60:
+		_step(v, 0.0, 1)
+	v._skel.force_update_all_bone_transforms()
+	var pelvis := v._skel.get_bone_global_pose(v._skel.find_bone("pelvis")).origin
+	assert_gt(pelvis.x, 0.3, "vuela de costado hacia +X")

@@ -413,7 +413,7 @@ func _show_kick(kicker: Footballer) -> void:
 	if kicker == null or kicker.visual == null:
 		return
 	var ev := PlayerVisual.Event.KICK
-	if kicks.throw_in_mode:
+	if kicks.throw_in_mode or (_in_kick and kicks.hand_throw):
 		ev = PlayerVisual.Event.THROW
 	elif ball.state.pos.y > 1.3:
 		ev = PlayerVisual.Event.HEADER
@@ -606,6 +606,8 @@ func _try_take_loose_ball() -> void:
 	if receiver != null and receiver != best:
 		receiver.clear_pass_target()
 	save_plan = {}
+	if hands and best.visual != null:
+		best.visual.play(PlayerVisual.Event.CATCH)
 	ball.give_to(best, true, hands)
 
 
