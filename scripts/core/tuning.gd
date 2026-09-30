@@ -83,6 +83,10 @@ extends Resource
 @export var receive_radius: float = 1.1
 ## Altura máxima a la que un jugador de campo controla la pelota.
 @export var control_height: float = 1.1
+## Altura hasta la que el receptor de un pase la baja con el pecho/muslo
+## (el resto de los jugadores, hasta loose_chest_height).
+@export var chest_control_height: float = 1.9
+@export var loose_chest_height: float = 1.5
 ## Probabilidad por segundo de que un rival se quede con una pelota expuesta
 ## (lejos del pie del conductor, p. ej. en sprint) si está dentro de control_radius.
 @export var intercept_rate: float = 4.0
@@ -111,8 +115,10 @@ extends Resource
 ## Tiempo para cargar la barra de potencia de 0 a 1.
 @export var power_charge_time: float = 0.85
 ## Velocidad con la que un pase corto llega al receptor (mín/máx según potencia).
-@export var short_pass_arrive_min: float = 5.0
-@export var short_pass_arrive_max: float = 9.0
+## Aun con un toque corto de botón el pase sale firme (como en WE): la barra
+## ajusta poco la velocidad del pase corto.
+@export var short_pass_arrive_min: float = 7.0
+@export var short_pass_arrive_max: float = 10.0
 ## Distancia máxima que se considera para un pase corto.
 @export var short_pass_max_distance: float = 35.0
 ## Adelanto del pase al hueco (mín/máx según potencia).
@@ -132,8 +138,10 @@ extends Resource
 @export var shot_height_min: float = 0.2
 @export var shot_height_max: float = 1.9
 ## Ayuda al pasar (0 = el pase sale exactamente hacia el stick, 1 = va
-## directo al receptor elegido). WE: ayuda leve, se puede fallar.
-@export var pass_assist: float = 0.88
+## directo al receptor elegido). El stick ya eligió al receptor, así que el
+## pase va hacia él (igual que los de la IA); el error lo ponen los atributos,
+## la presión, el cuerpo y el cansancio.
+@export var pass_assist: float = 0.97
 ## Cono (grados) para buscar receptor en la dirección del stick.
 @export var pass_cone_degrees: float = 50.0
 ## Tiempo durante el que se recuerda un pase/tiro pedido antes de recibir (toque de primera).

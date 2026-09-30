@@ -69,3 +69,47 @@ func test_kpi_save_rate_in_the_box_is_realistic() -> void:
 	var rate := total / n
 	gut.p("Atajadas esperadas en el área: %.0f %% (%d tiros al arco)" % [rate * 100.0, n])
 	assert_between(rate, 0.45, 0.75)
+
+
+func test_kpi_long_shots_are_mostly_saved() -> void:
+	# Reclamo: "no importa de qué distancia, siempre es gol". De afuera del
+	# área (20-30 m) un arquero bien ubicado ataja la gran mayoría.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var total := 0.0
+	var n := 0
+	for i in 200:
+		var dist := rng.randf_range(20.0, 30.0)
+		var z := rng.randf_range(-10.0, 10.0)
+		var from := Vector3(Pitch.HALF_LENGTH - dist, 0.11, z)
+		var power := rng.randf_range(0.4, 0.95)
+		var plan := _shot(from, rng.randf_range(-3.4, 3.4), lerpf(t.shot_height_min, t.shot_height_max, power),
+			lerpf(t.shot_speed_min, t.shot_speed_max, power))
+		if not plan.on_target:
+			continue
+		var goal := Vector3(Pitch.HALF_LENGTH, 0, 0)
+		var keeper := goal + (Vector3(from.x, 0, from.z) - goal).normalized() * 2.5
+		total += SaveModel.evaluate(plan, keeper, 60, 60).chance
+		n += 1
+	var rate := total / n
+	gut.p("Atajadas esperadas de afuera del área: %.0f %% (%d tiros al arco)" % [rate * 100.0, n])
+	assert_gt(rate, 0.8)
+
+
+func test_keeper_off_his_line_narrows_the_angle() -> void:
+	# Mano a mano de frente: adelantado le cubre más arco que clavado en la
+	# línea (achicar sirve).
+	var from := Vector3(Pitch.HALF_LENGTH - 8.0, 0.11, 0.0)
+	var on_line := SaveModel.evaluate(_shot(from, 3.0, 0.5, 20.0), Vector3(Pitch.HALF_LENGTH - 0.3, 0, 0), 60, 60)
+	var out := SaveModel.evaluate(_shot(from, 3.0, 0.5, 20.0), Vector3(Pitch.HALF_LENGTH - 3.0, 0, 0), 60, 60)
+	assert_gt(out.margin, on_line.margin, "achicando: %.2f m vs en la línea: %.2f m" % [out.margin, on_line.margin])
+
+
+func test_lob_over_an_advanced_keeper() -> void:
+	# Vaselina: con el arquero muy adelantado, la pelota le pasa por arriba.
+	var from := Vector3(Pitch.HALF_LENGTH - 22.0, 0.11, 0.0)
+	var v := Vector3(16.0, 8.5, 0.0)
+	var plan := SaveModel.predict_crossing(BallState.new(from, v), Pitch.HALF_LENGTH, t)
+	assert_true(plan.on_target, "la vaselina va al arco (cruce %s)" % plan.point)
+	var far_out := SaveModel.evaluate(plan, Vector3(Pitch.HALF_LENGTH - 12.0, 0, 0), 60, 60).chance
+	assert_lt(far_out, 0.3, "adelantado, la vaselina le gana")

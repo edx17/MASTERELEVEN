@@ -21,7 +21,7 @@ gameplay WE2002**; cuando ambos chocan, gana la jugabilidad.
 | Jugadores: sprint 8-9 m/s | Sprint 8,4 m/s (±8 % por atributo) | `Tuning.sprint_speed`, `Footballer` | — |
 | Tiempo de reacción 0,15-0,25 s | IA: 0,15-0,25 s ante cada patada según `reaction` | `SimpleAI.tick`, `Tuning.ai_reaction_*` | `test_ai_reacts_after_a_delay` |
 | Estamina: sprint -20-30 puntos en 10 s, recuperación en reposo, al agotarse baja la velocidad y la precisión | Energía 0-100: -2,6/s en sprint (menos con buen atributo), +0,9/s trotando, +2,2/s parado; < 35 → hasta -15 % de velocidad; sin energía no se sprinta; hasta +2,5° de error | `Footballer.update_stamina`, `KickAccuracy.fatigue_penalty` | `test_stamina.gd` |
-| Arquero: reacción 0,3-0,4 s, desplazamiento 6-7 m/s, < 75 % de atajadas en el área | Reacción 0,25-0,40 s, estirada 4,5-6,5 m/s, alcance 0,9-1,5 m según atributos | `SaveModel` | `test_kpi_save_rate_in_the_box_is_realistic` (74 %) |
+| Arquero: reacción 0,3-0,4 s, desplazamiento 6-7 m/s, < 75 % de atajadas en el área | Reacción 0,25-0,40 s, estirada 4,5-6,5 m/s, alcance 0,8-1,4 m según atributos; se evalúa todo el tramo final del remate (achicar sirve, la vaselina le gana al adelantado); desvíos: +0,12 s | `SaveModel` | `test_kpi_save_rate_in_the_box_is_realistic` (75 %), `test_kpi_long_shots_are_mostly_saved` (90 %) |
 
 ## Qué NO se adopta (y por qué)
 

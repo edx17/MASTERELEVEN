@@ -30,6 +30,7 @@ Ver `Claude.md` para visión, criterios y fases.
 - [x] **Dificultad** Fácil / Normal / Difícil (menú principal y pausa; sólo afecta a la CPU). En la pausa también se cambia la formación del equipo propio.
 - [x] Debug F9 muestra el estado táctico, formación y dificultad de cada equipo y la posición táctica de cada jugador.
 - [x] Tests (88): forma del equipo, estados, acompañamiento del portador, córner, saque de arco, lateral, cambio de formación.
+- [x] Pulido tras tu prueba (ver abajo): arquero, achique con Triángulo, pases de primera/atrás/horizontales, control aéreo. Tests: 99.
 
 ### Resultado en simulaciones CPU vs CPU (3 min)
 Siempre hay un compañero a menos de 15 m del que tiene la pelota (96-99 %); 4-8 tiros y 0-4 goles por partido; posesión repartida; los equipos pasan por todos los estados.
@@ -37,6 +38,17 @@ Siempre hay un compañero a menos de 15 m del que tiene la pelota (96-99 %); 4-8
 ### Pendiente
 - [ ] **Tu prueba**: ¿la CPU juega "como un equipo" y un partido contra ella es competitivo?
 - [ ] Offside y trampa del offside quedan con las reglas (Fase 4).
+
+### Primera ronda de pulido (tu prueba de la Fase 3)
+Te gustaron la dificultad y el acompañamiento en ataque y defensa. Cambios por cada reclamo:
+
+| Reclamo | Causa encontrada | Cambio |
+|---|---|---|
+| "Siempre que patean a mi arco es gol" | El modelo de atajada aislado andaba (~75 % en el área), pero en el partido: (1) un remate desviado en un defensor dejaba el plan viejo y el arquero **no podía tocar** la pelota nueva; (2) el arquero despejaba de volea y la pelota rebotaba en el delantero que presionaba y volvía al arco; (3) de líbero se adelantaba hasta 14 m y volvía caminando. | Todo desvío invalida el plan; si el desvío va fuerte al arco se replanifica (con +0,12 s de reacción) y si es flojo el arquero la agarra normal. El despeje del arquero no se puede cortar los primeros 0,3 s. Líbero hasta 9 m y vuelve corriendo. `SaveModel` ahora evalúa todo el tramo final del remate: adelantado achica el ángulo, pero una vaselina le pasa por arriba. KPI: 75 % de atajadas en el área, **90 % de afuera del área**. En la simulación con un "humano" que presiona: de 6 goles recibidos a 1 (9 tiros, 5 atajadas). |
+| Triángulo para que salga el arquero | — | **Triángulo mantenido defendiendo**: el arquero sale a achicar al que lleva la pelota (hasta 30 m del arco); fuera del área va a la entrada. |
+| Pase de primera "sale a cualquier lugar" | Con el stick apuntando al próximo compañero, el receptor **caminaba hacia ese lado** en vez de ir a la pelota; la orden guardada vencía a los 0,55 s (antes de que llegara un pase largo) y el receptor se elegía desde la pelota en el aire. | Con un toque de primera pedido, el stick sólo apunta: el receptor sigue yendo a la pelota; la orden dura hasta que llega; el receptor se elige desde el pie del que va a patear. Test: 8/8 al compañero del stick. |
+| Pases hacia atrás y horizontales cuestan | La ayuda sólo corregía el 88 % del ángulo hacia el receptor (la IA siempre apunta exacto); el pase corto con toque corto de botón salía flojo; pasar "con el cuerpo cruzado" sumaba hasta 4° de error. | Ayuda al 97 % (como la IA: el error lo ponen atributos, presión y cansancio); pase corto siempre firme (7-10 m/s al llegar); orientación del cuerpo hasta 1,5°. Tests: atrás 100 %, horizontal 100 % (rivales lejos). |
+| Los pases aéreos no se controlan | Sólo se controlaba por debajo de 1,1 m: un pase largo pasaba de largo o picaba alto. | **Control con pecho/muslo**: el receptor del pase la baja hasta 1,9 m (cualquier otro hasta 1,5 m) y la pelota cae mansa al pie. El pase largo siempre busca a alguien en la dirección del stick (hasta 100°). Test: 100 % de pases largos controlados. |
 
 ### Para la Fase 4 (de tu prueba)
 - Energía: fatiga acumulada en minutos de juego y entre tiempos (hoy nadie se cansa en un partido de 5 minutos reales).
