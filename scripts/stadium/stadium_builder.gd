@@ -30,8 +30,8 @@ static func build(home: TeamData) -> Node3D:
 	# Tribuna principal (frente a la cámara): dos bandejas y el nombre del club.
 	_stand(root, "North", Vector3(0, 0, -1), Pitch.HALF_LENGTH * 2.0 + 20.0, [26, 20], seat_color, text_color, name)
 	# Cabeceras.
-	_stand(root, "West", Vector3(-1, 0, 0), Pitch.HALF_WIDTH * 2.0 + 14.0, [24], seat_color, text_color, "")
-	_stand(root, "East", Vector3(1, 0, 0), Pitch.HALF_WIDTH * 2.0 + 14.0, [24], seat_color, text_color, "")
+	_stand(root, "West", Vector3(-1, 0, 0), Pitch.HALF_WIDTH * 2.0 + 14.0, [22, 16], seat_color, text_color, "")
+	_stand(root, "East", Vector3(1, 0, 0), Pitch.HALF_WIDTH * 2.0 + 14.0, [22, 16], seat_color, text_color, "")
 	# Tribuna detrás de la cámara (casi no se ve; da sombra y cierre).
 	_stand(root, "South", Vector3(0, 0, 1), Pitch.HALF_LENGTH * 2.0 + 20.0, [18], seat_color, text_color, "")
 	_perimeter(root)
@@ -63,8 +63,7 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 	var total_rows := 0
 	for t in tiers:
 		total_rows += int(t)
-	var seat_mesh := BoxMesh.new()
-	seat_mesh.size = Vector3(SEAT_PITCH * 0.82, 0.42, 0.42)
+	var seat_mesh := _seat_mesh()
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
@@ -72,6 +71,8 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 	mm.instance_count = seats_per_row * total_rows
 	var steps := SurfaceTool.new()
 	steps.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var fascia := SurfaceTool.new()
+	fascia.begin(Mesh.PRIMITIVE_TRIANGLES)
 
 	var letters := PixelFont.layout(text, seats_per_row, tiers[0] if tiers.size() > 0 else 0)
 	var idx := 0
@@ -81,9 +82,13 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 	for tier_i in tiers.size():
 		var rows: int = tiers[tier_i]
 		if tier_i > 0:
-			# Pasillo y voladizo entre bandejas.
+			# Pasillo y voladizo entre bandejas: frente oscuro de la bandeja
+			# superior (como en los estadios modernos).
 			z += 2.5
 			y += 3.2
+			_box(fascia, Vector3(-length * 0.5, y - ROW_RISE - 2.2, z - 0.4), Vector3(length * 0.5, y - ROW_RISE + 0.3, z))
+		# Baranda al frente de cada bandeja.
+		_railing(stand, length, y - ROW_RISE, z - 0.1)
 		for r in rows:
 			# Escalón de hormigón.
 			_box(steps, Vector3(-length * 0.5, y - ROW_RISE, z), Vector3(length * 0.5, y, z + ROW_DEPTH))
@@ -96,9 +101,7 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 				# El eje X local de la tribuna mira al revés que la cámara: se invierte.
 				elif tier_i == 0 and letters.has(Vector2i(seats_per_row - 1 - s, rows - 1 - r)):
 					c = text_color
-				elif (s / 24 + r / 6) % 2 == 1:
-					c = seat_color.darkened(0.08)
-				mm.set_instance_transform(idx, Transform3D(Basis.IDENTITY, Vector3(x, y + 0.21, z + ROW_DEPTH * 0.55)))
+				mm.set_instance_transform(idx, Transform3D(Basis.IDENTITY, Vector3(x, y, z + ROW_DEPTH * 0.5)))
 				mm.set_instance_color(idx, c)
 				idx += 1
 			y += ROW_RISE
@@ -109,6 +112,13 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 	steps_mi.mesh = steps.commit()
 	steps_mi.material_override = _mat(CONCRETE)
 	stand.add_child(steps_mi)
+
+	if tiers.size() > 1:
+		fascia.generate_normals()
+		var fascia_mi := MeshInstance3D.new()
+		fascia_mi.mesh = fascia.commit()
+		fascia_mi.material_override = _mat(Color(0.07, 0.07, 0.08), 0.5)
+		stand.add_child(fascia_mi)
 
 	var seats := MultiMeshInstance3D.new()
 	seats.multimesh = mm
@@ -144,6 +154,34 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 	roof.material_override = _mat(Color(0.3, 0.3, 0.33))
 	roof.position = Vector3(0, roof_y + 0.6, z + 0.5 - roof_depth * 0.275)
 	stand.add_child(roof)
+
+
+## Butaca: asiento y respaldo (una sola malla, instanciada por MultiMesh).
+static func _seat_mesh() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var w := SEAT_PITCH * 0.4
+	_box(st, Vector3(-w, 0.36, -0.2), Vector3(w, 0.44, 0.2))
+	_box(st, Vector3(-w, 0.36, 0.16), Vector3(w, 0.82, 0.24))
+	st.generate_normals()
+	return st.commit()
+
+
+## Baranda metálica (pasamanos y parantes) al frente de una bandeja.
+static func _railing(stand: Node3D, length: float, y: float, z: float) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	_box(st, Vector3(-length * 0.5, y + 0.95, z - 0.03), Vector3(length * 0.5, y + 1.0, z + 0.03))
+	_box(st, Vector3(-length * 0.5, y + 0.5, z - 0.02), Vector3(length * 0.5, y + 0.53, z + 0.02))
+	var posts := int(length / 2.5)
+	for i in posts + 1:
+		var x := -length * 0.5 + i * (length / posts)
+		_box(st, Vector3(x - 0.025, y, z - 0.025), Vector3(x + 0.025, y + 1.0, z + 0.025))
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = _mat(Color(0.55, 0.56, 0.6), 0.3)
+	stand.add_child(mi)
 
 
 ## La tribuna `stand_name` (entre la cámara y la cancha) pasa a proyectar sólo
