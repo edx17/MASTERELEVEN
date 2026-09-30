@@ -1,54 +1,67 @@
 # Progreso — Master Eleven
 
-Motor: **Godot 4.7.2** (última estable al arrancar la Fase 1), GDScript.
+Motor: **Godot 4.7.2**, GDScript. Referencia de gameplay: WE2002 (ForeverEleven).
+Ver `Claude.md` para visión, criterios y fases.
 
 | Fase | Estado |
 |------|--------|
-| 1 — Partido jugable básico | 🟡 Implementada, pendiente de tu prueba de "sensación" con mando y teclado |
-| 2 — IA de partido | ⬜ No iniciada |
-| 3 — Atributos y jugadores | ⬜ No iniciada |
-| 4 — Liga Master | ⬜ No iniciada |
-| 5 — Torneos | ⬜ No iniciada |
-| 6 — Gráficos y presentación | ⬜ No iniciada |
-| 7 — Pulido | ⬜ No iniciada |
+| 1 — Base jugable | ✅ Hecha |
+| 2 — Prototipo 0.1: sensación de juego | 🟡 Implementada, **pendiente de tu prueba** con mando y teclado |
+| 3 — IA de partido (TeamAI, formaciones, zonas, arquero) | ⬜ |
+| 4 — Reglas, atributos y plantel | ⬜ |
+| 5 — Presentación moderna (estadio, modelos, animaciones, audio) | ⬜ |
+| 6 — Liga Master | ⬜ |
+| 7 — Torneos | ⬜ |
+| 8 — Pulido | ⬜ |
 
 ---
 
-## Fase 1 — Partido jugable básico
+## Fase 2 — Prototipo 0.1 (en curso)
 
 ### Hecho
-- [x] Proyecto Godot 4 + estructura de carpetas + Input Map completo (teclado y mando, nada hardcodeado).
-- [x] Acciones por jugador (`p0_*`, `p1_*`) derivadas del Input Map, con reasignación automática al conectar/desconectar mandos.
-- [x] Parámetros de sensación en `data/tuning/default_tuning.tres` (editable desde el Inspector).
-- [x] Cancha reglamentaria 105 x 68 con líneas, áreas, medialunas, círculo central, córners, banderines.
-- [x] Arcos con postes, travesaño y red (colisión propia: la red frena la pelota).
-- [x] Pelota con física propia: gravedad, arrastre, piques, rozamiento, efecto (Magnus), sombra para leer la altura.
-- [x] 11 vs 11 con cápsulas de color + número, formación 4-4-2.
-- [x] Control humano: movimiento, sprint, conducción pegada al pie, pase corto, largo/centro, al hueco, tiro con barra de potencia, toque de primera, presión, barrida.
-- [x] Cambio de jugador automático (receptor del pase / más cercano) + manual.
-- [x] Robo por contacto y por barrida.
-- [x] Reglas: gol, saque de arco, córner, lateral, saque del medio, entretiempo con cambio de lado, final.
-- [x] Cámara lateral de TV con suavizado y anticipación.
-- [x] HUD: marcador, reloj acelerado (3/5/7/10 min), barra de potencia, jugador controlado, carteles.
-- [x] IA provisoria (bloque que se desplaza, presión, cobertura, conducción, pase, tiro, arquero).
-- [x] Menú principal (vs CPU, 2 jugadores, CPU vs CPU) y pausa.
-- [x] Tests unitarios (GUT): física de pelota, reglas, reloj, elección de receptor, formación, humo de partido completo.
+- [x] `Claude.md` fusionado con la visión "WE2002 modernizado" y fases reordenadas.
+- [x] Estructura de carpetas nueva (`scripts/{player,ball,camera,tactics,stadium,...}`, `systems/input`, `data/{teams,formations,config}`).
+- [x] Datos en recursos: `PlayerData` (atributos 1-99), `TeamData`, `FormationData`; 2 equipos ficticios de 16 jugadores en `data/teams/*.tres` (regenerables con `tools/generate_data.gd`).
+- [x] Input desacoplado: `InputSource` → `HumanInput` (teclado/mando) y `ScriptedInput` (tests). `HumanController` ya no lee el singleton `Input`.
+- [x] **Pelota independiente al conducir** (`Dribble`): toques que la hacen rodar libre; la distancia depende de velocidad (trote corto, sprint largo), `ball_control` y presión rival. Toque de giro y asistencia de conducción para doblar con la pelota.
+- [x] Recepción con primer control según `ball_control` y velocidad de la pelota; el receptor humano va al encuentro con el stick suelto.
+- [x] Defensa por timing: entre toques la pelota queda expuesta y el rival bien ubicado se la queda; con la pelota en el pie sólo por contacto y con menos probabilidad (defensa vs control, más difícil desde atrás).
+- [x] Giro dependiente de la velocidad (rápido lento, amplio en sprint) y atributos de velocidad/aceleración.
+- [x] Pases con asistencia parcial (`pass_assist`), error por atributos/presión/orientación/potencia; centro automático desde la banda; remates con error, cabezazo y volea según la altura.
+- [x] Cámara de transmisión configurable (`data/config/camera.tres`): altura, distancia, ángulo, seguimiento, anticipación, zoom, offsets, deslizamiento por la tribuna.
+- [x] HUD simple (`AUR 1 - 0 HAL` + reloj, jugador seleccionado, barra de potencia chica abajo al centro) e indicador discreto sobre la cabeza.
+- [x] Modo debug **F9**: estado del partido, posesión, pelota, presión, error del último pase/tiro, estados de IA; trayectoria de la pelota, objetivos y posiciones tácticas en 3D.
+- [x] Tests: 45 (física, reglas, reloj, receptor, formación, conducción, giro, pase con input programado, precisión, humo de partido, debug).
 
-### Pendiente / a validar
-- [ ] **Criterio de aceptación:** jugar un partido completo con mando y con teclado y confirmar que se siente fluido y divertido (lo tenés que validar vos).
-- [ ] Ajuste fino de valores de `default_tuning.tres` según tu feedback.
+### Pendiente
+- [ ] **Tu prueba** con el "criterio de éxito del gameplay" de `Claude.md` y ajuste de `data/config/tuning.tres` / `camera.tres` según tu feedback.
+- [ ] La IA sigue siendo la provisoria (Fase 3): CPU vs CPU es muy conservadora.
 
-### Correcciones durante la validación (código ya entregado)
-- `scripts/match/footballer.gd`: se reemplazó `move_and_slide()` por integración propia (`position += velocity·dt`); fuera del paso de física del motor desplazaba a los jugadores ~8x más rápido.
-- `scripts/match/ball.gd`: la velocidad de la pelota en conducción se limita (al soltarse salía disparada a 30-40 m/s); el arquero la lleva en las manos.
-- `scripts/match/match_controller.gd`: reglas antes que posesión (no se ataja una pelota que ya entró); al detenerse el juego nadie conserva la pelota; el arquero no es empujado por la separación ni queda detrás de su línea; el arquero puede sacarle la pelota de los pies al atacante; robo desde atrás más difícil; el HUD se crea después de los controladores (antes fallaba en cada cuadro).
-- `scripts/match/pitch_builder.gd`, `ball_physics.gd`: bucles tipados (error de compilación en Godot 4.7).
-- `scripts/core/tuning.gd` y `scripts/ai/simple_ai.gd`: ajustes de robo, conducción, red y decisiones de la IA.
+### Cambios a código ya entregado (Fase 2)
+- Archivos movidos de carpeta sin cambios de lógica (ver commit "migración").
+- `scripts/ball/ball.gd`: la conducción ya no "pega" la pelota al pie; ahora son toques con física libre. `give_to(player, receive)` aplica primer control.
+- `scripts/player/footballer.gd`: `setup()` recibe `PlayerData`; giro según velocidad; atributos de velocidad y aceleración; se quitó el aro del piso (indicador discreto).
+- `scripts/player/human_controller.gd`: recibe un `InputSource`; sólo patea con la pelota al alcance (si no, guarda la orden); recepción asistida.
+- `scripts/player/kick_actions.gd`: asistencia parcial y error en pases/remates; centros; cabezazo/volea. Se quitó `Tuning.shot_error_max` (reemplazado por `KickAccuracy`).
+- `scripts/match/match_controller.gd`: equipos desde `TeamData`; `can_kick`; asistencia de conducción; robo por pelota expuesta; `loose_ball_intercept` compartido con la IA; debug.
+- `scripts/core/tuning.gd`: parámetros de cámara movidos a `CameraConfig`; nuevos `dribble_lose_distance`, `turn_rate_sprint`, `turn_rate_ball_factor`, `intercept_rate`, `pass_assist`.
+- `scripts/camera/match_camera.gd`: reescrita con `CameraConfig`.
+- `scripts/ui/match_hud.gd`: formato de marcador y barra de potencia nuevos.
 
-### Estado de la IA (CPU vs CPU)
-Partidos de 3 min CPU vs CPU terminan ~0-0 con 2-4 tiros y ~75 pases: la IA provisoria es demasiado conservadora. Queda para la IA táctica.
+---
+
+## Fase 1 — Base jugable ✅
+
+Cancha 105x68, arcos con red, pelota con física propia, 11v11 placeholders,
+control humano con barra de potencia, cambio de jugador, reglas mínimas, cámara
+de TV, HUD, IA provisoria, menú y pausa, tests.
+
+Correcciones hechas al validarla con Godot real: `move_and_slide()` movía ~8x
+de más (reemplazado por integración propia), pelota disparada al soltarse,
+arquero empujado dentro del arco, reglas antes que posesión, HUD creado antes
+que los controladores, bucles tipados para Godot 4.7.
 
 ### Limitaciones conocidas (se resuelven en fases siguientes)
-- El arquero siempre lo maneja la IA (el humano no lo controla ni cuando tiene la pelota).
-- Sin faltas, tarjetas, offside ni penales (Fase 2).
-- Una sola formación (4-4-2) y sin atributos individuales (Fases 2 y 3).
+- El arquero siempre lo maneja la IA.
+- Sin faltas, tarjetas, offside ni penales (Fase 4).
+- Una sola formación (4-4-2) y sin TeamAI (Fase 3).
