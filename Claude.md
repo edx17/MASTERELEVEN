@@ -84,13 +84,15 @@ Si esto no funciona, NO se agregan sistemas: se corrige el gameplay primero.
 | Pase corto / presión   | X / A          | J           |
 | Tiro / barrida         | Cuadrado / X   | K           |
 | Pase largo / centro    | Círculo / B    | L           |
-| Pase al hueco          | Triángulo / Y  | I           |
+| Pase al hueco / arquero sale a achicar (mantenido, defendiendo) | Triángulo / Y  | I           |
 | Sprint                 | R1 / RB        | Shift       |
 | Cambiar jugador        | L1 / LB        | Q           |
 | Pausa                  | Start          | Esc         |
 | Cambiar cámara         | Select / Back  | C           |
 | Debug                  | —              | F9          |
 La potencia de tiro y pase se gradúa manteniendo el botón (barra de potencia).
+Pase de primera: apretar el pase mientras la pelota viene; el stick sólo
+apunta el próximo pase (el receptor sigue yendo a buscar la pelota).
 Todo definido en el Input Map de Godot, nunca hardcodeado.
 
 ## Estructura

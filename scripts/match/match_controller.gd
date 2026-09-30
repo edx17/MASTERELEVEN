@@ -20,6 +20,11 @@ const RESTART_HUMAN_DELAY := 0.35
 const PLAYER_SEPARATION := 0.85
 ## Distancia máxima jugador-pelota para poder patear.
 const KICK_REACH := 1.25
+## Un desvío más rápido que esto hacia el arco se trata como remate (plan de atajada).
+const DEFLECTION_SHOT_SPEED := 12.0
+## Tiempo tras el despeje del arquero con las manos en que un rival no la puede
+## cortar (la pelota sube rápido; no se "rebota" en el que presiona).
+const KEEPER_KICK_SHIELD := 0.3
 
 var tuning: Tuning
 var ball: Ball
@@ -48,6 +53,9 @@ var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won"
 var save_plan := {}
 ## Datos de la última patada (depuración / futuras repeticiones).
 var last_kick := {}
+## Pedido del humano (Triángulo mantenido defendiendo): el arquero sale a
+## achicar. Uno por equipo; los controladores humanos lo fijan en cada tick.
+var keeper_rush: Array[bool] = [false, false]
 ## Mensaje grande para el HUD ("¡GOL!", "CÓRNER", ...).
 var banner_text: String = ""
 
@@ -57,6 +65,8 @@ var _pending: MatchRules.Outcome = null
 var _first_half_kicker: int = 0
 var _camera: MatchCamera
 var _hud: MatchHud
+## true mientras se ejecuta perform_kick (para distinguir desvíos).
+var _in_kick: bool = false
 
 
 func _ready() -> void:
@@ -121,6 +131,7 @@ func _build_world() -> void:
 	add_child(ball)
 	ball.setup(tuning)
 	kicks = KickActions.new(ball, tuning)
+	ball.kicked.connect(_on_ball_kicked)
 
 	var datas: Array[TeamData] = [GameSettings.home_team(), GameSettings.away_team()]
 	for i in 2:
@@ -207,6 +218,7 @@ func _physics_process(dt: float) -> void:
 	_update_phase(dt)
 	_update_forecast()
 
+	keeper_rush = [false, false]
 	for h in humans:
 		h.tick(dt)
 	for a in ais:
@@ -314,7 +326,9 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 		return null
 	kicks.pressure = Dribble.pressure_from_distance(_nearest_opponent_distance(player))
 	kicks.forced_receiver = receiver_hint
+	_in_kick = true
 	var receiver := kicks.execute(kind, player, dir, clampf(power, 0.0, 1.0))
+	_in_kick = false
 	kicks.throw_in_mode = false
 	kick_count += 1
 	save_plan = {}
@@ -329,11 +343,12 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 ## llega a tiempo corriendo en sprint (compartido por IA y humanos).
 func loose_ball_intercept(p: Footballer) -> Vector3:
 	var speed := tuning.sprint_speed
+	var hmax := control_height_for(p)
 	for i in ball_forecast.size():
 		var t := (i + 1) * FORECAST_STEP
 		var bp := ball_forecast[i]
 		# Sólo sirven los puntos donde la pelota ya está a altura de control.
-		if bp.y > tuning.control_height:
+		if bp.y > hmax:
 			continue
 		var flat := Vector3(bp.x, 0.0, bp.z)
 		if p.flat_pos().distance_to(flat) <= speed * t + 0.6:
@@ -344,11 +359,25 @@ func loose_ball_intercept(p: Footballer) -> Vector3:
 	return Vector3(last.x, 0.0, last.z)
 
 
+## Altura hasta la que `p` puede controlar una pelota suelta (pecho/muslo):
+## el receptor designado de un pase, más; los demás, algo menos.
+func control_height_for(p: Footballer) -> float:
+	if p == ball.intended_receiver:
+		return tuning.chest_control_height
+	return tuning.loose_chest_height
+
+
 ## Decide al momento del remate si el arquero rival llega (SaveModel).
 func _plan_save(shooter: Footballer) -> void:
-	var defenders := opponents_of(shooter.team)
+	_plan_save_for(opponents_of(shooter.team), 0.0)
+
+
+## Plan de atajada del arquero de `defenders` para la pelota tal como viaja
+## ahora. `extra_reaction`: segundos de más (p. ej. pelota desviada).
+func _plan_save_for(defenders: Team, extra_reaction: float) -> void:
+	save_plan = {}
 	var gk := defenders.keeper()
-	if gk == null:
+	if gk == null or gk.state != Footballer.State.NORMAL:
 		return
 	var goal_x := defenders.own_side() * Pitch.HALF_LENGTH
 	var plan := SaveModel.predict_crossing(ball.state, goal_x, tuning)
@@ -357,12 +386,32 @@ func _plan_save(shooter: Footballer) -> void:
 	var bonus := ais[defenders.index].difficulty.keeper_bonus if defenders.index < ais.size() else 0
 	var reaction := (gk.data.reaction if gk.data else 60) + bonus
 	var gk_skill := (gk.data.goalkeeping if gk.data else 60) + bonus
-	SaveModel.evaluate(plan, gk.flat_pos(), reaction, gk_skill)
+	SaveModel.evaluate(plan, gk.flat_pos(), reaction, gk_skill, extra_reaction)
 	var will_save := randf() < plan.chance
 	# Embolsa si le llega cómoda y no tan fuerte; si no, da rebote.
 	var parry := ball.speed() > 20.0 or plan.margin < 0.5
 	save_plan = {"keeper": gk, "will_save": will_save, "parry": parry, "point": plan.point,
-		"time_left": plan.time + 0.3, "chance": plan.chance}
+		"save_point": plan.save_point, "time_left": plan.time + 0.3, "chance": plan.chance}
+
+
+## Toda patada que no pasa por perform_kick (desvío en el cuerpo, rebote del
+## arquero, barrida) invalida el plan de atajada: la pelota cambió de rumbo.
+## Si el desvío va al arco, se replanifica con algo más de reacción (el
+## arquero se "come" el cambio de dirección).
+func _on_ball_kicked(kicker: Footballer) -> void:
+	if _in_kick:
+		return
+	if kicker != null and kicker.is_keeper():
+		save_plan = {} # rebote del arquero: esa jugada ya se resolvió
+		return
+	save_plan = {}
+	var v := ball.state.vel
+	# Un desvío flojo no es un remate: el arquero la agarra como cualquier
+	# pelota suelta (sin plan que le impida tocarla).
+	if absf(v.x) < 3.0 or v.length() < DEFLECTION_SHOT_SPEED:
+		return
+	var defenders := teams[0] if int(signf(v.x)) == teams[0].own_side() else teams[1]
+	_plan_save_for(defenders, 0.12)
 
 
 ## Reanudación que viene (para que la IA se ubique antes del saque):
@@ -448,8 +497,12 @@ func _try_take_loose_ball() -> void:
 	var best: Footballer = null
 	var best_d := INF
 	var plan_keeper: Footballer = save_plan.get("keeper")
+	var kicker := ball.last_toucher
+	var keeper_kick := kicker != null and kicker.is_keeper() and ball.kick_age < KEEPER_KICK_SHIELD
 	for p in all_players():
 		if not p.can_touch_ball():
+			continue
+		if keeper_kick and p.team != kicker.team:
 			continue
 		var d := p.flat_pos().distance_to(bp)
 		if p.state == Footballer.State.SLIDING:
@@ -461,7 +514,9 @@ func _try_take_loose_ball() -> void:
 		var reach := tuning.control_radius
 		if p == ball.intended_receiver:
 			reach = tuning.receive_radius
-		var hmax := tuning.control_height
+		# Pelota aérea: se baja con el pecho o el muslo (el receptor del pase,
+		# más alta; cualquier otro, algo menos).
+		var hmax := control_height_for(p)
 		if p.is_keeper() and Pitch.in_penalty_area(bp, p.team.own_side()):
 			if p == plan_keeper:
 				# Remate en curso: sólo la toca si el modelo dice que llega.

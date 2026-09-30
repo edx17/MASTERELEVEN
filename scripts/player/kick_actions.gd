@@ -64,10 +64,20 @@ func preview_receiver(kind: int, player: Footballer, dir: Vector3) -> Footballer
 		Kind.THROUGH_PASS:
 			return _pick(player, d, 4.0, 45.0, false)
 		Kind.LONG_PASS:
-			if is_cross_position(player, ball.flat_pos()):
+			if is_cross_position(player, kick_origin(player)):
 				return _best_in_box(player)
-			return _pick(player, d, 12.0, 75.0, true)
+			return _pick_long(player, d)
 	return null
+
+
+## Desde dónde sale el pase: la pelota si está al pie; si todavía viene
+## (toque de primera pedido de antemano), desde el pie del que la va a patear.
+## Elegir desde la pelota en vuelo mandaba el pase de primera a cualquier lado.
+func kick_origin(player: Footballer) -> Vector3:
+	var bp := ball.flat_pos()
+	if bp.distance_to(player.flat_pos()) <= 1.5:
+		return bp
+	return player.flat_pos() + player.facing * 0.5
 
 
 func _dir_or_facing(player: Footballer, dir: Vector3) -> Vector3:
@@ -95,10 +105,23 @@ static func _positions(list: Array[Footballer]) -> Array[Vector3]:
 func _pick(player: Footballer, dir: Vector3, min_d: float, max_d: float, prefer_far: bool, include_keeper: bool = false) -> Footballer:
 	var mates := _mates(player, include_keeper)
 	var pos := _positions(mates)
-	var idx := PassTargeting.choose(ball.flat_pos(), dir, pos, tuning.pass_cone_degrees, min_d, max_d, prefer_far)
+	var from := kick_origin(player)
+	var idx := PassTargeting.choose(from, dir, pos, tuning.pass_cone_degrees, min_d, max_d, prefer_far)
 	if idx < 0:
 		# Segundo intento con un cono más abierto para no "regalar" la pelota.
-		idx = PassTargeting.choose(ball.flat_pos(), dir, pos, tuning.pass_cone_degrees * 1.6, min_d, max_d, prefer_far)
+		idx = PassTargeting.choose(from, dir, pos, tuning.pass_cone_degrees * 1.6, min_d, max_d, prefer_far)
+	return mates[idx] if idx >= 0 else null
+
+
+## Receptor de un pase largo: en el cono del stick y, si no hay nadie, el
+## compañero más cercano a esa dirección (hasta 100°): un pelotazo al vacío
+## sin nadie que vaya a buscarlo casi nunca es lo que se quiso hacer.
+func _pick_long(player: Footballer, dir: Vector3) -> Footballer:
+	var r := _pick(player, dir, 12.0, 75.0, true)
+	if r != null:
+		return r
+	var mates := _mates(player)
+	var idx := PassTargeting.choose(kick_origin(player), dir, _positions(mates), 100.0, 10.0, 75.0, false)
 	return mates[idx] if idx >= 0 else null
 
 
@@ -111,7 +134,7 @@ func _pick_always(player: Footballer, dir: Vector3, min_d: float, max_d: float) 
 		return r
 	var mates := _mates(player, true)
 	var pos := _positions(mates)
-	var idx := PassTargeting.choose(ball.flat_pos(), dir, pos, 179.0, min_d, max_d * 1.3, false)
+	var idx := PassTargeting.choose(kick_origin(player), dir, pos, 179.0, min_d, max_d * 1.3, false)
 	return mates[idx] if idx >= 0 else null
 
 
@@ -169,7 +192,7 @@ func long_pass(player: Footballer, dir: Vector3, power: float, forced: Footballe
 		# Centro con comba hacia el arco (~40 rad/s).
 		spin = Vector3(0.0, -signf(ball.state.pos.z) * side * 40.0, 0.0)
 	else:
-		receiver = forced if forced != null else _pick(player, d, 12.0, 75.0, true)
+		receiver = forced if forced != null else _pick_long(player, d)
 		if receiver == null:
 			target = ball.flat_pos() + d * lerpf(tuning.long_pass_free_min, tuning.long_pass_free_max, power)
 		else:

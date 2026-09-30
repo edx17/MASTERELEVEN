@@ -119,8 +119,15 @@ func tick(dt: float) -> void:
 	p.pressing = false
 
 	# Recepción asistida: con el stick suelto, el receptor de un pase va al
-	# encuentro de la pelota (como en WE); mover el stick lo cancela.
-	if move.length_squared() < 0.04 and ball.is_loose() and ball.intended_receiver == p:
+	# encuentro de la pelota (como en WE); mover el stick lo cancela. Si ya
+	# pidió un toque de primera (cargando o guardado), el stick sólo apunta el
+	# próximo pase: el receptor sigue yendo a la pelota.
+	var one_touch_pending := is_charging() or _buffered_kind >= 0
+	var incoming := ball.is_loose() and ball.intended_receiver == p
+	if incoming and _buffered_kind >= 0:
+		# La orden guardada dura hasta que la pelota llega (pase largo).
+		_buffer_timer = maxf(_buffer_timer, 0.2)
+	if incoming and (move.length_squared() < 0.04 or one_touch_pending):
 		var meet := _match.loose_ball_intercept(p)
 		var to_meet := meet - p.flat_pos()
 		if to_meet.length() > 0.4:
@@ -136,6 +143,9 @@ func tick(dt: float) -> void:
 		var to_ball := ball.flat_pos() - p.flat_pos()
 		if move.length_squared() < 0.04 and to_ball.length() > 0.3:
 			p.desired_move = to_ball.normalized()
+	# Sin pelota: pase al hueco (Triángulo) mantenido = el arquero sale a achicar.
+	if opponent_has_ball and input.pressed(&"pass_through"):
+		_match.keeper_rush[team.index] = true
 	# Sin pelota: tiro = barrida.
 	if opponent_has_ball and input.just_pressed(&"shoot"):
 		p.start_slide(move if move.length_squared() > 0.04 else ball.flat_pos() - p.flat_pos())

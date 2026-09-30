@@ -14,7 +14,8 @@ static func pass_error(skill: int, technique: int, pressure: float, body_angle: 
 	var s := PlayerData.unit(skill) * 0.8 + PlayerData.unit(technique) * 0.2
 	var err := lerpf(5.5, 0.8, s)
 	err += clampf(pressure, 0.0, 1.0) * 2.0
-	err += _body_penalty(body_angle, 4.0)
+	# Pasar hacia atrás o al costado es natural (se abre el pie): castiga poco.
+	err += _body_penalty(body_angle, 1.5)
 	err += maxf(power - 0.85, 0.0) * 10.0
 	return err
 

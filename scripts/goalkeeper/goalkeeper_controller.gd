@@ -5,9 +5,15 @@ extends RefCounted
 ##   defiende alto (arquero "líbero"),
 ## - atajada según el plan del SaveModel (si no llega, se lanza tarde),
 ## - achique en el mano a mano dentro del área,
+## - salida a achicar a pedido del humano (Triángulo mantenido defendiendo),
 ## - salida a cortar centros que caen en el área chica,
 ## - reposición según el estado del equipo: corta a un defensor libre en la
 ##   salida, rápida en contraataque, larga si presionan.
+
+## Distancia al arco hasta la que sale a achicar cuando lo pide el humano.
+const RUSH_MAX_DISTANCE := 30.0
+## Lo más que se adelanta como líbero (m desde la línea).
+const SWEEPER_MAX := 9.0
 
 var team: Team
 var _match: MatchController
@@ -34,11 +40,27 @@ func tick(p: Footballer, ai: TeamAI, dt: float) -> void:
 	# 1) Remate en curso: se tira al punto de cruce.
 	var plan: Dictionary = _match.save_plan
 	if plan.get("keeper") == p:
-		var pt: Vector3 = plan["point"]
-		var spot := Vector3(goal.x - own * 0.4, 0.0, clampf(pt.z, -Pitch.GOAL_HALF_WIDTH, Pitch.GOAL_HALF_WIDTH))
+		# Va al punto del tramo final donde mejor la intercepta (si está
+		# adelantado, achica el ángulo sin volver a la línea).
+		var pt: Vector3 = plan.get("save_point", plan["point"])
+		var spot := Vector3(pt.x, 0.0, clampf(pt.z, -Pitch.GOAL_HALF_WIDTH - 0.5, Pitch.GOAL_HALF_WIDTH + 0.5))
+		if absf(spot.x - goal.x) < 0.4:
+			spot.x = goal.x - own * 0.4
 		p.speed_override = _match.tuning.keeper_dive_speed * (1.0 if plan["will_save"] else 0.55)
 		p.debug_state = "estirada" if plan["will_save"] else "no llega"
 		ai.go_to(p, spot, true)
+		return
+	# 1b) Pedido del humano (Triángulo mantenido): sale a achicar al que
+	# lleva la pelota, esté donde esté (hasta la medialuna larga). Fuera del
+	# área no puede usar las manos: va a la entrada.
+	var rusher := ball.owner_player
+	if _match.keeper_rush[team.index] and rusher != null and rusher.team != team \
+			and rusher.flat_pos().distance_to(goal) < RUSH_MAX_DISTANCE:
+		p.debug_state = "sale a achicar"
+		var lead := rusher.velocity * 0.25
+		lead.y = 0.0
+		p.wants_tackle = true
+		ai.go_to(p, rusher.flat_pos() + lead, true)
 		return
 	# 2) Centro que cae en el área chica: sale a cortarlo si llega antes.
 	if ball.is_loose() and ball.state.pos.y > 1.2 and v.x * own > 0.0:
@@ -77,11 +99,13 @@ func tick(p: Footballer, ai: TeamAI, dt: float) -> void:
 	var off := clampf(to_ball.length() * 0.12, 0.8, 4.0)
 	var line_x := TeamShape.defensive_line(ai.state, team.progress_of(bp))
 	if team.progress_of(bp) > 0.5:
-		off = maxf(off, clampf((line_x - 0.1) * Pitch.HALF_LENGTH * 2.0 * 0.5, 0.0, 14.0))
+		off = maxf(off, clampf((line_x - 0.1) * Pitch.HALF_LENGTH * 2.0 * 0.5, 0.0, SWEEPER_MAX))
 	var spot3 := goal + to_ball.normalized() * off
 	if off < 5.0:
 		spot3.z = clampf(spot3.z, -Pitch.GOAL_HALF_WIDTH, Pitch.GOAL_HALF_WIDTH)
-	ai.go_to(p, spot3, false)
+	# Si quedó lejos de su lugar (volvía de líbero o de una salida), vuelve
+	# corriendo: un arquero fuera de posición es gol seguro de lejos.
+	ai.go_to(p, spot3, p.flat_pos().distance_to(spot3) > 3.0)
 	p.look_at_point(bp)
 
 

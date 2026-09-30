@@ -20,12 +20,17 @@ var last_toucher: Footballer = null
 var intended_receiver: Footballer = null
 ## Pelota detenida (pelota parada, festejo, etc.).
 var frozen: bool = false
+## Segundos desde la última patada.
+var kick_age: float = 0.0
 
 var _tuning: Tuning
 var _mesh: MeshInstance3D
 var _shadow: MeshInstance3D
 ## Fase 0..1 del ciclo de toque de la conducción.
 var _touch_phase: float = 0.0
+## Segundos que quedan para que una pelota bajada con el pecho/muslo caiga al
+## pie (mientras tanto no se pierde por estar alta).
+var _settle: float = 0.0
 
 
 func setup(tuning: Tuning) -> void:
@@ -77,6 +82,8 @@ func give_to(player: Footballer, receive: bool = false) -> void:
 		state.vel = pv + rel * keep
 		state.vel.y = minf(state.vel.y, 0.0) * 0.3
 		state.spin = Vector3.ZERO
+		# Control con el pecho/muslo: la pelota cae mansa al pie.
+		_settle = 0.6 if state.pos.y > _tuning.control_height else 0.0
 
 
 ## Patea la pelota: pierde dueño y sale con la velocidad y efecto dados.
@@ -84,6 +91,7 @@ func kick(velocity: Vector3, spin: Vector3, kicker: Footballer) -> void:
 	owner_player = null
 	state.vel = velocity
 	state.spin = spin
+	kick_age = 0.0
 	if kicker != null:
 		last_touch_team = kicker.team.index
 		last_toucher = kicker
@@ -96,6 +104,7 @@ func kick(velocity: Vector3, spin: Vector3, kicker: Footballer) -> void:
 
 
 func tick(dt: float) -> void:
+	kick_age += dt
 	if frozen:
 		_sync_node(0.0)
 		return
@@ -138,8 +147,11 @@ func _dribble(dt: float) -> void:
 	var foot := Dribble.foot_point(p.global_position, p.facing)
 	var dist := Vector3(state.pos.x - foot.x, 0.0, state.pos.z - foot.z).length()
 	# Sólo se pierde si algo la sacó lejos (un rebote, un golpe).
-	if dist > _tuning.dribble_lose_distance or state.pos.y > _tuning.control_height:
+	_settle = maxf(0.0, _settle - dt)
+	var max_h := _tuning.chest_control_height + 0.2 if _settle > 0.0 else _tuning.control_height
+	if dist > _tuning.dribble_lose_distance or state.pos.y > max_h:
 		owner_player = null
+		_settle = 0.0
 		return
 	var pv := Vector3(p.velocity.x, 0.0, p.velocity.z)
 	var speed := pv.length()
