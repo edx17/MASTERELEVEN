@@ -9,7 +9,7 @@ const DURATION_OPTIONS: Array[int] = [5, 7, 10, 3]
 
 ## Minutos reales que dura un partido completo (los 90' se aceleran a esto).
 var match_minutes: int = 5
-var mode: Mode = Mode.VS_CPU
+var mode: int = Mode.VS_CPU
 var tuning: Tuning
 
 
@@ -22,7 +22,7 @@ func _ready() -> void:
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 
 
-func set_mode(new_mode: Mode) -> void:
+func set_mode(new_mode: int) -> void:
 	mode = new_mode
 	InputRouter.setup_for_mode(mode)
 
