@@ -4,6 +4,7 @@ extends RefCounted
 ## y conversión entre "espacio de equipo" (formación) y coordenadas del mundo.
 
 var index: int = 0
+var data: TeamData
 var team_name: String = ""
 var short_name: String = ""
 var color: Color = Color.WHITE

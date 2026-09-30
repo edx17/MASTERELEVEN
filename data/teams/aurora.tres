@@ -1,0 +1,322 @@
+[gd_resource type="Resource" script_class="TeamData" format=3]
+
+[ext_resource type="Resource" path="res://data/formations/f_4-4-2.tres" id="1_b8o03"]
+[ext_resource type="Script" path="res://scripts/player/player_data.gd" id="2_g8a4c"]
+[ext_resource type="Script" path="res://scripts/match/team_data.gd" id="3_c5s0o"]
+
+[sub_resource type="Resource" id="Resource_jlfxb"]
+script = ExtResource("2_g8a4c")
+id = "aurora_01"
+player_name = "S. Figueras"
+position = 0
+speed = 47
+acceleration = 65
+stamina = 62
+passing = 69
+shooting = 42
+technique = 57
+ball_control = 65
+heading = 61
+defense = 48
+reaction = 73
+balance = 63
+goalkeeping = 84
+
+[sub_resource type="Resource" id="Resource_m2sx4"]
+script = ExtResource("2_g8a4c")
+id = "aurora_02"
+player_name = "C. Irigoyen"
+number = 2
+position = 1
+speed = 66
+acceleration = 68
+strength = 74
+passing = 61
+shooting = 44
+technique = 69
+ball_control = 62
+heading = 63
+defense = 68
+reaction = 66
+balance = 57
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_nwfuk"]
+script = ExtResource("2_g8a4c")
+id = "aurora_03"
+player_name = "C. Olmedo"
+number = 3
+position = 1
+speed = 63
+acceleration = 61
+stamina = 67
+strength = 69
+passing = 58
+shooting = 42
+technique = 65
+ball_control = 56
+heading = 63
+defense = 72
+reaction = 66
+balance = 58
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_b8f2l"]
+script = ExtResource("2_g8a4c")
+id = "aurora_04"
+player_name = "J. Zabala"
+number = 4
+position = 1
+speed = 73
+acceleration = 65
+stamina = 68
+strength = 77
+passing = 65
+shooting = 46
+technique = 66
+ball_control = 58
+heading = 73
+defense = 73
+reaction = 57
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_4ylut"]
+script = ExtResource("2_g8a4c")
+id = "aurora_05"
+player_name = "F. Salcedo"
+number = 5
+position = 1
+speed = 74
+acceleration = 68
+stamina = 62
+strength = 79
+shooting = 48
+technique = 68
+ball_control = 69
+heading = 70
+defense = 75
+reaction = 71
+balance = 63
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_c843m"]
+script = ExtResource("2_g8a4c")
+id = "aurora_06"
+player_name = "H. Quiroga"
+number = 6
+speed = 62
+stamina = 71
+passing = 68
+shooting = 59
+technique = 64
+ball_control = 68
+heading = 65
+defense = 62
+reaction = 56
+balance = 70
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_o8f4y"]
+script = ExtResource("2_g8a4c")
+id = "aurora_07"
+player_name = "C. Werthein"
+number = 7
+speed = 68
+acceleration = 73
+stamina = 72
+strength = 68
+passing = 81
+shooting = 53
+technique = 74
+ball_control = 65
+heading = 66
+defense = 52
+reaction = 72
+balance = 57
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_lf7yx"]
+script = ExtResource("2_g8a4c")
+id = "aurora_08"
+player_name = "M. Arrieta"
+number = 8
+foot = 1
+speed = 62
+acceleration = 72
+stamina = 78
+strength = 69
+passing = 80
+shooting = 53
+technique = 68
+ball_control = 64
+heading = 68
+defense = 62
+reaction = 66
+balance = 69
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_rdktv"]
+script = ExtResource("2_g8a4c")
+id = "aurora_09"
+player_name = "O. Bermejo"
+number = 9
+speed = 58
+acceleration = 66
+stamina = 74
+strength = 64
+passing = 76
+shooting = 56
+technique = 68
+ball_control = 62
+heading = 58
+defense = 62
+reaction = 63
+balance = 67
+goalkeeping = 32
+
+[sub_resource type="Resource" id="Resource_qxidh"]
+script = ExtResource("2_g8a4c")
+id = "aurora_10"
+player_name = "F. Acosta"
+number = 10
+position = 3
+foot = 1
+speed = 76
+acceleration = 68
+stamina = 75
+passing = 65
+shooting = 68
+technique = 58
+ball_control = 69
+heading = 57
+defense = 41
+reaction = 62
+balance = 63
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_7tj6r"]
+script = ExtResource("2_g8a4c")
+id = "aurora_11"
+player_name = "E. Cardozo"
+number = 11
+position = 3
+speed = 71
+acceleration = 67
+stamina = 71
+strength = 56
+shooting = 77
+technique = 63
+ball_control = 77
+heading = 54
+defense = 33
+reaction = 62
+balance = 61
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_054l2"]
+script = ExtResource("2_g8a4c")
+id = "aurora_12"
+player_name = "D. Dalmasso"
+number = 12
+position = 0
+foot = 1
+speed = 61
+acceleration = 74
+stamina = 73
+strength = 62
+passing = 65
+shooting = 35
+technique = 59
+ball_control = 57
+heading = 53
+defense = 53
+reaction = 74
+balance = 57
+goalkeeping = 76
+
+[sub_resource type="Resource" id="Resource_8uafo"]
+script = ExtResource("2_g8a4c")
+id = "aurora_13"
+player_name = "N. Hidalgo"
+number = 13
+position = 1
+speed = 62
+acceleration = 58
+stamina = 70
+strength = 72
+shooting = 52
+technique = 56
+ball_control = 66
+heading = 65
+defense = 74
+reaction = 61
+balance = 62
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_e2jgp"]
+script = ExtResource("2_g8a4c")
+id = "aurora_14"
+player_name = "G. Benavídez"
+number = 14
+foot = 1
+speed = 73
+acceleration = 72
+stamina = 78
+strength = 56
+passing = 76
+shooting = 55
+technique = 70
+ball_control = 65
+heading = 52
+defense = 64
+reaction = 58
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_6o3yb"]
+script = ExtResource("2_g8a4c")
+id = "aurora_15"
+player_name = "M. Duarte"
+number = 15
+speed = 65
+acceleration = 63
+stamina = 74
+strength = 68
+passing = 74
+shooting = 59
+technique = 73
+ball_control = 62
+heading = 57
+defense = 50
+reaction = 70
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_p5aj2"]
+script = ExtResource("2_g8a4c")
+id = "aurora_16"
+player_name = "L. Herrán"
+number = 16
+position = 3
+speed = 75
+acceleration = 59
+stamina = 61
+strength = 72
+passing = 66
+shooting = 68
+technique = 58
+ball_control = 70
+heading = 64
+defense = 47
+reaction = 62
+balance = 56
+goalkeeping = 30
+
+[resource]
+script = ExtResource("3_c5s0o")
+id = "aurora"
+team_name = "Deportivo Aurora"
+short_name = "AUR"
+color = Color(0.35, 0.65, 0.95, 1)
+secondary_color = Color(0.95, 0.95, 0.95, 1)
+keeper_color = Color(0.15, 0.15, 0.15, 1)
+formation = ExtResource("1_b8o03")
+players = Array[ExtResource("2_g8a4c")]([SubResource("Resource_jlfxb"), SubResource("Resource_m2sx4"), SubResource("Resource_nwfuk"), SubResource("Resource_b8f2l"), SubResource("Resource_4ylut"), SubResource("Resource_c843m"), SubResource("Resource_o8f4y"), SubResource("Resource_lf7yx"), SubResource("Resource_rdktv"), SubResource("Resource_qxidh"), SubResource("Resource_7tj6r"), SubResource("Resource_054l2"), SubResource("Resource_8uafo"), SubResource("Resource_e2jgp"), SubResource("Resource_6o3yb"), SubResource("Resource_p5aj2")])

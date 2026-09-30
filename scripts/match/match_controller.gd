@@ -18,16 +18,8 @@ const HALFTIME_DELAY := 3.0
 const RESTART_AI_DELAY := 1.0
 const RESTART_HUMAN_DELAY := 0.35
 const PLAYER_SEPARATION := 0.85
-
-const TEAM_DATA := [
-	{"name": "Deportivo Aurora", "short": "AUR", "color": Color(0.35, 0.65, 0.95), "secondary": Color(0.95, 0.95, 0.95), "keeper": Color(0.15, 0.15, 0.15)},
-	{"name": "Atlético Halcones", "short": "HAL", "color": Color(0.85, 0.15, 0.15), "secondary": Color(0.08, 0.08, 0.08), "keeper": Color(0.2, 0.85, 0.35)},
-]
-const SURNAMES := [
-	"Arrieta", "Benavídez", "Castañar", "Duarte", "Echeverri", "Ferrán", "Galdós", "Hidalgo",
-	"Irigoyen", "Jáuregui", "Kessler", "Larrea", "Maidana", "Nazar", "Olmedo", "Pereyra",
-	"Quiroga", "Rivadeo", "Salcedo", "Taborda", "Urquiza", "Valdano", "Werthein", "Zabala",
-]
+## Distancia máxima jugador-pelota para poder patear.
+const KICK_REACH := 1.25
 
 var tuning: Tuning
 var ball: Ball
@@ -139,17 +131,19 @@ func _build_world() -> void:
 	ball.setup(tuning)
 	kicks = KickActions.new(ball, tuning)
 
+	var datas: Array[TeamData] = [GameSettings.home_team(), GameSettings.away_team()]
 	for i in 2:
-		var d: Dictionary = TEAM_DATA[i]
-		var team := Team.new(i, d["name"], d["short"], d["color"], d["secondary"], d["keeper"])
+		var d := datas[i]
+		var team := Team.new(i, d.team_name, d.short_name, d.color, d.secondary_color, d.keeper_color)
+		team.data = d
 		team.attack_dir = 1 if i == 0 else -1
 		teams.append(team)
-		var names := SURNAMES.duplicate()
-		names.shuffle()
-		for n in Formation.SPOTS_442.size():
+		var formation := d.formation
+		var starters := d.starters()
+		for n in starters.size():
 			var p := Footballer.new()
 			add_child(p)
-			p.setup(team, n + 1, Formation.ROLES_442[n], Formation.SPOTS_442[n], names[n], tuning)
+			p.setup(team, starters[n], formation.roles[n], formation.slots[n], tuning)
 			team.players.append(p)
 
 	_camera = MatchCamera.new()
@@ -182,6 +176,7 @@ func _physics_process(dt: float) -> void:
 		h.tick(dt)
 	for a in ais:
 		a.tick(dt)
+	_assist_carrier()
 	for p in all_players():
 		p.tick(dt, ball.owner_player == p)
 	_separate_players()
@@ -259,11 +254,8 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float) -> 
 		_set_phase(Phase.PLAYING)
 	elif phase != Phase.PLAYING:
 		return null
-	elif ball.owner_player != player:
-		var near := ball.is_loose() and player.can_touch_ball() \
-			and ball.flat_pos().distance_to(player.flat_pos()) < 1.5 and ball.state.pos.y < 1.8
-		if not near:
-			return null
+	elif not can_kick(player):
+		return null
 	var receiver := kicks.execute(kind, player, dir, clampf(power, 0.0, 1.0))
 	kicks.throw_in_mode = false
 	kick_count += 1
@@ -273,13 +265,76 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float) -> 
 	return receiver
 
 
+## Asistencia de conducción (estilo WE): si la pelota quedó adelantada, el
+## conductor curva hacia ella; la dirección pedida se guarda en intent_dir y el
+## próximo toque sale para ese lado. Así se puede girar con la pelota sin que
+## quede "pegada".
+func _assist_carrier() -> void:
+	var p := ball.owner_player
+	if p == null or p.locked or ball.state.pos.y > 0.5:
+		return
+	var wish := p.desired_move
+	p.intent_dir = wish
+	var foot := Dribble.foot_point(p.global_position, p.facing)
+	var to_ball := ball.flat_pos() - foot
+	var dist := to_ball.length()
+	if dist < Dribble.TOUCH_REACH * 0.8:
+		return
+	var chase := (ball.flat_pos() - p.flat_pos()).normalized()
+	if wish.length_squared() < 0.04:
+		# Sin dirección: acompaña la pelota hasta pisarla.
+		p.desired_move = chase * clampf(dist, 0.3, 1.0)
+		return
+	var w := clampf((dist - 0.3) / 1.2, 0.3, 0.85)
+	p.desired_move = (chase * w + wish.normalized() * (1.0 - w)).normalized() * wish.length()
+
+
+## Primer punto de la trayectoria predicha de la pelota suelta al que `p`
+## llega a tiempo corriendo en sprint (compartido por IA y humanos).
+func loose_ball_intercept(p: Footballer) -> Vector3:
+	var speed := tuning.sprint_speed
+	for i in ball_forecast.size():
+		var t := (i + 1) * FORECAST_STEP
+		var bp := ball_forecast[i]
+		if bp.y > 2.2:
+			continue
+		var flat := Vector3(bp.x, 0.0, bp.z)
+		if p.flat_pos().distance_to(flat) <= speed * t + 0.6:
+			return flat
+	if ball_forecast.is_empty():
+		return ball.flat_pos()
+	var last := ball_forecast[ball_forecast.size() - 1]
+	return Vector3(last.x, 0.0, last.z)
+
+
+## El jugador tiene la pelota al alcance del pie para patearla ahora.
+func can_kick(player: Footballer) -> bool:
+	if ball.owner_player == player and ball.state.pos.y > 0.5:
+		return player.is_keeper() # en las manos del arquero
+	if ball.owner_player != null and ball.owner_player != player:
+		return false
+	if ball.owner_player == null and not player.can_touch_ball():
+		return false
+	return ball.flat_pos().distance_to(player.flat_pos()) < KICK_REACH and ball.state.pos.y < 1.8
+
+
 # --- Posesión -----------------------------------------------------------------
 
 func _update_possession(dt: float) -> void:
 	if ball.owner_player == null:
 		_try_take_loose_ball()
 	else:
+		var carrier := ball.owner_player
+		var opp := _nearest_opponent_distance(carrier)
+		carrier.dribble_pressure = Dribble.pressure_from_distance(opp)
 		_try_steal(dt)
+
+
+func _nearest_opponent_distance(p: Footballer) -> float:
+	var best := INF
+	for o in opponents_of(p.team).players:
+		best = minf(best, o.flat_pos().distance_to(p.flat_pos()))
+	return best
 
 
 func _try_take_loose_ball() -> void:
@@ -328,7 +383,7 @@ func _try_take_loose_ball() -> void:
 	var receiver := ball.intended_receiver
 	if receiver != null and receiver != best:
 		receiver.clear_pass_target()
-	ball.give_to(best)
+	ball.give_to(best, true)
 
 
 func _try_steal(dt: float) -> void:
@@ -353,18 +408,30 @@ func _try_steal(dt: float) -> void:
 				stats["saves"][o.team.index] += 1
 				return
 			continue
-		if o.state != Footballer.State.NORMAL or d > tuning.steal_radius:
+		if o.state != Footballer.State.NORMAL or ball.state.pos.y > tuning.control_height:
+			continue
+		var def_edge := 0.0
+		if o.data != null and carrier.data != null:
+			def_edge = PlayerData.centered(o.data.defense) - PlayerData.centered(carrier.data.ball_control)
+		# Entre toques la pelota queda expuesta: el rival bien ubicado se la queda.
+		if d < tuning.control_radius and Dribble.is_exposed(ball.state.pos, carrier.global_position, carrier.facing):
+			if randf() < tuning.intercept_rate * (1.0 + 0.3 * def_edge) * dt:
+				carrier.touch_block = tuning.lost_ball_cooldown
+				ball.give_to(o, true)
+				return
+			continue
+		# Pelota en el pie: sólo con contacto y con bastante menos probabilidad.
+		if d > tuning.steal_radius:
 			continue
 		var rate := tuning.steal_rate_pressing if o.pressing else tuning.steal_rate
-		if carrier.is_sprinting():
-			rate *= 1.3
+		rate *= 1.0 + 0.5 * def_edge
 		# Desde atrás es mucho más difícil sacarla limpia.
 		if carrier.facing.dot((o.flat_pos() - carrier.flat_pos()).normalized()) < -0.2:
 			rate *= 0.4
 		if randf() < rate * dt:
 			carrier.touch_block = tuning.lost_ball_cooldown
-			if randf() < 0.55:
-				ball.give_to(o)
+			if randf() < 0.5:
+				ball.give_to(o, true)
 			else:
 				var away := (bp - carrier.flat_pos()).normalized() * 3.0 + o.facing * 3.0
 				ball.kick(away, Vector3.ZERO, o)

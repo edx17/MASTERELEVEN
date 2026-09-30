@@ -35,15 +35,20 @@ extends Resource
 @export var dribble_speed_factor: float = 0.9
 @export var acceleration: float = 26.0
 @export var deceleration: float = 32.0
-## Velocidad de giro (rad/s) sin pelota / con pelota / con pelota en sprint.
-@export var turn_rate: float = 14.0
-@export var turn_rate_ball: float = 10.0
-@export var turn_rate_ball_sprint: float = 6.0
+## Velocidad de giro (rad/s) quieto/lento y a velocidad de sprint: a mayor
+## velocidad, giro más amplio (nunca 180° instantáneo).
+@export var turn_rate: float = 16.0
+@export var turn_rate_sprint: float = 5.5
+## Multiplicador del giro con la pelota en el pie.
+@export var turn_rate_ball_factor: float = 0.85
 
 @export_group("Conducción y robo")
-## Distancia de la pelota al pie al conducir caminando / en sprint.
-@export var dribble_distance: float = 0.55
-@export var dribble_distance_sprint: float = 0.95
+## Cuánto se adelanta la pelota en cada toque, trotando / en sprint (jugador
+## de control promedio; ver Dribble.touch_distance).
+@export var dribble_distance: float = 0.45
+@export var dribble_distance_sprint: float = 1.35
+## Si la pelota queda más lejos que esto del pie, el conductor la pierde.
+@export var dribble_lose_distance: float = 3.0
 ## Radio (horizontal) para tomar una pelota suelta.
 @export var control_radius: float = 0.75
 ## Altura máxima a la que un jugador de campo controla la pelota.
@@ -53,6 +58,9 @@ extends Resource
 ## Probabilidad de robo por segundo de contacto (normal / presionando).
 @export var steal_rate: float = 0.9
 @export var steal_rate_pressing: float = 2.2
+## Probabilidad por segundo de que un rival se quede con una pelota expuesta
+## (entre toques) si está dentro de control_radius.
+@export var intercept_rate: float = 7.0
 ## Tiempo sin poder tocar la pelota tras patearla o perderla.
 @export var touch_cooldown: float = 0.28
 @export var lost_ball_cooldown: float = 0.6

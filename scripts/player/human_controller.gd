@@ -10,13 +10,12 @@ const KICK_BUTTONS := {
 	&"pass_long": KickActions.Kind.LONG_PASS,
 	&"pass_through": KickActions.Kind.THROUGH_PASS,
 }
-## Distancia a la que se puede patear de primera una pelota suelta.
-const ONE_TOUCH_RANGE := 1.3
 const AUTO_SWITCH_MARGIN := 4.0
 
 var slot: int = 0
 var team: Team
-var input: PlayerInput
+## Fuente de órdenes (HumanInput por defecto; intercambiable).
+var input: InputSource
 var controlled: Footballer = null
 
 ## Barra de potencia (se muestra en el HUD).
@@ -33,11 +32,11 @@ var _handled_kick: int = -1
 var _match: MatchController
 
 
-func _init(p_slot: int, p_team: Team, p_match: MatchController) -> void:
+func _init(p_slot: int, p_team: Team, p_match: MatchController, p_input: InputSource = null) -> void:
 	slot = p_slot
 	team = p_team
 	_match = p_match
-	input = PlayerInput.new(slot)
+	input = p_input if p_input != null else HumanInput.new(slot)
 
 
 func is_charging() -> bool:
@@ -74,6 +73,7 @@ func nearest_to_ball(exclude: Footballer = null) -> Footballer:
 
 
 func tick(dt: float) -> void:
+	input.poll()
 	_switch_cooldown = maxf(0.0, _switch_cooldown - dt)
 	_buffer_timer = maxf(0.0, _buffer_timer - dt)
 	var ball := _match.ball
@@ -95,6 +95,16 @@ func tick(dt: float) -> void:
 	p.wants_sprint = input.pressed(&"sprint")
 	p.desired_move = move
 	p.pressing = false
+
+	# Recepción asistida: con el stick suelto, el receptor de un pase va al
+	# encuentro de la pelota (como en WE); mover el stick lo cancela.
+	if move.length_squared() < 0.04 and ball.is_loose() and ball.intended_receiver == p:
+		var meet := _match.loose_ball_intercept(p)
+		var to_meet := meet - p.flat_pos()
+		if to_meet.length() > 0.4:
+			p.desired_move = to_meet.normalized() * clampf(to_meet.length() / 2.0, 0.3, 1.0)
+		else:
+			p.look_at_point(ball.flat_pos())
 
 	# Sin pelota: pase corto mantenido = presionar (corre hacia la pelota).
 	if opponent_has_ball and input.pressed(&"pass_short") and not is_charging():
@@ -122,7 +132,7 @@ func tick(dt: float) -> void:
 			_try_kick(kind, power, move)
 
 	# Toque de primera: si la pelota llegó y había una acción guardada.
-	if _buffered_kind >= 0 and _buffer_timer > 0.0 and ball.owner_player == p:
+	if _buffered_kind >= 0 and _buffer_timer > 0.0 and _match.can_kick(p):
 		var k := _buffered_kind
 		_buffered_kind = -1
 		_do_kick(k, _buffered_power, _buffered_dir)
@@ -131,18 +141,12 @@ func tick(dt: float) -> void:
 
 
 func _try_kick(kind: int, pwr: float, move: Vector3) -> void:
-	var p := controlled
-	var ball := _match.ball
-	if ball.owner_player == p:
+	# Pelota al alcance (conducida o suelta): se patea ya, de primera.
+	if _match.can_kick(controlled):
 		_do_kick(kind, pwr, move)
 		return
-	# Pelota suelta al alcance: se patea de primera sin controlarla.
-	if ball.is_loose() and p.can_touch_ball():
-		var d := ball.flat_pos().distance_to(p.flat_pos())
-		if d < ONE_TOUCH_RANGE and ball.state.pos.y < 1.6:
-			_do_kick(kind, pwr, move)
-			return
-	# Si no, se guarda por si la pelota llega enseguida.
+	# Si no (la pelota viene o quedó adelantada en la conducción), la orden se
+	# guarda y se ejecuta apenas la pelota esté al alcance.
 	_buffered_kind = kind
 	_buffered_power = pwr
 	_buffered_dir = move

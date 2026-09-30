@@ -10,6 +10,8 @@ enum State { NORMAL, SLIDING, RECOVERING }
 const SLOT_COLORS: Array[Color] = [Color(1.0, 0.85, 0.1), Color(0.2, 0.9, 1.0)]
 
 var team: Team
+## Datos y atributos del jugador (recurso editable).
+var data: PlayerData
 var number: int = 1
 var role: Role = Role.MF
 var display_name: String = ""
@@ -40,6 +42,13 @@ var pass_target: Vector3 = Vector3.ZERO
 var pass_target_timer: float = 0.0
 ## Tiempo con la pelota en el pie (para que la IA no la devuelva al instante).
 var possession_time: float = 0.0
+## Presión rival 0..1 sobre este jugador (la calcula el partido; acorta los toques).
+var dribble_pressure: float = 0.0
+## Toques de conducción dados (depuración).
+var touches: int = 0
+## Dirección que el controlador quiere dar a la pelota (antes de la asistencia
+## de conducción, que puede desviar `desired_move` hacia la pelota).
+var intent_dir: Vector3 = Vector3.ZERO
 
 var _tuning: Tuning
 var _ring: MeshInstance3D
@@ -47,12 +56,13 @@ var _arrow: Label3D
 var _body_mat: StandardMaterial3D
 
 
-func setup(p_team: Team, p_number: int, p_role: Role, p_spot: Vector2, p_name: String, tuning: Tuning) -> void:
+func setup(p_team: Team, p_data: PlayerData, p_role: int, p_spot: Vector2, tuning: Tuning) -> void:
 	team = p_team
-	number = p_number
-	role = p_role
+	data = p_data
+	number = data.number
+	role = p_role as Role
 	base_spot = p_spot
-	display_name = p_name
+	display_name = data.player_name
 	_tuning = tuning
 	facing = Vector3(team.attack_dir, 0.0, 0.0)
 	name = "%s_%d" % [team.short_name, number]
@@ -155,20 +165,34 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 		return
 
 	var max_speed := _tuning.sprint_speed if wants_sprint else _tuning.run_speed
+	# Atributos: velocidad ±8 %, aceleración ±15 %.
+	var spd_attr := 0.0
+	var acc_attr := 0.0
+	if data != null:
+		spd_attr = PlayerData.centered(data.speed)
+		acc_attr = PlayerData.centered(data.acceleration)
+	max_speed *= 1.0 + 0.08 * spd_attr
 	if has_ball:
 		max_speed *= _tuning.dribble_speed_factor
 	if speed_override > 0.0:
 		max_speed = speed_override
-	var target_vel := move * max_speed
-	var rate := _tuning.acceleration if move.length_squared() > 0.01 else _tuning.deceleration
-	velocity = velocity.move_toward(target_vel, rate * dt)
 
-	# Giro progresivo: con pelota y en sprint cuesta más cambiar de dirección.
+	# Giro dependiente de la velocidad: lento gira rápido, en sprint abre la curva.
+	var cur_speed := Vector3(velocity.x, 0.0, velocity.z).length()
+	var turn := lerpf(_tuning.turn_rate, _tuning.turn_rate_sprint, clampf(cur_speed / _tuning.sprint_speed, 0.0, 1.0))
+	if has_ball:
+		turn *= _tuning.turn_rate_ball_factor
 	if move.length_squared() > 0.01:
-		var turn := _tuning.turn_rate
-		if has_ball:
-			turn = _tuning.turn_rate_ball_sprint if wants_sprint else _tuning.turn_rate_ball
 		facing = _rotate_towards(facing, move.normalized(), turn * dt)
+
+	# El jugador acelera en la dirección en la que mira (no se desliza de costado),
+	# salvo a baja velocidad, donde puede ajustar libremente.
+	var wish := move
+	if move.length_squared() > 0.01 and cur_speed > 2.0:
+		wish = facing * move.length()
+	var target_vel := wish * max_speed
+	var rate := (_tuning.acceleration * (1.0 + 0.15 * acc_attr)) if move.length_squared() > 0.01 else _tuning.deceleration
+	velocity = velocity.move_toward(target_vel, rate * dt)
 
 
 static func _rotate_towards(from: Vector3, to: Vector3, max_angle: float) -> Vector3:

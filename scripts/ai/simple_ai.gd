@@ -131,20 +131,7 @@ func _intercept_point(p: Footballer, ball: Ball) -> Vector3:
 			return ball.flat_pos()
 		var ahead := Vector3(carrier.velocity.x, 0.0, carrier.velocity.z) * clampf(d / 8.0, 0.1, 0.7)
 		return carrier.flat_pos() + ahead + to_goal * 1.2
-	var forecast := _match.ball_forecast
-	var speed := _match.tuning.sprint_speed
-	for i in forecast.size():
-		var t := (i + 1) * MatchController.FORECAST_STEP
-		var bp := forecast[i]
-		if bp.y > 2.2:
-			continue
-		var flat := Vector3(bp.x, 0.0, bp.z)
-		if p.flat_pos().distance_to(flat) <= speed * t + 0.6:
-			return flat
-	if forecast.is_empty():
-		return ball.flat_pos()
-	var last := forecast[forecast.size() - 1]
-	return Vector3(last.x, 0.0, last.z)
+	return _match.loose_ball_intercept(p)
 
 
 # --- Comportamientos ----------------------------------------------------------
@@ -209,7 +196,7 @@ func _carrier(p: Footballer, ball: Ball) -> void:
 		and dir.dot((nearest_opp.flat_pos() - p.flat_pos()).normalized()) > 0.5
 	p.wants_sprint = not blocked
 
-	if _decision_timer > 0.0 or p.possession_time < 0.35:
+	if _decision_timer > 0.0 or p.possession_time < 0.35 or not _match.can_kick(p):
 		return
 	_decision_timer = DECISION_INTERVAL
 

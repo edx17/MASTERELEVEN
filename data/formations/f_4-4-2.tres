@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="FormationData" format=3]
+
+[ext_resource type="Script" path="res://scripts/tactics/formation_data.gd" id="1_eb7ov"]
+
+[resource]
+script = ExtResource("1_eb7ov")
+slots = Array[Vector2]([Vector2(0.015, 0), Vector2(0.21, -0.68), Vector2(0.18, -0.22), Vector2(0.18, 0.22), Vector2(0.21, 0.68), Vector2(0.36, -0.7), Vector2(0.33, -0.2), Vector2(0.33, 0.2), Vector2(0.36, 0.7), Vector2(0.46, -0.16), Vector2(0.45, 0.16)])
+roles = Array[int]([0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3])
