@@ -219,6 +219,10 @@ func _update_visual(dt: float) -> void:
 		pose = PlayerVisual.Pose.SLIDING
 	elif state == State.RECOVERING and state_timer > 0.3:
 		pose = PlayerVisual.Pose.FALLEN
+	if visual is ModelVisual:
+		var mv := visual as ModelVisual
+		mv.keeper = is_keeper()
+		mv.carrying = possession_time > 0.0
 	visual.update(dt, spd, _tuning.sprint_speed, pose, accel)
 
 

@@ -25,6 +25,8 @@ var randomize_error: bool = true
 ## Receptor elegido de antemano (el humano lo ve marcado mientras carga la
 ## barra y queda "trabado" al soltar). Se consume en la próxima patada.
 var forced_receiver: Footballer = null
+## La última patada fue un saque con la mano del arquero (para la animación).
+var hand_throw: bool = false
 
 
 func _init(p_ball: Ball, p_tuning: Tuning) -> void:
@@ -33,6 +35,7 @@ func _init(p_ball: Ball, p_tuning: Tuning) -> void:
 
 
 func execute(kind: int, player: Footballer, dir: Vector3, power: float) -> Footballer:
+	hand_throw = false
 	var forced := forced_receiver
 	forced_receiver = null
 	if forced != null and (forced.team != player.team or forced == player):
@@ -44,6 +47,7 @@ func execute(kind: int, player: Footballer, dir: Vector3, power: float) -> Footb
 		# la mano, rodando por el piso (no se tira para arriba); pase largo o
 		# tiro = pelotazo de volea.
 		if kind == Kind.SHORT_PASS or kind == Kind.THROUGH_PASS:
+			hand_throw = true
 			var d := _dir_or_facing(player, dir)
 			ball.state.pos = player.flat_pos() + d * 0.6 + Vector3.UP * tuning.ball_radius
 			ball.state.vel = Vector3.ZERO

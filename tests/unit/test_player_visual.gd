@@ -49,5 +49,9 @@ func test_match_plays_kick_animation_without_touching_physics() -> void:
 	m.ball.give_to(p)
 	var pos_before := p.global_position
 	m.perform_kick(p, KickActions.Kind.SHOT, Vector3.RIGHT, 0.6)
-	assert_eq(p.visual._event, PlayerVisual.Event.KICK)
+	# Gesto de patada: animación de Mixamo si está en la copia local, si no el
+	# armado por código.
+	var mv := p.visual as ModelVisual
+	var kicking := p.visual._event == PlayerVisual.Event.KICK or (mv != null and mv._clip == "shot" or mv != null and mv._clip == "kick")
+	assert_true(kicking, "muestra la patada")
 	assert_eq(p.global_position, pos_before, "la animación no mueve al jugador")

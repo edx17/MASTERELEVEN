@@ -51,7 +51,7 @@ Ver `Claude.md` para visión, criterios y fases.
 - [x] Tribunas de dos bandejas (también detrás de los arcos), butacas con respaldo y color parejo, barandas metálicas y frente oscuro de la bandeja superior.
 - [x] Número en la espalda (sigue al torso; blanco o negro según la camiseta).
 - [x] Iluminación global (SDFGI) y un leve brillo en Forward+ (en Compatibilidad se ignora).
-- [ ] Animaciones de fútbol reales (remate, pase, cabezazo, atajadas) desde un paquete externo.
+- [x] **Animaciones de fútbol de Mixamo** (`MixamoLibrary`): retarget al esqueleto de Quaternius al cargar (≈0,1 s para 13 clips), sin desplazamiento propio (al jugador lo mueve la simulación). Remate, pase, cabezazo, barrida, conducción; arquero en espera, atajada, estirada a cada lado (una espejada) con vuelo lateral, saque con la mano y con el pie. El clip arranca de modo que el golpe coincida con la salida de la pelota. Los FBX **no van en el repo** (licencia; repo público): ver `assets/CREDITS.md`. Sin ellos, gestos por código.
 - [ ] CPU vs CPU: el apoyo cerca del portador bajó a 88-93 % (antes 93-98 %) porque ahora se acomodan caminando/trotando; vigilar.
 
 ---

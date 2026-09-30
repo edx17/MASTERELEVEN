@@ -13,6 +13,7 @@ similares con licencia compatible).
 | Jugadores: cuerpo con esqueleto ("Superhero Male" de Universal Base Characters; sin sus texturas, colores por club con shader propio) | `assets/models/players/player_body.gltf` + `.bin` | Quaternius — https://quaternius.com | CC0 |
 | Animaciones de locomoción (Universal Animation Library, versión Godot) | `assets/animations/ual1_standard.glb` | Quaternius — https://quaternius.com | CC0 |
 | Gestos de fútbol (patada, pase, cabezazo, saque, estirada, barrida) sobre el esqueleto | `scripts/player/model_visual.gd` | Producción propia | Propia |
+| Animaciones de fútbol (remate, pase, cabezazo, barrida, conducción, arquero) | `assets/animations/mixamo/*.fbx` — **no están en el repo** (ver abajo) | Mixamo (Adobe) | Licencia de Mixamo: uso en el juego permitido, redistribución de los archivos no |
 | Humanoide provisorio (si faltan los modelos) | `scripts/player/player_visual.gd` | Producción propia | Propia |
 | Textura de la pelota | generada por código (`scripts/ball/ball.gd`) | Producción propia | Propia |
 | HUD (radar, paneles, "banderas" de club) | dibujado por código (`scripts/ui/match_hud.gd`) | Producción propia | Propia |
@@ -23,3 +24,13 @@ similares con licencia compatible).
 | Herramienta | Ubicación | Origen | Licencia |
 |-------------|-----------|--------|----------|
 | GUT 9.7.1 (tests unitarios) | `addons/gut/` | https://github.com/bitwes/Gut | MIT (`addons/gut/LICENSE.md`) |
+
+## Animaciones de Mixamo (copia local)
+
+El repositorio es público y la licencia de Mixamo no permite redistribuir los
+archivos, así que `assets/animations/mixamo/` está en `.gitignore`. Para verlas
+en el juego, poné en esa carpeta (FBX, "Without Skin" o "With Skin"):
+`Kick Soccerball`, `Soccer Penalty Kick`, `Soccer Pass`, `Soccer Header`,
+`Soccer Tackle`, `Receive`, `Dribble`, `Goalkeeper Idle`, `Goalkeeper Catch`,
+`Goalkeeper Overhand Throw`, `Goalkeeper Pass`, `Goalkeeper Diving Save`
+(con espacios o guiones bajos). Si falta alguna, ese gesto se hace por código.

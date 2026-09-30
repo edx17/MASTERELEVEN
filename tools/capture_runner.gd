@@ -51,7 +51,14 @@ var _script := [
 	[580, "pass_scene"],
 	[581, "simulate:0.2"],
 	[595, "shot:capture_pass.png"],
-	[600, "quit"],
+	[600, "shoot_scene"],
+	[601, "simulate:0.12"],
+	[606, "shot:capture_kick2.png"],
+	[607, "simulate:0.25"],
+	[615, "shot:capture_dive2.png"],
+	[616, "simulate:0.3"],
+	[630, "shot:capture_dive3.png"],
+	[640, "quit"],
 ]
 
 
@@ -104,6 +111,12 @@ func _run(action: String) -> void:
 		var secs := float(action.trim_prefix("simulate:"))
 		for i in int(secs * 60.0):
 			_match._physics_process(1.0 / 60.0)
+			# Las animaciones avanzan con el mismo reloj (si no, quedan congeladas).
+			for p in _match.all_players():
+				if p.visual is ModelVisual:
+					(p.visual as ModelVisual)._anim.advance(1.0 / 60.0)
+	elif action == "real_time":
+		_match.set_physics_process(true)
 	elif action == "unfreeze":
 		_match.set_physics_process(true)
 	elif action == "attack_live":

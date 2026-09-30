@@ -1,0 +1,299 @@
+class_name MixamoLibrary
+extends RefCounted
+## Animaciones de fútbol de Mixamo pasadas (retarget) al esqueleto de nuestros
+## jugadores. Los FBX NO van en el repositorio (licencia de Mixamo: se pueden
+## usar en el juego, no redistribuir sueltos): se leen de
+## res://assets/animations/mixamo/ si están en la copia local. Sin ellos, el
+## juego usa los gestos armados por código.
+##
+## Retarget: para cada hueso mapeado se toma cuánto giró (en el espacio del
+## modelo) respecto de su pose de reposo en Mixamo y se aplica ese mismo giro
+## sobre la pose de reposo de nuestro hueso (los dos esqueletos en T-pose,
+## mirando a +Z). El desplazamiento horizontal de la cadera se descarta (al
+## jugador lo mueve la simulación); la altura se escala a nuestro modelo.
+
+const DIR := "res://assets/animations/mixamo/"
+const FPS := 30.0
+const PREFIX := "mixamorig_"
+
+## Hueso de Mixamo -> hueso nuestro (Quaternius / estilo UE).
+const BONE_MAP := {
+	"Hips": "pelvis", "Spine": "spine_01", "Spine1": "spine_02", "Spine2": "spine_03",
+	"Neck": "neck_01", "Head": "Head",
+	"LeftShoulder": "clavicle_l", "LeftArm": "upperarm_l", "LeftForeArm": "lowerarm_l", "LeftHand": "hand_l",
+	"RightShoulder": "clavicle_r", "RightArm": "upperarm_r", "RightForeArm": "lowerarm_r", "RightHand": "hand_r",
+	"LeftUpLeg": "thigh_l", "LeftLeg": "calf_l", "LeftFoot": "foot_l", "LeftToeBase": "ball_l",
+	"RightUpLeg": "thigh_r", "RightLeg": "calf_r", "RightFoot": "foot_r", "RightToeBase": "ball_r",
+}
+
+## Clips que usa el juego: nombre -> [archivo, espejado, loop].
+const CLIPS := {
+	"kick": ["Kick_Soccerball", false, false],
+	"shot": ["Soccer_Penalty_Kick", false, false],
+	"pass": ["Soccer_Pass", false, false],
+	"header": ["Soccer_Header", false, false],
+	"slide": ["Soccer_Tackle", false, false],
+	"receive": ["Receive", false, false],
+	"dribble": ["Dribble", false, true],
+	"gk_idle": ["Goalkeeper_Idle", false, true],
+	"gk_catch": ["Goalkeeper_Catch", false, false],
+	"gk_throw": ["Goalkeeper_Overhand_Throw", false, false],
+	"gk_kick": ["Goalkeeper_Pass", false, false],
+	# La estirada de Mixamo va hacia +X del modelo (su izquierda); hacia -X es
+	# la misma, espejada.
+	"gk_dive_px": ["Goalkeeper_Diving_Save", false, false],
+	"gk_dive_nx": ["Goalkeeper_Diving_Save", true, false],
+}
+
+static var _lib: AnimationLibrary
+## Por clip: {start, contact, end} en segundos (tramo que se reproduce y
+## momento del golpe, para que el gesto coincida con la pelota).
+static var marks := {}
+static var _checked := false
+static var _dive_contact := 1.0
+
+
+## Construye (una vez) la librería con los clips disponibles. `body` es un
+## modelo nuestro instanciado (para leer su esqueleto en reposo).
+static func library(body_scene: PackedScene) -> AnimationLibrary:
+	if _checked:
+		return _lib
+	_checked = true
+	if not DirAccess.dir_exists_absolute(DIR):
+		return null
+	var body := body_scene.instantiate()
+	var target := body.find_child("Skeleton3D", true, false) as Skeleton3D
+	var lib := AnimationLibrary.new()
+	for clip_name in CLIPS:
+		var spec: Array = CLIPS[clip_name]
+		# Acepta el nombre con guiones bajos o con espacios (como baja de Mixamo).
+		var path: String = DIR + spec[0] + ".fbx"
+		if not ResourceLoader.exists(path):
+			path = DIR + String(spec[0]).replace("_", " ") + ".fbx"
+		if not ResourceLoader.exists(path):
+			continue
+		# Las estiradas conservan parte del vuelo de costado (el resto lo pone
+		# el desplazamiento del arquero en la simulación).
+		var lateral := 0.6 if String(clip_name).begins_with("gk_dive") else 0.0
+		var anim := _retarget(path, target, spec[1], spec[2], lateral)
+		if anim != null:
+			lib.add_animation(clip_name, anim)
+			marks[clip_name] = _marks(clip_name, anim, target)
+	body.free()
+	if lib.get_animation_list().is_empty():
+		return null
+	_lib = lib
+	return _lib
+
+
+static func _retarget(path: String, target: Skeleton3D, mirror: bool, loop: bool, lateral: float = 0.0) -> Animation:
+	var src_scene := (load(path) as PackedScene).instantiate()
+	var src := src_scene.find_child("Skeleton3D", true, false) as Skeleton3D
+	var player := src_scene.find_children("*", "AnimationPlayer", true, false)
+	if src == null or player.is_empty():
+		src_scene.free()
+		return null
+	var ap := player[0] as AnimationPlayer
+	var src_anim := ap.get_animation(ap.get_animation_list()[0])
+
+	# Pistas de la animación de origen por hueso.
+	var rot_track := {}
+	var hips_pos_track := -1
+	for t in src_anim.get_track_count():
+		var bone := String(src_anim.track_get_path(t).get_concatenated_subnames())
+		match src_anim.track_get_type(t):
+			Animation.TYPE_ROTATION_3D:
+				rot_track[bone] = t
+			Animation.TYPE_POSITION_3D:
+				if bone == PREFIX + "Hips":
+					hips_pos_track = t
+
+	var src_rest_g := _global_rest_rotations(src)
+	var tgt_rest_g := _global_rest_rotations(target)
+	var src_hips := src.find_bone(PREFIX + "Hips")
+	var tgt_pelvis := target.find_bone("pelvis")
+	var height_ratio := target.get_bone_global_rest(tgt_pelvis).origin.y / maxf(src.get_bone_global_rest(src_hips).origin.y, 0.01)
+
+	# Hueso nuestro -> hueso de Mixamo (con espejo: el del otro lado).
+	var tgt_to_src := {}
+	for mx in BONE_MAP:
+		var ours: String = BONE_MAP[mx]
+		var from: String = mx
+		if mirror:
+			from = mx.replace("Left", "#").replace("Right", "Left").replace("#", "Right")
+		var sb := src.find_bone(PREFIX + from)
+		var tb := target.find_bone(ours)
+		if sb >= 0 and tb >= 0:
+			tgt_to_src[tb] = sb
+
+	var out := Animation.new()
+	out.length = src_anim.length
+	out.loop_mode = Animation.LOOP_LINEAR if loop else Animation.LOOP_NONE
+	var out_track := {}
+	for tb in tgt_to_src:
+		var tr := out.add_track(Animation.TYPE_ROTATION_3D)
+		out.track_set_path(tr, NodePath("Armature/Skeleton3D:" + target.get_bone_name(tb)))
+		out_track[tb] = tr
+	var pos_tr := out.add_track(Animation.TYPE_POSITION_3D)
+	out.track_set_path(pos_tr, NodePath("Armature/Skeleton3D:pelvis"))
+	var pelvis_parent := target.get_bone_parent(tgt_pelvis)
+	var parent_rest := target.get_bone_global_rest(pelvis_parent) if pelvis_parent >= 0 else Transform3D.IDENTITY
+	var pelvis_rest_g := target.get_bone_global_rest(tgt_pelvis).origin
+
+	# Estiradas: el vuelo lateral se mide desde el inicio del tramo que se
+	# reproduce (0,2 s antes del momento de vuelo más rápido).
+	var base_x := 0.0
+	if lateral > 0.0 and hips_pos_track >= 0:
+		_dive_contact = _fastest_x_time(src_anim, hips_pos_track)
+		base_x = (src_anim.position_track_interpolate(hips_pos_track, maxf(0.0, _dive_contact - 0.2)) as Vector3).x
+	var frames := int(ceil(src_anim.length * FPS))
+	for f in frames + 1:
+		var time := minf(f / FPS, src_anim.length)
+		# Rotaciones globales de Mixamo en este instante.
+		var src_g := {}
+		for b in src.get_bone_count():
+			var local: Quaternion = src.get_bone_rest(b).basis.get_rotation_quaternion()
+			var bname := src.get_bone_name(b)
+			if rot_track.has(bname):
+				local = src_anim.rotation_track_interpolate(rot_track[bname], time)
+			var p := src.get_bone_parent(b)
+			src_g[b] = (src_g[p] * local) if p >= 0 else local
+		# Rotaciones globales nuestras y paso a locales.
+		var tgt_g := {}
+		for tb in target.get_bone_count():
+			var p := target.get_bone_parent(tb)
+			var parent_g: Quaternion = tgt_g[p] if p >= 0 else Quaternion.IDENTITY
+			if tgt_to_src.has(tb):
+				var sb: int = tgt_to_src[tb]
+				var delta: Quaternion = src_g[sb] * (src_rest_g[sb] as Quaternion).inverse()
+				if mirror:
+					delta = Quaternion(delta.x, -delta.y, -delta.z, delta.w)
+				var g: Quaternion = (delta * tgt_rest_g[tb]).normalized()
+				tgt_g[tb] = g
+				out.rotation_track_insert_key(out_track[tb], time, (parent_g.inverse() * g).normalized())
+			else:
+				tgt_g[tb] = parent_g * target.get_bone_rest(tb).basis.get_rotation_quaternion()
+		# Altura de la cadera (sin desplazamiento horizontal).
+		var y := pelvis_rest_g.y
+		var x := pelvis_rest_g.x
+		if hips_pos_track >= 0:
+			var hp: Vector3 = src_anim.position_track_interpolate(hips_pos_track, time)
+			y = hp.y * height_ratio
+			x += (hp.x - base_x) * lateral * (-1.0 if mirror else 1.0)
+		var world := Vector3(x, y, pelvis_rest_g.z)
+		out.position_track_insert_key(pos_tr, time, parent_rest.affine_inverse() * world)
+	src_scene.free()
+	return out
+
+
+static func _global_rest_rotations(sk: Skeleton3D) -> Dictionary:
+	var g := {}
+	for b in sk.get_bone_count():
+		var local := sk.get_bone_rest(b).basis.get_rotation_quaternion()
+		var p := sk.get_bone_parent(b)
+		g[b] = (g[p] * local) if p >= 0 else local
+	return g
+
+
+## Momento del golpe de cada clip (buscado en la animación) y tramo a usar.
+static func _marks(clip_name: String, anim: Animation, target: Skeleton3D) -> Dictionary:
+	var contact := anim.length * 0.4
+	match clip_name:
+		"kick", "shot", "pass", "gk_kick":
+			contact = _fastest_time(anim, target, "foot_r")
+		"gk_throw":
+			contact = _fastest_time(anim, target, "hand_r")
+		"header":
+			contact = _highest_hips_time(anim, target)
+		"gk_dive_px", "gk_dive_nx":
+			contact = _dive_contact
+		"slide":
+			contact = anim.length * 0.35
+		"gk_catch", "receive":
+			contact = anim.length * 0.3
+	# Los golpes se disparan en el instante del contacto: el clip arranca
+	# apenas antes (el pie ya viene bajando). Atajadas y saques, con algo de
+	# anticipación.
+	var lead := 0.08 if clip_name in ["kick", "shot", "pass", "gk_kick", "header"] else 0.3
+	if clip_name.begins_with("gk_dive"):
+		lead = 0.2 # el remate ya salió: el vuelo arranca enseguida
+	var start := maxf(0.0, contact - lead)
+	var end := minf(anim.length, contact + 0.6)
+	if clip_name.begins_with("gk_dive"):
+		end = minf(anim.length, contact + 1.1)
+	return {"start": start, "contact": contact, "end": end}
+
+
+## Momento del golpe: cuando el hueso (pie/mano) llega al 80 % de su punto
+## más adelantado (el contacto con la pelota, un poco antes del final del gesto).
+static func _fastest_time(anim: Animation, target: Skeleton3D, bone_name: String) -> float:
+	var chain: Array[int] = []
+	var b := target.find_bone(bone_name)
+	while b >= 0:
+		chain.push_front(b)
+		b = target.get_bone_parent(b)
+	var tracks := {}
+	for t in anim.get_track_count():
+		if anim.track_get_type(t) == Animation.TYPE_ROTATION_3D:
+			tracks[target.find_bone(String(anim.track_get_path(t).get_concatenated_subnames()))] = t
+	var samples: Array[Vector2] = [] # (tiempo, z)
+	var step := 1.0 / FPS
+	var time := 0.0
+	while time <= anim.length:
+		var xf := Transform3D.IDENTITY
+		for bone in chain:
+			var rest := target.get_bone_rest(bone)
+			var rot: Quaternion = anim.rotation_track_interpolate(tracks[bone], time) if tracks.has(bone) else rest.basis.get_rotation_quaternion()
+			xf = xf * Transform3D(Basis(rot), rest.origin)
+		samples.append(Vector2(time, xf.origin.z))
+		time += step
+	var z0 := samples[0].y
+	var zmax := z0
+	for smp in samples:
+		zmax = maxf(zmax, smp.y)
+	for smp in samples:
+		if smp.y >= z0 + (zmax - z0) * 0.8:
+			return smp.x
+	return anim.length * 0.4
+
+
+## Momento en que la cadera (de Mixamo) se desplaza más rápido de costado.
+static func _fastest_x_time(anim: Animation, track: int) -> float:
+	var best := anim.length * 0.3
+	var best_v := 0.0
+	var step := 1.0 / FPS
+	var prev: float = (anim.position_track_interpolate(track, 0.0) as Vector3).x
+	var time := step
+	while time <= anim.length:
+		var x: float = (anim.position_track_interpolate(track, time) as Vector3).x
+		var v := absf(x - prev) / step
+		if v > best_v:
+			best_v = v
+			best = time
+		prev = x
+		time += step
+	return best
+
+
+static func _highest_hips_time(anim: Animation, target: Skeleton3D) -> float:
+	# La pista guarda la posición local de la cadera (en el espacio de su
+	# padre, que está rotado): se pasa a altura real con la pose de reposo.
+	var pelvis := target.find_bone("pelvis")
+	var parent := target.get_bone_parent(pelvis)
+	var parent_rest := target.get_bone_global_rest(parent) if parent >= 0 else Transform3D.IDENTITY
+	var tr := -1
+	for t in anim.get_track_count():
+		if anim.track_get_type(t) == Animation.TYPE_POSITION_3D:
+			tr = t
+	if tr < 0:
+		return anim.length * 0.5
+	var best := 0.0
+	var best_y := -INF
+	var time := 0.0
+	while time <= anim.length:
+		var y: float = (parent_rest * (anim.position_track_interpolate(tr, time) as Vector3)).y
+		if y > best_y:
+			best_y = y
+			best = time
+		time += 1.0 / FPS
+	return best

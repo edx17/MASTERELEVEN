@@ -4,3 +4,7 @@
 *.tmp
 export_presets.cfg.bak
 /build/
+
+# Animaciones de Mixamo: se usan si están en tu copia local, pero su licencia
+# no permite redistribuir los archivos (el repo es público).
+/assets/animations/mixamo/

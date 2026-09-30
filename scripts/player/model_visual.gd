@@ -8,6 +8,10 @@ extends PlayerVisual
 ## - Gestos de fútbol que la librería no trae (patada, pase, cabezazo,
 ##   saque, atajada, estirada, barrida, caída): se aplican moviendo huesos
 ##   encima de la animación, justo después de que el AnimationPlayer la aplica.
+## - Si están las animaciones de fútbol de Mixamo en la copia local
+##   (MixamoLibrary), los gestos usan esas animaciones en lugar de los armados
+##   por código; el arquero usa su postura de espera y el que conduce, la de
+##   conducción.
 ## - Colores del club por zona del cuerpo (camiseta, short, medias, piel,
 ##   botines, pelo) con un shader; la zona se hornea una vez en la malla.
 
@@ -36,6 +40,14 @@ var _run := 0.0
 ## Rotación animada limpia y última rotación puesta por un gesto, por hueso.
 var _clean := {}
 var _last_set := {}
+## Animaciones de fútbol (Mixamo) disponibles, clip en curso y cuánto le queda.
+var _mx: AnimationLibrary
+var _clip := ""
+var _clip_left := 0.0
+var _slide_played := false
+## Lo fija el Footballer: es arquero / lleva la pelota (elige la locomoción).
+var keeper := false
+var carrying := false
 
 
 ## Hay modelo y animaciones importados en el proyecto.
@@ -93,6 +105,9 @@ func setup(colors: Dictionary, seed: int) -> void:
 	_model.add_child(_anim)
 	_anim.root_node = _anim.get_path_to(_model)
 	_anim.add_animation_library(&"", _anim_lib)
+	_mx = MixamoLibrary.library(_body_scene)
+	if _mx != null:
+		_anim.add_animation_library(&"mx", _mx)
 	_anim.mixer_applied.connect(_apply_gestures)
 	_play_locomotion(0.0)
 
@@ -134,8 +149,62 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 		_event_t += dt
 		if _event_t >= _event_len:
 			_event = -1
-	_play_locomotion(speed)
-	_place_model()
+	# Barrida con la animación de Mixamo (una vez por barrida).
+	if pose == Pose.SLIDING:
+		if not _slide_played and _play_clip("slide"):
+			_slide_played = true
+	else:
+		_slide_played = false
+	if _clip != "":
+		_clip_left -= dt
+		if _clip_left <= 0.0:
+			_clip = ""
+			_current = "" # vuelve a la locomoción con mezcla
+	if _clip == "":
+		_play_locomotion(speed)
+		_place_model()
+	else:
+		_model.transform = Transform3D.IDENTITY
+
+
+## Gestos: con animación de Mixamo si está disponible; si no, por código.
+func play(event: int, side: float = 1.0) -> void:
+	if _clip.begins_with("gk_dive") and event != Event.DIVE_LEFT and event != Event.DIVE_RIGHT:
+		return # ya está volando: la estirada termina (atrapa o rechaza en el aire)
+	super.play(event, side)
+	var clip := ""
+	match event:
+		Event.KICK:
+			clip = "gk_kick" if keeper else "kick"
+		Event.PASS:
+			clip = "gk_kick" if keeper else "pass"
+		Event.HEADER:
+			clip = "header"
+		Event.THROW:
+			clip = "gk_throw" if keeper else ""
+		Event.CATCH:
+			clip = "gk_catch"
+		Event.DIVE_RIGHT:
+			clip = "gk_dive_px"
+		Event.DIVE_LEFT:
+			clip = "gk_dive_nx"
+	if clip != "" and _play_clip(clip):
+		_event = -1 # la animación reemplaza al gesto armado por código
+
+
+## Reproduce un clip de fútbol desde un poco antes del golpe. false si no está.
+func _play_clip(clip: String) -> bool:
+	if _mx == null or not _mx.has_animation(clip):
+		return false
+	var m: Dictionary = MixamoLibrary.marks.get(clip, {})
+	var start: float = m.get("start", 0.0)
+	var end: float = m.get("end", _mx.get_animation(clip).length)
+	_clip = clip
+	_clip_left = end - start
+	_anim.speed_scale = 1.0
+	_anim.play("mx/" + clip, 0.08)
+	_anim.seek(start, true)
+	return true
 
 
 ## Elige la animación de locomoción y ajusta la cadencia a la velocidad real.
@@ -145,6 +214,13 @@ func _play_locomotion(speed: float) -> void:
 		if speed >= float(entry[1]):
 			pick = entry
 	var anim_name: String = pick[0]
+	if _mx != null:
+		# Arquero quieto: postura de espera. Conduciendo al trote: conducción.
+		if keeper and anim_name == "Idle" and _mx.has_animation("gk_idle"):
+			pick = ["mx/gk_idle", 0.0, 0.0]
+		elif carrying and anim_name == "Jog_Fwd" and _mx.has_animation("dribble"):
+			pick = ["mx/dribble", 2.4, 2.8]
+		anim_name = pick[0]
 	if anim_name != _current:
 		_current = anim_name
 		_anim.play(anim_name, BLEND)
@@ -196,6 +272,8 @@ func _apply_gestures() -> void:
 		if _skel.get_bone_pose_rotation(b).is_equal_approx(_last_set[b]):
 			_skel.set_bone_pose_rotation(b, _clean[b])
 	_last_set.clear()
+	if _clip != "":
+		return # la animación de Mixamo manda
 	# Inclinación del torso al acelerar / correr (esfuerzo en el sprint).
 	_rotate_bone("spine_01", Vector3.RIGHT, _lean)
 	if _pose == Pose.SLIDING:
