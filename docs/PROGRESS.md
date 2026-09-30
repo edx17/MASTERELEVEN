@@ -6,7 +6,7 @@ Ver `Claude.md` para visión, criterios y fases.
 | Fase | Estado |
 |------|--------|
 | 1 — Base jugable | ✅ Hecha |
-| 2 — Prototipo 0.1: sensación de juego | 🟡 En pulido: 2.ª prueba OK en conducción, robo, arquero y cámara; **pendiente probar pases** y la física nueva |
+| 2 — Prototipo 0.1: sensación de juego | 🟡 3.ª prueba: energía y física OK; **pendiente confirmar la recepción de pases** |
 | 3 — IA de partido (TeamAI, formaciones, zonas, arquero) | ⬜ |
 | 4 — Reglas, atributos y plantel | ⬜ |
 | 5 — Presentación moderna (estadio, modelos, animaciones, audio) | ⬜ |
@@ -58,6 +58,13 @@ CPU vs CPU (3 min) tras el pulido: 2-0, 1-2, 0-0 con ~10 tiros por partido y ent
 | Informe de física: arquero | Reacción 0,25-0,40 s; KPI de atajadas en el área 74 % (< 75 %). |
 | Árbitro, faltas, lesiones, ragdoll | Planificados en Fases 4 y 5 (ver `docs/FISICA.md` y `Claude.md`). |
 | Cámara | TV queda como predeterminada. Personalizada y desde el córner: Fase 5. |
+
+### Cuarta ronda (tu 3.ª prueba)
+| Tema | Cambio |
+|---|---|
+| "Me obliga a soltar el stick para que el receptor no se vaya a otra dirección" | Recepción trabada: tras el pase, el stick que quedó apretado en la dirección del pase se ignora y el receptor va al encuentro de la pelota; el control vuelve al soltar el stick o al moverlo > 50° hacia otro lado. Test que reproduce el problema (sin la corrección el receptor se escapaba 24 m). |
+| "El aro que no se vea" | La marca del receptor queda oculta por defecto (`GameSettings.show_pass_target`); el receptor se elige y se traba igual. Activarla será una opción de ayudas visuales (Fase 8). |
+| Energía en el segundo tiempo | Anotado para la Fase 4: el cansancio se acumula entre tiempos y el entretiempo recupera sólo una parte. |
 
 ### Pendiente
 - [ ] **Tu prueba** con el "criterio de éxito del gameplay" de `Claude.md` y ajuste de `data/config/tuning.tres` / `cameras/*.tres` según tu feedback.

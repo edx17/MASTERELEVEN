@@ -148,7 +148,9 @@ Criterio: un partido vs CPU es competitivo y la CPU juega "como un equipo".
   (10-20 % de faltas no vistas) y criterio de tarjetas por severidad.
 - Choques jugador-jugador con fuerza (atributo strength) y lesiones probabilísticas.
 - Fatiga de largo plazo (la energía máxima baja durante el partido) sobre la
-  energía de corto plazo ya implementada.
+  energía de corto plazo ya implementada: el cansancio se acumula del primer
+  al segundo tiempo (no se reinicia) y en el entretiempo se recupera sólo una
+  parte.
 - Atributos que afecten de verdad la jugabilidad (velocidad, aceleración,
   resistencia, fuerza, pase, tiro, técnica, control, cabezazo, defensa, reacción,
   equilibrio, arquero); posiciones y pierna hábil.
@@ -193,6 +195,8 @@ Criterio: un partido vs CPU es competitivo y la CPU juega "como un equipo".
 ### Fase 8 — Pulido
 - Editor de clubes y jugadores (nombres, atributos, camisetas).
 - Opciones: gráficos, audio, controles, duración de partido.
+- Ayudas visuales activables: marca del receptor del pase (ya existe,
+  apagada por defecto: `GameSettings.show_pass_target`), entre otras.
 - Build exportable para Windows con instalador o zip portable.
 
 ## Reglas de trabajo

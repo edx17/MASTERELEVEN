@@ -18,6 +18,9 @@ var home_team_path: String = DEFAULT_HOME
 var away_team_path: String = DEFAULT_AWAY
 ## Modo de cámara elegido (índice en MatchCamera.PRESETS); se recuerda entre partidos.
 var camera_preset: int = 0
+## Ayudas visuales (se podrán activar desde el menú de opciones, Fase 8).
+## Marca en el piso del receptor del pase que se está cargando.
+var show_pass_target: bool = false
 
 
 func _ready() -> void:

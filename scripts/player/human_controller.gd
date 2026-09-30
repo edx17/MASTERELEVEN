@@ -11,6 +11,9 @@ const KICK_BUTTONS := {
 	&"pass_through": KickActions.Kind.THROUGH_PASS,
 }
 const AUTO_SWITCH_MARGIN := 4.0
+## Ángulo a partir del cual mover el stick cuenta como "nueva orden" y le
+## devuelve el control del receptor al jugador.
+const RECEIVE_RELEASE_ANGLE := deg_to_rad(50.0)
 ## Durante cuánto se recuerda la última dirección del stick (para pasar hacia
 ## donde se apuntó aunque el stick ya se haya soltado al apretar el botón).
 const AIM_MEMORY := 0.35
@@ -31,6 +34,10 @@ var _buffer_timer: float = 0.0
 var _buffered_receiver: Footballer = null
 ## Compañero que recibiría el pase que se está cargando (marcado en la cancha).
 var preview_receiver: Footballer = null
+## Recepción asistida trabada: tras pasar, el receptor va a buscar la pelota
+## aunque el stick siga apretado en la dirección del pase.
+var _receive_lock: bool = false
+var _receive_lock_dir: Vector3 = Vector3.ZERO
 var _aim_dir: Vector3 = Vector3.ZERO
 var _aim_age: float = 999.0
 var _switch_cooldown: float = 0.0
@@ -106,6 +113,7 @@ func tick(dt: float) -> void:
 		_aim_age = 0.0
 	var opponent_has_ball := ball.owner_player != null and ball.owner_player.team != team
 
+	move = _apply_receive_lock(p, ball, move)
 	p.wants_sprint = input.pressed(&"sprint")
 	p.desired_move = move
 	p.pressing = false
@@ -182,7 +190,9 @@ func _set_preview(p: Footballer) -> void:
 	if preview_receiver != null:
 		preview_receiver.set_pass_marker(-1)
 	preview_receiver = p
-	if preview_receiver != null:
+	# La marca visual es una ayuda opcional (apagada por defecto); el receptor
+	# se elige y se traba igual.
+	if preview_receiver != null and GameSettings.show_pass_target:
 		preview_receiver.set_pass_marker(slot)
 
 
@@ -207,6 +217,28 @@ func _do_kick(kind: int, pwr: float, move: Vector3, target: Footballer = null) -
 		# Cambio automático al receptor del pase (como en WE).
 		select(receiver)
 		_handled_kick = _match.kick_count
+		# El stick que se usó para pasar no debe mandar al receptor para ese lado.
+		_receive_lock = true
+		_receive_lock_dir = move.normalized() if move.length_squared() > 0.01 else Vector3.ZERO
+
+
+## Mientras la pelota viaja hacia el receptor, el stick que quedó apretado en
+## la dirección del pase se ignora (el receptor va al encuentro). Se devuelve
+## el control al soltar el stick o al moverlo claramente hacia otro lado.
+func _apply_receive_lock(p: Footballer, ball: Ball, move: Vector3) -> Vector3:
+	if not _receive_lock:
+		return move
+	if not ball.is_loose() or ball.intended_receiver != p:
+		_receive_lock = false
+		return move
+	if move.length_squared() < 0.04:
+		# Soltó el stick: el próximo movimiento ya es una orden nueva.
+		_receive_lock = false
+		return move
+	if _receive_lock_dir == Vector3.ZERO or move.normalized().angle_to(_receive_lock_dir) > RECEIVE_RELEASE_ANGLE:
+		_receive_lock = false
+		return move
+	return Vector3.ZERO
 
 
 func _auto_switch(ball: Ball) -> void:

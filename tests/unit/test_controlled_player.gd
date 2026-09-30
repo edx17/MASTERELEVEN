@@ -148,3 +148,52 @@ func test_short_pass_always_finds_a_teammate() -> void:
 	# Apunta hacia adelante, donde no hay nadie: igual busca a un compañero.
 	input.move = Vector3.RIGHT
 	assert_not_null(_pass_and_get_receiver(), "no suelta la pelota al vacío")
+
+
+func test_receiver_comes_to_the_ball_even_with_stick_held() -> void:
+	# Pase hacia la derecha manteniendo el stick a la derecha todo el tiempo:
+	# el receptor no debe escaparse hacia la derecha, debe venir a recibir.
+	var mates := _two_mates()
+	var receiver := mates[1]
+	_carrier_at_origin()
+	_run(0.2)
+	input.move = Vector3.RIGHT
+	input.hold(&"pass_short")
+	_run(0.15)
+	input.release(&"pass_short")
+	var start_x := receiver.global_position.x
+	var got := false
+	for i in 240:
+		m._physics_process(dt)
+		if m.ball.owner_player == receiver:
+			got = true
+			break
+	assert_true(got, "recibe con el stick apretado")
+	assert_lt(receiver.global_position.x, start_x + 1.0, "no se escapó en la dirección del stick")
+
+
+func test_moving_stick_elsewhere_returns_control() -> void:
+	var mates := _two_mates()
+	_carrier_at_origin()
+	_run(0.2)
+	input.move = Vector3.RIGHT
+	input.hold(&"pass_short")
+	_run(0.15)
+	input.release(&"pass_short")
+	_run(0.05)
+	# Nueva orden: hacia abajo (90° de la dirección del pase).
+	input.move = Vector3(0, 0, 1)
+	_run(0.3)
+	assert_gt(mates[1].velocity.z, 1.0, "el jugador toma el control del receptor")
+
+
+func test_pass_marker_hidden_by_default() -> void:
+	var mates := _two_mates()
+	_carrier_at_origin()
+	_run(0.2)
+	input.move = Vector3(0, 0, -1)
+	input.hold(&"pass_short")
+	_run(0.1)
+	assert_eq(m.humans[0].preview_receiver, mates[0], "el receptor se elige igual")
+	assert_true(mates[0]._pass_marker == null or not mates[0]._pass_marker.visible, "pero el aro no se ve")
+	input.release(&"pass_short")
