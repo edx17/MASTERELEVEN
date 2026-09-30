@@ -83,8 +83,10 @@ func target_focus() -> Vector3:
 			f.x = clampf(f.x + dir * config.horizontal_offset, -Pitch.HALF_LENGTH + 6.0, Pitch.HALF_LENGTH - 6.0)
 			f.z = clampf(f.z * config.track_z, -Pitch.HALF_WIDTH + 6.0, Pitch.HALF_WIDTH - 6.0)
 		CameraConfig.Mode.TOPDOWN:
-			f.x = clampf(f.x, -Pitch.HALF_LENGTH + 10.0, Pitch.HALF_LENGTH - 10.0)
-			f.z = clampf(f.z, -Pitch.HALF_WIDTH + 8.0, Pitch.HALF_WIDTH - 8.0)
+			# Cuanto más alta, menos se mueve (a gran altura ya ve toda la cancha).
+			var k := clampf(1.0 - (config.camera_height - 45.0) / 60.0, 0.0, 1.0)
+			f.x = clampf(f.x, -Pitch.HALF_LENGTH + 10.0, Pitch.HALF_LENGTH - 10.0) * k
+			f.z = clampf(f.z, -Pitch.HALF_WIDTH + 8.0, Pitch.HALF_WIDTH - 8.0) * k
 	return f
 
 

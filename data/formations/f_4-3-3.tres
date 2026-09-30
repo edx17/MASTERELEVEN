@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FormationData" format=3]
+
+[ext_resource type="Script" path="res://scripts/tactics/formation_data.gd" id="1_otb3d"]
+
+[resource]
+script = ExtResource("1_otb3d")
+formation_name = "4-3-3"
+slots = Array[Vector2]([Vector2(0.015, 0), Vector2(0.21, -0.7), Vector2(0.18, -0.22), Vector2(0.18, 0.22), Vector2(0.21, 0.7), Vector2(0.37, -0.32), Vector2(0.29, 0), Vector2(0.37, 0.32), Vector2(0.45, -0.72), Vector2(0.47, 0), Vector2(0.45, 0.72)])
+roles = Array[int]([0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3])
+slot_roles = Array[int]([0, 2, 1, 1, 2, 4, 3, 4, 7, 8, 7])

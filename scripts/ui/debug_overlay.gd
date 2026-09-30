@@ -77,7 +77,9 @@ func _status_text() -> String:
 		for p in t.players:
 			if not p.is_human():
 				counts[p.debug_state] = counts.get(p.debug_state, 0) + 1
-		lines.append("%s IA: %s" % [t.short_name, str(counts)])
+		var ai := _match.ais[t.index]
+		lines.append("%s [%s | %s | %s]: %s" % [t.short_name, ai.state_name(),
+			t.formation.formation_name if t.formation else "-", Difficulty.NAMES[ai.difficulty.level], str(counts)])
 	return "\n".join(lines)
 
 
@@ -91,15 +93,12 @@ func _draw_world() -> void:
 		prev = p
 	for t in _match.teams:
 		var c := t.color.lightened(0.3)
-		var progress := t.progress_of(_match.ball.flat_pos())
-		var lateral := t.lateral_of(_match.ball.flat_pos())
-		var has := _match.ball.owner_player != null and _match.ball.owner_player.team == t
 		for p in t.players:
 			var from := p.global_position + Vector3.UP * 0.1
 			if not p.is_human() and p.debug_target != Vector3.ZERO:
 				_line(from, p.debug_target + Vector3.UP * 0.1, c)
 			# Posición táctica (cruz) según formación y pelota.
-			var home := t.to_world(Formation.dynamic_spot(p.base_spot, p.role, progress, lateral, has)) + Vector3.UP * 0.05
+			var home := _match.ais[t.index].shape_target(p) + Vector3.UP * 0.05
 			_line(home + Vector3(-0.4, 0, 0), home + Vector3(0.4, 0, 0), c.darkened(0.3))
 			_line(home + Vector3(0, 0, -0.4), home + Vector3(0, 0, 0.4), c.darkened(0.3))
 	_im.surface_end()

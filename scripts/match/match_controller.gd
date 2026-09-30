@@ -27,7 +27,7 @@ var teams: Array[Team] = []
 var clock: MatchClock
 var kicks: KickActions
 var humans: Array[HumanController] = []
-var ais: Array[SimpleAI] = []
+var ais: Array[TeamAI] = []
 
 var phase: Phase = Phase.RESTART
 var restart_type: int = MatchRules.Restart.KICKOFF
@@ -127,6 +127,7 @@ func _build_world() -> void:
 		var d := datas[i]
 		var team := Team.new(i, d.team_name, d.short_name, d.color, d.secondary_color, d.keeper_color)
 		team.data = d
+		team.formation = d.formation
 		team.attack_dir = 1 if i == 0 else -1
 		teams.append(team)
 		var formation := d.formation
@@ -135,6 +136,7 @@ func _build_world() -> void:
 			var p := Footballer.new()
 			add_child(p)
 			p.setup(team, starters[n], formation.roles[n], formation.slots[n], tuning)
+			p.tactical_role = formation.tactical_role(n)
 			team.players.append(p)
 
 	_camera = MatchCamera.new()
@@ -190,7 +192,13 @@ func _setup_controllers() -> void:
 			humans.append(HumanController.new(0, teams[0], self))
 			humans.append(HumanController.new(1, teams[1], self))
 	for t in teams:
-		ais.append(SimpleAI.new(t, self))
+		# La dificultad sólo afecta a los equipos que maneja la CPU.
+		var has_human := false
+		for h in humans:
+			if h.team == t:
+				has_human = true
+		var level: int = Difficulty.Level.NORMAL if has_human else GameSettings.difficulty
+		ais.append(TeamAI.new(t, self, Difficulty.make(level)))
 
 
 # --- Bucle principal ----------------------------------------------------------
@@ -324,7 +332,8 @@ func loose_ball_intercept(p: Footballer) -> Vector3:
 	for i in ball_forecast.size():
 		var t := (i + 1) * FORECAST_STEP
 		var bp := ball_forecast[i]
-		if bp.y > 2.2:
+		# Sólo sirven los puntos donde la pelota ya está a altura de control.
+		if bp.y > tuning.control_height:
 			continue
 		var flat := Vector3(bp.x, 0.0, bp.z)
 		if p.flat_pos().distance_to(flat) <= speed * t + 0.6:
@@ -345,14 +354,48 @@ func _plan_save(shooter: Footballer) -> void:
 	var plan := SaveModel.predict_crossing(ball.state, goal_x, tuning)
 	if not plan.on_target:
 		return
-	var reaction := gk.data.reaction if gk.data else 60
-	var gk_skill := gk.data.goalkeeping if gk.data else 60
+	var bonus := ais[defenders.index].difficulty.keeper_bonus if defenders.index < ais.size() else 0
+	var reaction := (gk.data.reaction if gk.data else 60) + bonus
+	var gk_skill := (gk.data.goalkeeping if gk.data else 60) + bonus
 	SaveModel.evaluate(plan, gk.flat_pos(), reaction, gk_skill)
 	var will_save := randf() < plan.chance
 	# Embolsa si le llega cómoda y no tan fuerte; si no, da rebote.
 	var parry := ball.speed() > 20.0 or plan.margin < 0.5
 	save_plan = {"keeper": gk, "will_save": will_save, "parry": parry, "point": plan.point,
 		"time_left": plan.time + 0.3, "chance": plan.chance}
+
+
+## Reanudación que viene (para que la IA se ubique antes del saque):
+## {type, team, spot, taker}. Vacío si no hay (juego, gol, saque del medio).
+func upcoming_restart() -> Dictionary:
+	if phase == Phase.STOPPED and _pending != null and _pending.type != MatchRules.Restart.GOAL:
+		return {"type": _pending.type, "team": _pending.team, "spot": _pending.spot, "taker": null}
+	if phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF and restart_taker != null:
+		return {"type": restart_type, "team": restart_taker.team.index, "spot": ball.flat_pos(), "taker": restart_taker}
+	return {}
+
+
+## Aplica un nivel de dificultad a los equipos que maneja la CPU.
+func apply_difficulty(level: int) -> void:
+	for ai in ais:
+		var has_human := false
+		for h in humans:
+			if h.team == ai.team:
+				has_human = true
+		if not has_human:
+			ai.difficulty = Difficulty.make(level)
+
+
+## Cambia la formación de un equipo durante el partido (menú de pausa).
+func set_formation(team_index: int, formation: FormationData) -> void:
+	var t := teams[team_index]
+	t.formation = formation
+	for n in mini(t.players.size(), formation.slots.size()):
+		var p := t.players[n]
+		p.base_spot = formation.slots[n]
+		p.role = formation.roles[n] as Footballer.Role
+		p.tactical_role = formation.tactical_role(n)
+	show_toast("%s: %s" % [t.short_name, formation.formation_name])
 
 
 ## El jugador tiene la pelota al alcance del pie para patearla ahora.

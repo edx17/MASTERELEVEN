@@ -14,9 +14,11 @@ const INITIALS := "ABCDEFGHJLMNOPRSTV"
 
 const TEAMS := [
 	{"id": "aurora", "name": "Deportivo Aurora", "short": "AUR", "color": Color(0.35, 0.65, 0.95),
-		"secondary": Color(0.95, 0.95, 0.95), "keeper": Color(0.15, 0.15, 0.15), "seed": 11},
+		"secondary": Color(0.95, 0.95, 0.95), "keeper": Color(0.15, 0.15, 0.15), "seed": 11,
+		"formation": "4-3-3"},
 	{"id": "halcones", "name": "Atlético Halcones", "short": "HAL", "color": Color(0.85, 0.15, 0.15),
-		"secondary": Color(0.08, 0.08, 0.08), "keeper": Color(0.2, 0.85, 0.35), "seed": 23},
+		"secondary": Color(0.08, 0.08, 0.08), "keeper": Color(0.2, 0.85, 0.35), "seed": 23,
+		"formation": "4-4-2"},
 ]
 
 # Suplentes: arquero, defensor, volante, volante, delantero.
@@ -25,12 +27,11 @@ const BENCH_ROLES := [PlayerData.Position.GK, PlayerData.Position.DF, PlayerData
 
 
 func _init() -> void:
-	var f442 := FormationData.new()
-	f442.formation_name = "4-4-2"
-	f442.slots.assign(Formation.SPOTS_442)
-	f442.roles.assign(Formation.ROLES_442)
-	_save(f442, "res://data/formations/f_4-4-2.tres")
-	f442 = load("res://data/formations/f_4-4-2.tres")
+	var formations := {}
+	for fname in FormationLibrary.DEFINITIONS:
+		var path := "res://data/formations/f_%s.tres" % fname
+		_save(FormationLibrary.build(fname), path)
+		formations[fname] = load(path)
 
 	for t in TEAMS:
 		var rng := RandomNumberGenerator.new()
@@ -42,7 +43,7 @@ func _init() -> void:
 		team.color = t["color"]
 		team.secondary_color = t["secondary"]
 		team.keeper_color = t["keeper"]
-		team.formation = f442
+		team.formation = formations[t["formation"]]
 		var names := SURNAMES.duplicate()
 		for i in names.size():
 			var j := rng.randi_range(i, names.size() - 1)
@@ -50,7 +51,11 @@ func _init() -> void:
 			names[i] = names[j]
 			names[j] = tmp
 		var roles: Array = []
-		roles.append_array(Formation.ROLES_442)
+		# Plantel base: 1 ARQ, 4 DEF, 4 VOL, 2 DEL + suplentes (los puestos de la
+		# formación se asignan por orden; se ajusta en la Fase 4 con el menú).
+		roles.append_array([PlayerData.Position.GK, PlayerData.Position.DF, PlayerData.Position.DF,
+			PlayerData.Position.DF, PlayerData.Position.DF, PlayerData.Position.MF, PlayerData.Position.MF,
+			PlayerData.Position.MF, PlayerData.Position.MF, PlayerData.Position.FW, PlayerData.Position.FW])
 		roles.append_array(BENCH_ROLES)
 		for i in roles.size():
 			var p := _make_player(rng, roles[i], i + 1, names[i])

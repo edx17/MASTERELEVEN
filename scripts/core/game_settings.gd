@@ -21,6 +21,8 @@ var camera_preset: int = 0
 ## Ayudas visuales (se podrán activar desde el menú de opciones, Fase 8).
 ## Marca en el piso del receptor del pase que se está cargando.
 var show_pass_target: bool = false
+## Dificultad de la CPU (Difficulty.Level).
+var difficulty: int = 1
 
 
 func _ready() -> void:

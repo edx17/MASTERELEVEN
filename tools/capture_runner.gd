@@ -29,7 +29,19 @@ var _script := [
 	[345, "preset:TV"],
 	[350, "debug"],
 	[390, "shot:capture_debug.png"],
-	[395, "quit"],
+	# Vista cenital (Dron) con simulación exacta: forma del equipo en ataque,
+	# córner y saque de arco (con el debug mostrando objetivos).
+	[395, "tactical_view"],
+	[396, "attack_live"],
+	[397, "simulate:3.0"],
+	[440, "shot:capture_shape_attack.png"],
+	[445, "corner"],
+	[446, "simulate:2.5"],
+	[490, "shot:capture_corner.png"],
+	[495, "goal_kick"],
+	[496, "simulate:2.5"],
+	[540, "shot:capture_goal_kick.png"],
+	[545, "quit"],
 ]
 
 
@@ -67,6 +79,37 @@ func _run(action: String) -> void:
 		_place(Vector3(-8, 0, Pitch.HALF_WIDTH - 0.3), Vector3(-8.5, 0.11, Pitch.HALF_WIDTH - 0.6))
 	elif action == "attack":
 		_place(Vector3(36, 0, -8), Vector3(36.5, 0.11, -8))
+	elif action == "tactical_view":
+		# Vista táctica sólo para capturas: dron alto que ve toda la cancha.
+		var c := CameraConfig.new()
+		c.display_name = "Táctica"
+		c.mode = CameraConfig.Mode.TOPDOWN
+		c.camera_height = 118.0
+		c.base_fov = 50.0
+		c.follow_speed = 100.0
+		_camera.config = c
+		_camera._focus = Vector3.ZERO
+	elif action.begins_with("simulate:"):
+		# Avanza la simulación un tiempo exacto sin depender de los FPS.
+		var secs := float(action.trim_prefix("simulate:"))
+		for i in int(secs * 60.0):
+			_match._physics_process(1.0 / 60.0)
+	elif action == "unfreeze":
+		_match.set_physics_process(true)
+	elif action == "attack_live":
+		var t0 := _match.teams[0]
+		var carrier: Footballer = t0.players[6]
+		_place(t0.to_world(Vector2(0.55, 0.1)), t0.to_world(Vector2(0.56, 0.1)) + Vector3(0, 0.11, 0), carrier)
+	elif action == "corner":
+		var t0 := _match.teams[0]
+		var spot := Vector3(t0.attack_dir * (Pitch.HALF_LENGTH - 0.4), 0.11, -(Pitch.HALF_WIDTH - 0.4))
+		_match._pending = MatchRules.Outcome.new(MatchRules.Restart.CORNER, 0, spot)
+		_match._setup_restart(_match._pending)
+	elif action == "goal_kick":
+		var t1 := _match.teams[1]
+		var spot2 := Vector3(t1.own_side() * (Pitch.HALF_LENGTH - 5.5), 0.11, 4.0)
+		_match._pending = MatchRules.Outcome.new(MatchRules.Restart.GOAL_KICK, 1, spot2)
+		_match._setup_restart(_match._pending)
 	elif action.begins_with("preset:"):
 		var name := action.trim_prefix("preset:")
 		for i in _camera.presets.size():
@@ -82,8 +125,8 @@ func _run(action: String) -> void:
 		get_tree().quit()
 
 
-func _place(player_pos: Vector3, ball_pos: Vector3) -> void:
-	var p: Footballer = _match.teams[0].players[9]
+func _place(player_pos: Vector3, ball_pos: Vector3, who: Footballer = null) -> void:
+	var p: Footballer = who if who != null else _match.teams[0].players[9]
 	_match.phase = MatchController.Phase.PLAYING
 	_match.restart_taker = null
 	_match.ball.frozen = false
