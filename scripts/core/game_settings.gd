@@ -4,7 +4,7 @@ extends Node
 
 enum Mode { VS_CPU, TWO_PLAYERS, CPU_VS_CPU }
 
-const TUNING_PATH := "res://data/tuning/default_tuning.tres"
+const TUNING_PATH := "res://data/config/tuning.tres"
 const DURATION_OPTIONS: Array[int] = [5, 7, 10, 3]
 
 ## Minutos reales que dura un partido completo (los 90' se aceleran a esto).

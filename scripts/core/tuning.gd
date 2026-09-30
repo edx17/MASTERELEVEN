@@ -1,7 +1,7 @@
 class_name Tuning
 extends Resource
 ## Parámetros de "sensación de juego". Todos editables desde el Inspector abriendo
-## res://data/tuning/default_tuning.tres, sin tocar código.
+## res://data/config/tuning.tres, sin tocar código.
 ## Unidades: metros, segundos, m/s, m/s².
 
 @export_group("Pelota")
