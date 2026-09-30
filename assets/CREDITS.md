@@ -19,4 +19,4 @@ similares con licencia compatible).
 
 | Herramienta | Ubicación | Origen | Licencia |
 |-------------|-----------|--------|----------|
-| GUT 9.6.1 (tests unitarios) | `addons/gut/` | https://github.com/bitwes/Gut | MIT (`addons/gut/LICENSE.md`) |
+| GUT 9.7.1 (tests unitarios) | `addons/gut/` | https://github.com/bitwes/Gut | MIT (`addons/gut/LICENSE.md`) |

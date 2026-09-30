@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CameraConfig" format=3]
+
+[ext_resource type="Script" path="res://scripts/camera/camera_config.gd" id="1_cam"]
+
+[resource]
+script = ExtResource("1_cam")
+display_name = "Cercana"
+camera_height = 12.0
+camera_distance = 21.0
+base_fov = 36.0
+vertical_offset = -1.5
+track_factor = 0.85
+track_z = 0.9
+follow_speed = 3.2

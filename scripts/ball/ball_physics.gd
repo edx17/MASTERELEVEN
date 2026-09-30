@@ -21,7 +21,8 @@ static func step(s: BallState, dt: float, t: Tuning) -> int:
 	var prev := s.pos
 	var grounded := s.pos.y <= r + 0.001 and absf(s.vel.y) < 0.01
 
-	var acc := -s.vel * s.vel.length() * t.air_drag
+	var speed := s.vel.length()
+	var acc := -s.vel * speed * drag_k(speed, t)
 	if s.spin.length_squared() > 0.0001:
 		acc += t.magnus * s.spin.cross(s.vel)
 
@@ -162,14 +163,37 @@ static func predict(s: BallState, time: float, t: Tuning) -> Vector3:
 	return sim.pos
 
 
+## Coeficiente de arrastre cuadrático k (a = -k·|v|·v) a una velocidad dada:
+## k = ½·ρ·Cd(v)·A / m, con la "crisis de arrastre" (Cd baja entre
+## drag_crisis_low y drag_crisis_high). Ver docs/FISICA.md.
+static func drag_k(speed: float, t: Tuning) -> float:
+	var f := smoothstep(t.drag_crisis_low, t.drag_crisis_high, speed)
+	var cd := lerpf(t.drag_cd_low, t.drag_cd_high, f)
+	var area := PI * t.ball_radius * t.ball_radius
+	return 0.5 * t.air_density * cd * area / maxf(t.ball_mass, 0.01)
+
+
 ## Velocidad inicial para que un pase rasante recorra `distance` y llegue con
-## `arrive_speed`. Solución analítica de dv/ds = -(a + k·v²)/v.
+## `arrive_speed`. Se integra dv/ds = -(a + k(v)·v²)/v "hacia atrás" desde la
+## llegada (RK4 con pasos de 0,5 m): exacto con arrastre variable y barato.
 static func ground_pass_speed(distance: float, arrive_speed: float, t: Tuning) -> float:
-	var a := t.rolling_decel
-	var k := t.air_drag
-	if k < 0.00001:
-		return sqrt(arrive_speed * arrive_speed + 2.0 * a * distance)
-	return sqrt(((a + k * arrive_speed * arrive_speed) * exp(2.0 * k * distance) - a) / k)
+	var v := maxf(arrive_speed, 0.1)
+	var remaining := maxf(distance, 0.0)
+	while remaining > 0.0001:
+		var h := minf(0.5, remaining)
+		var k1 := _dv_back(v, t)
+		var k2 := _dv_back(v + 0.5 * h * k1, t)
+		var k3 := _dv_back(v + 0.5 * h * k2, t)
+		var k4 := _dv_back(v + h * k3, t)
+		v += h / 6.0 * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
+		remaining -= h
+	return v
+
+
+## Aumento de velocidad por metro recorriendo el pase al revés.
+static func _dv_back(v: float, t: Tuning) -> float:
+	var vv := maxf(v, 0.1)
+	return (t.rolling_decel + drag_k(vv, t) * vv * vv) / vv
 
 
 ## Tiempo aproximado (s) que tarda un pase rasante en recorrer `distance`

@@ -49,12 +49,20 @@ var touches: int = 0
 ## Depuración (F9): hacia dónde va y qué está haciendo según su controlador.
 var debug_target: Vector3 = Vector3.ZERO
 var debug_state: String = ""
-## Dirección que el controlador quiere dar a la pelota (antes de la asistencia
-## de conducción, que puede desviar `desired_move` hacia la pelota).
-var intent_dir: Vector3 = Vector3.ZERO
+## Energía 0..100 (ver update_stamina).
+var stamina: float = 100.0
+## Tiempo de reacción pendiente (IA): mientras corre, mantiene la orden anterior.
+var reaction_timer: float = 0.0
+## Posición del rival más cercano (la fija el partido; sirve para cubrir la pelota).
+var shield_from: Vector3 = Vector3.ZERO
+## Tiempo hasta poder intentar otra entrada.
+var tackle_cooldown: float = 0.0
+## El controlador pide una entrada este tick (la resuelve el partido).
+var wants_tackle: bool = false
 
 var _tuning: Tuning
 var _arrow: Label3D
+var _pass_marker: MeshInstance3D
 var _body_mat: StandardMaterial3D
 
 
@@ -71,9 +79,32 @@ func setup(p_team: Team, p_data: PlayerData, p_role: int, p_spot: Vector2, tunin
 	_build_visuals()
 
 
-## Energía 0..1 (la fatiga llega en la Fase 4; por ahora siempre llena).
+## Energía 0..1 (se gasta en sprint y se recupera trotando/parado).
 func stamina_fraction() -> float:
-	return 1.0
+	return clampf(stamina / 100.0, 0.0, 1.0)
+
+
+## Actualiza la energía (informe técnico: sprint continuo gasta ~20-30 puntos
+## en 10 s; se recupera más rápido parado que trotando). El atributo stamina
+## del jugador reduce el gasto.
+func update_stamina(dt: float) -> void:
+	var endurance := PlayerData.unit(data.stamina) if data else 0.6
+	var moving := Vector3(velocity.x, 0.0, velocity.z).length()
+	if is_sprinting() and moving > _tuning.run_speed * 0.8:
+		stamina -= _tuning.stamina_sprint_drain * (1.3 - 0.6 * endurance) * dt
+	elif moving > 1.5:
+		stamina += _tuning.stamina_regen_jog * dt
+	else:
+		stamina += _tuning.stamina_regen_rest * dt
+	stamina = clampf(stamina, 0.0, 100.0)
+
+
+## Multiplicador de velocidad por cansancio: debajo del umbral cae hasta el mínimo.
+func fatigue_speed_factor() -> float:
+	var th := _tuning.stamina_tired_threshold
+	if stamina >= th:
+		return 1.0
+	return lerpf(_tuning.stamina_min_speed_factor, 1.0, stamina / th)
 
 
 func is_keeper() -> bool:
@@ -120,6 +151,15 @@ func start_slide(direction: Vector3) -> void:
 	velocity = facing * _tuning.slide_speed
 
 
+## Desbalance breve (entrada fallida): no puede tocar la pelota ni acelerar.
+func stagger(duration: float) -> void:
+	if state != State.NORMAL:
+		return
+	state = State.RECOVERING
+	state_timer = duration
+	velocity *= 0.4
+
+
 ## Mueve instantáneamente al jugador (reubicaciones de pelota parada).
 func teleport(pos: Vector3, look_dir: Vector3 = Vector3.ZERO) -> void:
 	global_position = Vector3(pos.x, 0.0, pos.z)
@@ -133,8 +173,11 @@ func teleport(pos: Vector3, look_dir: Vector3 = Vector3.ZERO) -> void:
 ## Avanza un paso de simulación. `has_ball` lo informa el partido.
 func tick(dt: float, has_ball: bool) -> void:
 	touch_block = maxf(0.0, touch_block - dt)
+	tackle_cooldown = maxf(0.0, tackle_cooldown - dt)
 	pass_target_timer = maxf(0.0, pass_target_timer - dt)
 	possession_time = possession_time + dt if has_ball else 0.0
+	reaction_timer = maxf(0.0, reaction_timer - dt)
+	update_stamina(dt)
 
 	match state:
 		State.SLIDING:
@@ -171,7 +214,9 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 		velocity = Vector3.ZERO
 		return
 
-	var max_speed := _tuning.sprint_speed if wants_sprint else _tuning.run_speed
+	# Sin energía no se puede sprintar.
+	var sprinting := wants_sprint and stamina > 3.0
+	var max_speed := _tuning.sprint_speed if sprinting else _tuning.run_speed
 	# Atributos: velocidad ±8 %, aceleración ±15 %.
 	var spd_attr := 0.0
 	var acc_attr := 0.0
@@ -179,6 +224,7 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 		spd_attr = PlayerData.centered(data.speed)
 		acc_attr = PlayerData.centered(data.acceleration)
 	max_speed *= 1.0 + 0.08 * spd_attr
+	max_speed *= fatigue_speed_factor()
 	if has_ball:
 		max_speed *= _tuning.dribble_speed_factor
 	if speed_override > 0.0:
@@ -224,6 +270,30 @@ func set_human_slot(slot: int) -> void:
 	_arrow.visible = slot >= 0
 	if slot >= 0:
 		_arrow.modulate = SLOT_COLORS[slot % SLOT_COLORS.size()]
+
+
+## Marca en el piso del compañero que va a recibir el pase que se está
+## cargando (slot = humano que pasa; -1 = sin marca).
+func set_pass_marker(slot: int) -> void:
+	if _pass_marker == null:
+		_pass_marker = MeshInstance3D.new()
+		var torus := TorusMesh.new()
+		torus.inner_radius = 0.45
+		torus.outer_radius = 0.6
+		torus.rings = 24
+		_pass_marker.mesh = torus
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_pass_marker.material_override = mat
+		_pass_marker.scale = Vector3(1.0, 0.08, 1.0)
+		_pass_marker.position.y = 0.04
+		_pass_marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_pass_marker)
+	_pass_marker.visible = slot >= 0
+	if slot >= 0:
+		var c := SLOT_COLORS[slot % SLOT_COLORS.size()]
+		(_pass_marker.material_override as StandardMaterial3D).albedo_color = Color(c, 0.85)
 
 
 func _apply_facing() -> void:

@@ -22,6 +22,7 @@ visión completa y `docs/PROGRESS.md` para el estado.
 | Sprint | RB / R1 | Shift |
 | Cambiar jugador | LB / L1 | Q |
 | Pausa | Start | Esc |
+| Cambiar cámara | Select / Back | C |
 | Modo debug | — | F9 |
 
 Mantené el botón para cargar la barra de potencia. Se remapea desde
@@ -29,7 +30,7 @@ Mantené el botón para cargar la barra de potencia. Se remapea desde
 
 ## Ajustar la sensación de juego
 - `data/config/tuning.tres`: velocidades, giro, conducción, robo, pases, tiros, arquero.
-- `data/config/camera.tres`: altura, distancia, ángulo, seguimiento, zoom de la cámara.
+- `data/config/cameras/*.tres`: modos de cámara (TV, Amplia, Cercana, Vertical, Dron): altura, distancia, ángulo, seguimiento, zoom.
 - `data/teams/*.tres`: equipos y atributos de jugadores (regenerables con
   `godot --headless -s res://tools/generate_data.gd`).
 

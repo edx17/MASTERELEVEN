@@ -89,7 +89,7 @@ func _process(_dt: float) -> void:
 		_banner.text = "FINAL   %s %d - %d %s" % [t0.short_name, t0.score, t1.score, t1.short_name]
 		_hint.text = "Enter / Start para volver al menú"
 	else:
-		_hint.text = ""
+		_hint.text = _match.toast_text
 	for side in 2:
 		var h := _human_for_team(side)
 		var p: Footballer = h.controlled if h != null else _reference_player(_match.teams[side])

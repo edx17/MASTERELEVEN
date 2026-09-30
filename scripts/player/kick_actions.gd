@@ -22,6 +22,9 @@ var pressure: float = 0.0
 var last_error: float = 0.0
 ## Si es false no se sortea error (tests deterministas).
 var randomize_error: bool = true
+## Receptor elegido de antemano (el humano lo ve marcado mientras carga la
+## barra y queda "trabado" al soltar). Se consume en la próxima patada.
+var forced_receiver: Footballer = null
 
 
 func _init(p_ball: Ball, p_tuning: Tuning) -> void:
@@ -30,17 +33,40 @@ func _init(p_ball: Ball, p_tuning: Tuning) -> void:
 
 
 func execute(kind: int, player: Footballer, dir: Vector3, power: float) -> Footballer:
+	var forced := forced_receiver
+	forced_receiver = null
+	if forced != null and (forced.team != player.team or forced == player):
+		forced = null
 	if throw_in_mode:
-		return _throw_in(kind, player, dir, power)
+		return _throw_in(kind, player, dir, power, forced)
 	match kind:
 		Kind.SHORT_PASS:
-			return short_pass(player, dir, power)
+			return short_pass(player, dir, power, forced)
 		Kind.THROUGH_PASS:
-			return through_pass(player, dir, power)
+			return through_pass(player, dir, power, forced)
 		Kind.LONG_PASS:
-			return long_pass(player, dir, power)
+			return long_pass(player, dir, power, forced)
 		Kind.SHOT:
 			shoot(player, dir, power)
+	return null
+
+
+## A quién iría un pase de tipo `kind` hacia `dir` si se patea ahora (el
+## mismo criterio que la ejecución). null para remates o si no hay nadie.
+func preview_receiver(kind: int, player: Footballer, dir: Vector3) -> Footballer:
+	var d := _dir_or_facing(player, dir)
+	if throw_in_mode:
+		var far := kind == Kind.LONG_PASS or kind == Kind.THROUGH_PASS
+		return _pick(player, d, 3.0, 30.0 if far else 18.0, far)
+	match kind:
+		Kind.SHORT_PASS:
+			return _pick_always(player, d, 2.5, tuning.short_pass_max_distance)
+		Kind.THROUGH_PASS:
+			return _pick(player, d, 4.0, 45.0, false)
+		Kind.LONG_PASS:
+			if is_cross_position(player, ball.flat_pos()):
+				return _best_in_box(player)
+			return _pick(player, d, 12.0, 75.0, true)
 	return null
 
 
@@ -76,10 +102,23 @@ func _pick(player: Footballer, dir: Vector3, min_d: float, max_d: float, prefer_
 	return mates[idx] if idx >= 0 else null
 
 
+## Como _pick, pero el pase corto siempre busca a alguien: si no hay nadie en
+## el cono, abre más el ángulo y, en última instancia, elige al compañero más
+## cercano a la dirección pedida (nunca "suelta" la pelota al vacío).
+func _pick_always(player: Footballer, dir: Vector3, min_d: float, max_d: float) -> Footballer:
+	var r := _pick(player, dir, min_d, max_d, false, true)
+	if r != null:
+		return r
+	var mates := _mates(player, true)
+	var pos := _positions(mates)
+	var idx := PassTargeting.choose(ball.flat_pos(), dir, pos, 179.0, min_d, max_d * 1.3, false)
+	return mates[idx] if idx >= 0 else null
+
+
 ## Pase rasante al compañero en la dirección pedida, con adelanto según su carrera.
-func short_pass(player: Footballer, dir: Vector3, power: float) -> Footballer:
+func short_pass(player: Footballer, dir: Vector3, power: float, forced: Footballer = null) -> Footballer:
 	var d := _dir_or_facing(player, dir)
-	var receiver := _pick(player, d, 2.5, tuning.short_pass_max_distance, false, true)
+	var receiver := forced if forced != null else _pick_always(player, d, 2.5, tuning.short_pass_max_distance)
 	var arrive := lerpf(tuning.short_pass_arrive_min, tuning.short_pass_arrive_max, power)
 	var target: Vector3
 	if receiver == null:
@@ -92,9 +131,9 @@ func short_pass(player: Footballer, dir: Vector3, power: float) -> Footballer:
 
 
 ## Pase al hueco: rasante al espacio delante del receptor.
-func through_pass(player: Footballer, dir: Vector3, power: float) -> Footballer:
+func through_pass(player: Footballer, dir: Vector3, power: float, forced: Footballer = null) -> Footballer:
 	var d := _dir_or_facing(player, dir)
-	var receiver := _pick(player, d, 4.0, 45.0, false)
+	var receiver := forced if forced != null else _pick(player, d, 4.0, 45.0, false)
 	var lead := lerpf(tuning.through_lead_min, tuning.through_lead_max, power)
 	var target: Vector3
 	if receiver == null:
@@ -112,7 +151,7 @@ func through_pass(player: Footballer, dir: Vector3, power: float) -> Footballer:
 ## Pase largo / centro por arriba. La potencia define la altura del globo (o la
 ## distancia si no hay compañero en esa dirección). Desde una banda en campo
 ## rival es un centro: busca el área y sale con comba hacia el arco.
-func long_pass(player: Footballer, dir: Vector3, power: float) -> Footballer:
+func long_pass(player: Footballer, dir: Vector3, power: float, forced: Footballer = null) -> Footballer:
 	var d := _dir_or_facing(player, dir)
 	var angle := lerpf(tuning.long_pass_angle_min, tuning.long_pass_angle_max, power)
 	var cross := is_cross_position(player, ball.flat_pos())
@@ -120,16 +159,17 @@ func long_pass(player: Footballer, dir: Vector3, power: float) -> Footballer:
 	var target: Vector3
 	var spin := Vector3.ZERO
 	if cross:
-		receiver = _best_in_box(player)
+		receiver = forced if forced != null else _best_in_box(player)
 		var side := player.team.attack_dir
 		var box_spot := Vector3(side * (Pitch.HALF_LENGTH - 9.0), 0.0, -signf(ball.state.pos.z) * 1.5)
 		target = receiver.flat_pos() if receiver != null else box_spot
 		# El stick corre el centro al primer o segundo palo.
 		target.z += clampf(d.z, -1.0, 1.0) * 4.0 * (1.0 if receiver == null else 0.4)
 		angle = lerpf(14.0, 30.0, power)
-		spin = Vector3(0.0, -signf(ball.state.pos.z) * side * 4.0, 0.0)
+		# Centro con comba hacia el arco (~40 rad/s).
+		spin = Vector3(0.0, -signf(ball.state.pos.z) * side * 40.0, 0.0)
 	else:
-		receiver = _pick(player, d, 12.0, 75.0, true)
+		receiver = forced if forced != null else _pick(player, d, 12.0, 75.0, true)
 		if receiver == null:
 			target = ball.flat_pos() + d * lerpf(tuning.long_pass_free_min, tuning.long_pass_free_max, power)
 		else:
@@ -187,32 +227,45 @@ func shoot(player: Footballer, dir: Vector3, power: float) -> void:
 		pressure, rad_to_deg(player.facing.angle_to(flat)), to.length(), power)
 	if volley:
 		err *= 1.5
+	err += KickAccuracy.fatigue_penalty(player.stamina_fraction())
 	last_error = err
 	if randomize_error:
 		flat = flat.rotated(Vector3.UP, deg_to_rad(randf_range(-err, err)))
 	var speed := lerpf(tuning.shot_speed_min, tuning.shot_speed_max, power)
-	var angle := lerpf(tuning.shot_angle_min, tuning.shot_angle_max, power)
-	# Desde lejos hace falta algo más de elevación para que no muera rodando.
-	angle += clampf((to.length() - 16.0) * 0.12, 0.0, 4.0)
-	if power > 0.95:
-		angle += 5.0
 	if header:
 		speed *= 0.6
-		angle = -4.0 + power * 8.0
-	elif volley:
-		angle *= 0.6
-	var a := deg_to_rad(angle)
-	var vel := flat * cos(a) * speed + Vector3.UP * sin(a) * speed
+	# La potencia define a qué altura llega al arco: floja = rasante, fuerte =
+	# a media altura / arriba; a fondo (>95 %) se puede ir por arriba.
+	var aim_height := lerpf(tuning.shot_height_min, tuning.shot_height_max, power)
+	if power > 0.95:
+		aim_height += 0.9
+	if header:
+		aim_height = lerpf(0.3, 1.6, power)
+	if randomize_error:
+		aim_height += randf_range(-1.0, 1.0) * err * 0.06
+	var vel := shot_velocity(ball.state.pos, flat, to.length(), maxf(aim_height, 0.15), speed, tuning)
 	# Un poco de comba natural hacia el centro del arco.
-	var curl := Vector3(0.0, signf(aim_z) * side * randf_range(0.0, 3.0), 0.0) if randomize_error else Vector3.ZERO
+	# Comba natural del empeine hacia el centro del arco (0-30 rad/s).
+	var curl := Vector3(0.0, signf(aim_z) * side * randf_range(0.0, 30.0), 0.0) if randomize_error else Vector3.ZERO
 	ball.intended_receiver = null
 	ball.kick(vel, curl, player)
 
 
-func _throw_in(kind: int, player: Footballer, dir: Vector3, power: float) -> Footballer:
+## Velocidad de salida para que un remate a `speed` recorra `distance` en la
+## dirección `flat` y llegue a la línea a `aim_height`. Aproximación balística
+## con el tiempo de vuelo estimado (el arrastre se compensa un poco).
+static func shot_velocity(from: Vector3, flat: Vector3, distance: float, aim_height: float, speed: float, t: Tuning) -> Vector3:
+	var time := distance / maxf(speed * 0.93, 1.0)
+	var vy := (aim_height - from.y + 0.5 * t.gravity * time * time) / maxf(time, 0.05)
+	vy = clampf(vy, -speed * 0.3, speed * 0.6)
+	var vh := sqrt(maxf(speed * speed - vy * vy, speed * speed * 0.5))
+	return flat * vh + Vector3.UP * vy
+
+
+func _throw_in(kind: int, player: Footballer, dir: Vector3, power: float, forced: Footballer = null) -> Footballer:
 	var d := _dir_or_facing(player, dir)
 	var far := kind == Kind.LONG_PASS or kind == Kind.THROUGH_PASS
-	var receiver := _pick(player, d, 3.0, 30.0 if far else 18.0, far)
+	var receiver := forced if forced != null else _pick(player, d, 3.0, 30.0 if far else 18.0, far)
 	var target: Vector3
 	if receiver == null:
 		target = ball.flat_pos() + d * lerpf(8.0, 20.0, power)
@@ -247,6 +300,7 @@ func _pass_direction(player: Footballer, to_target: Vector3, stick: Vector3, pow
 	var data := player.data
 	var err := KickAccuracy.pass_error(data.passing if data else 60, data.technique if data else 60,
 		pressure, rad_to_deg(player.facing.angle_to(dir)), power)
+	err += KickAccuracy.fatigue_penalty(player.stamina_fraction())
 	last_error = err
 	if randomize_error:
 		dir = dir.rotated(Vector3.UP, deg_to_rad(randf_range(-err, err)))

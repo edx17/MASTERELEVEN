@@ -12,10 +12,10 @@ extends RefCounted
 ## - power: 0..1 de la barra (pasarse de potencia también cuesta precisión).
 static func pass_error(skill: int, technique: int, pressure: float, body_angle: float, power: float) -> float:
 	var s := PlayerData.unit(skill) * 0.8 + PlayerData.unit(technique) * 0.2
-	var err := lerpf(9.0, 1.0, s)
-	err += clampf(pressure, 0.0, 1.0) * 3.0
-	err += _body_penalty(body_angle, 6.0)
-	err += maxf(power - 0.85, 0.0) * 12.0
+	var err := lerpf(5.5, 0.8, s)
+	err += clampf(pressure, 0.0, 1.0) * 2.0
+	err += _body_penalty(body_angle, 4.0)
+	err += maxf(power - 0.85, 0.0) * 10.0
 	return err
 
 
@@ -24,13 +24,18 @@ static func pass_error(skill: int, technique: int, pressure: float, body_angle: 
 static func shot_error(shooting: int, technique: int, balance: int, pressure: float, body_angle: float,
 		distance: float, power: float) -> float:
 	var s := PlayerData.unit(shooting) * 0.6 + PlayerData.unit(technique) * 0.25 + PlayerData.unit(balance) * 0.15
-	var err := lerpf(7.0, 1.5, s)
+	var err := lerpf(6.0, 1.2, s)
 	err += clampf(pressure, 0.0, 1.0) * 3.0
 	err += _body_penalty(body_angle, 7.0)
 	err += clampf((distance - 12.0) * 0.08, 0.0, 3.0)
 	# A potencia alta se pierde precisión (el clásico "reventarla").
 	err *= 0.75 + power * power * 0.6
 	return err
+
+
+## Error extra (grados) por cansancio: sin energía, hasta +2,5°.
+static func fatigue_penalty(stamina_fraction: float) -> float:
+	return (1.0 - clampf(stamina_fraction, 0.0, 1.0)) * 2.5
 
 
 ## Penalización por patear "cruzado" respecto de la orientación del cuerpo.
