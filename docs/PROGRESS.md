@@ -50,6 +50,19 @@ Te gustaron la dificultad y el acompañamiento en ataque y defensa. Cambios por 
 | Pases hacia atrás y horizontales cuestan | La ayuda sólo corregía el 88 % del ángulo hacia el receptor (la IA siempre apunta exacto); el pase corto con toque corto de botón salía flojo; pasar "con el cuerpo cruzado" sumaba hasta 4° de error. | Ayuda al 97 % (como la IA: el error lo ponen atributos, presión y cansancio); pase corto siempre firme (7-10 m/s al llegar); orientación del cuerpo hasta 1,5°. Tests: atrás 100 %, horizontal 100 % (rivales lejos). |
 | Los pases aéreos no se controlan | Sólo se controlaba por debajo de 1,1 m: un pase largo pasaba de largo o picaba alto. | **Control con pecho/muslo**: el receptor del pase la baja hasta 1,9 m (cualquier otro hasta 1,5 m) y la pelota cae mansa al pie. El pase largo siempre busca a alguien en la dirección del stick (hasta 100°). Test: 100 % de pases largos controlados. |
 
+### Segunda ronda de pulido (tu video + "tiene que jugarse como WE2002")
+| Reclamo | Cambio |
+|---|---|
+| El arquero agarra con la mano el pase atrás y no se lo puede usar | **Regla del pase atrás**: si un compañero se la pasa a propósito (pie o lateral) y nadie más la toca, el arquero la controla con los pies y se juega como un jugador más. **Con la pelota (manos o pies) al arquero lo maneja el humano**, como en WE. Con la pelota en las manos camina dentro del área (no sale). |
+| El arquero "la lanza para arriba" | Desde las manos: **X / Triángulo = saque con la mano rodando**; **Círculo / Cuadrado = pelotazo**. La IA sale jugando rodando si hay un compañero libre y sólo revienta si la presionan. Con los pies no se la duerme (0,5 s). |
+| Pases que tardan en salir | El que conduce **patea en el mismo instante** (antes esperaba que la pelota volviera al pie tras el toque). |
+| Pases lentos / los cortan | Pase corto más fuerte (llega a 10-13 m/s). Un pase firme sólo lo corta el que está **en la línea** (el radio de intercepción se achica con la velocidad). |
+| El receptor la controla mal | Radio de recepción 1,1 → 1,4 m; el primer control amortigua pases más fuertes. |
+| Giros lentos o raros | Giro casi instantáneo (24 rad/s; en sprint 10) y **cortes secos**: más de 100° frena en seco y sale para el otro lado (de sprint a 3 m/s para atrás en 0,37 s). Se acelera hacia donde pide el stick, sin arcos de "auto". |
+| No se ve a quién manejo | Flecha más grande sobre la cabeza + **anillo en el piso** del color del humano; sombra de la pelota más marcada. |
+
+Tests: 104 (nuevo `test_we_feel`: pase atrás con los pies y arquero manejable, saque rodando, arquero no sale del área con la pelota en la mano, pase instantáneo, corte seco).
+
 ### Para la Fase 4 (de tu prueba)
 - Energía: fatiga acumulada en minutos de juego y entre tiempos (hoy nadie se cansa en un partido de 5 minutos reales).
 

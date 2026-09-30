@@ -335,7 +335,7 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 	if kind == KickActions.Kind.SHOT:
 		stats["shots"][player.team.index] += 1
 		_plan_save(player)
-	last_kick = {"kind": kind, "team": player.team.index, "pos": player.flat_pos(), "keeper": player.is_keeper()}
+	last_kick = {"kind": kind, "team": player.team.index, "pos": player.flat_pos(), "keeper": player.is_keeper(), "player": player}
 	return receiver
 
 
@@ -451,6 +451,10 @@ func set_formation(team_index: int, formation: FormationData) -> void:
 func can_kick(player: Footballer) -> bool:
 	if ball.owner_player == player and ball.state.pos.y > 0.5:
 		return player.is_keeper() # en las manos del arquero
+	if ball.owner_player == player:
+		# El que conduce patea ya (como en WE), aunque la pelota esté en el
+		# "toque" adelantado: no espera a volver a tenerla en el pie.
+		return true
 	if ball.owner_player != null and ball.owner_player != player:
 		return false
 	if ball.owner_player == null and not player.can_touch_ball():
@@ -514,10 +518,14 @@ func _try_take_loose_ball() -> void:
 		var reach := tuning.control_radius
 		if p == ball.intended_receiver:
 			reach = tuning.receive_radius
+		elif ball.speed() > tuning.intercept_fast_speed:
+			# Un pase firme que pasa cerca no se corta "de casualidad": hay que
+			# estar en la línea (como en WE).
+			reach *= clampf(1.0 - (ball.speed() - tuning.intercept_fast_speed) / 12.0, 0.45, 1.0)
 		# Pelota aérea: se baja con el pecho o el muslo (el receptor del pase,
 		# más alta; cualquier otro, algo menos).
 		var hmax := control_height_for(p)
-		if p.is_keeper() and Pitch.in_penalty_area(bp, p.team.own_side()):
+		if p.is_keeper() and Pitch.in_penalty_area(bp, p.team.own_side()) and not is_back_pass_to(p):
 			if p == plan_keeper:
 				# Remate en curso: sólo la toca si el modelo dice que llega.
 				if not save_plan["will_save"]:
@@ -532,7 +540,8 @@ func _try_take_loose_ball() -> void:
 	if best == null:
 		return
 	var v := ball.state.vel
-	if best.is_keeper() and Pitch.in_penalty_area(bp, best.team.own_side()):
+	var hands := best.is_keeper() and Pitch.in_penalty_area(bp, best.team.own_side()) and not is_back_pass_to(best)
+	if hands:
 		if best == plan_keeper and save_plan["parry"]:
 			# Rebote hacia afuera (al costado del arco), no al medio del área.
 			var wide := signf(bp.z) if absf(bp.z) > 0.3 else (1.0 if randf() < 0.5 else -1.0)
@@ -553,12 +562,24 @@ func _try_take_loose_ball() -> void:
 	if receiver != null and receiver != best:
 		receiver.clear_pass_target()
 	save_plan = {}
-	ball.give_to(best, true)
+	ball.give_to(best, true, hands)
+
+
+## Pase atrás: la pelota la jugó a propósito (con el pie o de lateral) un
+## compañero del arquero y nadie más la tocó. El arquero no puede usar las
+## manos: la controla con los pies y se juega como un jugador más.
+func is_back_pass_to(keeper: Footballer) -> bool:
+	var passer: Footballer = last_kick.get("player")
+	if passer == null or passer == keeper or passer.team != keeper.team:
+		return false
+	if last_kick.get("kind") == KickActions.Kind.SHOT:
+		return false
+	return ball.last_toucher == passer
 
 
 func _try_steal(dt: float) -> void:
 	var carrier := ball.owner_player
-	if carrier.is_keeper() and Pitch.in_penalty_area(carrier.flat_pos(), carrier.team.own_side()):
+	if ball.in_hands:
 		return # el arquero con la pelota en las manos no se roba
 	var bp := ball.flat_pos()
 	for o in opponents_of(carrier.team).players:
@@ -574,7 +595,7 @@ func _try_steal(dt: float) -> void:
 			# El arquero se tira a los pies del atacante.
 			if randf() < tuning.keeper_smother_rate * dt:
 				carrier.touch_block = tuning.lost_ball_cooldown
-				ball.give_to(o)
+				ball.give_to(o, false, true)
 				stats["saves"][o.team.index] += 1
 				return
 			continue

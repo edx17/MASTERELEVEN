@@ -144,12 +144,16 @@ func _distribute(p: Footballer, ai: TeamAI, dt: float) -> void:
 	var wait := _match.tuning.keeper_hold_time
 	if ai.state == TeamShape.State.COUNTER_ATTACK:
 		wait *= 0.4
+	if not _match.ball.in_hands:
+		wait = minf(wait, 0.5) # con los pies (pase atrás) no se la puede dormir
 	if _hold < wait:
 		return
 	_hold = 0.0
 	var pressed := ai.opponents_near_own_box() >= 3
 	var mate := ai.best_pass_option(p, true)
-	if mate != null and not pressed and randf() < 0.75:
+	# Con un compañero libre, sale jugando (saque con la mano rodando); el
+	# pelotazo queda para cuando presionan o no hay a quién dársela.
+	if mate != null and not pressed and randf() < 0.85:
 		_match.perform_kick(p, KickActions.Kind.SHORT_PASS, mate.flat_pos() - p.flat_pos(), 0.5)
 	else:
 		var target := ai.long_ball_target()
