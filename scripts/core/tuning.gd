@@ -94,8 +94,9 @@ extends Resource
 ## Elevación del tiro (grados) según potencia.
 @export var shot_angle_min: float = 1.5
 @export var shot_angle_max: float = 14.0
-## Desvío aleatorio del tiro (grados) a potencia máxima.
-@export var shot_error_max: float = 4.0
+## Ayuda al pasar (0 = el pase sale exactamente hacia el stick, 1 = va
+## directo al receptor elegido). WE: ayuda leve, se puede fallar.
+@export var pass_assist: float = 0.8
 ## Cono (grados) para buscar receptor en la dirección del stick.
 @export var pass_cone_degrees: float = 50.0
 ## Tiempo durante el que se recuerda un pase/tiro pedido antes de recibir (toque de primera).
