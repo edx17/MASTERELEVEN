@@ -166,7 +166,8 @@ func long_pass(player: Footballer, dir: Vector3, power: float, forced: Footballe
 		# El stick corre el centro al primer o segundo palo.
 		target.z += clampf(d.z, -1.0, 1.0) * 4.0 * (1.0 if receiver == null else 0.4)
 		angle = lerpf(14.0, 30.0, power)
-		spin = Vector3(0.0, -signf(ball.state.pos.z) * side * 4.0, 0.0)
+		# Centro con comba hacia el arco (~40 rad/s).
+		spin = Vector3(0.0, -signf(ball.state.pos.z) * side * 40.0, 0.0)
 	else:
 		receiver = forced if forced != null else _pick(player, d, 12.0, 75.0, true)
 		if receiver == null:
@@ -243,7 +244,8 @@ func shoot(player: Footballer, dir: Vector3, power: float) -> void:
 		aim_height += randf_range(-1.0, 1.0) * err * 0.06
 	var vel := shot_velocity(ball.state.pos, flat, to.length(), maxf(aim_height, 0.15), speed, tuning)
 	# Un poco de comba natural hacia el centro del arco.
-	var curl := Vector3(0.0, signf(aim_z) * side * randf_range(0.0, 3.0), 0.0) if randomize_error else Vector3.ZERO
+	# Comba natural del empeine hacia el centro del arco (0-30 rad/s).
+	var curl := Vector3(0.0, signf(aim_z) * side * randf_range(0.0, 30.0), 0.0) if randomize_error else Vector3.ZERO
 	ball.intended_receiver = null
 	ball.kick(vel, curl, player)
 

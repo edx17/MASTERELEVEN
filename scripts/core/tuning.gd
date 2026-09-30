@@ -7,22 +7,33 @@ extends Resource
 @export_group("Pelota")
 ## Gravedad aplicada a la pelota.
 @export var gravity: float = 9.81
-## Radio de la pelota (reglamentaria ~0.11 m).
+## Radio de la pelota (reglamentaria ~0.11 m, circunferencia 68-70 cm).
 @export var ball_radius: float = 0.11
-## Resistencia del aire cuadrática (a = -k·|v|·v).
-@export var air_drag: float = 0.012
-## Desaceleración constante al rodar sobre el pasto.
+## Masa (FIFA: 410-450 g).
+@export var ball_mass: float = 0.43
+## Densidad del aire (kg/m³, nivel del mar).
+@export var air_density: float = 1.2
+## Coeficiente de arrastre a baja y a alta velocidad. Entre ambas velocidades
+## de "crisis de arrastre" el flujo pasa a turbulento y el Cd cae (~0,45 -> ~0,22):
+## los tiros fuertes "vuelan" más de lo que frenarían con un Cd constante.
+@export var drag_cd_low: float = 0.45
+@export var drag_cd_high: float = 0.22
+@export var drag_crisis_low: float = 9.0
+@export var drag_crisis_high: float = 15.0
+## Desaceleración constante al rodar sobre el pasto (resistencia a la rodadura).
 @export var rolling_decel: float = 2.6
-## Coeficiente de rebote vertical contra el pasto.
-@export var ground_restitution: float = 0.55
+## Coeficiente de rebote vertical contra el pasto (en superficie dura la FIFA
+## pide ~0,8: cae de 2 m y rebota 1,2-1,4 m; el césped absorbe más).
+@export var ground_restitution: float = 0.6
 ## Fracción de velocidad horizontal que se conserva en cada pique.
-@export var bounce_friction: float = 0.82
+@export var bounce_friction: float = 0.88
 ## Por debajo de esta velocidad vertical la pelota deja de picar y rueda.
 @export var bounce_min_speed: float = 1.2
-## Fuerza del efecto (Magnus): a = k · (ω × v).
-@export var magnus: float = 0.045
+## Efecto Magnus: a = k · (ω × v), con ω en rad/s. Con k = 0,005, un tiro a
+## 25 m/s con 60 rad/s (~10 vueltas/s) se desvía ~3 m en 25 m (tiro libre con comba).
+@export var magnus: float = 0.005
 ## Decaimiento del efecto por segundo (0..1 por segundo aprox).
-@export var spin_decay: float = 0.6
+@export var spin_decay: float = 0.35
 ## Rebote contra postes y travesaño.
 @export var post_restitution: float = 0.6
 ## Rebote contra la red (bajo: la red "absorbe").
@@ -101,7 +112,7 @@ extends Resource
 @export var long_pass_free_max: float = 55.0
 ## Velocidad de tiro (mín/máx según potencia).
 @export var shot_speed_min: float = 15.0
-@export var shot_speed_max: float = 32.0
+@export var shot_speed_max: float = 30.0
 ## Altura (m) a la que el tiro llega al arco según potencia (el travesaño
 ## está a 2,44 m; a potencia >95 % se suma ~0,9 m y se puede ir por arriba).
 @export var shot_height_min: float = 0.2
