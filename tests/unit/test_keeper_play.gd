@@ -64,6 +64,26 @@ func test_triangle_held_sends_the_keeper_out() -> void:
 	assert_lt(after, before - 4.0, "el arquero sale al encuentro (%.1f -> %.1f m)" % [before, after])
 
 
+func test_triangle_works_anywhere_in_own_half() -> void:
+	# Reclamo: "no puedo sacar al arquero con Triángulo" con el rival en mi campo.
+	var gk := m.teams[0].keeper()
+	var att := _rival_attacks(45.0)
+	_hold_attacker(att, 20)
+	var before := gk.flat_pos().distance_to(att.flat_pos())
+	inp.hold(&"pass_through")
+	_hold_attacker(att, 60)
+	assert_eq(gk.debug_state, "sale a achicar")
+	assert_lt(gk.flat_pos().distance_to(att.flat_pos()), before - 4.0)
+
+
+func test_triangle_does_nothing_with_rival_in_his_half() -> void:
+	var gk := m.teams[0].keeper()
+	var att := _rival_attacks(70.0)
+	inp.hold(&"pass_through")
+	_hold_attacker(att, 60)
+	assert_ne(gk.debug_state, "sale a achicar")
+
+
 func test_without_triangle_the_keeper_stays_home() -> void:
 	var gk := m.teams[0].keeper()
 	var att := _rival_attacks(24.0)

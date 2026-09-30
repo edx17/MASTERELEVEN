@@ -160,8 +160,8 @@ func _build_world() -> void:
 	add_child(pause)
 
 
-## Iluminación de tarde: sol bajo desde atrás de la tribuna principal (sombras
-## largas sobre el césped), cielo, ambiente moderado y tonemapping fílmico.
+## Iluminación de día (como la referencia): sol alto desde atrás de la tribuna
+## principal (sombras cortas), cielo, ambiente claro y tonemapping fílmico.
 func _build_lighting() -> void:
 	var env := WorldEnvironment.new()
 	var environment := Environment.new()
@@ -175,19 +175,19 @@ func _build_lighting() -> void:
 	environment.background_mode = Environment.BG_SKY
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	environment.ambient_light_energy = 0.45
+	environment.ambient_light_energy = 0.55
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	environment.tonemap_exposure = 1.05
 	environment.adjustment_enabled = true
-	environment.adjustment_contrast = 1.08
-	environment.adjustment_saturation = 0.95
+	environment.adjustment_contrast = 1.02
+	environment.adjustment_saturation = 1.0
 	env.environment = environment
 	add_child(env)
 
 	var sun := DirectionalLight3D.new()
 	# Luz desde atrás de la tribuna principal (-Z), baja y algo lateral.
-	sun.rotation_degrees = Vector3(-38.0, 160.0, 0.0)
-	sun.light_energy = 1.15
+	sun.rotation_degrees = Vector3(-58.0, 160.0, 0.0)
+	sun.light_energy = 1.2
 	sun.light_color = Color(1.0, 0.96, 0.88)
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 160.0
@@ -392,6 +392,36 @@ func _plan_save_for(defenders: Team, extra_reaction: float) -> void:
 	var parry := ball.speed() > 20.0 or plan.margin < 0.5
 	save_plan = {"keeper": gk, "will_save": will_save, "parry": parry, "point": plan.point,
 		"save_point": plan.save_point, "time_left": plan.time + 0.3, "chance": plan.chance}
+	_show_dive(gk, plan.save_point)
+
+
+## Animación de quien la tocó (sólo presentación).
+func _show_kick(kicker: Footballer) -> void:
+	if kicker == null or kicker.visual == null:
+		return
+	var ev := PlayerVisual.Event.KICK
+	if kicks.throw_in_mode:
+		ev = PlayerVisual.Event.THROW
+	elif ball.state.pos.y > 1.3:
+		ev = PlayerVisual.Event.HEADER
+	elif kicker.is_keeper() and ball.state.pos.y > 0.5:
+		ev = PlayerVisual.Event.KICK
+	elif _in_kick and ball.speed() < 16.0:
+		ev = PlayerVisual.Event.PASS
+	kicker.visual.play(ev)
+
+
+## El arquero se tira hacia donde va la pelota (sólo presentación).
+func _show_dive(gk: Footballer, point: Vector3) -> void:
+	if gk.visual == null:
+		return
+	var rel := point - gk.flat_pos()
+	rel.y = 0.0
+	if rel.length() < 1.2:
+		gk.visual.play(PlayerVisual.Event.CATCH)
+		return
+	var right := gk.global_basis.x
+	gk.visual.play(PlayerVisual.Event.DIVE_RIGHT if right.dot(rel) > 0.0 else PlayerVisual.Event.DIVE_LEFT)
 
 
 ## Toda patada que no pasa por perform_kick (desvío en el cuerpo, rebote del
@@ -399,6 +429,7 @@ func _plan_save_for(defenders: Team, extra_reaction: float) -> void:
 ## Si el desvío va al arco, se replanifica con algo más de reacción (el
 ## arquero se "come" el cambio de dirección).
 func _on_ball_kicked(kicker: Footballer) -> void:
+	_show_kick(kicker)
 	if _in_kick:
 		return
 	if kicker != null and kicker.is_keeper():

@@ -8,11 +8,28 @@ Ver `Claude.md` para visión, criterios y fases.
 | 1 — Base jugable | ✅ Hecha |
 | 2 — Prototipo 0.1: sensación de juego | ✅ Hecha (PR #2) |
 | 3 — IA de partido (TeamAI, formaciones, zonas, arquero) | 🟡 Implementada, **pendiente de tu prueba** |
+| Visual 1 — Se ve como la referencia (jugadores animados, cámara, cancha) | 🟡 En curso (falta integrar los modelos CC0) |
 | 4 — Reglas, atributos y plantel | ⬜ |
 | 5 — Presentación moderna (estadio, modelos, animaciones, audio) | ⬜ |
 | 6 — Liga Master | ⬜ |
 | 7 — Torneos | ⬜ |
 | 8 — Pulido | ⬜ |
+
+---
+
+## Visual 1 — Que se vea como la referencia (antes de la Fase 4, a pedido tuyo)
+
+### Hecho (parte 1)
+- [x] **Capa de presentación separada** (`PlayerVisual`): la simulación no cambia; la capa recibe velocidad, estado y eventos (patear, pasar, cabecear, lateral, atrapar, estirada izquierda/derecha, barrida, caída). Misma interfaz que va a usar el modelo con esqueleto.
+- [x] **Humanoide provisorio** por piezas (camiseta, short, medias y botines con los colores del club; piel y pelo variados) con animación por código: carrera con zancada y braceo según la velocidad, inclinación al acelerar, patada, pase, cabezazo, lateral, estirada del arquero, barrida y caída.
+- [x] **Cámara "WE" por defecto**: alta y lejana con lente cerrada (30 m de alto, 36 m de distancia, FOV 28°), como la referencia. La TV anterior sigue en el ciclo de cámaras (C / Select).
+- [x] **Cancha y luz de día**: césped verde más claro con franjas suaves; sol más alto (sombras cortas) y ambiente más claro.
+- [x] **Flecha** del jugador controlado: cono del color del humano sobre la cabeza (antes el ▼ no se dibujaba) + anillo en el piso.
+- [x] Triángulo (arquero sale a achicar) funciona con el rival **en cualquier parte de tu campo** (antes sólo a menos de 30 m del arco) y también con la pelota suelta que tocó el rival.
+
+### Pendiente
+- [ ] **Modelos CC0 de Quaternius** (Universal Base Characters + Universal Animation Library): reemplazar el humanoide provisorio con el modelo con esqueleto y sus animaciones, colores por club.
+- [ ] Capturas lado a lado con la referencia y 60 FPS con 22 jugadores animados.
 
 ---
 

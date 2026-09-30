@@ -10,8 +10,9 @@ extends RefCounted
 ## - reposición según el estado del equipo: corta a un defensor libre en la
 ##   salida, rápida en contraataque, larga si presionan.
 
-## Distancia al arco hasta la que sale a achicar cuando lo pide el humano.
-const RUSH_MAX_DISTANCE := 30.0
+## Sale a achicar a pedido del humano mientras la pelota esté en campo
+## propio (progreso 0 = arco propio, 0,5 = mitad de cancha).
+const RUSH_MAX_PROGRESS := 0.5
 ## Lo más que se adelanta como líbero (m desde la línea).
 const SWEEPER_MAX := 9.0
 
@@ -50,18 +51,23 @@ func tick(p: Footballer, ai: TeamAI, dt: float) -> void:
 		p.debug_state = "estirada" if plan["will_save"] else "no llega"
 		ai.go_to(p, spot, true)
 		return
-	# 1b) Pedido del humano (Triángulo mantenido): sale a achicar al que
-	# lleva la pelota, esté donde esté (hasta la medialuna larga). Fuera del
-	# área no puede usar las manos: va a la entrada.
-	var rusher := ball.owner_player
-	if _match.keeper_rush[team.index] and rusher != null and rusher.team != team \
-			and rusher.flat_pos().distance_to(goal) < RUSH_MAX_DISTANCE:
-		p.debug_state = "sale a achicar"
-		var lead := rusher.velocity * 0.25
-		lead.y = 0.0
-		p.wants_tackle = true
-		ai.go_to(p, rusher.flat_pos() + lead, true)
-		return
+	# 1b) Pedido del humano (Triángulo mantenido): sale a achicar al rival
+	# que lleva la pelota (o a la pelota que acaba de tocar) mientras esté en
+	# campo propio. Fuera del área no puede usar las manos: va a la entrada.
+	if _match.keeper_rush[team.index] and team.progress_of(bp) < RUSH_MAX_PROGRESS:
+		var rusher := ball.owner_player
+		var target := Vector3.INF
+		if rusher != null and rusher.team != team:
+			var lead := rusher.velocity * 0.25
+			lead.y = 0.0
+			target = rusher.flat_pos() + lead
+		elif ball.is_loose() and ball.last_touch_team != team.index:
+			target = _match.loose_ball_intercept(p)
+		if target != Vector3.INF:
+			p.debug_state = "sale a achicar"
+			p.wants_tackle = true
+			ai.go_to(p, target, true)
+			return
 	# 2) Centro que cae en el área chica: sale a cortarlo si llega antes.
 	if ball.is_loose() and ball.state.pos.y > 1.2 and v.x * own > 0.0:
 		var landing := _landing_point()
