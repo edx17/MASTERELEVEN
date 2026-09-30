@@ -38,6 +38,16 @@ Motor: **Godot 4.7.2** (última estable al arrancar la Fase 1), GDScript.
 - [ ] **Criterio de aceptación:** jugar un partido completo con mando y con teclado y confirmar que se siente fluido y divertido (lo tenés que validar vos).
 - [ ] Ajuste fino de valores de `default_tuning.tres` según tu feedback.
 
+### Correcciones durante la validación (código ya entregado)
+- `scripts/match/footballer.gd`: se reemplazó `move_and_slide()` por integración propia (`position += velocity·dt`); fuera del paso de física del motor desplazaba a los jugadores ~8x más rápido.
+- `scripts/match/ball.gd`: la velocidad de la pelota en conducción se limita (al soltarse salía disparada a 30-40 m/s); el arquero la lleva en las manos.
+- `scripts/match/match_controller.gd`: reglas antes que posesión (no se ataja una pelota que ya entró); al detenerse el juego nadie conserva la pelota; el arquero no es empujado por la separación ni queda detrás de su línea; el arquero puede sacarle la pelota de los pies al atacante; robo desde atrás más difícil; el HUD se crea después de los controladores (antes fallaba en cada cuadro).
+- `scripts/match/pitch_builder.gd`, `ball_physics.gd`: bucles tipados (error de compilación en Godot 4.7).
+- `scripts/core/tuning.gd` y `scripts/ai/simple_ai.gd`: ajustes de robo, conducción, red y decisiones de la IA.
+
+### Estado de la IA (CPU vs CPU)
+Partidos de 3 min CPU vs CPU terminan ~0-0 con 2-4 tiros y ~75 pases: la IA provisoria es demasiado conservadora. Queda para la IA táctica.
+
 ### Limitaciones conocidas (se resuelven en fases siguientes)
 - El arquero siempre lo maneja la IA (el humano no lo controla ni cuando tiene la pelota).
 - Sin faltas, tarjetas, offside ni penales (Fase 2).

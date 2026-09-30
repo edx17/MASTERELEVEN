@@ -57,7 +57,7 @@ static func step(s: BallState, dt: float, t: Tuning) -> int:
 		else:
 			s.vel.y = 0.0
 
-	for side in [-1, 1]:
+	for side: int in [-1, 1]:
 		events |= _collide_goal(prev, s, side, t)
 	return events
 
@@ -75,7 +75,7 @@ static func _collide_goal(prev: Vector3, s: BallState, side: int, t: Tuning) -> 
 
 	# Postes (cilindros verticales).
 	if s.pos.y < Pitch.GOAL_HEIGHT + reach:
-		for pz in [-Pitch.GOAL_HALF_WIDTH, Pitch.GOAL_HALF_WIDTH]:
+		for pz: float in [-Pitch.GOAL_HALF_WIDTH, Pitch.GOAL_HALF_WIDTH]:
 			var d := Vector3(s.pos.x - gx, 0.0, s.pos.z - pz)
 			var dist := d.length()
 			if dist < reach and dist > 0.0001:
@@ -100,7 +100,7 @@ static func _collide_goal(prev: Vector3, s: BallState, side: int, t: Tuning) -> 
 	var back_x := side * (Pitch.HALF_LENGTH + Pitch.GOAL_DEPTH)
 	if _net_plane(prev, s, 0, back_x, side, t):
 		events |= EV_NET
-	for pz2 in [-Pitch.GOAL_HALF_WIDTH, Pitch.GOAL_HALF_WIDTH]:
+	for pz2: float in [-Pitch.GOAL_HALF_WIDTH, Pitch.GOAL_HALF_WIDTH]:
 		if _net_plane(prev, s, 2, pz2, side, t):
 			events |= EV_NET
 	if _net_plane(prev, s, 1, Pitch.GOAL_HEIGHT, side, t):

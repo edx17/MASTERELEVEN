@@ -38,7 +38,7 @@ const ROLE_RANGE := {
 static func dynamic_spot(base: Vector2, role: int, ball_progress: float, ball_lateral: float, in_possession: bool) -> Vector2:
 	if role == Footballer.Role.GK:
 		return base
-	var push := 0.07 if in_possession else -0.03
+	var push := 0.12 if in_possession else -0.03
 	var x := base.x + (ball_progress - 0.5) * 0.72 + push
 	var r: Vector2 = ROLE_RANGE[role]
 	x = clampf(x, r.x, r.y)

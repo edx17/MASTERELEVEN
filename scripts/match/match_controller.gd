@@ -44,6 +44,10 @@ var restart_taker: Footballer = null
 var kick_count: int = 0
 ## Trayectoria predicha de la pelota suelta (cada FORECAST_STEP segundos).
 var ball_forecast: Array[Vector3] = []
+## Estadísticas simples del partido, por equipo.
+var stats := {"shots": [0, 0], "saves": [0, 0]}
+## Datos de la última patada (depuración / futuras repeticiones).
+var last_kick := {}
 ## Mensaje grande para el HUD ("¡GOL!", "CÓRNER", ...).
 var banner_text: String = ""
 
@@ -61,6 +65,10 @@ func _ready() -> void:
 	_build_world()
 	clock = MatchClock.new(float(GameSettings.match_minutes))
 	_setup_controllers()
+	# El HUD va después de los controladores: necesita saber cuántos humanos hay.
+	_hud = MatchHud.new()
+	add_child(_hud)
+	_hud.setup(self)
 	_first_half_kicker = randi() % 2
 	_setup_kickoff(_first_half_kicker)
 
@@ -149,10 +157,6 @@ func _build_world() -> void:
 	_camera.setup(self)
 	_camera.current = true
 
-	_hud = MatchHud.new()
-	add_child(_hud)
-	_hud.setup(self)
-
 	var pause := PauseMenu.new()
 	add_child(pause)
 
@@ -186,9 +190,11 @@ func _physics_process(dt: float) -> void:
 
 	ball.tick(dt)
 
+	# Primero las reglas (una pelota que ya cruzó la línea no se puede atajar).
+	if phase == Phase.PLAYING:
+		_check_rules()
 	if phase == Phase.PLAYING:
 		_update_possession(dt)
-		_check_rules()
 
 	clock.running = phase in [Phase.PLAYING, Phase.STOPPED] or (phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF)
 	clock.advance(dt)
@@ -261,6 +267,9 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float) -> 
 	var receiver := kicks.execute(kind, player, dir, clampf(power, 0.0, 1.0))
 	kicks.throw_in_mode = false
 	kick_count += 1
+	if kind == KickActions.Kind.SHOT:
+		stats["shots"][player.team.index] += 1
+	last_kick = {"kind": kind, "team": player.team.index, "pos": player.flat_pos(), "keeper": player.is_keeper()}
 	return receiver
 
 
@@ -301,8 +310,11 @@ func _try_take_loose_ball() -> void:
 	var v := ball.state.vel
 	if best.is_keeper() and Pitch.in_penalty_area(bp, best.team.own_side()):
 		# Tiros fuertes y lejos del cuerpo: a veces da rebote en vez de atajar.
-		if ball.speed() > 19.0 and best_d > 0.9 and randf() < 0.45:
-			var parry := Vector3(-v.x * 0.3, absf(v.y) * 0.3 + 2.5, v.z * 0.3 + randf_range(-5.0, 5.0))
+		if ball.speed() > 19.0 and best_d > 0.9 and randf() < 0.35:
+			# Rebote hacia afuera (al costado del arco), no al medio del área.
+			var wide := signf(bp.z) if absf(bp.z) > 0.3 else (1.0 if randf() < 0.5 else -1.0)
+			var parry := Vector3(-v.x * 0.25, absf(v.y) * 0.3 + 3.0, wide * randf_range(5.0, 9.0))
+			stats["saves"][best.team.index] += 1
 			ball.kick(parry, Vector3.ZERO, best)
 			best.touch_block = 0.5
 			return
@@ -311,6 +323,8 @@ func _try_take_loose_ball() -> void:
 		ball.kick(-v * 0.25 + Vector3.UP * 1.5, Vector3.ZERO, best)
 		best.touch_block = 0.25
 		return
+	if best.is_keeper() and ball.last_touch_team != best.team.index and ball.speed() > 12.0:
+		stats["saves"][best.team.index] += 1
 	var receiver := ball.intended_receiver
 	if receiver != null and receiver != best:
 		receiver.clear_pass_target()
@@ -319,7 +333,7 @@ func _try_take_loose_ball() -> void:
 
 func _try_steal(dt: float) -> void:
 	var carrier := ball.owner_player
-	if carrier.is_keeper() and Pitch.in_penalty_area(ball.flat_pos(), carrier.team.own_side()):
+	if carrier.is_keeper() and Pitch.in_penalty_area(carrier.flat_pos(), carrier.team.own_side()):
 		return # el arquero con la pelota en las manos no se roba
 	var bp := ball.flat_pos()
 	for o in opponents_of(carrier.team).players:
@@ -330,11 +344,23 @@ func _try_steal(dt: float) -> void:
 			ball.kick(o.facing * 7.0 + Vector3.UP * 0.5, Vector3.ZERO, o)
 			carrier.touch_block = tuning.lost_ball_cooldown
 			return
+		if o.is_keeper() and o.state == Footballer.State.NORMAL and d < tuning.keeper_smother_radius \
+				and Pitch.in_penalty_area(o.flat_pos(), o.team.own_side()):
+			# El arquero se tira a los pies del atacante.
+			if randf() < tuning.keeper_smother_rate * dt:
+				carrier.touch_block = tuning.lost_ball_cooldown
+				ball.give_to(o)
+				stats["saves"][o.team.index] += 1
+				return
+			continue
 		if o.state != Footballer.State.NORMAL or d > tuning.steal_radius:
 			continue
 		var rate := tuning.steal_rate_pressing if o.pressing else tuning.steal_rate
 		if carrier.is_sprinting():
 			rate *= 1.3
+		# Desde atrás es mucho más difícil sacarla limpia.
+		if carrier.facing.dot((o.flat_pos() - carrier.flat_pos()).normalized()) < -0.2:
+			rate *= 0.4
 		if randf() < rate * dt:
 			carrier.touch_block = tuning.lost_ball_cooldown
 			if randf() < 0.55:
@@ -357,11 +383,35 @@ func _separate_players() -> void:
 			var dist := d.length()
 			if dist >= PLAYER_SEPARATION or dist < 0.0001:
 				continue
-			var push := d / dist * (PLAYER_SEPARATION - dist) * 0.5
-			if not a.locked:
-				a.global_position -= push
-			if not b.locked:
+			var push := d / dist * (PLAYER_SEPARATION - dist)
+			# Ejecutores quietos y arqueros no se dejan empujar: se corre el otro.
+			var a_fixed := a.locked or a.is_keeper()
+			var b_fixed := b.locked or b.is_keeper()
+			if a_fixed and b_fixed:
+				continue
+			if a_fixed:
 				b.global_position += push
+			elif b_fixed:
+				a.global_position -= push
+			else:
+				a.global_position -= push * 0.5
+				b.global_position += push * 0.5
+	for p in list:
+		_clamp_player(p)
+
+
+## Límites de movimiento: nadie se va lejos de la cancha y el arquero nunca
+## queda detrás de su propia línea.
+func _clamp_player(p: Footballer) -> void:
+	var pos := p.global_position
+	var lim_x := Pitch.HALF_LENGTH + 3.0
+	pos.z = clampf(pos.z, -Pitch.HALF_WIDTH - 3.0, Pitch.HALF_WIDTH + 3.0)
+	if p.is_keeper():
+		var own := p.team.own_side()
+		if pos.x * own > Pitch.HALF_LENGTH - 0.4:
+			pos.x = own * (Pitch.HALF_LENGTH - 0.4)
+	pos.x = clampf(pos.x, -lim_x, lim_x)
+	p.global_position = pos
 
 
 # --- Reglas y pelotas paradas -------------------------------------------------
@@ -371,6 +421,9 @@ func _check_rules() -> void:
 	if outcome.type == MatchRules.Restart.NONE:
 		return
 	_pending = outcome
+	# Con el juego detenido nadie conserva la pelota en el pie.
+	ball.owner_player = null
+	ball.intended_receiver = null
 	if outcome.type == MatchRules.Restart.GOAL:
 		teams[outcome.team].score += 1
 		banner_text = "¡GOL!"

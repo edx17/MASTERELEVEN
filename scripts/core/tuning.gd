@@ -26,13 +26,13 @@ extends Resource
 ## Rebote contra postes y travesaño.
 @export var post_restitution: float = 0.6
 ## Rebote contra la red (bajo: la red "absorbe").
-@export var net_restitution: float = 0.12
+@export var net_restitution: float = 0.05
 
 @export_group("Jugadores")
 @export var run_speed: float = 6.2
 @export var sprint_speed: float = 8.4
 ## Multiplicador de velocidad cuando se conduce la pelota.
-@export var dribble_speed_factor: float = 0.93
+@export var dribble_speed_factor: float = 0.9
 @export var acceleration: float = 26.0
 @export var deceleration: float = 32.0
 ## Velocidad de giro (rad/s) sin pelota / con pelota / con pelota en sprint.
@@ -49,10 +49,10 @@ extends Resource
 ## Altura máxima a la que un jugador de campo controla la pelota.
 @export var control_height: float = 1.1
 ## Radio de contacto para robar la pelota al rival.
-@export var steal_radius: float = 0.85
+@export var steal_radius: float = 0.95
 ## Probabilidad de robo por segundo de contacto (normal / presionando).
-@export var steal_rate: float = 1.4
-@export var steal_rate_pressing: float = 3.2
+@export var steal_rate: float = 0.9
+@export var steal_rate_pressing: float = 2.2
 ## Tiempo sin poder tocar la pelota tras patearla o perderla.
 @export var touch_cooldown: float = 0.28
 @export var lost_ball_cooldown: float = 0.6
@@ -106,3 +106,6 @@ extends Resource
 @export var keeper_catch_height: float = 2.5
 @export var keeper_dive_speed: float = 7.5
 @export var keeper_hold_time: float = 1.2
+## Radio y probabilidad por segundo de que el arquero le saque la pelota de los pies al atacante.
+@export var keeper_smother_radius: float = 1.4
+@export var keeper_smother_rate: float = 5.0

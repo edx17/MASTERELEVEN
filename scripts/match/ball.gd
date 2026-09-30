@@ -102,6 +102,13 @@ func tick(dt: float) -> void:
 ## "toques" (la distancia oscila), y en los giros bruscos queda un poco atrás.
 func _follow_owner(dt: float) -> void:
 	var p := owner_player
+	if p.is_keeper() and Pitch.in_penalty_area(p.flat_pos(), p.team.own_side()):
+		# El arquero la tiene en las manos.
+		state.pos = p.flat_pos() + p.facing * 0.35 + Vector3.UP * 1.0
+		state.vel = Vector3(p.velocity.x, 0.0, p.velocity.z)
+		state.spin = Vector3.ZERO
+		_sync_node(dt)
+		return
 	var sprint := p.is_sprinting()
 	var base := _tuning.dribble_distance_sprint if sprint else _tuning.dribble_distance
 	var move_speed := Vector3(p.velocity.x, 0.0, p.velocity.z).length()
@@ -114,7 +121,9 @@ func _follow_owner(dt: float) -> void:
 	var rate := 11.0 if sprint else 18.0
 	var new_pos := state.pos.lerp(target, 1.0 - exp(-rate * dt))
 	new_pos.y = _tuning.ball_radius
-	state.vel = (new_pos - state.pos) / maxf(dt, 0.0001)
+	# La velocidad "de conducción" se limita: si la pelota se suelta no sale disparada.
+	var max_v := Vector3(p.velocity.x, 0.0, p.velocity.z).length() + 3.0
+	state.vel = ((new_pos - state.pos) / maxf(dt, 0.0001)).limit_length(max_v)
 	state.pos = new_pos
 	state.spin = Vector3.ZERO
 	_sync_node(dt)

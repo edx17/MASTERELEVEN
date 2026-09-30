@@ -9,7 +9,7 @@ extends RefCounted
 ## - el arquero se para entre la pelota y el arco, ataja y reparte.
 
 const DECISION_INTERVAL := 0.25
-const SHOOT_DISTANCE := 25.0
+const SHOOT_DISTANCE := 28.0
 const ARRIVE_RADIUS := 0.8
 
 var team: Team
@@ -123,7 +123,14 @@ func _time_to_ball(p: Footballer, ball: Ball) -> float:
 
 func _intercept_point(p: Footballer, ball: Ball) -> Vector3:
 	if not ball.is_loose():
-		return ball.flat_pos()
+		# Contra un portador: ir a cerrarle el paso del lado del arco propio.
+		var carrier := ball.owner_player
+		var to_goal := (team.own_goal() - carrier.flat_pos()).normalized()
+		var d := p.flat_pos().distance_to(carrier.flat_pos())
+		if d < 2.5:
+			return ball.flat_pos()
+		var ahead := Vector3(carrier.velocity.x, 0.0, carrier.velocity.z) * clampf(d / 8.0, 0.1, 0.7)
+		return carrier.flat_pos() + ahead + to_goal * 1.2
 	var forecast := _match.ball_forecast
 	var speed := _match.tuning.sprint_speed
 	for i in forecast.size():
@@ -197,20 +204,30 @@ func _carrier(p: Footballer, ball: Ball) -> void:
 		dir.z -= signf(p.global_position.z) * 0.6
 		dir = dir.normalized()
 	p.desired_move = dir
-	p.wants_sprint = opp_dist > 5.0
+	# Sprint si no hay nadie cerrándole el camino justo adelante.
+	var blocked := nearest_opp != null and opp_dist < 3.5 \
+		and dir.dot((nearest_opp.flat_pos() - p.flat_pos()).normalized()) > 0.5
+	p.wants_sprint = not blocked
 
 	if _decision_timer > 0.0 or p.possession_time < 0.35:
 		return
 	_decision_timer = DECISION_INTERVAL
 
 	if dist_goal < SHOOT_DISTANCE and absf(p.global_position.z) < 20.0:
-		var chance := remap(dist_goal, SHOOT_DISTANCE, 8.0, 0.25, 0.9)
+		var chance := clampf(remap(dist_goal, SHOOT_DISTANCE, 12.0, 0.1, 0.95), 0.1, 0.95)
+		# Con un rival tapando el remate, mejor buscar otra opción.
+		if not _lane_clear(p.flat_pos(), goal):
+			chance *= 0.35
 		if randf() < chance:
 			var aim := Vector3(0.0, 0.0, randf_range(-1.0, 1.0))
 			_match.perform_kick(p, KickActions.Kind.SHOT, aim, randf_range(0.45, 0.8))
 			return
+	# Cerca de la línea de fondo y sin ángulo: tirar el centro en vez de meterse.
+	if team.progress_of(p.flat_pos()) > 0.92 and absf(p.global_position.z) > Pitch.GOAL_AREA_HALF_WIDTH:
+		_match.perform_kick(p, KickActions.Kind.LONG_PASS, goal - p.flat_pos(), randf_range(0.2, 0.5))
+		return
 	var pressured := opp_dist < 3.2
-	if pressured or randf() < 0.07 or p.possession_time > 4.0:
+	if pressured or randf() < 0.04 or p.possession_time > 3.5:
 		var mate := _best_pass_option(p)
 		if mate != null:
 			var d := mate.flat_pos().distance_to(p.flat_pos())
@@ -238,8 +255,8 @@ func _best_pass_option(p: Footballer) -> Footballer:
 		var open := _open_space(m.flat_pos())
 		if not _lane_clear(p.flat_pos(), m.flat_pos()):
 			continue
-		var forward := (my_goal_dist - m.flat_pos().distance_to(goal)) / 20.0
-		var score := forward + open * 0.25 - d / 40.0 + randf() * 0.3
+		var forward := (my_goal_dist - m.flat_pos().distance_to(goal)) / 10.0
+		var score := forward + open * 0.1 - d / 40.0 + randf() * 0.3
 		if score > best_score:
 			best_score = score
 			best = m
@@ -301,6 +318,11 @@ func _keeper(p: Footballer, ball: Ball, dt: float) -> void:
 				p.speed_override = _match.tuning.keeper_dive_speed
 				_go_to(p, spot, true)
 				return
+	# Atacante con pelota encarando dentro del área: sale a achicar.
+	var carrier := ball.owner_player
+	if carrier != null and carrier.team != team and Pitch.in_penalty_area(bp, own) and bp.distance_to(goal) < 14.0:
+		_go_to(p, bp, true)
+		return
 	# Pelota suelta y lenta dentro del área: sale a buscarla.
 	if ball.is_loose() and Pitch.in_penalty_area(bp, own) and v.length() < 9.0:
 		var nearest_opp := _nearest_opponent(bp)

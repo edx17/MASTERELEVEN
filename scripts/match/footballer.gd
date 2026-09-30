@@ -135,7 +135,9 @@ func tick(dt: float, has_ball: bool) -> void:
 			_tick_normal(dt, has_ball)
 
 	velocity.y = 0.0
-	move_and_slide()
+	# Integración propia (decisión B): no hay colisiones físicas entre jugadores,
+	# así que no se usa move_and_slide() y el movimiento es determinista.
+	global_position += velocity * dt
 	global_position.y = 0.0
 	_apply_facing()
 

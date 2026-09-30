@@ -13,7 +13,7 @@ static func build() -> Node3D:
 	root.name = "Pitch"
 	_build_grass(root)
 	_build_lines(root)
-	for side in [-1, 1]:
+	for side: int in [-1, 1]:
 		_build_goal(root, side)
 	_build_corner_flags(root)
 	_build_boards(root)
@@ -64,7 +64,7 @@ static func _build_lines(root: Node3D) -> void:
 	_seg(st, Vector2(0.0, -hw), Vector2(0.0, hw))
 	_arc(st, Vector2.ZERO, Pitch.CENTER_CIRCLE_RADIUS, 0.0, TAU, 64)
 	_arc(st, Vector2.ZERO, 0.2, 0.0, TAU, 12, 0.4)
-	for side in [-1, 1]:
+	for side: int in [-1, 1]:
 		var gx: float = side * hl
 		# Área grande.
 		var pa := gx - side * Pitch.PENALTY_AREA_DEPTH
@@ -83,7 +83,7 @@ static func _build_lines(root: Node3D) -> void:
 		var facing := 0.0 if side == -1 else PI
 		_arc(st, spot, Pitch.CENTER_CIRCLE_RADIUS, facing - half_angle, facing + half_angle, 24)
 		# Arcos de córner.
-		for zs in [-1, 1]:
+		for zs: int in [-1, 1]:
 			var corner := Vector2(gx, zs * hw)
 			var start := atan2(-zs, -side)
 			_arc(st, corner, 1.0, start - PI / 4.0, start + PI / 4.0, 8)
@@ -105,7 +105,7 @@ static func _seg(st: SurfaceTool, a: Vector2, b: Vector2, width: float = Pitch.L
 	var p2 := Vector3(b.x + n.x, LINE_Y, b.y + n.y)
 	var p3 := Vector3(b.x - n.x, LINE_Y, b.y - n.y)
 	var p4 := Vector3(a.x - n.x, LINE_Y, a.y - n.y)
-	for v in [p1, p2, p3, p1, p3, p4]:
+	for v: Vector3 in [p1, p2, p3, p1, p3, p4]:
 		st.add_vertex(v)
 
 
@@ -120,7 +120,7 @@ static func _arc(st: SurfaceTool, c: Vector2, r: float, a0: float, a1: float, se
 		var o1 := Vector3(c.x + cos(t1) * outer, LINE_Y, c.y + sin(t1) * outer)
 		var i0 := Vector3(c.x + cos(t0) * inner, LINE_Y, c.y + sin(t0) * inner)
 		var i1 := Vector3(c.x + cos(t1) * inner, LINE_Y, c.y + sin(t1) * inner)
-		for v in [o0, o1, i1, o0, i1, i0]:
+		for v: Vector3 in [o0, o1, i1, o0, i1, i0]:
 			st.add_vertex(v)
 
 
@@ -132,7 +132,7 @@ static func _build_goal(root: Node3D, side: int) -> void:
 	var white := _flat_material(Color(0.97, 0.97, 0.97))
 	var pr := Pitch.POST_RADIUS
 	# Postes.
-	for zs in [-1, 1]:
+	for zs: int in [-1, 1]:
 		var post := MeshInstance3D.new()
 		var cyl := CylinderMesh.new()
 		cyl.top_radius = pr
@@ -209,8 +209,8 @@ static func _build_corner_flags(root: Node3D) -> void:
 	var pole_mat := _flat_material(Color(0.95, 0.95, 0.95))
 	var flag_mat := _flat_material(Color(1.0, 0.8, 0.1))
 	flag_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	for xs in [-1, 1]:
-		for zs in [-1, 1]:
+	for xs: int in [-1, 1]:
+		for zs: int in [-1, 1]:
 			var pole := MeshInstance3D.new()
 			var cyl := CylinderMesh.new()
 			cyl.top_radius = 0.02
