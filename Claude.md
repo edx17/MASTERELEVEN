@@ -199,3 +199,6 @@ Criterio: un partido vs CPU es competitivo y la CPU juega "como un equipo".
 6. Si una decisión técnica es grande (arquitectura, librerías, formato de
    datos), consultame antes.
 7. Mantené actualizado un /docs/PROGRESS.md con el estado de cada fase.
+8. Antes de seguir trabajando, revisá siempre si el PR anterior ya fue
+   mergeado. Si lo fue, el trabajo nuevo arranca desde `main` actualizado
+   (nunca encima de historia ya mergeada) y va en un PR nuevo.
