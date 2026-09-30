@@ -46,12 +46,14 @@ var possession_time: float = 0.0
 var dribble_pressure: float = 0.0
 ## Toques de conducción dados (depuración).
 var touches: int = 0
+## Depuración (F9): hacia dónde va y qué está haciendo según su controlador.
+var debug_target: Vector3 = Vector3.ZERO
+var debug_state: String = ""
 ## Dirección que el controlador quiere dar a la pelota (antes de la asistencia
 ## de conducción, que puede desviar `desired_move` hacia la pelota).
 var intent_dir: Vector3 = Vector3.ZERO
 
 var _tuning: Tuning
-var _ring: MeshInstance3D
 var _arrow: Label3D
 var _body_mat: StandardMaterial3D
 
@@ -212,14 +214,11 @@ func look_at_point(point: Vector3) -> void:
 
 func set_human_slot(slot: int) -> void:
 	human_slot = slot
-	if _ring == null:
+	if _arrow == null:
 		return
-	_ring.visible = slot >= 0
 	_arrow.visible = slot >= 0
 	if slot >= 0:
-		var c := SLOT_COLORS[slot % SLOT_COLORS.size()]
-		(_ring.material_override as StandardMaterial3D).albedo_color = c
-		_arrow.modulate = c
+		_arrow.modulate = SLOT_COLORS[slot % SLOT_COLORS.size()]
 
 
 func _apply_facing() -> void:
@@ -284,27 +283,14 @@ func _build_visuals() -> void:
 	label.no_depth_test = true
 	add_child(label)
 
-	_ring = MeshInstance3D.new()
-	var torus := TorusMesh.new()
-	torus.inner_radius = 0.55
-	torus.outer_radius = 0.7
-	torus.rings = 24
-	_ring.mesh = torus
-	var ring_mat := StandardMaterial3D.new()
-	ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_ring.material_override = ring_mat
-	_ring.scale = Vector3(1.0, 0.1, 1.0)
-	_ring.position.y = 0.03
-	_ring.visible = false
-	add_child(_ring)
-
 	_arrow = Label3D.new()
 	_arrow.text = "▼"
 	_arrow.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	_arrow.font_size = 96
-	_arrow.outline_size = 12
-	_arrow.pixel_size = 0.006
-	_arrow.position.y = 2.75
+	# Indicador discreto sobre la cabeza del jugador controlado.
+	_arrow.font_size = 64
+	_arrow.outline_size = 10
+	_arrow.pixel_size = 0.005
+	_arrow.position.y = 2.5
 	_arrow.no_depth_test = true
 	_arrow.visible = false
 	add_child(_arrow)

@@ -49,3 +49,16 @@ func test_full_match_reaches_final_whistle() -> void:
 	_simulate(3.0 * 60.0 + 45.0)
 	assert_eq(_match.phase, MatchController.Phase.FULLTIME)
 	gut.p("Resultado: %d - %d, patadas: %d" % [_match.teams[0].score, _match.teams[1].score, _match.kick_count])
+
+
+func test_debug_overlay_runs() -> void:
+	var dbg: DebugOverlay = null
+	for c in _match.get_children():
+		if c is DebugOverlay:
+			dbg = c
+	assert_not_null(dbg)
+	dbg._set_enabled(true)
+	for i in 30:
+		_match._physics_process(1.0 / 60.0)
+		dbg._process(1.0 / 60.0)
+	assert_string_contains(dbg._label.text, "posesión")

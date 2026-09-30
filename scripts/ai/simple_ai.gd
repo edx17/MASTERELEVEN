@@ -44,28 +44,36 @@ func tick(dt: float) -> void:
 		p.pressing = false
 		p.speed_override = 0.0
 		if _match.restart_taker == p:
+			p.debug_state = "saque"
 			_restart_taker(p, dt)
 			continue
 		if p.is_keeper():
+			p.debug_state = "arquero"
 			_keeper(p, ball, dt)
 			continue
 		if owner == p:
+			p.debug_state = "conduce"
+			p.debug_target = p.flat_pos() + p.desired_move * 3.0
 			_carrier(p, ball)
 			continue
 		if _match.is_stopped():
 			_go_to(p, team.to_world(Formation.dynamic_spot(p.base_spot, p.role, progress, lateral, we_have_it)), false)
 			continue
 		if p.has_pass_target() and ball.intended_receiver == p and ball.is_loose():
+			p.debug_state = "recibe"
 			_receive(p, ball)
 			continue
 		if p == chaser:
+			p.debug_state = "presiona" if they_have_it else "va a la pelota"
 			_chase(p, ball, they_have_it)
 			continue
 		if p == cover and owner != null:
+			p.debug_state = "cubre"
 			var goal := team.own_goal()
 			var spot := owner.flat_pos() + (goal - owner.flat_pos()).normalized() * 6.0
 			_go_to(p, spot, true)
 			continue
+		p.debug_state = "posición"
 		var home := team.to_world(Formation.dynamic_spot(p.base_spot, p.role, progress, lateral, we_have_it))
 		_go_to(p, home, p.flat_pos().distance_to(home) > 12.0)
 		p.look_at_point(ball.flat_pos())
@@ -137,6 +145,7 @@ func _intercept_point(p: Footballer, ball: Ball) -> Vector3:
 # --- Comportamientos ----------------------------------------------------------
 
 func _go_to(p: Footballer, target: Vector3, sprint: bool) -> void:
+	p.debug_target = target
 	var to := target - p.flat_pos()
 	to.y = 0.0
 	var d := to.length()

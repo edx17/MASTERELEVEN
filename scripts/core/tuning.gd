@@ -102,14 +102,6 @@ extends Resource
 ## Tiempo durante el que se recuerda un pase/tiro pedido antes de recibir (toque de primera).
 @export var one_touch_buffer: float = 0.55
 
-@export_group("Cámara")
-@export var camera_height: float = 21.0
-@export var camera_distance: float = 30.0
-@export var camera_fov: float = 36.0
-@export var camera_smoothing: float = 3.2
-## Cuánto se adelanta la cámara según la velocidad de la pelota (segundos).
-@export var camera_lookahead: float = 0.35
-
 @export_group("Arquero")
 @export var keeper_reach: float = 1.9
 @export var keeper_catch_height: float = 2.5

@@ -61,6 +61,9 @@ func _ready() -> void:
 	_hud = MatchHud.new()
 	add_child(_hud)
 	_hud.setup(self)
+	var dbg := DebugOverlay.new()
+	add_child(dbg)
+	dbg.setup(self)
 	_first_half_kicker = randi() % 2
 	_setup_kickoff(_first_half_kicker)
 
