@@ -6,13 +6,40 @@ Ver `Claude.md` para visión, criterios y fases.
 | Fase | Estado |
 |------|--------|
 | 1 — Base jugable | ✅ Hecha |
-| 2 — Prototipo 0.1: sensación de juego | 🟡 3.ª prueba: energía y física OK; **pendiente confirmar la recepción de pases** |
-| 3 — IA de partido (TeamAI, formaciones, zonas, arquero) | ⬜ |
+| 2 — Prototipo 0.1: sensación de juego | ✅ Hecha (PR #2) |
+| 3 — IA de partido (TeamAI, formaciones, zonas, arquero) | 🟡 Implementada, **pendiente de tu prueba** |
 | 4 — Reglas, atributos y plantel | ⬜ |
 | 5 — Presentación moderna (estadio, modelos, animaciones, audio) | ⬜ |
 | 6 — Liga Master | ⬜ |
 | 7 — Torneos | ⬜ |
 | 8 — Pulido | ⬜ |
+
+---
+
+## Fase 3 — IA de partido (en curso)
+
+### Hecho
+- [x] **Roles tácticos** por puesto (`TacticalRole`: ARQ, DFC, LAT, MCD, MC, MCO, VOL, EXT, DC) y **5 formaciones** como datos (`data/formations/`): 4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2. Aurora juega 4-3-3 y Halcones 4-4-2.
+- [x] **Zonas**: 3 tercios x 5 carriles (`Zones`).
+- [x] **Forma del equipo** (`TeamShape`): la línea defensiva sube y baja con la pelota, las líneas se estiran al atacar y se juntan al defender, el bloque se abre con la pelota y se cierra sin ella corriéndose al lado de la pelota; el lateral del lado de la pelota pasa y el otro cierra; los delanteros quedan en la última línea; el volante defensivo siempre detrás de la pelota; sin la pelota casi todos detrás de ella; los defensores forman línea.
+- [x] **IA de equipo** (`TeamAI`, reemplaza a la IA provisoria) con estados DEFENSA, SALIDA, ATAQUE, CONTRAATAQUE, PRESIÓN (contrapresión al perderla arriba) y REPLIEGUE (cuando quedaron muchos adelante de la pelota).
+- [x] **Roles del momento**: apoyos en triángulo cerca del que tiene la pelota (también del humano), desmarque en la última línea para el pase al hueco, presión (1 o 2), cobertura y marcas en zona.
+- [x] **Decisiones del portador** según el estado: salida paciente, ataque que busca progresar, contraataque vertical, centros con gente en el área, remate según distancia y línea de tiro.
+- [x] **Pelotas paradas** (`SetPieceShape`): saque de arco con salida escalonada (centrales abiertos) y presión alta del rival; laterales con dos opciones cortas; córners con cinco cabeceadores, opción corta y dos atrás, y defensa con palos, zona y rebote. La IA se ubica desde que la pelota sale.
+- [x] **Arquero** (`GoalkeeperController`): ubicación (líbero si el equipo defiende alto), atajada con el modelo de la Fase 2, achique, salida a los centros, reposición según el estado (corta, rápida en contra, larga si presionan).
+- [x] **Dificultad** Fácil / Normal / Difícil (menú principal y pausa; sólo afecta a la CPU). En la pausa también se cambia la formación del equipo propio.
+- [x] Debug F9 muestra el estado táctico, formación y dificultad de cada equipo y la posición táctica de cada jugador.
+- [x] Tests (88): forma del equipo, estados, acompañamiento del portador, córner, saque de arco, lateral, cambio de formación.
+
+### Resultado en simulaciones CPU vs CPU (3 min)
+Siempre hay un compañero a menos de 15 m del que tiene la pelota (96-99 %); 4-8 tiros y 0-4 goles por partido; posesión repartida; los equipos pasan por todos los estados.
+
+### Pendiente
+- [ ] **Tu prueba**: ¿la CPU juega "como un equipo" y un partido contra ella es competitivo?
+- [ ] Offside y trampa del offside quedan con las reglas (Fase 4).
+
+### Para la Fase 4 (de tu prueba)
+- Energía: fatiga acumulada en minutos de juego y entre tiempos (hoy nadie se cansa en un partido de 5 minutos reales).
 
 ---
 

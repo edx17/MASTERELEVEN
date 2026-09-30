@@ -18,6 +18,8 @@ var display_name: String = ""
 ## Posición base de la formación en "espacio de equipo": x 0..1 (arco propio ->
 ## arco rival), y -1..1 (lado derecho -> izquierdo mirando al ataque).
 var base_spot: Vector2 = Vector2.ZERO
+## Rol táctico del puesto (TacticalRole.Kind).
+var tactical_role: int = TacticalRole.Kind.CM
 
 # --- Entradas escritas por el controlador (humano o IA) ----------------------
 var desired_move: Vector3 = Vector3.ZERO

@@ -111,7 +111,7 @@ Cancha, pelota con física propia, 11v11 con placeholders, control humano con
 barra de potencia, cambio de jugador, reglas mínimas (gol, lateral, córner,
 saque de arco, saque del medio), cámara de TV, HUD, IA provisoria, menú, tests.
 
-### Fase 2 — Prototipo 0.1: sensación de juego (EN CURSO)
+### Fase 2 — Prototipo 0.1: sensación de juego ✅ (hecha)
 Movimiento → cambio de jugador → control de pelota → pase → recepción →
 remate → arquero → gol, todo con sensación WE2002:
 - Conducción con pelota independiente (toques; distancia según velocidad,
@@ -127,7 +127,7 @@ remate → arquero → gol, todo con sensación WE2002:
 Criterio: el "criterio de éxito del gameplay" de arriba, jugado por vos con
 mando y con teclado.
 
-### Fase 3 — IA de partido
+### Fase 3 — IA de partido (EN CURSO)
 - TeamAI con estados DEFENDING, BUILD_UP, ATTACKING, COUNTER_ATTACK, PRESSING,
   RETREATING; TeamShape / DefensiveShape / AttackingShape.
 - Formaciones 4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2 (formation_slot por jugador).
@@ -150,7 +150,9 @@ Criterio: un partido vs CPU es competitivo y la CPU juega "como un equipo".
 - Fatiga de largo plazo (la energía máxima baja durante el partido) sobre la
   energía de corto plazo ya implementada: el cansancio se acumula del primer
   al segundo tiempo (no se reinicia) y en el entretiempo se recupera sólo una
-  parte.
+  parte. El desgaste se mide en minutos de JUEGO (el reloj va acelerado: con
+  la energía en segundos reales nadie se cansa en 5 minutos) y según lo que
+  corrió cada jugador; en el segundo tiempo el cansancio se tiene que notar.
 - Atributos que afecten de verdad la jugabilidad (velocidad, aceleración,
   resistencia, fuerza, pase, tiro, técnica, control, cabezazo, defensa, reacción,
   equilibrio, arquero); posiciones y pierna hábil.

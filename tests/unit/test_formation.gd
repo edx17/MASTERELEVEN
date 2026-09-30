@@ -19,10 +19,3 @@ func test_kickoff_spots_are_in_own_half() -> void:
 		assert_lt(Formation.kickoff_spot(spot, true).x, 0.5)
 		# El que no saca queda fuera del círculo central (9,15 m => x <= 0.41).
 		assert_lte(Formation.kickoff_spot(spot, false).x, 0.41)
-
-
-func test_block_moves_forward_with_the_ball() -> void:
-	var base := Vector2(0.33, 0.2)
-	var back := Formation.dynamic_spot(base, Footballer.Role.MF, 0.2, 0.0, false)
-	var fwd := Formation.dynamic_spot(base, Footballer.Role.MF, 0.8, 0.0, true)
-	assert_gt(fwd.x, back.x + 0.3)

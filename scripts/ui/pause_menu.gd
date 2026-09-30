@@ -4,6 +4,8 @@ extends CanvasLayer
 
 var _panel: PanelContainer
 var _resume: Button
+var _formation_btn: Button
+var _difficulty_btn: Button
 
 
 func _ready() -> void:
@@ -28,6 +30,8 @@ func _ready() -> void:
 	title.add_theme_font_size_override("font_size", 36)
 	box.add_child(title)
 	_resume = _button(box, "Continuar", _toggle)
+	_formation_btn = _button(box, "", _cycle_formation)
+	_difficulty_btn = _button(box, "", _cycle_difficulty)
 	_button(box, "Salir al menú", _exit)
 	_panel.visible = false
 
@@ -57,7 +61,47 @@ func _toggle() -> void:
 	get_tree().paused = paused
 	_panel.visible = paused
 	if paused:
+		_refresh()
 		_resume.grab_focus()
+
+
+## Equipo del jugador 1 (el que cambia de formación desde la pausa).
+func _my_team_index() -> int:
+	var m := get_parent() as MatchController
+	if m != null and not m.humans.is_empty():
+		return m.humans[0].team.index
+	return 0
+
+
+func _refresh() -> void:
+	var m := get_parent() as MatchController
+	if m == null:
+		return
+	var t := m.teams[_my_team_index()]
+	_formation_btn.text = "Formación (%s): %s" % [t.short_name, t.formation.formation_name if t.formation else "-"]
+	_difficulty_btn.text = "Dificultad CPU: %s" % Difficulty.NAMES[GameSettings.difficulty]
+
+
+func _cycle_formation() -> void:
+	var m := get_parent() as MatchController
+	if m == null:
+		return
+	var all := FormationLibrary.load_all()
+	var t := m.teams[_my_team_index()]
+	var idx := 0
+	for i in all.size():
+		if t.formation != null and all[i].formation_name == t.formation.formation_name:
+			idx = i
+	m.set_formation(t.index, all[(idx + 1) % all.size()])
+	_refresh()
+
+
+func _cycle_difficulty() -> void:
+	var m := get_parent() as MatchController
+	GameSettings.difficulty = (GameSettings.difficulty + 1) % Difficulty.NAMES.size()
+	if m != null:
+		m.apply_difficulty(GameSettings.difficulty)
+	_refresh()
 
 
 func _exit() -> void:

@@ -5,6 +5,7 @@ extends Control
 const MATCH_SCENE := "res://scenes/match/match.tscn"
 
 var _duration_btn: Button
+var _difficulty_btn: Button
 var _two_players_btn: Button
 var _info: Label
 
@@ -29,7 +30,7 @@ func _ready() -> void:
 	title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.25))
 	box.add_child(title)
 	var sub := Label.new()
-	sub.text = "Fase 1 — Partido amistoso"
+	sub.text = "Partido amistoso"
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.add_theme_font_size_override("font_size", 20)
 	box.add_child(sub)
@@ -39,6 +40,7 @@ func _ready() -> void:
 	_two_players_btn = _button(box, "2 Jugadores", _start.bind(GameSettings.Mode.TWO_PLAYERS))
 	_button(box, "CPU vs CPU (demo)", _start.bind(GameSettings.Mode.CPU_VS_CPU))
 	_duration_btn = _button(box, "", _cycle_duration)
+	_difficulty_btn = _button(box, "", _cycle_difficulty)
 	_button(box, "Salir", get_tree().quit)
 
 	_info = Label.new()
@@ -64,10 +66,16 @@ func _button(parent: Control, text: String, cb: Callable) -> Button:
 
 func _refresh() -> void:
 	_duration_btn.text = "Duración: %d min" % GameSettings.match_minutes
+	_difficulty_btn.text = "Dificultad: %s" % Difficulty.NAMES[GameSettings.difficulty]
 	var pads := Input.get_connected_joypads().size()
 	_two_players_btn.disabled = not InputRouter.can_play_two_players()
 	var pad_text := "Sin mandos conectados (se juega con teclado)" if pads == 0 else "Mandos conectados: %d" % pads
 	_info.text = pad_text + "\nMover: WASD / stick   Pase: J / A   Tiro: K / X   Largo: L / B   Hueco: I / Y\nSprint: Shift / RB   Cambiar: Q / LB   Cámara: C / Select   Pausa: Esc / Start"
+
+
+func _cycle_difficulty() -> void:
+	GameSettings.difficulty = (GameSettings.difficulty + 1) % Difficulty.NAMES.size()
+	_refresh()
 
 
 func _cycle_duration() -> void:

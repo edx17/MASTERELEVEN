@@ -5,6 +5,8 @@ extends RefCounted
 
 var index: int = 0
 var data: TeamData
+## Formación en uso (puede cambiarse en el partido).
+var formation: FormationData
 var team_name: String = ""
 var short_name: String = ""
 var color: Color = Color.WHITE

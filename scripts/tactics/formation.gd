@@ -24,28 +24,6 @@ const ROLES_442: Array[int] = [
 	Footballer.Role.FW, Footballer.Role.FW,
 ]
 
-## Rango de avance (espacio de equipo) permitido por rol al desplazarse con la pelota.
-const ROLE_RANGE := {
-	Footballer.Role.GK: Vector2(0.01, 0.06),
-	Footballer.Role.DF: Vector2(0.06, 0.6),
-	Footballer.Role.MF: Vector2(0.12, 0.8),
-	Footballer.Role.FW: Vector2(0.28, 0.9),
-}
-
-
-## Posición objetivo de un jugador según dónde está la pelota (bloque que se
-## desplaza como un acordeón) y si su equipo la tiene.
-static func dynamic_spot(base: Vector2, role: int, ball_progress: float, ball_lateral: float, in_possession: bool) -> Vector2:
-	if role == Footballer.Role.GK:
-		return base
-	var push := 0.12 if in_possession else -0.03
-	var x := base.x + (ball_progress - 0.5) * 0.72 + push
-	var r: Vector2 = ROLE_RANGE[role]
-	x = clampf(x, r.x, r.y)
-	var y := clampf(base.y * 0.85 + ball_lateral * 0.3, -0.95, 0.95)
-	return Vector2(x, y)
-
-
 ## Posición para el saque del medio: todos en campo propio y fuera del círculo
 ## si el equipo no saca.
 static func kickoff_spot(base: Vector2, kicking: bool) -> Vector2:
