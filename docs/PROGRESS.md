@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 | 1 — Base jugable | ✅ Hecha |
 | 2 — Prototipo 0.1: sensación de juego | ✅ Hecha (PR #2) |
 | 3 — IA de partido (TeamAI, formaciones, zonas, arquero) | 🟡 Implementada, **pendiente de tu prueba** |
-| Visual 1 — Se ve como la referencia (jugadores animados, cámara, cancha) | 🟡 En curso (falta integrar los modelos CC0) |
+| Visual 1 — Se ve como la referencia (jugadores animados, cámara, cancha) | 🟡 Implementada, **pendiente de tu prueba** |
 | 4 — Reglas, atributos y plantel | ⬜ |
 | 5 — Presentación moderna (estadio, modelos, animaciones, audio) | ⬜ |
 | 6 — Liga Master | ⬜ |
@@ -27,9 +27,16 @@ Ver `Claude.md` para visión, criterios y fases.
 - [x] **Flecha** del jugador controlado: cono del color del humano sobre la cabeza (antes el ▼ no se dibujaba) + anillo en el piso.
 - [x] Triángulo (arquero sale a achicar) funciona con el rival **en cualquier parte de tu campo** (antes sólo a menos de 30 m del arco) y también con la pelota suelta que tocó el rival.
 
+### Hecho (parte 2)
+- [x] **Modelos CC0 de Quaternius** integrados (`ModelVisual`): cuerpo con esqueleto de 65 huesos (Universal Base Characters) + animaciones de la Universal Animation Library (mismo esqueleto). Si faltaran los archivos, se usa el humanoide provisorio.
+- [x] **Colores del club por zona** (camiseta, short, medias, piel, botines, pelo; guantes del arquero) con un shader; la zona se calcula una vez sobre la malla.
+- [x] **Locomoción** según la velocidad (quieto, caminar, trotar, sprint) con la cadencia ajustada a la velocidad real.
+- [x] **Gestos de fútbol** que la librería no trae, moviendo huesos encima de la animación: patada, pase, cabezazo, saque con la mano, atajada, estirada a cada lado, barrida y caída; inclinación del torso al acelerar.
+- [x] Costo: la animación de los 22 jugadores lleva ~0,6-1,6 ms por cuadro (test incluido), muy por debajo de los 16,6 ms de 60 FPS.
+
 ### Pendiente
-- [ ] **Modelos CC0 de Quaternius** (Universal Base Characters + Universal Animation Library): reemplazar el humanoide provisorio con el modelo con esqueleto y sus animaciones, colores por club.
-- [ ] Capturas lado a lado con la referencia y 60 FPS con 22 jugadores animados.
+- [ ] **Tu prueba**: ¿se ve como la referencia? ¿las animaciones acompañan bien?
+- [ ] El radar tapa un poco la banda cercana con la cámara WE (se ajusta en la próxima ronda).
 
 ---
 
