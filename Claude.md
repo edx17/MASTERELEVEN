@@ -93,6 +93,9 @@ Si esto no funciona, NO se agregan sistemas: se corrige el gameplay primero.
 La potencia de tiro y pase se gradúa manteniendo el botón (barra de potencia).
 Pase de primera: apretar el pase mientras la pelota viene; el stick sólo
 apunta el próximo pase (el receptor sigue yendo a buscar la pelota).
+Arquero: con la pelota lo maneja el humano. En las manos: X / Triángulo =
+saque con la mano (rodando), Círculo / Cuadrado = pelotazo. Pase atrás de un
+compañero: la juega con los pies, como un jugador más.
 Todo definido en el Input Map de Godot, nunca hardcodeado.
 
 ## Estructura

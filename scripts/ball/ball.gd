@@ -22,6 +22,9 @@ var intended_receiver: Footballer = null
 var frozen: bool = false
 ## Segundos desde la última patada.
 var kick_age: float = 0.0
+## El arquero la tiene en las manos (si la recibió con los pies, por un pase
+## atrás de un compañero, la juega como un jugador más).
+var in_hands: bool = false
 
 var _tuning: Tuning
 var _mesh: MeshInstance3D
@@ -64,8 +67,9 @@ func place(pos: Vector3) -> void:
 ## `player` pasa a conducir la pelota. Con `receive` se aplica el primer
 ## control: la pelota se frena al ritmo del jugador según su ball_control y la
 ## velocidad con la que llegaba (un mal control la deja picando lejos).
-func give_to(player: Footballer, receive: bool = false) -> void:
+func give_to(player: Footballer, receive: bool = false, hands: bool = false) -> void:
 	owner_player = player
+	in_hands = hands and player.is_keeper()
 	last_touch_team = player.team.index
 	last_toucher = player
 	if intended_receiver != player:
@@ -78,7 +82,7 @@ func give_to(player: Footballer, receive: bool = false) -> void:
 		var control := PlayerData.unit(player.data.ball_control) if player.data else 0.6
 		# Primer control seguro: se amortigua casi toda la velocidad relativa.
 		# Sólo un pase muy fuerte a alguien de poco control se escapa un poco.
-		var keep := clampf(0.1 - control * 0.08 + maxf(rel.length() - 14.0, 0.0) * 0.012, 0.0, 0.25)
+		var keep := clampf(0.1 - control * 0.08 + maxf(rel.length() - 18.0, 0.0) * 0.012, 0.0, 0.25)
 		state.vel = pv + rel * keep
 		state.vel.y = minf(state.vel.y, 0.0) * 0.3
 		state.spin = Vector3.ZERO
@@ -89,6 +93,7 @@ func give_to(player: Footballer, receive: bool = false) -> void:
 ## Patea la pelota: pierde dueño y sale con la velocidad y efecto dados.
 func kick(velocity: Vector3, spin: Vector3, kicker: Footballer) -> void:
 	owner_player = null
+	in_hands = false
 	state.vel = velocity
 	state.spin = spin
 	kick_age = 0.0
@@ -128,7 +133,7 @@ func tick(dt: float) -> void:
 
 func _in_keeper_hands() -> bool:
 	var p := owner_player
-	return p.is_keeper() and Pitch.in_penalty_area(p.flat_pos(), p.team.own_side())
+	return in_hands and p.is_keeper() and Pitch.in_penalty_area(p.flat_pos(), p.team.own_side())
 
 
 func _hold_in_hands(dt: float) -> void:
@@ -217,12 +222,12 @@ func _build_visuals() -> void:
 
 	_shadow = MeshInstance3D.new()
 	var disc := CylinderMesh.new()
-	disc.top_radius = _tuning.ball_radius * 1.6
-	disc.bottom_radius = _tuning.ball_radius * 1.6
+	disc.top_radius = _tuning.ball_radius * 2.0
+	disc.bottom_radius = _tuning.ball_radius * 2.0
 	disc.height = 0.005
 	_shadow.mesh = disc
 	var smat := StandardMaterial3D.new()
-	smat.albedo_color = Color(0, 0, 0, 0.45)
+	smat.albedo_color = Color(0, 0, 0, 0.6)
 	smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_shadow.material_override = smat

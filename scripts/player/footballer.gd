@@ -65,6 +65,7 @@ var wants_tackle: bool = false
 var _tuning: Tuning
 var _arrow: Label3D
 var _pass_marker: MeshInstance3D
+var _control_ring: MeshInstance3D
 var _body_mat: StandardMaterial3D
 
 
@@ -232,21 +233,26 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 	if speed_override > 0.0:
 		max_speed = speed_override
 
-	# Giro dependiente de la velocidad: lento gira rápido, en sprint abre la curva.
+	# Giro estilo WE: el cuerpo sigue al stick casi al instante; en sprint abre
+	# un poco la curva. Un cambio de dirección grande (más de ~100°) es un
+	# "corte": frena en seco y sale para el otro lado (no da una vuelta ancha).
 	var cur_speed := Vector3(velocity.x, 0.0, velocity.z).length()
 	var turn := lerpf(_tuning.turn_rate, _tuning.turn_rate_sprint, clampf(cur_speed / _tuning.sprint_speed, 0.0, 1.0))
 	if has_ball:
 		turn *= _tuning.turn_rate_ball_factor
+	var cut := false
 	if move.length_squared() > 0.01:
-		facing = _rotate_towards(facing, move.normalized(), turn * dt)
+		var off := absf(facing.signed_angle_to(move.normalized(), Vector3.UP))
+		cut = off > deg_to_rad(_tuning.cut_angle) and cur_speed > 1.5
+		facing = _rotate_towards(facing, move.normalized(), (turn * 2.0 if cut else turn) * dt)
 
-	# El jugador acelera en la dirección en la que mira (no se desliza de costado),
-	# salvo a baja velocidad, donde puede ajustar libremente.
-	var wish := move
-	if move.length_squared() > 0.01 and cur_speed > 2.0:
-		wish = facing * move.length()
-	var target_vel := wish * max_speed
+	# Se acelera hacia donde pide el stick; la inercia la da la aceleración
+	# (sin arcos de "auto": el jugador no se desliza de costado porque el
+	# cuerpo gira más rápido de lo que cambia la velocidad).
+	var target_vel := move * max_speed
 	var rate := (_tuning.acceleration * (1.0 + 0.15 * acc_attr)) if move.length_squared() > 0.01 else _tuning.deceleration
+	if cut:
+		rate = maxf(rate, _tuning.deceleration * 1.3)
 	velocity = velocity.move_toward(target_vel, rate * dt)
 
 
@@ -270,8 +276,11 @@ func set_human_slot(slot: int) -> void:
 	if _arrow == null:
 		return
 	_arrow.visible = slot >= 0
+	_control_ring.visible = slot >= 0
 	if slot >= 0:
-		_arrow.modulate = SLOT_COLORS[slot % SLOT_COLORS.size()]
+		var c := SLOT_COLORS[slot % SLOT_COLORS.size()]
+		_arrow.modulate = c
+		(_control_ring.material_override as StandardMaterial3D).albedo_color = Color(c, 0.9)
 
 
 ## Marca en el piso del compañero que va a recibir el pase que se está
@@ -363,12 +372,31 @@ func _build_visuals() -> void:
 	_arrow = Label3D.new()
 	_arrow.text = "▼"
 	_arrow.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	# Indicador discreto sobre la cabeza del jugador controlado.
+	# Flecha bien visible sobre la cabeza del jugador controlado (como en WE),
+	# legible también con las cámaras lejanas.
 	_arrow.font_size = 64
-	_arrow.outline_size = 10
-	_arrow.pixel_size = 0.005
-	_arrow.position.y = 2.5
+	_arrow.outline_size = 12
+	_arrow.outline_modulate = Color(0, 0, 0, 0.85)
+	_arrow.pixel_size = 0.011
+	_arrow.position.y = 2.9
 	_arrow.no_depth_test = true
 	_arrow.visible = false
 	add_child(_arrow)
+
+	# Anillo en el piso del jugador controlado (del color del humano).
+	_control_ring = MeshInstance3D.new()
+	var ring := TorusMesh.new()
+	ring.inner_radius = 0.55
+	ring.outer_radius = 0.75
+	ring.rings = 24
+	_control_ring.mesh = ring
+	var ring_mat := StandardMaterial3D.new()
+	ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_control_ring.material_override = ring_mat
+	_control_ring.scale = Vector3(1.0, 0.06, 1.0)
+	_control_ring.position.y = 0.03
+	_control_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_control_ring.visible = false
+	add_child(_control_ring)
 	_apply_facing()

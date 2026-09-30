@@ -114,6 +114,10 @@ func tick(dt: float) -> void:
 	var opponent_has_ball := ball.owner_player != null and ball.owner_player.team != team
 
 	move = _apply_receive_lock(p, ball, move)
+	# Arquero con la pelota en las manos: camina, pero no sale del área.
+	if p.is_keeper() and ball.in_hands and ball.owner_player == p and move.length_squared() > 0.01:
+		if not Pitch.in_penalty_area(p.flat_pos() + move.normalized() * 0.8, team.own_side()):
+			move = Vector3.ZERO
 	p.wants_sprint = input.pressed(&"sprint")
 	p.desired_move = move
 	p.pressing = false
@@ -254,7 +258,9 @@ func _apply_receive_lock(p: Footballer, ball: Ball, move: Vector3) -> Vector3:
 func _auto_switch(ball: Ball) -> void:
 	var owner := ball.owner_player
 	if owner != null and owner.team == team:
-		if owner != controlled and not owner.is_keeper():
+		# También el arquero: con la pelota (en las manos o en los pies tras
+		# un pase atrás) lo maneja el humano, como en WE.
+		if owner != controlled:
 			select(owner)
 		return
 	if _match.restart_taker != null and _match.restart_taker.team == team and not _match.restart_taker.is_keeper():
@@ -267,6 +273,7 @@ func _auto_switch(ball: Ball) -> void:
 			select(recv)
 		return
 	if controlled == null or controlled.is_keeper():
+		# Soltó la pelota el arquero: vuelve a un jugador de campo.
 		select(nearest_to_ball())
 		return
 	if is_charging() or _switch_cooldown > 0.0:

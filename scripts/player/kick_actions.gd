@@ -39,6 +39,16 @@ func execute(kind: int, player: Footballer, dir: Vector3, power: float) -> Footb
 		forced = null
 	if throw_in_mode:
 		return _throw_in(kind, player, dir, power, forced)
+	if player.is_keeper() and ball.in_hands:
+		# Arquero con la pelota en las manos: pase corto / al hueco = saque con
+		# la mano, rodando por el piso (no se tira para arriba); pase largo o
+		# tiro = pelotazo de volea.
+		if kind == Kind.SHORT_PASS or kind == Kind.THROUGH_PASS:
+			var d := _dir_or_facing(player, dir)
+			ball.state.pos = player.flat_pos() + d * 0.6 + Vector3.UP * tuning.ball_radius
+			ball.state.vel = Vector3.ZERO
+			return short_pass(player, dir, power, forced)
+		return long_pass(player, dir, maxf(power, 0.4), forced)
 	match kind:
 		Kind.SHORT_PASS:
 			return short_pass(player, dir, power, forced)

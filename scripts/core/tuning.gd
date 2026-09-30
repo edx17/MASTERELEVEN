@@ -47,11 +47,14 @@ extends Resource
 @export var acceleration: float = 26.0
 @export var deceleration: float = 32.0
 ## Velocidad de giro (rad/s) quieto/lento y a velocidad de sprint: a mayor
-## velocidad, giro más amplio (nunca 180° instantáneo).
-@export var turn_rate: float = 16.0
-@export var turn_rate_sprint: float = 5.5
+## velocidad, giro algo más amplio (nunca 180° instantáneo).
+@export var turn_rate: float = 24.0
+@export var turn_rate_sprint: float = 10.0
 ## Multiplicador del giro con la pelota en el pie.
-@export var turn_rate_ball_factor: float = 0.85
+@export var turn_rate_ball_factor: float = 0.95
+## Cambio de dirección (grados) a partir del cual es un "corte": frena en
+## seco y gira el doble de rápido (los cortes de 90-180° de WE).
+@export var cut_angle: float = 100.0
 
 @export_group("Energía y reacción")
 ## Puntos de energía (0-100) por segundo de sprint (jugador promedio).
@@ -80,7 +83,10 @@ extends Resource
 ## Radio (horizontal) para tomar una pelota suelta.
 @export var control_radius: float = 0.8
 ## Radio extra para el receptor designado de un pase (recepción segura).
-@export var receive_radius: float = 1.1
+@export var receive_radius: float = 1.4
+## Un pase rápido es difícil de cortar para quien no es el receptor: por
+## encima de esta velocidad (m/s) el radio de intercepción se achica.
+@export var intercept_fast_speed: float = 9.0
 ## Altura máxima a la que un jugador de campo controla la pelota.
 @export var control_height: float = 1.1
 ## Altura hasta la que el receptor de un pase la baja con el pecho/muslo
@@ -117,8 +123,8 @@ extends Resource
 ## Velocidad con la que un pase corto llega al receptor (mín/máx según potencia).
 ## Aun con un toque corto de botón el pase sale firme (como en WE): la barra
 ## ajusta poco la velocidad del pase corto.
-@export var short_pass_arrive_min: float = 7.0
-@export var short_pass_arrive_max: float = 10.0
+@export var short_pass_arrive_min: float = 10.0
+@export var short_pass_arrive_max: float = 13.0
 ## Distancia máxima que se considera para un pase corto.
 @export var short_pass_max_distance: float = 35.0
 ## Adelanto del pase al hueco (mín/máx según potencia).
