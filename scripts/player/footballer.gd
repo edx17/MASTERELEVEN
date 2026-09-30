@@ -49,6 +49,10 @@ var touches: int = 0
 ## Depuración (F9): hacia dónde va y qué está haciendo según su controlador.
 var debug_target: Vector3 = Vector3.ZERO
 var debug_state: String = ""
+## Energía 0..100 (ver update_stamina).
+var stamina: float = 100.0
+## Tiempo de reacción pendiente (IA): mientras corre, mantiene la orden anterior.
+var reaction_timer: float = 0.0
 ## Posición del rival más cercano (la fija el partido; sirve para cubrir la pelota).
 var shield_from: Vector3 = Vector3.ZERO
 ## Tiempo hasta poder intentar otra entrada.
@@ -75,9 +79,32 @@ func setup(p_team: Team, p_data: PlayerData, p_role: int, p_spot: Vector2, tunin
 	_build_visuals()
 
 
-## Energía 0..1 (la fatiga llega en la Fase 4; por ahora siempre llena).
+## Energía 0..1 (se gasta en sprint y se recupera trotando/parado).
 func stamina_fraction() -> float:
-	return 1.0
+	return clampf(stamina / 100.0, 0.0, 1.0)
+
+
+## Actualiza la energía (informe técnico: sprint continuo gasta ~20-30 puntos
+## en 10 s; se recupera más rápido parado que trotando). El atributo stamina
+## del jugador reduce el gasto.
+func update_stamina(dt: float) -> void:
+	var endurance := PlayerData.unit(data.stamina) if data else 0.6
+	var moving := Vector3(velocity.x, 0.0, velocity.z).length()
+	if is_sprinting() and moving > _tuning.run_speed * 0.8:
+		stamina -= _tuning.stamina_sprint_drain * (1.3 - 0.6 * endurance) * dt
+	elif moving > 1.5:
+		stamina += _tuning.stamina_regen_jog * dt
+	else:
+		stamina += _tuning.stamina_regen_rest * dt
+	stamina = clampf(stamina, 0.0, 100.0)
+
+
+## Multiplicador de velocidad por cansancio: debajo del umbral cae hasta el mínimo.
+func fatigue_speed_factor() -> float:
+	var th := _tuning.stamina_tired_threshold
+	if stamina >= th:
+		return 1.0
+	return lerpf(_tuning.stamina_min_speed_factor, 1.0, stamina / th)
 
 
 func is_keeper() -> bool:
@@ -149,6 +176,8 @@ func tick(dt: float, has_ball: bool) -> void:
 	tackle_cooldown = maxf(0.0, tackle_cooldown - dt)
 	pass_target_timer = maxf(0.0, pass_target_timer - dt)
 	possession_time = possession_time + dt if has_ball else 0.0
+	reaction_timer = maxf(0.0, reaction_timer - dt)
+	update_stamina(dt)
 
 	match state:
 		State.SLIDING:
@@ -185,7 +214,9 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 		velocity = Vector3.ZERO
 		return
 
-	var max_speed := _tuning.sprint_speed if wants_sprint else _tuning.run_speed
+	# Sin energía no se puede sprintar.
+	var sprinting := wants_sprint and stamina > 3.0
+	var max_speed := _tuning.sprint_speed if sprinting else _tuning.run_speed
 	# Atributos: velocidad ±8 %, aceleración ±15 %.
 	var spd_attr := 0.0
 	var acc_attr := 0.0
@@ -193,6 +224,7 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 		spd_attr = PlayerData.centered(data.speed)
 		acc_attr = PlayerData.centered(data.acceleration)
 	max_speed *= 1.0 + 0.08 * spd_attr
+	max_speed *= fatigue_speed_factor()
 	if has_ball:
 		max_speed *= _tuning.dribble_speed_factor
 	if speed_override > 0.0:

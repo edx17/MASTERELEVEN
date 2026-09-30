@@ -16,6 +16,8 @@ var team: Team
 var _match: MatchController
 var _decision_timer: float = 0.0
 var _keeper_hold: float = 0.0
+## Última patada vista (para disparar el tiempo de reacción).
+var _last_kick_seen: int = -1
 
 
 func _init(p_team: Team, p_match: MatchController) -> void:
@@ -38,9 +40,22 @@ func tick(dt: float) -> void:
 	var progress := team.progress_of(ball.flat_pos())
 	var lateral := team.lateral_of(ball.flat_pos())
 
+	# Tiempo de reacción (informe técnico: 0,15-0,25 s): ante cada patada, los
+	# jugadores de campo tardan un instante en cambiar lo que estaban haciendo.
+	if _match.kick_count != _last_kick_seen:
+		_last_kick_seen = _match.kick_count
+		var t := _match.tuning
+		for p in team.players:
+			if not p.is_human() and not p.is_keeper() and ball.last_toucher != p:
+				var r := PlayerData.unit(p.data.reaction) if p.data else 0.5
+				p.reaction_timer = lerpf(t.ai_reaction_max, t.ai_reaction_min, r)
+
 	for p in team.players:
 		if p.is_human():
 			continue
+		if p.reaction_timer > 0.0 and ball.owner_player != p and _match.restart_taker != p:
+			p.debug_state = "reacciona"
+			continue # mantiene la orden anterior
 		p.pressing = false
 		p.speed_override = 0.0
 		if _match.restart_taker == p:

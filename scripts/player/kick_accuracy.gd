@@ -33,6 +33,11 @@ static func shot_error(shooting: int, technique: int, balance: int, pressure: fl
 	return err
 
 
+## Error extra (grados) por cansancio: sin energía, hasta +2,5°.
+static func fatigue_penalty(stamina_fraction: float) -> float:
+	return (1.0 - clampf(stamina_fraction, 0.0, 1.0)) * 2.5
+
+
 ## Penalización por patear "cruzado" respecto de la orientación del cuerpo.
 static func _body_penalty(body_angle: float, max_penalty: float) -> float:
 	return clampf((absf(body_angle) - 45.0) / 135.0, 0.0, 1.0) * max_penalty

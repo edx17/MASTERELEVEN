@@ -227,6 +227,7 @@ func shoot(player: Footballer, dir: Vector3, power: float) -> void:
 		pressure, rad_to_deg(player.facing.angle_to(flat)), to.length(), power)
 	if volley:
 		err *= 1.5
+	err += KickAccuracy.fatigue_penalty(player.stamina_fraction())
 	last_error = err
 	if randomize_error:
 		flat = flat.rotated(Vector3.UP, deg_to_rad(randf_range(-err, err)))
@@ -299,6 +300,7 @@ func _pass_direction(player: Footballer, to_target: Vector3, stick: Vector3, pow
 	var data := player.data
 	var err := KickAccuracy.pass_error(data.passing if data else 60, data.technique if data else 60,
 		pressure, rad_to_deg(player.facing.angle_to(dir)), power)
+	err += KickAccuracy.fatigue_penalty(player.stamina_fraction())
 	last_error = err
 	if randomize_error:
 		dir = dir.rotated(Vector3.UP, deg_to_rad(randf_range(-err, err)))

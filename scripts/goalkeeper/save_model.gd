@@ -49,8 +49,10 @@ static func evaluate(plan: Plan, keeper_pos: Vector3, reaction: int, goalkeeping
 	if not plan.on_target:
 		plan.chance = 0.0
 		return plan
-	var react_time := lerpf(0.38, 0.18, PlayerData.unit(reaction))
-	var dive_speed := lerpf(4.0, 6.0, PlayerData.unit(goalkeeping))
+	# Informe técnico: reacción del arquero 0,3-0,4 s ante un tiro repentino;
+	# desplazamiento ~6-7 m/s en distancias cortas (la estirada lateral, algo menos).
+	var react_time := lerpf(0.40, 0.25, PlayerData.unit(reaction))
+	var dive_speed := lerpf(4.5, 6.5, PlayerData.unit(goalkeeping))
 	var reach := lerpf(0.9, 1.5, PlayerData.unit(goalkeeping))
 	var lateral := Vector2(keeper_pos.x - plan.point.x, keeper_pos.z - plan.point.z).length()
 	var needed := lateral

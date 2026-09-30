@@ -53,6 +53,20 @@ extends Resource
 ## Multiplicador del giro con la pelota en el pie.
 @export var turn_rate_ball_factor: float = 0.85
 
+@export_group("Energía y reacción")
+## Puntos de energía (0-100) por segundo de sprint (jugador promedio).
+@export var stamina_sprint_drain: float = 2.6
+## Recuperación por segundo trotando / parado o caminando.
+@export var stamina_regen_jog: float = 0.9
+@export var stamina_regen_rest: float = 2.2
+## Debajo de esta energía la velocidad baja hasta stamina_min_speed_factor.
+@export var stamina_tired_threshold: float = 35.0
+@export var stamina_min_speed_factor: float = 0.85
+## Tiempo de reacción de la IA ante una patada (informe: 0,15-0,25 s),
+## según el atributo reaction (99 -> mínimo, 1 -> máximo).
+@export var ai_reaction_min: float = 0.15
+@export var ai_reaction_max: float = 0.25
+
 @export_group("Conducción y robo")
 ## Máximo que se adelanta la pelota en cada toque, trotando / en sprint
 ## (jugador de control promedio; ver Dribble.touch_distance).
