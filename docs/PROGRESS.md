@@ -34,9 +34,22 @@ Ver `Claude.md` para visión, criterios y fases.
 - [x] **Gestos de fútbol** que la librería no trae, moviendo huesos encima de la animación: patada, pase, cabezazo, saque con la mano, atajada, estirada a cada lado, barrida y caída; inclinación del torso al acelerar.
 - [x] Costo: la animación de los 22 jugadores lleva ~0,6-1,6 ms por cuadro (test incluido), muy por debajo de los 16,6 ms de 60 FPS.
 
+### Ronda 3 (tu prueba de los modelos + tráiler de ForeverEleven)
+| Pedido | Cambio |
+|---|---|
+| El radar tapa la banda cercana | Se vuelve casi transparente cuando la pelota o tu jugador pasan por detrás. |
+| El arquero no vuela al atajar | Estirada de verdad: despega, vuela de costado con los brazos extendidos y cae (≈1 s). |
+| No se ve cabezazo, remate ni pase | Gestos más largos y amplios: carga atrás, golpe, acompañamiento y giro de torso; salto al cabecear. |
+| No hay gesto de entrada | Entrada de pie con la pierna adelante (X); la barrida ahora abre los brazos. |
+| Siempre corren igual / trote rápido / no caminan | La IA se acomoda al paso que pide la distancia (camina cerca, trota a media distancia, corre sólo si quedó lejos o es urgente). Animación: caminar hasta 2,4 m/s, trote hasta 6,6, sprint sólo corriendo de verdad; cadencia ajustada. Inclinación de esfuerzo en el sprint. |
+| Círculo (B) barre, X (A) entra | Defendiendo: X mantenido = presión + entrada; Círculo = barrida; Cuadrado ya no barre. |
+| Triángulo no es pase en profundidad | Pase al hueco con adelanto largo (9-24 m) y que cae **detrás de la última línea** rival. |
+| Visual como ForeverEleven | Carteles LED negros "MASTER ELEVEN." alrededor de la cancha; césped verde natural más apagado y mate; luz de menos contraste, tonemap ACES y oclusión ambiental (Forward+). |
+
 ### Pendiente
-- [ ] **Tu prueba**: ¿se ve como la referencia? ¿las animaciones acompañan bien?
-- [ ] El radar tapa un poco la banda cercana con la cámara WE (se ajusta en la próxima ronda).
+- [ ] **Tu prueba** de esta ronda.
+- [ ] Seguir acercando el look (tribunas de dos bandejas con barandas, números en la espalda, iluminación global).
+- [ ] CPU vs CPU: el apoyo cerca del portador bajó a 88-93 % (antes 93-98 %) porque ahora se acomodan caminando/trotando; vigilar.
 
 ---
 

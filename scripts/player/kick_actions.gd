@@ -175,10 +175,38 @@ func through_pass(player: Footballer, dir: Vector3, power: float, forced: Footba
 		var attack := Vector3(player.team.attack_dir, 0.0, 0.0)
 		var run := (attack * 0.65 + d * 0.35).normalized()
 		target = receiver.flat_pos() + run * lead
+		# Al hueco de verdad: la pelota tiene que caer detrás de la última
+		# línea rival (el receptor la gana corriendo), no en los pies.
+		var line := last_defender_x(player.team)
+		var dir_x := float(player.team.attack_dir)
+		if (target.x - line) * dir_x < 4.0 and (line * dir_x) < Pitch.HALF_LENGTH - 8.0:
+			target.x = line + dir_x * 4.0
 	target = Pitch.clamp_to_field(target, 1.5)
-	_ground_pass_to(player, target, 2.5, dir, power)
+	_ground_pass_to(player, target, 3.5, dir, power)
 	_assign_receiver(receiver, target)
 	return receiver
+
+
+## X (cancha) del defensor rival más retrasado (sin el arquero): la última línea.
+func last_defender_x(team: Team) -> float:
+	var best := -INF
+	var line := 0.0
+	for p: Footballer in _opponents(team):
+		if p.is_keeper():
+			continue
+		var depth: float = p.flat_pos().x * team.attack_dir
+		if depth > best:
+			best = depth
+			line = p.flat_pos().x
+	return line
+
+
+func _opponents(team: Team) -> Array:
+	var out := []
+	for n in team.players[0].get_parent().get_children():
+		if n is Footballer and n.team != team:
+			out.append(n)
+	return out
 
 
 ## Pase largo / centro por arriba. La potencia define la altura del globo (o la

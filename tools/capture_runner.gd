@@ -41,7 +41,17 @@ var _script := [
 	[495, "goal_kick"],
 	[496, "simulate:2.5"],
 	[540, "shot:capture_goal_kick.png"],
-	[545, "quit"],
+	# Gestos: remate con estirada del arquero y un pase (cámara Cercana).
+	[545, "preset:Cercana"],
+	[546, "shoot_scene"],
+	[547, "simulate:0.12"],
+	[560, "shot:capture_kick.png"],
+	[561, "simulate:0.25"],
+	[575, "shot:capture_dive.png"],
+	[580, "pass_scene"],
+	[581, "simulate:0.2"],
+	[595, "shot:capture_pass.png"],
+	[600, "quit"],
 ]
 
 
@@ -110,6 +120,22 @@ func _run(action: String) -> void:
 		var spot2 := Vector3(t1.own_side() * (Pitch.HALF_LENGTH - 5.5), 0.11, 4.0)
 		_match._pending = MatchRules.Outcome.new(MatchRules.Restart.GOAL_KICK, 1, spot2)
 		_match._setup_restart(_match._pending)
+	elif action == "shoot_scene":
+		# Remate cruzado desde la puerta del área contra el arquero rival.
+		var t1 := _match.teams[1]
+		var shooter: Footballer = _match.teams[0].players[9]
+		var goal := t1.own_goal()
+		_place(goal + Vector3(-t1.own_side() * 16.0, 0, 3.0), goal + Vector3(-t1.own_side() * 15.5, 0.11, 3.0), shooter)
+		shooter.facing = Vector3(t1.own_side(), 0, 0)
+		var gk := t1.keeper()
+		gk.teleport(goal + Vector3(-t1.own_side() * 1.0, 0, 0), Vector3(-t1.own_side(), 0, 0))
+		_camera._focus = shooter.flat_pos()
+		_match.perform_kick(shooter, KickActions.Kind.SHOT, Vector3(0, 0, -1), 0.8)
+	elif action == "pass_scene":
+		var p: Footballer = _match.teams[0].players[6]
+		_place(Vector3(-5, 0, 2), Vector3(-4.5, 0.11, 2), p)
+		_camera._focus = p.flat_pos()
+		_match.perform_kick(p, KickActions.Kind.SHORT_PASS, Vector3(1, 0, 0), 0.5)
 	elif action.begins_with("preset:"):
 		var name := action.trim_prefix("preset:")
 		for i in _camera.presets.size():

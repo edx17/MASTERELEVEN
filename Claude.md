@@ -81,9 +81,9 @@ Si esto no funciona, NO se agregan sistemas: se corrige el gameplay primero.
 | Acción                 | Mando          | Teclado     |
 |------------------------|----------------|-------------|
 | Mover                  | Stick izq/cruz | WASD        |
-| Pase corto / presión   | X / A          | J           |
-| Tiro / barrida         | Cuadrado / X   | K           |
-| Pase largo / centro    | Círculo / B    | L           |
+| Pase corto / presión y entrada (mantenido, defendiendo) | X / A | J |
+| Tiro                   | Cuadrado / X   | K           |
+| Pase largo / centro / barrida (defendiendo) | Círculo / B | L |
 | Pase al hueco / arquero sale a achicar (mantenido, defendiendo) | Triángulo / Y  | I           |
 | Sprint                 | R1 / RB        | Shift       |
 | Cambiar jugador        | L1 / LB        | Q           |

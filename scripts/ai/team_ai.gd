@@ -128,7 +128,7 @@ func tick(dt: float) -> void:
 		if _supporters.has(p):
 			p.debug_state = "apoyo"
 			var sp: Vector3 = _supporters[p]
-			go_to(p, sp, p.flat_pos().distance_to(sp) > 5.0)
+			go_to(p, sp, p.flat_pos().distance_to(sp) > 8.0, true)
 			p.look_at_point(ball.flat_pos())
 			continue
 		p.debug_state = "posición"
@@ -416,7 +416,10 @@ func _intercept_point(p: Footballer, ball: Ball) -> Vector3:
 
 # --- Comportamientos -----------------------------------------------------------
 
-func go_to(p: Footballer, target: Vector3, sprint: bool) -> void:
+## Lleva al jugador hacia `target`. Con `relaxed` (acomodarse en la forma,
+## sin urgencia) va al paso que pide la distancia: camina si está cerca,
+## trota a media distancia y corre sólo si quedó lejos, como un jugador real.
+func go_to(p: Footballer, target: Vector3, sprint: bool, relaxed: bool = false) -> void:
 	p.debug_target = target
 	var to := target - p.flat_pos()
 	to.y = 0.0
@@ -426,7 +429,10 @@ func go_to(p: Footballer, target: Vector3, sprint: bool) -> void:
 		p.wants_sprint = false
 		return
 	# Frena al acercarse para no pasarse de largo.
-	p.desired_move = to / d * clampf(d / 3.0, 0.25, 1.0)
+	var pace := clampf(d / 3.0, 0.25, 1.0)
+	if relaxed and not sprint:
+		pace = minf(pace, clampf(remap(d, 2.0, 14.0, 0.3, 1.0), 0.3, 1.0))
+	p.desired_move = to / d * pace
 	p.wants_sprint = sprint
 
 
@@ -434,7 +440,7 @@ func _hold_shape(p: Footballer, ball: Ball) -> void:
 	var target := shape_target(p)
 	var d := p.flat_pos().distance_to(target)
 	var urgent := state in [S.COUNTER_ATTACK, S.RETREATING] and d > 4.0
-	go_to(p, target, urgent or d > 10.0)
+	go_to(p, target, urgent or d > 14.0, not urgent)
 	p.look_at_point(ball.flat_pos())
 
 

@@ -216,8 +216,32 @@ class Radar:
 		_match = m
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	func _process(_dt: float) -> void:
+	func _process(dt: float) -> void:
+		# Si la pelota (o el jugador controlado) pasa por detrás del radar en
+		# pantalla, el radar se vuelve casi transparente para no tapar la jugada.
+		var target := 1.0
+		if _hides_play():
+			target = 0.18
+		modulate.a = move_toward(modulate.a, target, dt * 5.0)
 		queue_redraw()
+
+	func _hides_play() -> bool:
+		var cam := get_viewport().get_camera_3d()
+		if cam == null:
+			return false
+		var rect := get_global_rect().grow(40.0)
+		var points: Array[Vector3] = [_match.ball.state.pos]
+		for h in _match.humans:
+			if h.controlled != null:
+				points.append(h.controlled.global_position + Vector3.UP)
+		for pt in points:
+			if not cam.is_position_behind(pt) and rect.has_point(cam.unproject_position(pt)):
+				return true
+		return false
+
+	## Radar visible (opacidad actual); lo usan los tests.
+	func opacity() -> float:
+		return modulate.a
 
 	func _to_radar(pos: Vector3) -> Vector2:
 		var x := (pos.x / Pitch.HALF_LENGTH * 0.5 + 0.5) * SIZE.x

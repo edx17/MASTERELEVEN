@@ -3,10 +3,10 @@ shader_type spatial;
 // + una variación natural muy leve (ruido procedural).
 // Sin texturas externas: funciona en Forward+ y en Compatibilidad.
 
-uniform vec3 color_a : source_color = vec3(0.20, 0.36, 0.085);
-uniform vec3 color_b : source_color = vec3(0.185, 0.335, 0.08);
+uniform vec3 color_a : source_color = vec3(0.19, 0.30, 0.115);
+uniform vec3 color_b : source_color = vec3(0.18, 0.285, 0.108);
 uniform float stripe_width = 5.25;
-uniform float variation = 0.12;
+uniform float variation = 0.1;
 
 varying vec3 world_pos;
 
@@ -32,6 +32,6 @@ void fragment() {
 	float n = noise(world_pos.xz * 0.3) * 0.5 + noise(world_pos.xz * 2.5) * 0.3 + noise(world_pos.xz * 20.0) * 0.2;
 	c *= (1.0 - variation * 0.5) + n * variation;
 	ALBEDO = c;
-	ROUGHNESS = 0.92;
+	ROUGHNESS = 0.97;
 	SPECULAR = 0.15;
 }

@@ -161,7 +161,8 @@ func _build_world() -> void:
 
 
 ## Iluminación de día (como la referencia): sol alto desde atrás de la tribuna
-## principal (sombras cortas), cielo, ambiente claro y tonemapping fílmico.
+## principal (sombras cortas), cielo, ambiente claro, poco contraste y
+## oclusión ambiental (Forward+) para asentar a los jugadores sobre el césped.
 func _build_lighting() -> void:
 	var env := WorldEnvironment.new()
 	var environment := Environment.new()
@@ -175,19 +176,22 @@ func _build_lighting() -> void:
 	environment.background_mode = Environment.BG_SKY
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	environment.ambient_light_energy = 0.55
-	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	environment.ambient_light_energy = 0.75
+	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
 	environment.tonemap_exposure = 1.05
+	environment.ssao_enabled = true
+	environment.ssao_radius = 1.2
+	environment.ssao_intensity = 1.6
 	environment.adjustment_enabled = true
-	environment.adjustment_contrast = 1.02
-	environment.adjustment_saturation = 1.0
+	environment.adjustment_contrast = 0.97
+	environment.adjustment_saturation = 0.9
 	env.environment = environment
 	add_child(env)
 
 	var sun := DirectionalLight3D.new()
 	# Luz desde atrás de la tribuna principal (-Z), baja y algo lateral.
 	sun.rotation_degrees = Vector3(-58.0, 160.0, 0.0)
-	sun.light_energy = 1.2
+	sun.light_energy = 1.0
 	sun.light_color = Color(1.0, 0.96, 0.88)
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 160.0
@@ -679,6 +683,8 @@ func tackle_chance(defender: Footballer, carrier: Footballer) -> float:
 ## no, queda desbalanceado un instante. Devuelve true si robó.
 func _resolve_tackle(defender: Footballer, carrier: Footballer) -> bool:
 	defender.tackle_cooldown = tuning.tackle_cooldown
+	if defender.visual != null:
+		defender.visual.play(PlayerVisual.Event.TACKLE)
 	stats["tackles"][defender.team.index] += 1
 	if randf() < tackle_chance(defender, carrier):
 		carrier.touch_block = tuning.lost_ball_cooldown

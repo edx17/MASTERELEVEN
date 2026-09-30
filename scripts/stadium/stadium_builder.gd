@@ -191,20 +191,42 @@ static func _perimeter(root: Node3D) -> void:
 		w.material_override = wall_mat
 		w.position = s[0]
 		root.add_child(w)
-	# Carteles lisos sobre el muro de la tribuna principal.
-	var colors := [Color(0.12, 0.3, 0.65), Color(0.85, 0.85, 0.85), Color(0.7, 0.12, 0.12), Color(0.1, 0.45, 0.25)]
-	var i := 0
-	var x := -Pitch.HALF_LENGTH
-	while x < Pitch.HALF_LENGTH:
-		var board := MeshInstance3D.new()
-		var bb := BoxMesh.new()
-		bb.size = Vector3(7.8, 0.9, 0.12)
-		board.mesh = bb
-		board.material_override = _mat(colors[i % colors.size()], 0.5)
-		board.position = Vector3(x + 4.0, 0.55, -Pitch.HALF_WIDTH - 3.2)
-		root.add_child(board)
-		i += 1
-		x += 8.0
+	# Carteles LED negros con el nombre del juego en blanco (como la
+	# referencia) en el lateral de enfrente y detrás de los arcos.
+	var board_mat := _mat(Color(0.03, 0.03, 0.035), 0.35)
+	var runs := [
+		# [inicio, fin, eje del recorrido, posición fija, rotación Y]
+		[-Pitch.HALF_LENGTH + 2.0, Pitch.HALF_LENGTH - 2.0, "x", -Pitch.HALF_WIDTH - 3.2, 0.0],
+		[-Pitch.HALF_WIDTH + 4.0, Pitch.HALF_WIDTH - 4.0, "z", -Pitch.HALF_LENGTH - 3.2, PI * 0.5],
+		[-Pitch.HALF_WIDTH + 4.0, Pitch.HALF_WIDTH - 4.0, "z", Pitch.HALF_LENGTH + 3.2, -PI * 0.5],
+	]
+	for run in runs:
+		var length: float = run[1] - run[0]
+		var count := maxi(1, int(length / 12.0))
+		var seg := length / count
+		for k in count:
+			var c: float = run[0] + seg * (k + 0.5)
+			var holder := Node3D.new()
+			holder.position = Vector3(c, 0.0, run[3]) if run[2] == "x" else Vector3(run[3], 0.0, c)
+			holder.rotation.y = run[4]
+			root.add_child(holder)
+			var board := MeshInstance3D.new()
+			var bb := BoxMesh.new()
+			bb.size = Vector3(seg - 0.2, 0.95, 0.15)
+			board.mesh = bb
+			board.material_override = board_mat
+			board.position.y = 0.55
+			holder.add_child(board)
+			var text := Label3D.new()
+			text.text = "MASTER ELEVEN."
+			text.font_size = 96
+			text.pixel_size = 0.0062
+			text.outline_size = 0
+			text.modulate = Color(0.97, 0.97, 0.97)
+			text.shaded = false
+			text.double_sided = false
+			text.position = Vector3(0.0, 0.55, 0.08)
+			holder.add_child(text)
 	# Pista alrededor de la cancha (tono apagado).
 	var track := MeshInstance3D.new()
 	var plane := PlaneMesh.new()

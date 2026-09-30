@@ -9,7 +9,7 @@ extends Node3D
 ##   setup(colors, seed), update(dt, speed, sprint_speed, state), play(event, side)
 
 ## Eventos que dispara la simulación.
-enum Event { KICK, PASS, HEADER, THROW, DIVE_LEFT, DIVE_RIGHT, CATCH }
+enum Event { KICK, PASS, HEADER, THROW, DIVE_LEFT, DIVE_RIGHT, CATCH, TACKLE }
 ## Estado continuo (lo decide el Footballer a partir de su State).
 enum Pose { NORMAL, SLIDING, FALLEN }
 
@@ -112,13 +112,15 @@ func play(event: int, side: float = 1.0) -> void:
 	_event = event
 	_event_t = 0.0
 	_event_side = side
+	# Duraciones pensadas para que el gesto se lea desde la cámara de TV.
 	match event:
-		Event.KICK: _event_len = 0.35
-		Event.PASS: _event_len = 0.28
-		Event.HEADER: _event_len = 0.35
-		Event.THROW: _event_len = 0.4
-		Event.CATCH: _event_len = 0.3
-		_: _event_len = 0.7
+		Event.KICK: _event_len = 0.55
+		Event.PASS: _event_len = 0.42
+		Event.HEADER: _event_len = 0.6
+		Event.THROW: _event_len = 0.6
+		Event.CATCH: _event_len = 0.45
+		Event.TACKLE: _event_len = 0.45
+		_: _event_len = 1.1
 
 
 func _apply(run: float) -> void:
@@ -172,6 +174,9 @@ func _apply(run: float) -> void:
 		Event.CATCH:
 			for i in 2:
 				_arm[i].rotation = Vector3(-1.4 * strike, 0, 0)
+		Event.TACKLE:
+			_leg[1].rotation = Vector3(-1.2 * strike, 0, 0)
+			_torso.rotation.x = _lean + 0.35 * strike
 		Event.DIVE_LEFT, Event.DIVE_RIGHT:
 			var dir := -1.0 if _event == Event.DIVE_LEFT else 1.0
 			var up := minf(k * 3.0, 1.0)
