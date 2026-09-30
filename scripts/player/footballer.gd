@@ -346,7 +346,7 @@ func _build_visuals() -> void:
 	visual = ModelVisual.new() if ModelVisual.available() else PlayerVisual.new()
 	add_child(visual)
 	var shirt := team.keeper_color if is_keeper() else team.color
-	var colors := {"shirt": shirt, "shorts": team.secondary_color, "socks": shirt}
+	var colors := {"shirt": shirt, "shorts": team.secondary_color, "socks": shirt, "number": number}
 	if is_keeper():
 		colors["gloves"] = Color(0.95, 0.95, 0.9)
 	visual.setup(colors, team.index * 100 + number)

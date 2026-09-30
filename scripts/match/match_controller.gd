@@ -162,7 +162,8 @@ func _build_world() -> void:
 
 ## Iluminación de día (como la referencia): sol alto desde atrás de la tribuna
 ## principal (sombras cortas), cielo, ambiente claro, poco contraste y
-## oclusión ambiental (Forward+) para asentar a los jugadores sobre el césped.
+## oclusión ambiental e iluminación global (Forward+) para asentar a los
+## jugadores sobre el césped.
 func _build_lighting() -> void:
 	var env := WorldEnvironment.new()
 	var environment := Environment.new()
@@ -182,6 +183,14 @@ func _build_lighting() -> void:
 	environment.ssao_enabled = true
 	environment.ssao_radius = 1.2
 	environment.ssao_intensity = 1.6
+	# Iluminación global (Forward+): la luz rebota en el césped y las tribunas,
+	# como en la referencia. En Compatibilidad se ignora.
+	environment.sdfgi_enabled = true
+	environment.sdfgi_use_occlusion = true
+	environment.sdfgi_energy = 0.8
+	environment.glow_enabled = true
+	environment.glow_intensity = 0.25
+	environment.glow_bloom = 0.03
 	environment.adjustment_enabled = true
 	environment.adjustment_contrast = 0.97
 	environment.adjustment_saturation = 0.9

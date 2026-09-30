@@ -48,7 +48,10 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ### Pendiente
 - [ ] **Tu prueba** de esta ronda.
-- [ ] Seguir acercando el look (tribunas de dos bandejas con barandas, números en la espalda, iluminación global).
+- [x] Tribunas de dos bandejas (también detrás de los arcos), butacas con respaldo y color parejo, barandas metálicas y frente oscuro de la bandeja superior.
+- [x] Número en la espalda (sigue al torso; blanco o negro según la camiseta).
+- [x] Iluminación global (SDFGI) y un leve brillo en Forward+ (en Compatibilidad se ignora).
+- [ ] Animaciones de fútbol reales (remate, pase, cabezazo, atajadas) desde un paquete externo.
 - [ ] CPU vs CPU: el apoyo cerca del portador bajó a 88-93 % (antes 93-98 %) porque ahora se acomodan caminando/trotando; vigilar.
 
 ---

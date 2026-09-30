@@ -81,6 +81,8 @@ func setup(colors: Dictionary, seed: int) -> void:
 		mat.set_shader_parameter("hair", HAIR_TONES[rng.randi() % HAIR_TONES.size()])
 		mat.set_shader_parameter("hands", colors.get("gloves", skin))
 		body.material_override = mat
+	if colors.has("number"):
+		_add_back_number(int(colors["number"]), colors.get("shirt", Color.WHITE))
 	var dark := _mat(Color(0.05, 0.04, 0.04))
 	for extra in ["Eyebrows", "Eyes"]:
 		var mi := _skel.find_child(extra, false, false) as MeshInstance3D
@@ -93,6 +95,32 @@ func setup(colors: Dictionary, seed: int) -> void:
 	_anim.add_animation_library(&"", _anim_lib)
 	_anim.mixer_applied.connect(_apply_gestures)
 	_play_locomotion(0.0)
+
+
+## Número en la espalda: sigue al hueso del pecho (se mueve con el torso).
+func _add_back_number(number: int, shirt: Color) -> void:
+	var bone := _skel.find_bone("spine_03")
+	if bone < 0:
+		return
+	var attach := BoneAttachment3D.new()
+	attach.bone_name = "spine_03"
+	_skel.add_child(attach)
+	var label := Label3D.new()
+	label.text = str(number)
+	label.font_size = 128
+	label.pixel_size = 0.0022
+	label.outline_size = 10
+	var light_shirt := shirt.get_luminance() > 0.55
+	label.modulate = Color(0.08, 0.08, 0.1) if light_shirt else Color(0.97, 0.97, 0.97)
+	label.outline_modulate = Color(0.97, 0.97, 0.97, 0.6) if light_shirt else Color(0.05, 0.05, 0.08, 0.6)
+	label.double_sided = false
+	label.shaded = true
+	attach.add_child(label)
+	# Pose deseada en el espacio del modelo (espalda = -Z, mirando hacia atrás),
+	# pasada al espacio del hueso en reposo.
+	var rest := _skel.get_bone_global_rest(bone)
+	var desired := Transform3D(Basis(Vector3.UP, PI), Vector3(0.0, rest.origin.y + 0.02, -0.16))
+	label.transform = rest.affine_inverse() * desired
 
 
 func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: float) -> void:
