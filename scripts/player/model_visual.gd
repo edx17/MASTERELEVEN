@@ -16,7 +16,9 @@ const ANIMS_PATH := "res://assets/animations/ual1_standard.glb"
 const BODY_MESH := "SuperHero_Male"
 
 ## [animación, velocidad (m/s) a la que se ve natural].
-const LOCOMOTION := [["Idle", 0.0], ["Walk", 1.6], ["Jog_Fwd", 4.6], ["Sprint", 7.6]]
+## Umbral: desde qué velocidad se usa; nominal: velocidad a la que la
+## animación se ve natural (el pie no patina).
+const LOCOMOTION := [["Idle", 0.0, 0.0], ["Walk", 0.35, 1.5], ["Jog_Fwd", 2.4, 3.9], ["Sprint", 6.6, 7.4]]
 const BLEND := 0.18
 
 static var _body_scene: PackedScene
@@ -97,7 +99,9 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 	_pose = pose
 	_speed = speed
 	_run = clampf(speed / maxf(sprint_speed, 0.1), 0.0, 1.0)
-	_lean = lerpf(_lean, clampf(accel * 0.015 + _run * 0.12, -0.12, 0.25), 1.0 - exp(-8.0 * dt))
+	# Esfuerzo: inclinación al arrancar y en el sprint.
+	var effort := 0.22 if speed > 6.6 else _run * 0.1
+	_lean = lerpf(_lean, clampf(accel * 0.02 + effort, -0.15, 0.35), 1.0 - exp(-8.0 * dt))
 	if _event >= 0:
 		_event_t += dt
 		if _event_t >= _event_len:
@@ -110,39 +114,50 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 func _play_locomotion(speed: float) -> void:
 	var pick: Array = LOCOMOTION[0]
 	for entry in LOCOMOTION:
-		if speed >= float(entry[1]) * 0.7:
+		if speed >= float(entry[1]):
 			pick = entry
 	var anim_name: String = pick[0]
 	if anim_name != _current:
 		_current = anim_name
 		_anim.play(anim_name, BLEND)
-	var nominal := float(pick[1])
-	_anim.speed_scale = 1.0 if nominal <= 0.0 else clampf(speed / nominal, 0.6, 1.5)
+	var nominal := float(pick[2])
+	_anim.speed_scale = 1.0 if nominal <= 0.0 else clampf(speed / nominal, 0.7, 1.35)
 
 
 ## Poses de cuerpo entero (barrida, caída, estirada, salto de cabeza): se
 ## mueve el modelo alrededor de la cadera, sin tocar al Footballer.
 func _place_model() -> void:
 	var rot := Vector3.ZERO
-	var drop := 0.0
+	var offset := Vector3.ZERO
 	match _pose:
 		Pose.SLIDING:
-			rot.x = -1.15
-			drop = 0.55
+			rot.x = -1.2
+			offset.y = -0.6
 		Pose.FALLEN:
-			rot.x = -1.4
-			drop = 0.75
-	if _event == Event.DIVE_LEFT or _event == Event.DIVE_RIGHT:
-		var dir := -1.0 if _event == Event.DIVE_LEFT else 1.0
-		var up := minf(_event_t / _event_len * 3.0, 1.0)
-		rot.z = -dir * 1.35 * up
-		drop = 0.5 * up
-	var lift := 0.0
-	if _event == Event.HEADER:
-		lift = 0.35 * sin(clampf(_event_t / _event_len, 0.0, 1.0) * PI)
+			rot.x = -1.45
+			offset.y = -0.78
+	var k := clampf(_event_t / maxf(_event_len, 0.01), 0.0, 1.0) if _event >= 0 else 0.0
+	match _event:
+		Event.DIVE_LEFT, Event.DIVE_RIGHT:
+			# Estirada: despega, vuela de costado con los brazos extendidos y cae.
+			var dir := -1.0 if _event == Event.DIVE_LEFT else 1.0
+			var tilt := minf(k * 4.0, 1.0)
+			rot.z = -dir * 1.45 * tilt
+			offset.x = dir * 0.9 * minf(k * 2.5, 1.0)
+			offset.y = 0.7 * sin(minf(k * 1.6, 1.0) * PI) - 0.55 * tilt
+		Event.HEADER:
+			# Salto a cabecear.
+			offset.y = 0.6 * sin(k * PI)
+		Event.TACKLE:
+			# Entrada: se tira hacia adelante sobre la pierna.
+			rot.x = 0.25 * sin(k * PI)
+			offset.z = 0.35 * sin(k * PI)
+		Event.KICK:
+			# Remate: el cuerpo acompaña hacia adelante.
+			rot.x = 0.12 * sin(k * PI)
 	var pivot := Vector3(0.0, HIP_Y, 0.0)
 	var basis := Basis.from_euler(rot)
-	_model.transform = Transform3D(basis, pivot - basis * pivot + Vector3(0.0, lift - drop, 0.0))
+	_model.transform = Transform3D(basis, pivot - basis * pivot + offset)
 
 
 ## Gestos que la librería no trae, aplicados sobre la pose ya animada.
@@ -153,12 +168,14 @@ func _apply_gestures() -> void:
 		if _skel.get_bone_pose_rotation(b).is_equal_approx(_last_set[b]):
 			_skel.set_bone_pose_rotation(b, _clean[b])
 	_last_set.clear()
-	# Inclinación del torso al acelerar / correr.
+	# Inclinación del torso al acelerar / correr (esfuerzo en el sprint).
 	_rotate_bone("spine_01", Vector3.RIGHT, _lean)
 	if _pose == Pose.SLIDING:
-		_rotate_bone("thigh_r", Vector3.RIGHT, -1.1)
+		_rotate_bone("thigh_r", Vector3.RIGHT, -1.2)
 		_rotate_bone("thigh_l", Vector3.RIGHT, -0.3)
-		_rotate_bone("calf_l", Vector3.RIGHT, 1.0)
+		_rotate_bone("calf_l", Vector3.RIGHT, 1.1)
+		_rotate_bone("upperarm_l", Vector3.FORWARD, -0.9)
+		_rotate_bone("upperarm_r", Vector3.FORWARD, 0.9)
 		return
 	if _event < 0:
 		return
@@ -166,26 +183,53 @@ func _apply_gestures() -> void:
 	var strike := sin(k * PI)
 	match _event:
 		Event.KICK, Event.PASS:
-			var power := 1.35 if _event == Event.KICK else 0.9
-			var leg := lerpf(0.8, -power, smoothstep(0.0, 0.55, k)) if k < 0.8 else lerpf(-power, 0.0, (k - 0.8) / 0.2)
+			# Carga atrás (rodilla doblada), golpe adelante y acompañamiento;
+			# brazo contrario abierto para equilibrar y torso que gira.
+			var power := 1.7 if _event == Event.KICK else 1.1
+			var back := 1.1 if _event == Event.KICK else 0.7
+			var leg := 0.0
+			if k < 0.35:
+				leg = lerpf(0.0, back, smoothstep(0.0, 0.35, k))
+			elif k < 0.6:
+				leg = lerpf(back, -power, smoothstep(0.35, 0.6, k))
+			else:
+				leg = lerpf(-power, 0.0, smoothstep(0.6, 1.0, k))
 			_rotate_bone("thigh_r", Vector3.RIGHT, leg)
-			_rotate_bone("calf_r", Vector3.RIGHT, maxf(0.0, 1.0 - k * 2.0) * 1.1)
-			_rotate_bone("upperarm_l", Vector3.FORWARD, 0.6 * strike)
-			_rotate_bone("spine_01", Vector3.RIGHT, -0.15 * strike)
+			_rotate_bone("calf_r", Vector3.RIGHT, 1.6 * maxf(0.0, leg) / maxf(back, 0.01))
+			_rotate_bone("upperarm_l", Vector3.FORWARD, 1.0 * strike)
+			_rotate_bone("upperarm_r", Vector3.FORWARD, -0.5 * strike)
+			_rotate_bone("spine_01", Vector3.UP, 0.35 * strike)
+			_rotate_bone("spine_01", Vector3.RIGHT, -0.2 * strike)
 		Event.HEADER:
-			_rotate_bone("spine_01", Vector3.RIGHT, lerpf(-0.4, 0.5, k))
-			_rotate_bone("Head", Vector3.RIGHT, lerpf(-0.3, 0.4, k))
+			_rotate_bone("spine_01", Vector3.RIGHT, lerpf(-0.6, 0.6, smoothstep(0.2, 0.7, k)))
+			_rotate_bone("Head", Vector3.RIGHT, lerpf(-0.4, 0.5, smoothstep(0.2, 0.7, k)))
+			_rotate_bone("upperarm_l", Vector3.FORWARD, 1.2 * strike)
+			_rotate_bone("upperarm_r", Vector3.FORWARD, -1.2 * strike)
+			_rotate_bone("calf_l", Vector3.RIGHT, 1.2 * strike)
+			_rotate_bone("calf_r", Vector3.RIGHT, 1.0 * strike)
 		Event.THROW:
-			var a := lerpf(-2.7, -0.9, k)
+			var a := lerpf(-2.9, -0.8, smoothstep(0.3, 0.8, k))
 			_rotate_bone("upperarm_l", Vector3.RIGHT, a)
 			_rotate_bone("upperarm_r", Vector3.RIGHT, a)
+			_rotate_bone("spine_01", Vector3.RIGHT, lerpf(-0.3, 0.3, k))
 		Event.CATCH:
-			_rotate_bone("upperarm_l", Vector3.RIGHT, -1.3 * strike)
-			_rotate_bone("upperarm_r", Vector3.RIGHT, -1.3 * strike)
+			_rotate_bone("upperarm_l", Vector3.RIGHT, -1.4 * strike)
+			_rotate_bone("upperarm_r", Vector3.RIGHT, -1.4 * strike)
+			_rotate_bone("spine_01", Vector3.RIGHT, 0.3 * strike)
+		Event.TACKLE:
+			_rotate_bone("thigh_r", Vector3.RIGHT, -1.4 * strike)
+			_rotate_bone("calf_r", Vector3.RIGHT, 0.2 * strike)
+			_rotate_bone("thigh_l", Vector3.RIGHT, 0.5 * strike)
+			_rotate_bone("calf_l", Vector3.RIGHT, 1.0 * strike)
+			_rotate_bone("upperarm_l", Vector3.FORWARD, 0.9 * strike)
+			_rotate_bone("upperarm_r", Vector3.FORWARD, -0.9 * strike)
 		Event.DIVE_LEFT, Event.DIVE_RIGHT:
-			var up := minf(k * 3.0, 1.0)
-			_rotate_bone("upperarm_l", Vector3.RIGHT, -2.6 * up)
-			_rotate_bone("upperarm_r", Vector3.RIGHT, -2.6 * up)
+			# Brazos estirados por encima de la cabeza, piernas juntas.
+			var up := minf(k * 4.0, 1.0)
+			_rotate_bone("upperarm_l", Vector3.RIGHT, -2.9 * up)
+			_rotate_bone("upperarm_r", Vector3.RIGHT, -2.9 * up)
+			_rotate_bone("lowerarm_l", Vector3.RIGHT, 0.2 * up)
+			_rotate_bone("lowerarm_r", Vector3.RIGHT, 0.2 * up)
 
 
 ## Gira un hueso alrededor de un eje del modelo (espacio del esqueleto),

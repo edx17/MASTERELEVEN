@@ -119,3 +119,59 @@ func test_sharp_cut_reverses_quickly() -> void:
 		frames += 1
 	gut.p("de sprint a 3 m/s para atrás: %.2f s" % (frames * dt))
 	assert_lt(frames * dt, 0.75)
+
+
+func test_circle_slides_when_defending() -> void:
+	# Controles pedidos: Círculo (B) = barrida; Cuadrado ya no barre.
+	var att: Footballer = m.teams[1].players[9]
+	att.locked = false
+	att.teleport(Vector3(0, 0, 0), Vector3.LEFT)
+	m.ball.place(Vector3(-0.5, 0.11, 0))
+	m.ball.give_to(att)
+	var d: Footballer = m.teams[0].players[3]
+	d.teleport(Vector3(-4, 0, 0), Vector3.RIGHT)
+	m.humans[0].select(d)
+	inp.hold(&"shoot")
+	_step(2)
+	assert_ne(d.state, Footballer.State.SLIDING, "Cuadrado no barre")
+	inp.release(&"shoot")
+	_step(2)
+	inp.hold(&"pass_long")
+	_step(2)
+	assert_eq(d.state, Footballer.State.SLIDING, "Círculo barre")
+
+
+func test_through_pass_goes_behind_the_last_line() -> void:
+	# Triángulo: la pelota cae detrás de la última línea rival, no en los pies.
+	var t0 := m.teams[0]
+	var passer: Footballer = t0.players[6]
+	var runner: Footballer = t0.players[9]
+	passer.teleport(Vector3(0, 0, 0), Vector3.RIGHT)
+	runner.teleport(Vector3(14, 0, 2), Vector3.RIGHT)
+	var defs := [m.teams[1].players[2], m.teams[1].players[3]]
+	for i in defs.size():
+		defs[i].teleport(Vector3(18, 0, -4 + i * 8), Vector3.LEFT)
+	m.ball.place(Vector3(0.5, 0.11, 0))
+	m.ball.give_to(passer)
+	m.perform_kick(passer, KickActions.Kind.THROUGH_PASS, Vector3(1, 0, 0), 0.2, runner)
+	var target: Vector3 = runner.pass_target
+	assert_gt(target.x, 18.0 + 3.5, "el pase al hueco cae detrás de la línea (x=%.1f)" % target.x)
+
+
+func test_radar_fades_when_ball_is_behind_it() -> void:
+	var hud: MatchHud
+	for c in m.get_children():
+		if c is MatchHud:
+			hud = c
+	var radar = hud._radar
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		pass_test("sin cámara en modo headless")
+		return
+	# Pelota justo detrás del radar en pantalla (banda cercana).
+	var center: Vector2 = radar.get_global_rect().get_center()
+	var from := cam.project_ray_origin(center)
+	var dir := cam.project_ray_normal(center)
+	var t := -from.y / dir.y
+	m.ball.place(from + dir * t + Vector3(0, 0.11, 0))
+	assert_true(radar._hides_play(), "detecta la pelota detrás del radar")

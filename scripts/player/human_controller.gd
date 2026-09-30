@@ -152,8 +152,8 @@ func tick(dt: float) -> void:
 	var rival_ball := opponent_has_ball or (ball.is_loose() and ball.last_touch_team != team.index)
 	if rival_ball and input.pressed(&"pass_through"):
 		_match.keeper_rush[team.index] = true
-	# Sin pelota: tiro = barrida.
-	if opponent_has_ball and input.just_pressed(&"shoot"):
+	# Sin pelota: pase largo (Círculo / B) = barrida.
+	if opponent_has_ball and input.just_pressed(&"pass_long"):
 		p.start_slide(move if move.length_squared() > 0.04 else ball.flat_pos() - p.flat_pos())
 		return
 

@@ -128,8 +128,8 @@ extends Resource
 ## Distancia máxima que se considera para un pase corto.
 @export var short_pass_max_distance: float = 35.0
 ## Adelanto del pase al hueco (mín/máx según potencia).
-@export var through_lead_min: float = 5.0
-@export var through_lead_max: float = 18.0
+@export var through_lead_min: float = 9.0
+@export var through_lead_max: float = 24.0
 ## Ángulo del pase largo/centro (grados) según potencia.
 @export var long_pass_angle_min: float = 18.0
 @export var long_pass_angle_max: float = 38.0
