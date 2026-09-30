@@ -6,7 +6,7 @@ Ver `Claude.md` para visión, criterios y fases.
 | Fase | Estado |
 |------|--------|
 | 1 — Base jugable | ✅ Hecha |
-| 2 — Prototipo 0.1: sensación de juego | 🟡 En pulido tras tu primera prueba; **pendiente de tu segunda prueba** |
+| 2 — Prototipo 0.1: sensación de juego | 🟡 En pulido: 2.ª prueba OK en conducción, robo, arquero y cámara; **pendiente probar pases** y la física nueva |
 | 3 — IA de partido (TeamAI, formaciones, zonas, arquero) | ⬜ |
 | 4 — Reglas, atributos y plantel | ⬜ |
 | 5 — Presentación moderna (estadio, modelos, animaciones, audio) | ⬜ |
@@ -48,6 +48,16 @@ Ver `Claude.md` para visión, criterios y fases.
 | "Agregá controles de cámara" | Modos TV, Amplia, Cercana, Vertical, Dron. |
 
 CPU vs CPU (3 min) tras el pulido: 2-0, 1-2, 0-0 con ~10 tiros por partido y entradas ganadas/perdidas.
+
+### Tercera ronda (tu 2.ª prueba + informe de física)
+| Tema | Cambio |
+|---|---|
+| "Pasar es sacarse la pelota de encima, no busca al jugador" | Mientras se carga la barra se marca en el piso al receptor (se corrige con el stick) y al soltar queda trabado; se recuerda la última dirección del stick (0,35 s); el pase corto siempre busca a un compañero. |
+| Informe de física: pelota | Arrastre físico con crisis de arrastre, masa 0,43 kg, Magnus en rad/s, rebote en césped 0,6, tiro máx. 108 km/h, pases rasantes por integración numérica. KPIs en tests (rebote FIFA, comba de tiro libre, pelotazo). |
+| Informe de física: jugadores | Energía (sprint gasta, descanso recupera, cansado más lento e impreciso) visible en el HUD; tiempo de reacción de la IA 0,15-0,25 s. |
+| Informe de física: arquero | Reacción 0,25-0,40 s; KPI de atajadas en el área 74 % (< 75 %). |
+| Árbitro, faltas, lesiones, ragdoll | Planificados en Fases 4 y 5 (ver `docs/FISICA.md` y `Claude.md`). |
+| Cámara | TV queda como predeterminada. Personalizada y desde el córner: Fase 5. |
 
 ### Pendiente
 - [ ] **Tu prueba** con el "criterio de éxito del gameplay" de `Claude.md` y ajuste de `data/config/tuning.tres` / `cameras/*.tres` según tu feedback.

@@ -62,7 +62,8 @@ Si esto no funciona, NO se agregan sistemas: se corrige el gameplay primero.
 
 ## Stack y decisiones técnicas tomadas
 - Motor: Godot 4 (4.7.x), GDScript. Tests con GUT (addons/gut).
-- Física de la pelota: propia y determinista (BallPhysics), no RigidBody3D.
+- Física de la pelota: propia y determinista (BallPhysics), no RigidBody3D,
+  con los valores del informe técnico de física (ver docs/FISICA.md).
 - Jugadores: CharacterBody3D movidos por código, sin física de cuerpos entre ellos.
 - Parámetros de sensación de juego y de cámara en recursos .tres editables.
 - Datos (jugadores, equipos, formaciones) en Resources (.tres) o JSON; nunca
@@ -142,6 +143,12 @@ Criterio: un partido vs CPU es competitivo y la CPU juega "como un equipo".
 
 ### Fase 4 — Reglas, atributos y plantel
 - Faltas, tiros libres, penales, offside, amarillas y rojas (lo necesario, no todo).
+- Árbitro con IA (según docs/FISICA.md): cono de visión (~120°, ~20 m), se
+  ubica a 10-15 m de la pelota, sólo sanciona lo que ve, con un % de errores
+  (10-20 % de faltas no vistas) y criterio de tarjetas por severidad.
+- Choques jugador-jugador con fuerza (atributo strength) y lesiones probabilísticas.
+- Fatiga de largo plazo (la energía máxima baja durante el partido) sobre la
+  energía de corto plazo ya implementada.
 - Atributos que afecten de verdad la jugabilidad (velocidad, aceleración,
   resistencia, fuerza, pase, tiro, técnica, control, cabezazo, defensa, reacción,
   equilibrio, arquero); posiciones y pierna hábil.
@@ -157,6 +164,9 @@ Criterio: un partido vs CPU es competitivo y la CPU juega "como un equipo".
   caída, levantarse, festejo); animaciones cortas que no bloqueen el control.
 - Camisetas por club, sonido (pelota, público reactivo, silbato), repeticiones
   simples de goles, menús con estética moderna.
+- Cámaras adicionales: personalizada (el jugador ajusta y guarda la suya) y
+  desde el córner.
+- Esqueletos con física (ragdoll en caídas, cinemática inversa al patear).
 
 ### Fase 6 — Liga Master
 - Base de datos ficticia: al menos 3 países con 2 divisiones cada uno
