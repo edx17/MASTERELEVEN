@@ -287,7 +287,8 @@ func _update_forecast() -> void:
 # --- Pases y tiros ------------------------------------------------------------
 
 ## Punto único por el que pasan todos los pases/tiros (humanos e IA).
-func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float) -> Footballer:
+## `receiver`: compañero elegido de antemano (el humano lo ve marcado al cargar).
+func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, receiver_hint: Footballer = null) -> Footballer:
 	if player == null:
 		return null
 	if phase == Phase.RESTART:
@@ -304,6 +305,7 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float) -> 
 	elif not can_kick(player):
 		return null
 	kicks.pressure = Dribble.pressure_from_distance(_nearest_opponent_distance(player))
+	kicks.forced_receiver = receiver_hint
 	var receiver := kicks.execute(kind, player, dir, clampf(power, 0.0, 1.0))
 	kicks.throw_in_mode = false
 	kick_count += 1

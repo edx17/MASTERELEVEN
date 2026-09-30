@@ -11,6 +11,9 @@ const KICK_BUTTONS := {
 	&"pass_through": KickActions.Kind.THROUGH_PASS,
 }
 const AUTO_SWITCH_MARGIN := 4.0
+## Durante cuánto se recuerda la última dirección del stick (para pasar hacia
+## donde se apuntó aunque el stick ya se haya soltado al apretar el botón).
+const AIM_MEMORY := 0.35
 
 var slot: int = 0
 var team: Team
@@ -25,6 +28,11 @@ var _buffered_kind: int = -1
 var _buffered_power: float = 0.0
 var _buffered_dir: Vector3 = Vector3.ZERO
 var _buffer_timer: float = 0.0
+var _buffered_receiver: Footballer = null
+## Compañero que recibiría el pase que se está cargando (marcado en la cancha).
+var preview_receiver: Footballer = null
+var _aim_dir: Vector3 = Vector3.ZERO
+var _aim_age: float = 999.0
 var _switch_cooldown: float = 0.0
 ## Último pase (contador de patadas del partido) ya usado para cambio automático.
 var _handled_kick: int = -1
@@ -87,10 +95,15 @@ func tick(dt: float) -> void:
 
 	var p := controlled
 	if p == null:
+		_set_preview(null)
 		return
 
 	# El stick está en coordenadas de pantalla: se traduce según la cámara.
 	var move := _match.screen_to_world(input.move_vector())
+	_aim_age += dt
+	if move.length_squared() > 0.09:
+		_aim_dir = move.normalized()
+		_aim_age = 0.0
 	var opponent_has_ball := ball.owner_player != null and ball.owner_player.team != team
 
 	p.wants_sprint = input.pressed(&"sprint")
@@ -129,35 +142,67 @@ func tick(dt: float) -> void:
 				break
 	if is_charging():
 		power = minf(1.0, power + dt / _match.tuning.power_charge_time)
+		var kind: int = KICK_BUTTONS[charging_action]
+		var aim := aim_direction(move)
+		# Mientras se carga, se marca a quién va el pase (y se puede corregir
+		# con el stick). Al soltar, ese receptor queda "trabado".
+		_set_preview(_match.kicks.preview_receiver(kind, p, aim) if kind != KickActions.Kind.SHOT else null)
 		if input.just_released(charging_action) or not input.pressed(charging_action):
-			var kind: int = KICK_BUTTONS[charging_action]
 			charging_action = &""
-			_try_kick(kind, power, move)
+			var target := preview_receiver
+			_set_preview(null)
+			_try_kick(kind, power, aim, target)
+	elif _buffered_kind < 0:
+		_set_preview(null)
 
 	# Toque de primera: si la pelota llegó y había una acción guardada.
 	if _buffered_kind >= 0 and _buffer_timer > 0.0 and _match.can_kick(p):
 		var k := _buffered_kind
 		_buffered_kind = -1
-		_do_kick(k, _buffered_power, _buffered_dir)
-	elif _buffer_timer <= 0.0:
+		_set_preview(null)
+		_do_kick(k, _buffered_power, _buffered_dir, _buffered_receiver)
+	elif _buffer_timer <= 0.0 and _buffered_kind >= 0:
 		_buffered_kind = -1
+		_set_preview(null)
 
 
-func _try_kick(kind: int, pwr: float, move: Vector3) -> void:
+## Dirección a usar para un pase/tiro: el stick actual o, si se soltó hace
+## muy poco, la última dirección marcada. Vacío = hacia donde mira el jugador.
+func aim_direction(move: Vector3) -> Vector3:
+	if move.length_squared() > 0.09:
+		return move
+	if _aim_age <= AIM_MEMORY:
+		return _aim_dir
+	return Vector3.ZERO
+
+
+func _set_preview(p: Footballer) -> void:
+	if p == preview_receiver:
+		return
+	if preview_receiver != null:
+		preview_receiver.set_pass_marker(-1)
+	preview_receiver = p
+	if preview_receiver != null:
+		preview_receiver.set_pass_marker(slot)
+
+
+func _try_kick(kind: int, pwr: float, move: Vector3, target: Footballer = null) -> void:
 	# Pelota al alcance (conducida o suelta): se patea ya, de primera.
 	if _match.can_kick(controlled):
-		_do_kick(kind, pwr, move)
+		_do_kick(kind, pwr, move, target)
 		return
 	# Si no (la pelota viene o quedó adelantada en la conducción), la orden se
 	# guarda y se ejecuta apenas la pelota esté al alcance.
 	_buffered_kind = kind
 	_buffered_power = pwr
 	_buffered_dir = move
+	_buffered_receiver = target
 	_buffer_timer = _match.tuning.one_touch_buffer
+	_set_preview(target)
 
 
-func _do_kick(kind: int, pwr: float, move: Vector3) -> void:
-	var receiver := _match.perform_kick(controlled, kind, move, pwr)
+func _do_kick(kind: int, pwr: float, move: Vector3, target: Footballer = null) -> void:
+	var receiver := _match.perform_kick(controlled, kind, move, pwr, target)
 	if receiver != null and receiver.team == team and not receiver.is_keeper():
 		# Cambio automático al receptor del pase (como en WE).
 		select(receiver)

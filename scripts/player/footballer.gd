@@ -58,6 +58,7 @@ var wants_tackle: bool = false
 
 var _tuning: Tuning
 var _arrow: Label3D
+var _pass_marker: MeshInstance3D
 var _body_mat: StandardMaterial3D
 
 
@@ -237,6 +238,30 @@ func set_human_slot(slot: int) -> void:
 	_arrow.visible = slot >= 0
 	if slot >= 0:
 		_arrow.modulate = SLOT_COLORS[slot % SLOT_COLORS.size()]
+
+
+## Marca en el piso del compañero que va a recibir el pase que se está
+## cargando (slot = humano que pasa; -1 = sin marca).
+func set_pass_marker(slot: int) -> void:
+	if _pass_marker == null:
+		_pass_marker = MeshInstance3D.new()
+		var torus := TorusMesh.new()
+		torus.inner_radius = 0.45
+		torus.outer_radius = 0.6
+		torus.rings = 24
+		_pass_marker.mesh = torus
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_pass_marker.material_override = mat
+		_pass_marker.scale = Vector3(1.0, 0.08, 1.0)
+		_pass_marker.position.y = 0.04
+		_pass_marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_pass_marker)
+	_pass_marker.visible = slot >= 0
+	if slot >= 0:
+		var c := SLOT_COLORS[slot % SLOT_COLORS.size()]
+		(_pass_marker.material_override as StandardMaterial3D).albedo_color = Color(c, 0.85)
 
 
 func _apply_facing() -> void:

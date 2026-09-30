@@ -88,3 +88,63 @@ func test_short_pass_reaches_teammate() -> void:
 			break
 	assert_true(got, "el compañero recibe el pase")
 	assert_eq(m.humans[0].controlled, mate, "cambio automático al receptor")
+
+
+func _two_mates() -> Array[Footballer]:
+	var up: Footballer = m.teams[0].players[5]
+	var right: Footballer = m.teams[0].players[9]
+	up.teleport(Vector3(-20, 0, -12), Vector3.DOWN)
+	right.teleport(Vector3(-6, 0, 0), Vector3.LEFT)
+	var out: Array[Footballer] = [up, right]
+	return out
+
+
+func _carrier_at_origin() -> Footballer:
+	var p: Footballer = m.teams[0].players[6]
+	p.teleport(Vector3(-20, 0, 0), Vector3.RIGHT)
+	m.ball.place(Vector3(-19.6, 0.11, 0))
+	m.ball.give_to(p)
+	m.humans[0].select(p)
+	return p
+
+
+func _pass_and_get_receiver() -> Footballer:
+	input.hold(&"pass_short")
+	_run(0.15)
+	input.release(&"pass_short")
+	_run(dt)
+	return m.ball.intended_receiver
+
+
+func test_pass_uses_aim_even_after_releasing_stick() -> void:
+	var mates := _two_mates()
+	_carrier_at_origin()
+	_run(0.2)
+	# Apunta hacia arriba (al compañero de arriba) y suelta el stick justo antes.
+	input.move = Vector3(0, 0, -1)
+	_run(0.1)
+	input.move = Vector3.ZERO
+	assert_eq(_pass_and_get_receiver(), mates[0], "el pase va a quien se apuntó")
+
+
+func test_charging_marks_the_receiver() -> void:
+	var mates := _two_mates()
+	_carrier_at_origin()
+	_run(0.2)
+	input.move = Vector3(0, 0, -1)
+	input.hold(&"pass_short")
+	_run(0.1)
+	assert_eq(m.humans[0].preview_receiver, mates[0], "mientras carga, se marca al receptor")
+	input.release(&"pass_short")
+	_run(dt)
+	assert_null(m.humans[0].preview_receiver, "al patear se quita la marca")
+
+
+func test_short_pass_always_finds_a_teammate() -> void:
+	var behind: Footballer = m.teams[0].players[3]
+	behind.teleport(Vector3(-30, 0, 2), Vector3.RIGHT)
+	_carrier_at_origin()
+	_run(0.2)
+	# Apunta hacia adelante, donde no hay nadie: igual busca a un compañero.
+	input.move = Vector3.RIGHT
+	assert_not_null(_pass_and_get_receiver(), "no suelta la pelota al vacío")
