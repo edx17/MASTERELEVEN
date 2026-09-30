@@ -146,6 +146,15 @@ mando y con teclado.
 - Niveles de dificultad y estrategias rápidas (presión alta, contraataque, offside).
 Criterio: un partido vs CPU es competitivo y la CPU juega "como un equipo".
 
+### Visual 1 — Que se vea como la referencia (EN CURSO, adelantada a pedido)
+- Capa de presentación separada de la simulación (PlayerVisual): nunca cambia
+  la física; recibe velocidad, estado y eventos.
+- Futbolistas humanos con esqueleto y animaciones CC0 (Quaternius: Universal
+  Base Characters + Universal Animation Library), colores por club.
+- Cámara "WE" por defecto como la referencia; césped, luz, arcos y flecha del
+  jugador controlado al estilo ForeverEleven (sin copiar assets de nadie).
+Criterio: capturas lado a lado con la referencia y 60 FPS con 22 jugadores.
+
 ### Fase 4 — Reglas, atributos y plantel
 - Faltas, tiros libres, penales, offside, amarillas y rojas (lo necesario, no todo).
 - Árbitro con IA (según docs/FISICA.md): cono de visión (~120°, ~20 m), se

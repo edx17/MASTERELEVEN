@@ -63,10 +63,12 @@ var tackle_cooldown: float = 0.0
 var wants_tackle: bool = false
 
 var _tuning: Tuning
-var _arrow: Label3D
+var _arrow: MeshInstance3D
 var _pass_marker: MeshInstance3D
 var _control_ring: MeshInstance3D
-var _body_mat: StandardMaterial3D
+## Capa de presentación (modelo y animaciones); no afecta la simulación.
+var visual: PlayerVisual
+var _prev_speed: float = 0.0
 
 
 func setup(p_team: Team, p_data: PlayerData, p_role: int, p_spot: Vector2, tuning: Tuning) -> void:
@@ -203,6 +205,21 @@ func tick(dt: float, has_ball: bool) -> void:
 	global_position += velocity * dt
 	global_position.y = 0.0
 	_apply_facing()
+	_update_visual(dt)
+
+
+func _update_visual(dt: float) -> void:
+	if visual == null:
+		return
+	var spd := Vector3(velocity.x, 0.0, velocity.z).length()
+	var accel := (spd - _prev_speed) / maxf(dt, 0.001)
+	_prev_speed = spd
+	var pose := PlayerVisual.Pose.NORMAL
+	if state == State.SLIDING:
+		pose = PlayerVisual.Pose.SLIDING
+	elif state == State.RECOVERING and state_timer > 0.3:
+		pose = PlayerVisual.Pose.FALLEN
+	visual.update(dt, spd, _tuning.sprint_speed, pose, accel)
 
 
 func _tick_normal(dt: float, has_ball: bool) -> void:
@@ -279,7 +296,7 @@ func set_human_slot(slot: int) -> void:
 	_control_ring.visible = slot >= 0
 	if slot >= 0:
 		var c := SLOT_COLORS[slot % SLOT_COLORS.size()]
-		_arrow.modulate = c
+		(_arrow.material_override as StandardMaterial3D).albedo_color = c
 		(_control_ring.material_override as StandardMaterial3D).albedo_color = Color(c, 0.9)
 
 
@@ -324,38 +341,11 @@ func _build_visuals() -> void:
 	collision_layer = 2
 	collision_mask = 0
 
-	_body_mat = StandardMaterial3D.new()
-	_body_mat.albedo_color = team.color if not is_keeper() else team.keeper_color
-	var body := MeshInstance3D.new()
-	var capsule := CapsuleMesh.new()
-	capsule.radius = 0.35
-	capsule.height = 1.8
-	body.mesh = capsule
-	body.material_override = _body_mat
-	body.position.y = 0.9
-	add_child(body)
-
-	# "Nariz" para ver hacia dónde mira.
-	var nose := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3(0.22, 0.14, 0.3)
-	nose.mesh = box
-	var nose_mat := StandardMaterial3D.new()
-	nose_mat.albedo_color = team.secondary_color
-	nose.material_override = nose_mat
-	nose.position = Vector3(0.0, 1.45, 0.32)
-	add_child(nose)
-
-	# Pantalón (segundo color) para distinguir mejor a los equipos.
-	var shorts := MeshInstance3D.new()
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.37
-	cyl.bottom_radius = 0.37
-	cyl.height = 0.35
-	shorts.mesh = cyl
-	shorts.material_override = nose_mat
-	shorts.position.y = 0.75
-	add_child(shorts)
+	# Presentación (separada de la simulación): humanoide con los colores del club.
+	visual = PlayerVisual.new()
+	add_child(visual)
+	var shirt := team.keeper_color if is_keeper() else team.color
+	visual.setup({"shirt": shirt, "shorts": team.secondary_color, "socks": shirt}, team.index * 100 + number)
 
 	var label := Label3D.new()
 	label.text = str(number)
@@ -369,17 +359,22 @@ func _build_visuals() -> void:
 	label.no_depth_test = true
 	add_child(label)
 
-	_arrow = Label3D.new()
-	_arrow.text = "▼"
-	_arrow.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	# Flecha bien visible sobre la cabeza del jugador controlado (como en WE),
-	# legible también con las cámaras lejanas.
-	_arrow.font_size = 64
-	_arrow.outline_size = 12
-	_arrow.outline_modulate = Color(0, 0, 0, 0.85)
-	_arrow.pixel_size = 0.011
-	_arrow.position.y = 2.9
-	_arrow.no_depth_test = true
+	# Flecha (cono invertido) bien visible sobre la cabeza del jugador
+	# controlado, como en WE; legible también con las cámaras lejanas.
+	_arrow = MeshInstance3D.new()
+	var cone := CylinderMesh.new()
+	cone.top_radius = 0.32
+	cone.bottom_radius = 0.0
+	cone.height = 0.5
+	cone.radial_segments = 4
+	_arrow.mesh = cone
+	var arrow_mat := StandardMaterial3D.new()
+	arrow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	arrow_mat.no_depth_test = true
+	arrow_mat.render_priority = 1
+	_arrow.material_override = arrow_mat
+	_arrow.position.y = 2.75
+	_arrow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_arrow.visible = false
 	add_child(_arrow)
 

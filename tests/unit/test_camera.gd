@@ -30,7 +30,14 @@ func _preset(name: String) -> void:
 
 
 func test_all_presets_load() -> void:
-	assert_eq(cam.presets.size(), 5)
+	assert_eq(cam.presets.size(), 6)
+
+
+func test_we_is_default_and_stick_matches_screen() -> void:
+	# Cámara por defecto como la referencia (alta, lejana, lente cerrada).
+	assert_eq(cam.config.display_name, "WE")
+	assert_almost_eq(cam.screen_to_world(Vector3.RIGHT).x, 1.0, 0.05, "derecha = +X")
+	assert_almost_eq(cam.screen_to_world(Vector3(0, 0, -1)).z, -1.0, 0.05, "arriba = -Z")
 
 
 func test_tv_stick_matches_screen() -> void:

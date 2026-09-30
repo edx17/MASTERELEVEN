@@ -1,11 +1,12 @@
 shader_type spatial;
-// Césped: franjas de corte + variación natural de color (ruido procedural).
+// Césped: verde claro parejo con franjas de corte suaves (como la referencia)
+// + una variación natural muy leve (ruido procedural).
 // Sin texturas externas: funciona en Forward+ y en Compatibilidad.
 
-uniform vec3 color_a : source_color = vec3(0.15, 0.28, 0.105);
-uniform vec3 color_b : source_color = vec3(0.125, 0.24, 0.09);
+uniform vec3 color_a : source_color = vec3(0.20, 0.36, 0.085);
+uniform vec3 color_b : source_color = vec3(0.185, 0.335, 0.08);
 uniform float stripe_width = 5.25;
-uniform float variation = 0.28;
+uniform float variation = 0.12;
 
 varying vec3 world_pos;
 

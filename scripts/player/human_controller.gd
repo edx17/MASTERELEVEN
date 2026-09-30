@@ -147,8 +147,10 @@ func tick(dt: float) -> void:
 		var to_ball := ball.flat_pos() - p.flat_pos()
 		if move.length_squared() < 0.04 and to_ball.length() > 0.3:
 			p.desired_move = to_ball.normalized()
-	# Sin pelota: pase al hueco (Triángulo) mantenido = el arquero sale a achicar.
-	if opponent_has_ball and input.pressed(&"pass_through"):
+	# Sin pelota: pase al hueco (Triángulo) mantenido = el arquero sale a
+	# achicar (con el rival conduciendo o con la pelota suelta que tocó él).
+	var rival_ball := opponent_has_ball or (ball.is_loose() and ball.last_touch_team != team.index)
+	if rival_ball and input.pressed(&"pass_through"):
 		_match.keeper_rush[team.index] = true
 	# Sin pelota: tiro = barrida.
 	if opponent_has_ball and input.just_pressed(&"shoot"):

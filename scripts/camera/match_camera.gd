@@ -10,6 +10,7 @@ extends Camera3D
 signal mode_changed(display_name: String)
 
 const PRESETS: Array[String] = [
+	"res://data/config/cameras/we.tres",
 	"res://data/config/cameras/tv.tres",
 	"res://data/config/cameras/amplia.tres",
 	"res://data/config/cameras/cercana.tres",
