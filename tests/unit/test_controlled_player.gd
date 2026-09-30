@@ -1,0 +1,90 @@
+extends GutTest
+## Integración: un humano (ScriptedInput) conduce, gira y pasa.
+
+var m: MatchController
+var input: ScriptedInput
+var dt := 1.0 / 60.0
+
+
+func before_each() -> void:
+	GameSettings.set_mode(GameSettings.Mode.VS_CPU)
+	m = load("res://scenes/match/match.tscn").instantiate() as MatchController
+	add_child_autofree(m)
+	m.set_physics_process(false)
+	input = ScriptedInput.new()
+	m.humans[0].input = input
+	# Juego en marcha, sin rivales cerca: sólo importa la conducción.
+	m.restart_taker = null
+	m.ball.frozen = false
+	m.phase = MatchController.Phase.PLAYING
+	for p in m.all_players():
+		p.locked = false
+		p.teleport(Vector3(-45.0 + p.number * 2.0, 0.0, 30.0 if p.team.index == 0 else -30.0))
+	# Los rivales quietos (sin IA) para no interferir.
+	m.ais[1].team.players.map(func(p: Footballer) -> void: p.set_physics_process(false))
+
+
+func _carrier() -> Footballer:
+	var p: Footballer = m.teams[0].players[6]
+	p.teleport(Vector3(-20, 0, 0), Vector3.RIGHT)
+	m.ball.place(Vector3(-19.6, 0.11, 0))
+	m.ball.give_to(p)
+	m.humans[0].select(p)
+	return p
+
+
+func _run(seconds: float) -> Dictionary:
+	var info := {"max_gap": 0.0, "lost": false}
+	for i in int(seconds / dt):
+		# Los rivales no se mueven (se los deja lejos).
+		for o in m.teams[1].players:
+			o.desired_move = Vector3.ZERO
+		m._physics_process(dt)
+		var c := m.humans[0].controlled
+		if m.ball.owner_player != c:
+			info["lost"] = true
+		info["max_gap"] = maxf(info["max_gap"], m.ball.flat_pos().distance_to(c.flat_pos()))
+	return info
+
+
+func test_sprint_dribble_keeps_ball_with_touches() -> void:
+	var p := _carrier()
+	input.move = Vector3.RIGHT
+	input.hold(&"sprint")
+	var info := _run(3.0)
+	assert_false(info["lost"], "no pierde la pelota corriendo derecho")
+	assert_gt(p.touches, 3, "conduce con toques")
+	assert_gt(info["max_gap"], 0.9, "la pelota no va pegada al pie")
+	assert_lt(info["max_gap"], 2.6, "pero tampoco se le escapa")
+	assert_gt(p.global_position.x, -20.0 + 15.0, "avanzó en sprint")
+
+
+func test_can_turn_with_the_ball() -> void:
+	var p := _carrier()
+	input.move = Vector3.RIGHT
+	_run(1.0)
+	input.move = Vector3(0, 0, -1)
+	_run(1.5)
+	assert_eq(m.ball.owner_player, p, "gira y la sigue conduciendo")
+	assert_lt(m.ball.state.pos.z, -3.0, "la pelota fue hacia arriba con él")
+
+
+func test_short_pass_reaches_teammate() -> void:
+	var p := _carrier()
+	var mate: Footballer = m.teams[0].players[9]
+	mate.teleport(Vector3(-5, 0, 0), Vector3.LEFT)
+	input.move = Vector3.ZERO
+	_run(0.3)
+	input.move = Vector3.RIGHT
+	input.hold(&"pass_short")
+	_run(0.15)
+	input.release(&"pass_short")
+	input.move = Vector3.ZERO
+	var got := false
+	for i in 240:
+		m._physics_process(dt)
+		if m.ball.owner_player == mate:
+			got = true
+			break
+	assert_true(got, "el compañero recibe el pase")
+	assert_eq(m.humans[0].controlled, mate, "cambio automático al receptor")

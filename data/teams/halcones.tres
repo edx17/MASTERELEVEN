@@ -1,0 +1,327 @@
+[gd_resource type="Resource" script_class="TeamData" format=3]
+
+[ext_resource type="Resource" path="res://data/formations/f_4-4-2.tres" id="1_lt551"]
+[ext_resource type="Script" path="res://scripts/player/player_data.gd" id="2_t4at2"]
+[ext_resource type="Script" path="res://scripts/match/team_data.gd" id="3_532ij"]
+
+[sub_resource type="Resource" id="Resource_wyxu8"]
+script = ExtResource("2_t4at2")
+id = "halcones_01"
+player_name = "M. Zabala"
+position = 0
+speed = 51
+acceleration = 64
+stamina = 73
+strength = 58
+passing = 70
+shooting = 40
+technique = 69
+ball_control = 64
+heading = 52
+defense = 45
+reaction = 78
+balance = 61
+goalkeeping = 79
+
+[sub_resource type="Resource" id="Resource_5sscg"]
+script = ExtResource("2_t4at2")
+id = "halcones_02"
+player_name = "H. Salcedo"
+number = 2
+position = 1
+speed = 72
+acceleration = 74
+stamina = 63
+strength = 73
+passing = 72
+shooting = 43
+technique = 61
+ball_control = 66
+heading = 71
+defense = 82
+reaction = 69
+balance = 58
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_ypnxi"]
+script = ExtResource("2_t4at2")
+id = "halcones_03"
+player_name = "H. Castañar"
+number = 3
+position = 1
+foot = 1
+speed = 66
+acceleration = 66
+stamina = 68
+strength = 74
+passing = 69
+shooting = 41
+technique = 65
+ball_control = 67
+heading = 78
+defense = 71
+reaction = 72
+balance = 71
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_8vdff"]
+script = ExtResource("2_t4at2")
+id = "halcones_04"
+player_name = "N. Hidalgo"
+number = 4
+position = 1
+foot = 1
+speed = 71
+acceleration = 72
+stamina = 71
+strength = 64
+passing = 66
+shooting = 40
+technique = 69
+ball_control = 68
+heading = 77
+defense = 76
+reaction = 58
+balance = 63
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_1kbkc"]
+script = ExtResource("2_t4at2")
+id = "halcones_05"
+player_name = "E. Galdós"
+number = 5
+position = 1
+foot = 1
+speed = 74
+acceleration = 72
+stamina = 73
+strength = 75
+passing = 57
+shooting = 56
+technique = 54
+ball_control = 68
+heading = 62
+defense = 80
+reaction = 56
+balance = 66
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_j2nmc"]
+script = ExtResource("2_t4at2")
+id = "halcones_06"
+player_name = "T. Ferrán"
+number = 6
+speed = 59
+acceleration = 59
+stamina = 67
+strength = 57
+passing = 75
+shooting = 57
+technique = 78
+ball_control = 68
+heading = 58
+defense = 59
+reaction = 63
+balance = 70
+goalkeeping = 33
+
+[sub_resource type="Resource" id="Resource_g6y01"]
+script = ExtResource("2_t4at2")
+id = "halcones_07"
+player_name = "J. Kessler"
+number = 7
+speed = 72
+acceleration = 63
+stamina = 78
+strength = 56
+passing = 82
+shooting = 55
+technique = 66
+ball_control = 68
+heading = 59
+defense = 58
+reaction = 72
+balance = 70
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_f7ehe"]
+script = ExtResource("2_t4at2")
+id = "halcones_08"
+player_name = "C. Urquiza"
+number = 8
+speed = 66
+acceleration = 64
+stamina = 69
+strength = 72
+passing = 72
+shooting = 54
+technique = 66
+ball_control = 69
+defense = 62
+reaction = 66
+balance = 56
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_m512e"]
+script = ExtResource("2_t4at2")
+id = "halcones_09"
+player_name = "C. Bermejo"
+number = 9
+speed = 67
+stamina = 71
+strength = 62
+passing = 79
+shooting = 62
+technique = 67
+ball_control = 64
+heading = 52
+defense = 56
+reaction = 65
+balance = 69
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_e3uhl"]
+script = ExtResource("2_t4at2")
+id = "halcones_10"
+player_name = "E. Echeverri"
+number = 10
+position = 3
+speed = 68
+stamina = 62
+strength = 66
+passing = 68
+shooting = 75
+technique = 56
+ball_control = 66
+heading = 55
+defense = 48
+reaction = 56
+balance = 71
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_mhfki"]
+script = ExtResource("2_t4at2")
+id = "halcones_11"
+player_name = "V. Valdano"
+number = 11
+position = 3
+speed = 69
+acceleration = 69
+stamina = 71
+strength = 56
+passing = 61
+shooting = 69
+technique = 57
+ball_control = 67
+defense = 33
+reaction = 69
+balance = 58
+goalkeeping = 31
+
+[sub_resource type="Resource" id="Resource_brtea"]
+script = ExtResource("2_t4at2")
+id = "halcones_12"
+player_name = "F. Jáuregui"
+number = 12
+position = 0
+speed = 49
+acceleration = 69
+stamina = 67
+strength = 62
+passing = 61
+shooting = 32
+technique = 68
+heading = 54
+defense = 44
+reaction = 70
+balance = 71
+goalkeeping = 74
+
+[sub_resource type="Resource" id="Resource_ujkna"]
+script = ExtResource("2_t4at2")
+id = "halcones_13"
+player_name = "G. Cardozo"
+number = 13
+position = 1
+foot = 1
+speed = 62
+acceleration = 72
+stamina = 71
+strength = 69
+passing = 62
+shooting = 40
+technique = 66
+ball_control = 59
+heading = 68
+defense = 79
+reaction = 64
+balance = 57
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_1dx33"]
+script = ExtResource("2_t4at2")
+id = "halcones_14"
+player_name = "P. Benavídez"
+number = 14
+speed = 58
+acceleration = 67
+stamina = 73
+strength = 58
+passing = 69
+shooting = 62
+technique = 78
+ball_control = 70
+heading = 57
+defense = 57
+reaction = 59
+balance = 68
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_m62su"]
+script = ExtResource("2_t4at2")
+id = "halcones_15"
+player_name = "G. Herrán"
+number = 15
+foot = 1
+speed = 69
+acceleration = 64
+stamina = 81
+strength = 67
+passing = 75
+shooting = 55
+technique = 73
+ball_control = 56
+heading = 52
+defense = 66
+reaction = 57
+balance = 56
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_igjdm"]
+script = ExtResource("2_t4at2")
+id = "halcones_16"
+player_name = "H. Espina"
+number = 16
+position = 3
+speed = 70
+stamina = 71
+strength = 57
+passing = 63
+shooting = 71
+technique = 59
+ball_control = 68
+heading = 59
+defense = 33
+balance = 67
+goalkeeping = 30
+
+[resource]
+script = ExtResource("3_532ij")
+id = "halcones"
+team_name = "Atlético Halcones"
+short_name = "HAL"
+color = Color(0.85, 0.15, 0.15, 1)
+secondary_color = Color(0.08, 0.08, 0.08, 1)
+keeper_color = Color(0.2, 0.85, 0.35, 1)
+formation = ExtResource("1_lt551")
+players = Array[ExtResource("2_t4at2")]([SubResource("Resource_wyxu8"), SubResource("Resource_5sscg"), SubResource("Resource_ypnxi"), SubResource("Resource_8vdff"), SubResource("Resource_1kbkc"), SubResource("Resource_j2nmc"), SubResource("Resource_g6y01"), SubResource("Resource_f7ehe"), SubResource("Resource_m512e"), SubResource("Resource_e3uhl"), SubResource("Resource_mhfki"), SubResource("Resource_brtea"), SubResource("Resource_ujkna"), SubResource("Resource_1dx33"), SubResource("Resource_m62su"), SubResource("Resource_igjdm")])

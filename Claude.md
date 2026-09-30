@@ -1,30 +1,82 @@
-# PROYECTO "MASTER ELEVEN": Fútbol estilo Winning Eleven 4 — Liga Master
+# PROYECTO "MASTER ELEVEN": sucesor espiritual moderno de Winning Eleven 2002 — Liga Master
 
 ## Visión
-Juego de fútbol 3D para PC, inspirado en la jugabilidad de Winning Eleven 4 (PS1),
-rehecho con tecnología y gráficos actuales. El foco es el modo Liga Master:
-carrera de club con ascensos, descensos, transferencias, torneos internacionales
-y Mundial de selecciones. Debe sentirse arcade-simulación como WE: pases rápidos,
-ritmo fluido, control preciso.
+Juego de fútbol 3D para PC que toma el **gameplay y la lógica de Winning Eleven
+2002** (y la filosofía de WE4) y los lleva a un motor 3D moderno con
+presentación limpia. Referencia principal: el proyecto fan "ForeverEleven —
+Winning Eleven 2002 Remastered": estadio 3D moderno, buena iluminación y césped,
+jugadores relativamente simples, pero una lógica de partido que conserva WE2002.
+
+- NO es un clon visual de PS1: nada de gráficos pixelados ni estética retro obligatoria.
+- NO es "EA FC simplificado": estructura directa, pocos sistemas, bien hechos.
+- SÍ es: "Fútbol 11v11 rápido, directo y táctico, con controles sencillos y mucha
+  importancia en el timing". Gameplay de WE2002 + 3D moderno + arquitectura modular.
+
+**El gameplay es el producto. Los gráficos son el envoltorio.**
+
+El objetivo final sigue siendo el modo **Liga Master** (carrera de club con
+ascensos, descensos, transferencias, torneos internacionales y Mundial), pero
+recién después de que el partido se sienta bien.
+
+### Prioridades (en este orden)
+1. Gameplay  2. Respuesta de controles  3. Movimiento de jugadores
+4. Física/control de pelota  5. IA  6. Cámara  7. Animaciones  8. Gráficos  9. Menús
+
+### Principios de juego
+- La pelota se siente **independiente** del jugador: al conducir queda cerca pero
+  no pegada; la distancia depende de velocidad, dirección, control y presión.
+- Los jugadores se sienten controlables y responsivos; el giro depende de la
+  velocidad (rápido a baja velocidad, más amplio en sprint; nunca 180° instantáneo).
+- Los pases requieren dirección + potencia + atributos: hay ayuda leve para
+  encontrar receptor, pero se puede fallar.
+- Los remates requieren timing; la precisión depende de atributos, orientación
+  del cuerpo, presión y distancia. El remate se siente inmediato.
+- Defender requiere timing: el defensor no roba automáticamente; la proximidad
+  y el momento importan; una entrada mal hecha falla.
+- La IA se posiciona: nadie corre en manada detrás de la pelota; el equipo se
+  mueve como unidad (formación, zonas, estados tácticos).
+- Cámara de transmisión de TV: elevada, lateral/diagonal, sigue la zona de la
+  pelota con suavidad, no sigue sólo al jugador controlado.
+
+### Criterio de éxito del gameplay (antes de agregar contenido secundario)
+- correr se siente natural y girar se siente responsivo
+- la pelota se siente independiente
+- pasar requiere intención; rematar y defender requieren timing
+- los compañeros buscan espacios y los rivales mantienen estructura
+- el arquero reacciona (y no es perfecto)
+- la cámara permite leer la jugada
+- jugar 10 minutos resulta entretenido
+Si esto no funciona, NO se agregan sistemas: se corrige el gameplay primero.
 
 ## Restricciones
 - SIN LICENCIAS: todos los clubes, jugadores, ligas, torneos y selecciones son
-  ficticios (nombres inventados, escudos y camisetas originales). Nada de marcas
-  reales.
-- Portable para PC (Windows prioritario; Linux/Mac deseable).
+  ficticios. Nada de nombres, logos, música, modelos, texturas ni assets de
+  Konami ni de marcas reales.
+- Portable para PC (Windows prioritario; Linux/Mac deseable). Objetivo: 60 FPS
+  con 22 jugadores.
 - Jugable 100% con teclado o con mando (DualShock/DualSense/Xbox), con
   detección automática y remapeo desde opciones.
 - Solo assets libres (CC0 o de producción propia). Animaciones: Mixamo o
   similares con licencia compatible. Documentar el origen de cada asset en
   /assets/CREDITS.md.
 
-## Stack
-- Motor: Godot 4 (última versión estable), GDScript.
-- Datos de Liga Master: recursos de Godot (.tres) o JSON para la base inicial;
-  partidas guardadas en JSON en user://.
+## Stack y decisiones técnicas tomadas
+- Motor: Godot 4 (4.7.x), GDScript. Tests con GUT (addons/gut).
+- Física de la pelota: propia y determinista (BallPhysics), no RigidBody3D.
+- Jugadores: CharacterBody3D movidos por código, sin física de cuerpos entre ellos.
+- Parámetros de sensación de juego y de cámara en recursos .tres editables.
+- Datos (jugadores, equipos, formaciones) en Resources (.tres) o JSON; nunca
+  hardcodeados en la lógica. Partidas guardadas en JSON en user://.
+- Control desacoplado del singleton Input: fuentes de input intercambiables
+  (HumanInput / AIInput / en el futuro NetworkInput). Multiplayer online: no
+  por ahora, pero la arquitectura no debe impedirlo.
+- IA: movimiento a 60 Hz, decisiones locales ~10 Hz, decisiones de equipo 3-5 Hz.
+  Steering y posiciones tácticas, sin pathfinding completo por frame.
+- Modo DEBUG con F9 (jugador seleccionado, posiciones tácticas, objetivos,
+  estado de IA/TeamAI, posesión, trayectoria de la pelota).
 - Control de versiones: Git + GitHub. Commits chicos y descriptivos por hito.
 
-## Controles (estilo WE PS1)
+## Controles (estilo WE)
 | Acción                 | Mando          | Teclado     |
 |------------------------|----------------|-------------|
 | Mover                  | Stick izq/cruz | WASD        |
@@ -35,56 +87,77 @@ ritmo fluido, control preciso.
 | Sprint                 | R1 / RB        | Shift       |
 | Cambiar jugador        | L1 / LB        | Q           |
 | Pausa                  | Start          | Esc         |
+| Debug                  | —              | F9          |
 La potencia de tiro y pase se gradúa manteniendo el botón (barra de potencia).
 Todo definido en el Input Map de Godot, nunca hardcodeado.
 
-## Estructura sugerida
-/scenes      (match, menus, league)
-/scripts     (match/, ai/, league/, data/, ui/, core/)
-/assets      (models, animations, textures, audio, fonts)
-/data        (clubs, players, leagues, tournaments en JSON)
-/tests
+## Estructura
+```
+scenes/    match/ players/ ball/ stadium/ ui/
+scripts/   player/ ball/ ai/ tactics/ match/ camera/ goalkeeper/ ui/ core/
+systems/   input/ possession/ replay/ save/
+data/      players/ teams/ formations/ config/
+assets/    models/ textures/ animations/ audio/ fonts/
+tests/
+docs/
+```
 
 ## FASES (no avanzar a la siguiente sin cumplir los criterios de aceptación)
 
-### Fase 1 — Partido jugable básico
-- Cancha reglamentaria con líneas, arcos con red y límites.
-- Pelota con física creíble: rebote, rozamiento, efecto básico, altura en
-  pases largos y centros.
-- 11 vs 11 con placeholders (cápsulas de colores + número).
-- Control del jugador humano: movimiento, sprint, pase corto, pase largo,
-  pase al hueco, tiro con barra de potencia, cambio de jugador (automático al
-  más cercano a la pelota + manual).
-- Posesión: conducción con la pelota pegada al pie, robo por contacto.
-- Cámara lateral de TV estilo WE, siguiendo la pelota con suavizado.
-- Reglas mínimas: gol, saque de arco, córner, lateral, saque del medio.
-- HUD: marcador, reloj (partido acelerado configurable, ej. 5-10 min reales),
-  indicador del jugador controlado.
-- IA provisoria simple para que los demás jugadores no queden quietos.
-Criterio de aceptación: se puede jugar un partido completo con mando y con
-teclado, y manejar la pelota se siente fluido y divertido.
+### Fase 1 — Base jugable ✅ (hecha)
+Cancha, pelota con física propia, 11v11 con placeholders, control humano con
+barra de potencia, cambio de jugador, reglas mínimas (gol, lateral, córner,
+saque de arco, saque del medio), cámara de TV, HUD, IA provisoria, menú, tests.
 
-### Fase 2 — IA de partido
-- Formaciones (4-4-2, 4-3-3, 3-5-2, 4-2-3-1, 3-4-3) con posiciones base que
-  se desplazan según la pelota.
-- IA ofensiva: desmarques, apoyos, tomar decisión de pase/tiro/conducción.
-- IA defensiva: presión al portador, coberturas, marca, línea defensiva y
-  offside.
-- Arquero: posicionamiento, atajadas, salidas, reposición.
-- Faltas, tarjetas, tiros libres y penales.
-- Estrategias rápidas en partido (presión alta, contraataque, offside trap).
-- Niveles de dificultad.
+### Fase 2 — Prototipo 0.1: sensación de juego (EN CURSO)
+Movimiento → cambio de jugador → control de pelota → pase → recepción →
+remate → arquero → gol, todo con sensación WE2002:
+- Conducción con pelota independiente (toques; distancia según velocidad,
+  control y presión) y robo por proximidad/timing.
+- Giro dependiente de la velocidad.
+- Pases corto/largo/al hueco/centro con dirección + potencia + atributos; se
+  pueden fallar. Remates con error por atributos, orientación, presión, distancia.
+- Datos de jugadores (PlayerData, TeamData) en recursos.
+- Input desacoplado (HumanInput / AIInput).
+- Cámara configurable (altura, distancia, ángulo, seguimiento, anticipación,
+  zoom, offsets) al estilo de la referencia.
+- HUD simple (LOC 1 - 0 VIS / reloj, jugador seleccionado, barra de potencia) y debug F9.
+Criterio: el "criterio de éxito del gameplay" de arriba, jugado por vos con
+mando y con teclado.
+
+### Fase 3 — IA de partido
+- TeamAI con estados DEFENDING, BUILD_UP, ATTACKING, COUNTER_ATTACK, PRESSING,
+  RETREATING; TeamShape / DefensiveShape / AttackingShape.
+- Formaciones 4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2 (formation_slot por jugador).
+- Zonas: tercios (defensivo/medio/ataque) x carriles (izq, centro-izq, centro,
+  centro-der, der); cada jugador con zona preferencial.
+- Roles: defensores mantienen línea, volantes buscan líneas de pase, delanteros
+  buscan espacio, extremos dan amplitud.
+- Defensa: presionar, contener, entrada, barrida, intercepción, bloqueo, despeje.
+- GoalkeeperController: posicionarse, achicar, lanzarse, atrapar, despejar, sacar; con error.
+- PossessionManager (TEAM_A / TEAM_B / CONTESTED / FREE_BALL).
+- Niveles de dificultad y estrategias rápidas (presión alta, contraataque, offside).
 Criterio: un partido vs CPU es competitivo y la CPU juega "como un equipo".
 
-### Fase 3 — Atributos y jugadores
-- Atributos por jugador (velocidad, aceleración, pase corto, pase largo, tiro,
-  potencia, técnica, defensa, físico, resistencia, arquero, etc.) que afecten
-  de verdad la jugabilidad.
-- Posiciones y pierna hábil.
-- Fatiga durante el partido y sustituciones.
-- Menú pre-partido: formación, titulares, suplentes, ejes de estrategia.
+### Fase 4 — Reglas, atributos y plantel
+- Faltas, tiros libres, penales, offside, amarillas y rojas (lo necesario, no todo).
+- Atributos que afecten de verdad la jugabilidad (velocidad, aceleración,
+  resistencia, fuerza, pase, tiro, técnica, control, cabezazo, defensa, reacción,
+  equilibrio, arquero); posiciones y pierna hábil.
+- Fatiga y sustituciones; menú pre-partido (formación, titulares, suplentes).
+- Remates especiales (colocado, potente, globito, cabezazo, volea).
 
-### Fase 4 — Liga Master
+### Fase 5 — Presentación moderna
+- Estadio 3D modular (tribunas, túnel, bancos, área técnica, carteles sin marcas,
+  público con sprites/instancing), césped con textura, variación y patrón de corte,
+  iluminación moderna (sombras, ambiente, corrección de color, SSAO opcional).
+- Modelos low/medium poly animados con AnimationTree (idle, caminar, trotar,
+  correr, sprint, girar, pase, pase largo, tiro, cabezazo, entrada, barrida,
+  caída, levantarse, festejo); animaciones cortas que no bloqueen el control.
+- Camisetas por club, sonido (pelota, público reactivo, silbato), repeticiones
+  simples de goles, menús con estética moderna.
+
+### Fase 6 — Liga Master
 - Base de datos ficticia: al menos 3 países con 2 divisiones cada uno
   (16-20 clubes por división), más selecciones nacionales.
 - Temporadas con fixture ida y vuelta, tabla, goleadores.
@@ -99,23 +172,14 @@ Criterio: un partido vs CPU es competitivo y la CPU juega "como un equipo".
 - Simulación de partidos no jugados (resultado por fuerza del plantel + azar).
 - Guardar y cargar carrera.
 
-### Fase 5 — Torneos
+### Fase 7 — Torneos
 - Copa nacional (eliminación directa).
 - Copa continental de clubes (grupos + eliminatorias) para los mejor ubicados.
 - Mundial de selecciones cada 4 temporadas (clasificación, grupos,
   eliminatorias), con convocatoria de jugadores de la Liga Master.
 - Historial: campeones, palmarés del club, récords.
 
-### Fase 6 — Gráficos y presentación
-- Reemplazar placeholders por modelos 3D animados (correr, pasar, tirar,
-  barrer, cabecear, celebrar, arquero).
-- Estadios con tribunas, iluminación día/noche, pasto con buen shader.
-- Camisetas editables por club.
-- Menús con estética moderna, transiciones, música.
-- Sonido: pelota, público reactivo, silbato.
-- Repeticiones de goles.
-
-### Fase 7 — Pulido
+### Fase 8 — Pulido
 - Editor de clubes y jugadores (nombres, atributos, camisetas).
 - Opciones: gráficos, audio, controles, duración de partido.
 - Build exportable para Windows con instalador o zip portable.
@@ -128,7 +192,8 @@ Criterio: un partido vs CPU es competitivo y la CPU juega "como un equipo".
 3. Cada vez que modifiques o corrijas código que ya estaba entregado, avisalo
    de forma explícita: qué archivo, qué cambió y por qué. Nunca cambios
    silenciosos.
-4. Priorizá que se sienta bien jugar por encima de agregar features.
+4. Priorizá que se sienta bien jugar por encima de agregar features. Evitar la
+   trampa de "menú precioso y 700 archivos sin poder dar un pase de 5 metros".
 5. Código modular y comentado; la lógica de Liga Master desacoplada del motor
    de partido para poder testearla sola.
 6. Si una decisión técnica es grande (arquitectura, librerías, formato de
