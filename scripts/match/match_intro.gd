@@ -16,19 +16,31 @@ signal finished
 
 enum Step { MENU, WARMUP, TUNNEL, LINEUP, HANDSHAKE, FORMATION, DONE }
 
-const WALK := 0.3 # fracción de la velocidad de carrera: caminar
-const JOG := 0.55
+## Velocidades (m/s) iguales para todos: así las filas no se desarman.
+const WALK := 1.9
+## Paso firme de la salida del túnel (la fila tiene que llegar a formarse).
+const WALK_IN := 2.3
+const JOG := 4.2
+## Fila del local en el saludo y carril (1 m adelante) por donde pasa el visitante.
+const ROW_Z := 3.0
+const LANE_Z := ROW_Z + 1.0
 ## Boca del túnel (StadiumBuilder) y momento del corte a la toma lateral.
 const TUNNEL_Z := Pitch.HALF_WIDTH + StadiumBuilder.WALL_GAP + 1.5
 const TUNNEL_CUT := 4.5
 ## Duración de cada etapa (s); el menú espera al jugador.
-const DURATION := {Step.WARMUP: 6.0, Step.TUNNEL: 9.0, Step.LINEUP: 4.0, Step.HANDSHAKE: 7.0, Step.FORMATION: 5.0}
+const DURATION := {Step.WARMUP: 6.0, Step.TUNNEL: 9.0, Step.LINEUP: 4.0, Step.HANDSHAKE: 12.0, Step.FORMATION: 5.0}
 
 var step: int = Step.MENU
 var _t := 0.0
 var _match: MatchController
 var _cam: MatchCamera
 var _targets := {}
+## Punto de paso antes del destino (el visitante sale al carril del saludo).
+var _via := {}
+## Cabeza: [giro buscado, tiempo hasta cambiarlo] por jugador.
+var _looks := {}
+## Choques de manos ya hechos (visitante, local).
+var _fives := {}
 var _ui: CanvasLayer
 var _menu: VBoxContainer
 var _hint: Label
@@ -69,6 +81,9 @@ func tick(dt: float) -> void:
 				_cut_close_on(_match.teams[1].players[_rng.randi_range(5, 10)])
 		Step.TUNNEL, Step.HANDSHAKE:
 			_walk_to_targets()
+			_update_looks(dt)
+			if step == Step.HANDSHAKE:
+				_high_fives()
 			if step == Step.TUNNEL:
 				if _t < TUNNEL_CUT:
 					# Salen del túnel: cámara en la cancha, mirando la boca.
@@ -83,6 +98,7 @@ func tick(dt: float) -> void:
 				_cam.set_shot(walker.flat_pos() + Vector3(2.0, 2.2, 7.5), walker.flat_pos() + Vector3(-2.0, 1.3, 0.0), 35.0, 1.5)
 		Step.LINEUP:
 			_walk_to_targets()
+			_update_looks(dt)
 			# Paneo a lo largo de las dos filas, frente a los jugadores.
 			var k := clampf(_t / DURATION[Step.LINEUP], 0.0, 1.0)
 			var x := lerpf(-16.0, 16.0, k)
@@ -105,6 +121,7 @@ func _enter(s: int) -> void:
 			_cut_wide()
 		Step.TUNNEL:
 			_line_up_in_tunnel()
+			_assign_stances()
 		Step.LINEUP:
 			_set_lineup_targets()
 		Step.HANDSHAKE:
@@ -116,6 +133,10 @@ func _enter(s: int) -> void:
 			_ui.visible = false
 			for p in _match.all_players():
 				p.desired_move = Vector3.ZERO
+				p.speed_override = 0.0
+				if p.visual is ModelVisual:
+					(p.visual as ModelVisual).stance = ModelVisual.Stance.AUTO
+					(p.visual as ModelVisual).look_yaw = 0.0
 			_cam.end_cinematic()
 			finished.emit()
 
@@ -150,7 +171,7 @@ func _line_up_in_tunnel() -> void:
 			var p: Footballer = t.players[n]
 			var pos := Vector3(side * 0.9, 0.0, TUNNEL_Z + 1.0 + n * 1.3)
 			p.teleport(pos, Vector3.FORWARD)
-			_targets[p] = Vector3(side * (2.0 + n * 1.05), 0.0, 3.0)
+			_targets[p] = Vector3(side * (2.0 + n * 1.05), 0.0, ROW_Z)
 
 
 ## Corte de la salida: las filas aparecen ya en la cancha (el trayecto desde
@@ -161,7 +182,7 @@ func _skip_ahead_on_pitch() -> void:
 		var side := -1.0 if i == 0 else 1.0
 		for n in t.players.size():
 			var p: Footballer = t.players[n]
-			p.teleport(Vector3(side * 0.9, 0.0, 9.0 + n * 1.3), Vector3.FORWARD)
+			p.teleport(Vector3(side * 0.9, 0.0, 7.0 + n * 1.1), Vector3.FORWARD)
 
 
 func _set_lineup_targets() -> void:
@@ -169,31 +190,98 @@ func _set_lineup_targets() -> void:
 		p.desired_move = Vector3.ZERO
 
 
-## Saludo protocolar: la fila visitante pasa frente a la local, de derecha a
-## izquierda, y después vuelve a su lugar.
+## Saludo protocolar: la fila visitante da un paso al frente y pasa en fila,
+## 1 m por delante de la fila local (sin atravesarla), de derecha a izquierda,
+## chocando los cinco con cada uno.
 func _set_handshake_targets() -> void:
 	var away := _match.teams[1]
+	_fives.clear()
 	for n in away.players.size():
 		var p: Footballer = away.players[n]
-		_targets[p] = Vector3(-14.0 - n * 1.05, 0.0, 4.4)
+		_via[p] = Vector3(p.flat_pos().x, 0.0, LANE_Z)
+		# El primero de la fila es el que llega más lejos (nadie lo atraviesa).
+		_targets[p] = Vector3(-14.0 - (away.players.size() - 1 - n) * 1.05, 0.0, LANE_Z)
+
+
+## El visitante que pasa frente a un local: los dos levantan la derecha (se
+## arranca un poco antes para que las manos se junten justo enfrente).
+func _high_fives() -> void:
+	for w: Footballer in _match.teams[1].players:
+		if _via.has(w) or w.flat_pos().z < LANE_Z - 0.2:
+			continue
+		for h: Footballer in _match.teams[0].players:
+			var dx := w.flat_pos().x - h.flat_pos().x
+			if dx > 0.0 and dx < 0.45 and not _fives.has([w, h]):
+				_fives[[w, h]] = true
+				w.visual.play(PlayerVisual.Event.HIGH_FIVE)
+				h.visual.play(PlayerVisual.Event.HIGH_FIVE)
+
+
+## Cada uno parado a su manera en la formación: brazos al costado, mano en el
+## pecho, manos atrás o en la cintura.
+func _assign_stances() -> void:
+	var pool := [ModelVisual.Stance.RELAXED, ModelVisual.Stance.RELAXED, ModelVisual.Stance.HEART,
+			ModelVisual.Stance.BEHIND, ModelVisual.Stance.BEHIND, ModelVisual.Stance.HIPS]
+	for p in _match.all_players():
+		if p.visual is ModelVisual:
+			(p.visual as ModelVisual).stance = pool[_rng.randi() % pool.size()]
+		_looks[p] = [0.0, _rng.randf_range(1.0, 4.0)]
+
+
+## Cabezas que se giran a mirar a los compañeros de al lado y vuelven al
+## frente; en el saludo, el local mira al visitante que se acerca.
+func _update_looks(dt: float) -> void:
+	for p: Footballer in _looks:
+		if not p.visual is ModelVisual:
+			continue
+		var mv := p.visual as ModelVisual
+		var look: Array = _looks[p]
+		look[1] -= dt
+		if look[1] <= 0.0:
+			var r := _rng.randf()
+			look[0] = 0.0 if r < 0.45 else (0.75 if r < 0.72 else -0.75)
+			look[1] = _rng.randf_range(1.2, 3.5)
+		var want: float = look[0]
+		if step == Step.HANDSHAKE and p.team.index == 0:
+			var near := _nearest_walker(p)
+			if near != null:
+				var off := near.flat_pos() - p.flat_pos()
+				want = clampf(atan2(off.x, off.z), -1.1, 1.1)
+		mv.look_yaw = lerpf(mv.look_yaw, want, 1.0 - exp(-4.0 * dt))
+
+
+func _nearest_walker(h: Footballer) -> Footballer:
+	var best: Footballer = null
+	var best_d := 3.5
+	for w: Footballer in _match.teams[1].players:
+		var d := w.flat_pos().distance_to(h.flat_pos())
+		if d < best_d and w.flat_pos().x > h.flat_pos().x - 0.6:
+			best = w
+			best_d = d
+	return best
 
 
 func _walk_to_targets() -> void:
 	for p: Footballer in _targets:
-		var tgt: Vector3 = _targets[p]
+		var tgt: Vector3 = _via.get(p, _targets[p])
+		if _via.has(p) and p.flat_pos().distance_to(tgt) < 0.35:
+			_via.erase(p)
+			tgt = _targets[p]
 		if p.flat_pos().distance_to(tgt) < 0.3:
 			p.desired_move = Vector3.ZERO
 			# En la fila, mirando a la tribuna principal (la cámara).
 			if step != Step.HANDSHAKE or p.team.index == 0:
 				p.facing = Vector3.BACK
 		else:
-			_move(p, tgt, WALK)
+			_move(p, tgt, WALK if step == Step.HANDSHAKE else WALK_IN)
 
 
-func _move(p: Footballer, tgt: Vector3, pace: float) -> void:
+## Todos a la misma velocidad (m/s), sin importar sus atributos.
+func _move(p: Footballer, tgt: Vector3, speed: float) -> void:
 	var d := tgt - p.flat_pos()
 	d.y = 0.0
-	p.desired_move = d.normalized() * pace if d.length() > 0.05 else Vector3.ZERO
+	p.speed_override = speed
+	p.desired_move = d.normalized() if d.length() > 0.05 else Vector3.ZERO
 	p.wants_sprint = false
 
 

@@ -79,6 +79,10 @@ func _ready() -> void:
 ## Herramienta de desarrollo: `-- --capture=<carpeta>` saca capturas y sale.
 func _check_capture_mode() -> void:
 	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--poses="):
+			var poses: Node = load("res://tools/pose_sheet.gd").new()
+			poses.set("out", arg.trim_prefix("--poses="))
+			get_tree().root.add_child.call_deferred(poses)
 		if arg == "--benchmark":
 			start_benchmark(true)
 		if arg.begins_with("--capture="):

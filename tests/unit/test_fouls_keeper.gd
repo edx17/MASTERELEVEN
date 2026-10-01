@@ -107,6 +107,49 @@ func test_goal_kick_is_taken_from_the_goal_area_edge_with_the_feet() -> void:
 	assert_almost_eq(absf(m.ball.state.pos.x), Pitch.HALF_LENGTH - Pitch.GOAL_AREA_DEPTH, 0.01)
 
 
+func test_goal_kick_keeper_takes_a_run_up_before_kicking() -> void:
+	var t1 := m.teams[1]
+	var spot := Vector3(t1.own_side() * (Pitch.HALF_LENGTH - Pitch.GOAL_AREA_DEPTH), 0.11, 4.0)
+	m._pending = MatchRules.Outcome.new(MatchRules.Restart.GOAL_KICK, 1, spot)
+	m._setup_restart(m._pending)
+	var gk := t1.keeper()
+	var far := 0.0
+	var kicked_at := -1
+	for i in 600:
+		_step(1)
+		far = maxf(far, gk.flat_pos().distance_to(Vector3(spot.x, 0.0, spot.z)))
+		if m.phase == MatchController.Phase.PLAYING:
+			kicked_at = i
+			break
+		assert_almost_eq(m.ball.flat_pos().distance_to(Vector3(spot.x, 0.0, spot.z)), 0.0, 0.05, "la pelota queda en la línea")
+	assert_gt(far, MatchController.GOAL_KICK_RUNUP - 0.6, "retrocede para tomar carrera")
+	assert_gt(kicked_at, 60, "no patea al instante")
+	assert_lt(gk.flat_pos().distance_to(Vector3(spot.x, 0.0, spot.z)), 1.0, "patea desde la pelota")
+
+
+func test_rivals_back_off_when_the_keeper_holds_the_ball() -> void:
+	var t0 := m.teams[0]
+	var t1 := m.teams[1]
+	var gk := t1.keeper()
+	gk.teleport(t1.own_goal() + Vector3(t1.attack_dir * 6.0, 0.0, 0.0), Vector3(t1.attack_dir, 0.0, 0.0))
+	# Los atacantes, encima del arquero.
+	for p in t0.players:
+		if not p.is_keeper():
+			p.teleport(gk.flat_pos() + Vector3(t1.attack_dir * 3.0, 0.0, randf_range(-6.0, 6.0)), Vector3.ZERO)
+	m.ball.give_to(gk, false, true)
+	m.tuning.keeper_hold_time = 99.0 # que no la reponga durante la prueba
+	for i in 540:
+		_step(1)
+		m.hands_time = 0.0
+	assert_true(m.ball.in_hands)
+	var gap_line := absf(Pitch.HALF_LENGTH - TeamAI.KEEPER_HOLD_GAP)
+	var near := 0
+	for p in t0.players:
+		if not p.is_keeper() and not p.is_human() and absf(p.flat_pos().x) > gap_line + 2.0:
+			near += 1
+	assert_eq(near, 0, "nadie se queda encima del arquero")
+
+
 func test_game_speed_slows_the_game_but_not_the_clock() -> void:
 	assert_lt(GameSettings.game_time_scale(), 1.0, "por defecto, algo más lento")
 	assert_almost_eq(Engine.time_scale, GameSettings.game_time_scale(), 0.001)

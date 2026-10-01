@@ -105,6 +105,12 @@ func tick(dt: float) -> void:
 		if p.is_keeper():
 			keeper.tick(p, self, dt)
 			continue
+		if _rival_keeper_holds(ball):
+			# Arquero rival con la pelota en las manos: nadie lo encima, todos
+			# vuelven a su puesto (fuera del área) esperando la reposición.
+			p.debug_state = "repliega"
+			_retreat_from_keeper(p, ball)
+			continue
 		if p == helper:
 			p.debug_state = "presiona (pedido)"
 			_chase(p, ball, true)
@@ -456,6 +462,24 @@ func _hold_shape(p: Footballer, ball: Ball) -> void:
 	var d := p.flat_pos().distance_to(target)
 	var urgent := state in [S.COUNTER_ATTACK, S.RETREATING] and d > 4.0
 	go_to(p, target, urgent or d > 14.0, not urgent)
+	p.look_at_point(ball.flat_pos())
+
+
+## El arquero rival tiene la pelota en las manos (no se lo presiona).
+func _rival_keeper_holds(ball: Ball) -> bool:
+	return ball.in_hands and ball.owner_player != null and ball.owner_player.team != team
+
+
+## Distancia mínima (m) a la línea del arco rival mientras su arquero tiene la
+## pelota en las manos: afuera del área y un poco más.
+const KEEPER_HOLD_GAP := 24.0
+
+func _retreat_from_keeper(p: Footballer, ball: Ball) -> void:
+	var target := shape_target(p)
+	var limit := team.attack_dir * (Pitch.HALF_LENGTH - KEEPER_HOLD_GAP)
+	if team.attack_dir * target.x > team.attack_dir * limit:
+		target.x = limit
+	go_to(p, target, p.flat_pos().distance_to(target) > 15.0, true)
 	p.look_at_point(ball.flat_pos())
 
 

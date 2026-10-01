@@ -113,9 +113,12 @@ func _ready() -> void:
 			[35, "intro:1"], [36, "simulate:4"], [50, "shot:intro_warmup.png"],
 			[55, "intro:2"], [56, "simulate:2.5"], [62, "shot:intro_tunnel_mouth.png"],
 			[63, "simulate:6"], [70, "shot:intro_tunnel.png"],
-			[75, "intro:3"], [76, "simulate:2"], [90, "shot:intro_lineup.png"],
+			[75, "intro:3"], [76, "simulate:1"], [84, "shot:intro_lineup.png"],
+			[85, "simulate:2"], [92, "shot:intro_lineup2.png"],
 			[95, "intro:4"], [96, "simulate:3.5"], [110, "shot:intro_handshake.png"],
-			[115, "intro:5"], [116, "simulate:0.3"], [125, "shot:intro_formation.png"], [130, "quit"]]
+			[111, "simulate:3"], [118, "shot:intro_handshake2.png"],
+			[119, "simulate:3"], [126, "shot:intro_handshake3.png"],
+			[135, "intro:5"], [136, "simulate:0.3"], [145, "shot:intro_formation.png"], [150, "quit"]]
 	GameSettings.set_mode(GameSettings.Mode.VS_CPU)
 	GameSettings.camera_preset = 0
 	_match = load("res://scenes/match/match.tscn").instantiate()

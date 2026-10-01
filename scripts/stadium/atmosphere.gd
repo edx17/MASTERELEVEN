@@ -61,9 +61,7 @@ func grass_params() -> Dictionary:
 func _process(dt: float) -> void:
 	_t += dt
 	if precipitation != null and _camera != null:
-		var f := _camera._focus
-		# Por debajo de la altura de la cámara (si no, pasan pegadas al lente).
-		precipitation.global_position = Vector3(f.x, 0.0, f.z) + Vector3(0.0, 13.0, 4.0)
+		precipitation.global_position = precipitation_origin(_camera)
 	# Nieve: los surcos de las líneas se van tapando durante cada tiempo (en el
 	# entretiempo se vuelven a limpiar: el reloj del tiempo vuelve a cero).
 	if conditions.is_snow() and _match != null and _match.clock != null and PitchBuilder.grass_material != null:
@@ -300,6 +298,21 @@ static func _mark_texture() -> Texture2D:
 
 
 # --- Lluvia y nieve -----------------------------------------------------------
+
+## Dónde se emite la lluvia/nieve. En juego, sobre el foco de la cámara y por
+## debajo de su altura (si no, pasan pegadas al lente). En las tomas de la
+## presentación el foco no se actualiza y la cámara puede estar más alta que
+## el emisor (el giro del menú va a 16 m): se emite delante de la cámara y
+## siempre por encima de ella, así la lluvia cae frente a la toma.
+static func precipitation_origin(cam: MatchCamera) -> Vector3:
+	if not cam.cinematic:
+		var f := cam._focus
+		return Vector3(f.x, 13.0, f.z + 4.0)
+	var fwd := -cam.global_transform.basis.z
+	fwd.y = 0.0
+	fwd = fwd.normalized() if fwd.length() > 0.01 else Vector3.FORWARD
+	var c := cam.global_position + fwd * 20.0
+	return Vector3(c.x, maxf(13.0, cam.global_position.y + 4.0), c.z)
 
 func _build_precipitation(snow: bool) -> GPUParticles3D:
 	var p := GPUParticles3D.new()
