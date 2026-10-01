@@ -87,3 +87,12 @@ func test_rain_falls_diagonally_with_wind() -> void:
 	var d1: Vector3 = (windy.precipitation.process_material as ParticleProcessMaterial).direction
 	assert_lt(Vector2(d0.x, d0.z).length(), 0.05, "sin viento cae derecha")
 	assert_gt(Vector2(d1.x, d1.z).length(), 0.4, "con viento fuerte, en diagonal")
+
+
+func test_at_night_the_stadium_casts_no_shadows() -> void:
+	var st := StadiumBuilder.build(null, null, StadiumStyles.get_style(0))
+	add_child_autofree(st)
+	StadiumBuilder.disable_shadows(st)
+	StadiumBuilder.set_camera_side(st, "StandSouth")
+	for n in st.find_children("*", "GeometryInstance3D", true, false):
+		assert_eq((n as GeometryInstance3D).cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, n.name)

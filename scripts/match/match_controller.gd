@@ -202,6 +202,8 @@ func _build_world() -> void:
 	add_child(PitchBuilder.build(atmosphere.grass_params()))
 	stadium = StadiumBuilder.build(GameSettings.home_team(), GameSettings.away_team())
 	add_child(stadium)
+	if conditions.time_of_day == MatchConditions.TimeOfDay.NIGHT:
+		StadiumBuilder.disable_shadows(stadium)
 
 	ball = Ball.new()
 	ball.name = "Ball"
@@ -482,7 +484,7 @@ func _plan_save_for(defenders: Team, extra_reaction: float) -> void:
 
 
 ## Lo que dura la estirada del arquero hasta el contacto (s).
-const DIVE_LEAD := 0.45
+const DIVE_LEAD := 0.3
 
 
 ## Lateral (sólo presentación): el que saca espera con la pelota en las dos

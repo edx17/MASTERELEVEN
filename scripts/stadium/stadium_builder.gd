@@ -401,6 +401,9 @@ static func _roof(stand: Node3D, roof_type: String, back_len: float, front_len: 
 				bb.size = Vector3(0.35, 0.6, roof_depth)
 				beam.mesh = bb
 				beam.material_override = beam_mat
+				# Las vigas no rayan el césped (con 4 torres de luz se cruzan y
+				# arman triángulos); la sombra del techo la da la chapa.
+				beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				beam.position = Vector3(-back_len * 0.5 + b * (back_len / beams), roof_y3, z + 0.5 - roof_depth * 0.5)
 				stand.add_child(beam)
 			var roof := MeshInstance3D.new()
@@ -702,6 +705,16 @@ static func _railing(stand: Node3D, length: float, y: float, z: float, cut: floa
 	mi.material_override = _mat(Color(0.55, 0.56, 0.6), 0.3)
 	mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	stand.add_child(mi)
+
+
+## De noche el estadio no proyecta sombra (con los reflectores, el techo y
+## las tribunas dejarían manchas raras en la cancha): sólo los jugadores. Lo
+## que no proyecta sombra en la tribuna oculta directamente no se dibuja.
+static func disable_shadows(root: Node) -> void:
+	for n in root.find_children("*", "GeometryInstance3D", true, false):
+		var g := n as GeometryInstance3D
+		g.set_meta("base_shadow", GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 ## La tribuna `stand_name` (entre la cámara y la cancha) pasa a proyectar sólo

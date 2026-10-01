@@ -126,28 +126,29 @@ void fragment() {
 		nmap = normalize(vec3((h0 - hx) * bump * 4.0 * fine, (h0 - hz) * bump * 4.0 * fine, 1.0)) * 0.5 + 0.5;
 	}
 	// Mojado: más oscuro y con reflejos.
+	// El pasto mojado oscurece y brilla un poco, pero no es un espejo.
 	c *= 1.0 - 0.28 * wetness;
-	roughness = mix(roughness, 0.28, wetness);
-	float spec = mix(0.2, 0.6, wetness);
+	roughness = mix(roughness, 0.55, wetness);
+	float spec = mix(0.2, 0.38, wetness);
 	// Nieve: cubre el césped (menos donde se juega más: el centro y las áreas).
 	// Más nieve hacia las bandas y los fondos; en el medio, donde se juega, el
 	// pasto se ve (como una cancha nevada que se fue pisando).
 	// `snow` = nieve acumulada (0..1). Con poca, sólo manchas (primero en las
 	// bandas, los fondos y donde no se pisa); a medida que cae va tapando el
 	// verde hasta cubrir casi todo. Bordes suaves, sin recortes.
-	vec2 edge = abs(p) / vec2(half_length, 34.0);
-	float outer = smoothstep(0.2, 1.0, max(edge.x, edge.y));
-	float soft = fbm(p * 0.05) * 0.65 + fbm(p * 0.35) * 0.35;
-	float trodden = (1.0 - outer) * 0.3 + wear_mask(p) * 0.5;
-	float ground = soft * 0.7 + outer * 0.3 - trodden * 0.45;
-	float threshold = 0.95 - snow * 1.35;
-	float cover = smoothstep(threshold, threshold + 0.22, ground);
+	// Dispersa por toda la cancha: manchas de varios tamaños que crecen y se
+	// juntan (no de afuera hacia adentro); donde más se pisa cuesta un poco más.
+	float soft = fbm(p * 0.09 + vec2(3.7, 1.3)) * 0.55 + fbm(p * 0.45) * 0.3 + fbm(p * 1.6) * 0.15;
+	float ground = soft - wear_mask(p) * 0.25;
+	float threshold = 0.8 - snow * 0.62;
+	float cover = smoothstep(threshold - 0.08, threshold + 0.08, ground);
 	float snow_mask = (snow > 0.0) ? cover * (0.6 + 0.4 * snow) : 0.0;
 	// Surco limpio de ~0,5 m al lado de cada línea (se va tapando).
 	float groove = 1.0 - smoothstep(0.12, 0.55, line_dist(p));
 	snow_mask *= 1.0 - groove * groove_clear;
 	c = mix(c, vec3(0.97, 0.98, 1.0), snow_mask);
-	roughness = mix(roughness, 0.6, snow_mask);
+	roughness = mix(roughness, 0.85, snow_mask);
+	spec = mix(spec, 0.25, snow_mask);
 	ALBEDO = c;
 	ROUGHNESS = roughness;
 	SPECULAR = spec;

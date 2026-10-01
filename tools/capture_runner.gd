@@ -111,6 +111,9 @@ func _ready() -> void:
 		GameSettings.play_intro = true
 		_script = [[5, "freeze"], [10, "intro:2"], [11, "simulate:2.5"], [20, "shot:intro_tunnel_mouth.png"],
 			[25, "intro:6"], [40, "shot:capture_tv.png"], [45, "quit"]]
+	# `--late`: con el reloj en el segundo tiempo (minuto ~72).
+	if "--late" in OS.get_cmdline_user_args():
+		_script.insert(1, [21, "late"])
 	# `--stadium=N`: estadio (StadiumStyles).
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--stadium="):
@@ -242,6 +245,10 @@ func _run(action: String) -> void:
 		_match.ball.last_toucher = scorer
 		_match._show_goal(0)
 		_camera._focus = scorer.flat_pos()
+	elif action == "late":
+		# Segundo tiempo avanzado (nieve acumulada).
+		_match.clock.half = 2
+		_match.clock.game_seconds = MatchClock.HALF_GAME_SECONDS * 0.6
 	elif action.begins_with("intro:"):
 		_match.intro._enter(int(action.trim_prefix("intro:")))
 	elif action == "keeper_hold":
