@@ -33,8 +33,12 @@ Ver `Claude.md` para visión, criterios y fases.
 
 Pendiente para la Fase 4: segunda amarilla y roja (expulsión), que van con los cambios y el plantel.
 
-### Ronda 2: look WE2002 (siguiente)
-Público como el del WE (no conos), jugadores más "cuadrados", césped y tribunas como la referencia.
+### Ronda 2: look WE2002 (hecha)
+| Pedido | Cambio |
+|---|---|
+| Público: con volumen, pero no "conos con cabeza" | Cada hincha es una persona sentada de pocos polígonos (~90 triángulos): piernas dobladas, torso con hombros más anchos que la cintura, brazos, cuello y cabeza redondeada con pelo; algo girados y de distinto tamaño. 85 % de las butacas ocupadas; como en el WE, mucho blanco y gris con los colores de los clubes salpicados (la cabecera visitante, con los suyos). Saltan en los goles. Banderas de los hinchas colgadas de las barandas. |
+| Jugadores más "cuadrados" (WE2002) | Sombreado facetado (caras planas), pecho y hombros más anchos y botines más grandes. |
+| Césped como la referencia | Franjas de corte con más contraste. |
 
 ### Ronda 3: presentación (después)
 Menú previo con el estadio de fondo, salida por el túnel, calentamiento, formación inicial, saludo protocolar.

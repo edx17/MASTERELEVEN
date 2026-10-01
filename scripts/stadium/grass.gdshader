@@ -4,8 +4,8 @@ shader_type spatial;
 // del clima (mojado: más oscuro y con brillo; nieve: se cubre de blanco).
 // Si hay texturas fotográficas (GrassTextures) se usan para el detalle.
 
-uniform vec3 color_a : source_color = vec3(0.21, 0.345, 0.115);
-uniform vec3 color_b : source_color = vec3(0.185, 0.31, 0.10);
+uniform vec3 color_a : source_color = vec3(0.235, 0.375, 0.13);
+uniform vec3 color_b : source_color = vec3(0.17, 0.29, 0.095);
 uniform vec3 worn_color : source_color = vec3(0.33, 0.30, 0.17);
 uniform float stripe_width = 5.25;
 uniform float variation = 0.18;

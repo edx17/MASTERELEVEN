@@ -41,6 +41,8 @@ var _anim: AnimationPlayer
 var _current := ""
 var _bones := {}
 var _speed := 0.0
+var _foot_l := -1
+var _foot_r := -1
 var _run := 0.0
 ## Rotación animada limpia y última rotación puesta por un gesto, por hueso.
 var _clean := {}
@@ -90,6 +92,8 @@ func setup(colors: Dictionary, seed: int) -> void:
 			"upperarm_l", "upperarm_r", "lowerarm_l", "lowerarm_r", "Head"]:
 		_bones[n] = _skel.find_bone(n)
 
+	_foot_l = _skel.find_bone("foot_l")
+	_foot_r = _skel.find_bone("foot_r")
 	var body := _skel.find_child(BODY_MESH, false, false) as MeshInstance3D
 	if body != null:
 		if _region_mesh == null:
@@ -371,6 +375,11 @@ func _apply_gestures() -> void:
 		if _skel.get_bone_pose_rotation(b).is_equal_approx(_last_set[b]):
 			_skel.set_bone_pose_rotation(b, _clean[b])
 	_last_set.clear()
+	# Físico "cuadrado" (WE2002): pecho y hombros más anchos, botines grandes.
+	_skel.set_bone_pose_scale(_bones["spine_03"], Vector3(1.14, 1.0, 1.12))
+	for foot in [_foot_l, _foot_r]:
+		if foot >= 0:
+			_skel.set_bone_pose_scale(foot, Vector3(1.2, 1.15, 1.15))
 	if _clip != "":
 		return # la animación de Mixamo manda
 	# Inclinación del torso al acelerar / correr (esfuerzo en el sprint).
