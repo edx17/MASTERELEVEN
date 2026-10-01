@@ -125,6 +125,9 @@ func tick(dt: float) -> void:
 	if p.is_keeper() and ball.in_hands and ball.owner_player == p and move.length_squared() > 0.01:
 		if not Pitch.in_penalty_area(p.flat_pos() + move.normalized() * 0.8, team.own_side()):
 			move = Vector3.ZERO
+	# Antes del saque del medio no se mueve nadie (sólo el que saca apunta).
+	if _match.waiting_kickoff(p):
+		move = Vector3.ZERO
 	p.wants_sprint = input.pressed(&"sprint")
 	p.desired_move = move
 	p.pressing = false

@@ -57,6 +57,8 @@ Ver `Claude.md` para visión, criterios y fases.
 | Festejos | El goleador hace la medialuna y se queda festejando hasta el saque del medio. |
 | Revisión | `tools/clip_sheet.gd`: hoja de cuadros de cualquier clip (para elegir tramos); los clips que en Mixamo giran el cuerpo se adaptan sin ese giro (el rumbo lo manda la simulación). |
 
+Corrección: antes del saque del medio todos se seguían acomodando con la pelota quieta; ahora quedan quietos en su puesto (CPU y humano) hasta que se saca.
+
 Sin usar por ahora: `Kick Up` / `Stall Soccerball` (sin pelota se ven raros), `Soccer Spin` (va con los amagues de la Fase 4), `Receiver Catch` (es de fútbol americano), `Defender` y `Situp To Idle`.
 
 ### Pendiente

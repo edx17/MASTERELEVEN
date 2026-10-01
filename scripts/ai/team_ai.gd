@@ -91,6 +91,13 @@ func tick(dt: float) -> void:
 			p.debug_state = "saque"
 			_restart_taker(p)
 			continue
+		if _match.waiting_kickoff(p):
+			# Esperando el saque del medio: quieto, mirando la pelota.
+			p.debug_state = "espera el saque"
+			p.desired_move = Vector3.ZERO
+			p.wants_sprint = false
+			p.look_at_point(ball.flat_pos())
+			continue
 		if p.is_keeper():
 			keeper.tick(p, self, dt)
 			continue

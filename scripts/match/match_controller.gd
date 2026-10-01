@@ -108,6 +108,12 @@ func is_restart_taker(p: Footballer) -> bool:
 	return phase == Phase.RESTART and p != null and p == restart_taker
 
 
+## Esperando el saque del medio: todos (menos el que saca) quietos en su
+## puesto hasta que se saca, como en WE.
+func waiting_kickoff(p: Footballer) -> bool:
+	return phase == Phase.RESTART and restart_type == MatchRules.Restart.KICKOFF and p != restart_taker
+
+
 ## La IA ejecutora puede sacar.
 func restart_ready() -> bool:
 	return phase == Phase.RESTART and _restart_elapsed >= RESTART_AI_DELAY
