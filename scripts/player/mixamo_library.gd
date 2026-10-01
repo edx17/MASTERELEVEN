@@ -47,6 +47,8 @@ const CLIPS := {
 	"trip": {"file": "Soccer_Trip", "face": true, "range": [0.15, 0.4, 1.6]},
 	"get_up": {"file": "Standing_Up", "face": true},
 	"celebrate": {"file": "Cartwheel", "face": true, "range": [0.2, 0.5, 2.8]},
+	# Marsellesa: el giro de 360° lo pone el clip (el rumbo del jugador no gira).
+	"spin": {"file": "Soccer_Spin", "range": [0.0, 0.6, 1.27]},
 	"gk_idle": {"file": "Goalkeeper_Idle", "loop": true},
 	"gk_catch": {"file": "Goalkeeper_Catch"},
 	"gk_catch_high": {"file": "Goalkeeper_Catch_1", "face": true, "range": [0.9, 1.55, 2.2]},

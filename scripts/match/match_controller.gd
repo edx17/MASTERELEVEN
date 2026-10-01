@@ -22,6 +22,10 @@ const PLAYER_SEPARATION := 0.85
 const KICK_REACH := 1.25
 ## Desde esta altura un toque es de cabeza (más abajo, pecho / muslo / pie).
 const HEADER_MIN_HEIGHT := 1.3
+## Duración de la marsellesa y de la bicicleta (s) y espera máxima de la pared.
+const ROULETTE_TIME := 0.7
+const STEPOVER_TIME := 0.6
+const ONE_TWO_TIMEOUT := 4.0
 ## Un desvío más rápido que esto hacia el arco se trata como remate (plan de atajada).
 const DEFLECTION_SHOT_SPEED := 12.0
 ## Tiempo tras el despeje del arquero con las manos en que un rival no la puede
@@ -58,6 +62,11 @@ var last_kick := {}
 ## Pedido del humano (Triángulo mantenido defendiendo): el arquero sale a
 ## achicar. Uno por equipo; los controladores humanos lo fijan en cada tick.
 var keeper_rush: Array[bool] = [false, false]
+## Pedido del humano (Cuadrado mantenido defendiendo): un compañero de la CPU
+## sale a presionar al que lleva la pelota. Vale por tick, como keeper_rush.
+var support_press: Array[bool] = [false, false]
+## Pared en curso (L1 + X): {passer, receiver, run, time}. Vacío = ninguna.
+var one_two := {}
 ## Mensaje grande para el HUD ("¡GOL!", "CÓRNER", ...).
 var banner_text: String = ""
 
@@ -240,6 +249,8 @@ func _physics_process(dt: float) -> void:
 	_update_forecast()
 
 	keeper_rush = [false, false]
+	support_press = [false, false]
+	_update_one_two(dt)
 	for h in humans:
 		h.tick(dt)
 	for a in ais:
@@ -329,7 +340,8 @@ func _update_forecast() -> void:
 
 ## Punto único por el que pasan todos los pases/tiros (humanos e IA).
 ## `receiver`: compañero elegido de antemano (el humano lo ve marcado al cargar).
-func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, receiver_hint: Footballer = null) -> Footballer:
+func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, receiver_hint: Footballer = null,
+		variant: int = KickActions.Variant.NORMAL) -> Footballer:
 	if player == null:
 		return null
 	if phase == Phase.RESTART:
@@ -347,6 +359,7 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 		return null
 	kicks.pressure = Dribble.pressure_from_distance(_nearest_opponent_distance(player))
 	kicks.forced_receiver = receiver_hint
+	kicks.variant = variant
 	_in_kick = true
 	var receiver := kicks.execute(kind, player, dir, clampf(power, 0.0, 1.0))
 	_in_kick = false
@@ -644,6 +657,93 @@ func _try_take_loose_ball() -> void:
 	ball.give_to(best, true, hands)
 
 
+# --- Gambetas y combinaciones (WE) --------------------------------------------
+
+## Amague (Cuadrado + X / Círculo + X): hace el gesto de patear y engancha
+## para el lado del stick (o lejos del rival más cercano). Los rivales cerca
+## "se comen" el amague: quedan un instante sin reaccionar.
+func perform_feint(p: Footballer, stick: Vector3) -> void:
+	if ball.owner_player != p or phase != Phase.PLAYING:
+		return
+	var dir := Vector3(stick.x, 0.0, stick.z)
+	if dir.length_squared() < 0.04 or dir.normalized().dot(p.facing) > 0.85:
+		# Sin stick (o hacia adelante): engancha hacia el lado contrario al rival.
+		var opp := _nearest_opponent(p)
+		var side := 1.0
+		if opp != null:
+			side = -signf(p.facing.cross(opp.flat_pos() - p.flat_pos()).y)
+			if side == 0.0:
+				side = 1.0
+		dir = p.facing.rotated(Vector3.UP, side * deg_to_rad(100.0))
+	dir = dir.normalized()
+	p.facing = dir
+	p.velocity = dir * minf(Vector3(p.velocity.x, 0.0, p.velocity.z).length(), 2.5)
+	ball.state.pos = Vector3(p.flat_pos().x, tuning.ball_radius, p.flat_pos().z) + dir * 0.45
+	ball.state.vel = p.velocity
+	p.start_skill(Footballer.Skill.FEINT, 0.35)
+	_fool_defenders(p, 5.0, 0.5)
+	if p.visual != null:
+		p.visual.play(PlayerVisual.Event.FEINT)
+
+
+## Marsellesa (giro de 360° con el stick derecho) y bicicleta (L1 x3).
+func perform_skill(p: Footballer, skill: int) -> void:
+	if ball.owner_player != p or phase != Phase.PLAYING or p.skill != Footballer.Skill.NONE:
+		return
+	match skill:
+		Footballer.Skill.ROULETTE:
+			p.start_skill(skill, ROULETTE_TIME)
+			_fool_defenders(p, 3.0, 0.3)
+			if p.visual != null:
+				p.visual.play(PlayerVisual.Event.ROULETTE)
+		Footballer.Skill.STEPOVER:
+			p.start_skill(skill, STEPOVER_TIME)
+			_fool_defenders(p, 5.0, 0.45)
+			if p.visual != null:
+				p.visual.play(PlayerVisual.Event.STEPOVER)
+
+
+## Rivales de la CPU cerca del que gambetea: quedan `delay` s sin reaccionar.
+func _fool_defenders(p: Footballer, radius: float, delay: float) -> void:
+	for o in opponents_of(p.team).players:
+		if o.is_human() or o.is_keeper():
+			continue
+		if o.flat_pos().distance_to(p.flat_pos()) < radius:
+			o.reaction_timer = maxf(o.reaction_timer, delay)
+			o.desired_move *= 0.3
+
+
+## Pared (L1 + X): el receptor la devuelve de primera al espacio por donde
+## corre el que la tocó.
+func start_one_two(passer: Footballer, receiver: Footballer) -> void:
+	if receiver == null or receiver.team != passer.team:
+		return
+	var fwd := Vector3(passer.team.attack_dir, 0.0, 0.0)
+	var run := Pitch.clamp_to_field(passer.flat_pos() + fwd * 12.0, 2.0)
+	one_two = {"passer": passer, "receiver": receiver, "run": run, "time": 0.0}
+
+
+func cancel_one_two() -> void:
+	one_two = {}
+
+
+func _update_one_two(dt: float) -> void:
+	if one_two.is_empty():
+		return
+	one_two["time"] += dt
+	var receiver: Footballer = one_two["receiver"]
+	var passer: Footballer = one_two["passer"]
+	var owner := ball.owner_player
+	if one_two["time"] > ONE_TWO_TIMEOUT or phase != Phase.PLAYING or (owner != null and owner.team != passer.team):
+		one_two = {}
+		return
+	if owner == receiver and not receiver.is_human():
+		# La devuelve de primera al hueco por donde corre el que la tocó.
+		var to_run: Vector3 = (one_two["run"] as Vector3) - receiver.flat_pos()
+		one_two = {}
+		perform_kick(receiver, KickActions.Kind.THROUGH_PASS, to_run, 0.45, passer)
+
+
 ## Gesto del arquero al embolsarla según la altura de la pelota.
 static func catch_event(height: float) -> int:
 	if height > 1.7:
@@ -690,7 +790,7 @@ func _try_header() -> bool:
 		dir = Vector3.ZERO
 	elif not best.is_human() and best.team.progress_of(best.flat_pos()) < 0.35:
 		# Despeje: lejos del arco propio, hacia arriba de la cancha.
-		kind = KickActions.Kind.LONG_PASS
+		kind = KickActions.Kind.CLEAR
 		dir = Vector3(best.team.attack_dir, 0.0, signf(best.flat_pos().z) * 0.6).normalized()
 	elif not best.is_human():
 		dir = Vector3(best.team.attack_dir, 0.0, 0.0)
@@ -804,6 +904,9 @@ func tackle_chance(defender: Footballer, carrier: Footballer) -> float:
 	var carrier_speed := Vector3(carrier.velocity.x, 0.0, carrier.velocity.z).length()
 	if carrier_speed < Dribble.SHIELD_SPEED * 2.0 and carrier.dribble_pressure > 0.6:
 		chance -= 0.12
+	# En plena marsellesa la pelota queda protegida por el cuerpo que gira.
+	if carrier.skill == Footballer.Skill.ROULETTE:
+		chance *= 0.35
 	return clampf(chance, 0.05, 0.92)
 
 

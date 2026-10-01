@@ -76,7 +76,17 @@ var _script := [
 	[710, "goal_scene"],
 	[711, "simulate:1.3"],
 	[725, "shot:capture_celebrate.png"],
-	[730, "quit"],
+	# Gambetas: marsellesa, bicicleta y amague.
+	[730, "skill:roulette"],
+	[731, "simulate:0.3"],
+	[740, "shot:capture_roulette.png"],
+	[745, "skill:stepover"],
+	[746, "simulate:0.15"],
+	[755, "shot:capture_stepover.png"],
+	[760, "skill:feint"],
+	[761, "simulate:0.15"],
+	[770, "shot:capture_feint.png"],
+	[780, "quit"],
 ]
 
 
@@ -195,6 +205,21 @@ func _run(action: String) -> void:
 		_match.ball.last_toucher = scorer
 		_match._show_goal(0)
 		_camera._focus = scorer.flat_pos()
+	elif action.begins_with("skill:"):
+		var sp: Footballer = _match.teams[0].players[9]
+		_place(Vector3(10, 0, 4), Vector3(10.5, 0.11, 4), sp)
+		sp.celebrate_timer = 0.0
+		sp.skill = Footballer.Skill.NONE
+		if sp.visual is ModelVisual:
+			(sp.visual as ModelVisual)._clip = ""
+		_camera._focus = sp.flat_pos()
+		match action.trim_prefix("skill:"):
+			"roulette":
+				_match.perform_skill(sp, Footballer.Skill.ROULETTE)
+			"stepover":
+				_match.perform_skill(sp, Footballer.Skill.STEPOVER)
+			"feint":
+				_match.perform_feint(sp, Vector3.ZERO)
 	elif action.begins_with("preset:"):
 		var name := action.trim_prefix("preset:")
 		for i in _camera.presets.size():

@@ -4,6 +4,7 @@ extends InputSource
 ## están apretados; "just_pressed/released" se calculan entre polls.
 
 var move: Vector3 = Vector3.ZERO
+var right: Vector3 = Vector3.ZERO
 var _held: Dictionary = {}
 var _prev: Dictionary = {}
 var _now: Dictionary = {}
@@ -24,6 +25,10 @@ func poll() -> void:
 
 func move_vector() -> Vector3:
 	return move
+
+
+func right_vector() -> Vector3:
+	return right
 
 
 func pressed(action: StringName) -> bool:

@@ -78,27 +78,45 @@ Si esto no funciona, NO se agregan sistemas: se corrige el gameplay primero.
 - Control de versiones: Git + GitHub. Commits chicos y descriptivos por hito.
 
 ## Controles (estilo WE)
-| Acción                 | Mando          | Teclado     |
-|------------------------|----------------|-------------|
-| Mover (8 direcciones; 16 o libre desde la pausa) | Stick izq/cruz | WASD |
-| Pase corto / presión y entrada (mantenido, defendiendo) | X / A | J |
-| Tiro                   | Cuadrado / X   | K           |
-| Pase largo / centro / barrida (defendiendo) | Círculo / B | L |
-| Pase al hueco / arquero sale a achicar (mantenido, defendiendo) | Triángulo / Y  | I           |
-| Sprint                 | R1 / RB        | Shift       |
-| Cambiar jugador        | L1 / LB        | Q           |
-| Cancelar la orden que espera la pelota | R2 / RT | E      |
-| Pausa                  | Start          | Esc         |
-| Cambiar cámara         | Select / Back  | C           |
-| Debug                  | —              | F9          |
+| Acción | Mando | Teclado |
+|---|---|---|
+| Moverse | Stick izquierdo / cruceta | WASD |
+| Pase (atacando) · presión y entrada mantenido (defendiendo) | X | J |
+| Remate (atacando) · un compañero presiona, mantenido (defendiendo) | Cuadrado | K |
+| Centro / pase largo (atacando) · barrida (defendiendo) | Círculo | L |
+| Pase en profundidad (atacando) · sale el arquero, mantenido (defendiendo) | Triángulo | I |
+| Correr | R1 | Shift |
+| Gambeta (mantenido, conducción cerrada) / combinaciones · cambio de jugador sin la pelota | L1 | Q |
+| Pausa | Start | Esc |
+| Cambio de cámara | Select | C |
+| Stick derecho (marsellesa) | Stick derecho | Flechas |
+
+Combinaciones:
+| Combinación | Qué hace |
+|---|---|
+| L1 + Cuadrado | Remate globo (picada) |
+| Doble Cuadrado | Remate rasante |
+| L1 + Círculo | Centro alto |
+| Doble Círculo | Centro raso |
+| L1 + X | Pared (1-2): el compañero la devuelve de primera al espacio |
+| L1 + R1 | Super cancel (cancela la orden, la pared y la carrera automática) |
+| L1 x3 | Bicicleta |
+| Giro de 360° del stick derecho | Marsellesa |
+| Cuadrado + X | Enganche (amague de remate) |
+| Círculo + X | Enganche (amague de centro) |
+
+Pelota aérea (al salto): X = pase de cabeza a un compañero; Círculo = despeje
+(con el pie o de cabeza); Cuadrado = en campo propio despeja de cabeza, en el
+rival remata de cabeza (si no está tan alta, de volea); Triángulo = al hueco.
+
 La potencia de tiro y pase se gradúa manteniendo el botón (barra de potencia).
 Pase de primera: apretar el pase mientras la pelota viene; el stick sólo
-apunta el próximo pase (el receptor sigue yendo a buscar la pelota). La orden
-espera hasta que llega la pelota (de cabeza si viene alta), hasta que el rival
-la anticipa o hasta cancelarla con R2 / E.
+apunta el próximo pase. La orden espera hasta que llega la pelota, hasta que
+el rival la anticipa o hasta el super cancel.
 Arquero: con la pelota lo maneja el humano. En las manos: X / Triángulo =
 saque con la mano (rodando), Círculo / Cuadrado = pelotazo. Pase atrás de un
 compañero: la juega con los pies, como un jugador más.
+Menús: X acepta, Círculo vuelve; Start pausa.
 Todo definido en el Input Map de Godot, nunca hardcodeado.
 
 ## Estructura

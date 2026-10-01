@@ -13,7 +13,7 @@ extends RefCounted
 const BASE_ACTIONS: Array[StringName] = [
 	&"move_left", &"move_right", &"move_up", &"move_down",
 	&"pass_short", &"shoot", &"pass_long", &"pass_through",
-	&"sprint", &"switch_player", &"cancel", &"pause",
+	&"sprint", &"special", &"rs_left", &"rs_right", &"rs_up", &"rs_down", &"pause",
 ]
 
 const MAX_SLOTS := 2

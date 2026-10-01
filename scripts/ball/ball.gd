@@ -186,6 +186,9 @@ func _dribble(dt: float) -> void:
 		if _touch_phase < before:
 			p.touches += 1
 		var d := Dribble.touch_distance(frac, control_c, p.dribble_pressure, _tuning)
+		# Conducción cerrada (L1) y gambetas: la pelota pegada al pie.
+		if p.close_control or p.skill in [Footballer.Skill.ROULETTE, Footballer.Skill.STEPOVER]:
+			d *= 0.55
 		target = Dribble.dribble_target(p.global_position, p.facing, Dribble.pulse(_touch_phase, d),
 			p.shield_from, shielding)
 	var to_target := target - Vector3(state.pos.x, 0.0, state.pos.z)

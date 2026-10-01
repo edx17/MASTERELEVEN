@@ -227,6 +227,20 @@ func play(event: int, side: float = 1.0) -> void:
 			clip = "celebrate"
 		Event.DEJECTED:
 			clip = "gk_miss" if keeper else ""
+		Event.ROULETTE:
+			if _mx != null and _mx.has_animation("spin"):
+				var m: Dictionary = MixamoLibrary.marks["spin"]
+				if _play_clip("spin", (m["end"] - m["start"]) / MatchController.ROULETTE_TIME):
+					_event = -1
+			return
+		Event.FEINT:
+			# La carga de la patada, cortada antes del golpe.
+			if _mx != null and _mx.has_animation("kick"):
+				var mk: Dictionary = MixamoLibrary.marks["kick"]
+				var c: float = mk["contact"]
+				if _play_clip("kick", 1.0, false, maxf(0.0, c - 0.4), c - 0.05):
+					_event = -1
+			return
 		Event.DIVE_RIGHT:
 			clip = "gk_dive_px"
 		Event.DIVE_LEFT:
@@ -271,12 +285,12 @@ func contact_point(event: int) -> Vector3:
 
 ## Reproduce un clip de fútbol desde un poco antes del golpe. false si no está.
 ## `hold`: queda en el último cuadro hasta que otro clip lo reemplace.
-func _play_clip(clip: String, speed: float = 1.0, hold: bool = false) -> bool:
+func _play_clip(clip: String, speed: float = 1.0, hold: bool = false, from: float = -1.0, to: float = -1.0) -> bool:
 	if _mx == null or not _mx.has_animation(clip):
 		return false
 	var m: Dictionary = MixamoLibrary.marks.get(clip, {})
-	var start: float = m.get("start", 0.0)
-	var end: float = m.get("end", _mx.get_animation(clip).length)
+	var start: float = m.get("start", 0.0) if from < 0.0 else from
+	var end: float = m.get("end", _mx.get_animation(clip).length) if to < 0.0 else to
 	_clip = clip
 	_clip_left = INF if hold else (end - start) / speed
 	_anim.speed_scale = speed
@@ -401,6 +415,17 @@ func _apply_gestures() -> void:
 			_rotate_bone("upperarm_l", Vector3.RIGHT, a)
 			_rotate_bone("upperarm_r", Vector3.RIGHT, a)
 			_rotate_bone("spine_01", Vector3.RIGHT, lerpf(-0.3, 0.3, k))
+		Event.STEPOVER:
+			# Bicicleta: una pierna y después la otra pasan por encima de la
+			# pelota (de adentro hacia afuera), con el cuerpo que acompaña.
+			var first := k < 0.5
+			var kk := sin(fmod(k * 2.0, 1.0) * PI)
+			var leg := "thigh_r" if first else "thigh_l"
+			var out := -1.0 if first else 1.0 # derecha = -X del modelo
+			_rotate_bone(leg, Vector3.RIGHT, -0.7 * kk)
+			_rotate_bone(leg, Vector3.FORWARD, out * 0.6 * kk)
+			_rotate_bone("calf_r" if first else "calf_l", Vector3.RIGHT, 0.9 * kk)
+			_rotate_bone("spine_01", Vector3.FORWARD, -out * 0.2 * kk)
 		Event.CHEST:
 			# Pecho afuera para bajar la pelota y brazos abiertos.
 			_rotate_bone("spine_01", Vector3.RIGHT, -0.45 * strike)

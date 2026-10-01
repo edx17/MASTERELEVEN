@@ -6,7 +6,8 @@ extends RefCounted
 ## NetworkInput sin tocar la lógica de juego.
 ##
 ## Acciones: &"pass_short", &"shoot", &"pass_long", &"pass_through", &"sprint",
-## &"switch_player", &"cancel" (cancela la orden que espera la pelota), &"pause".
+## &"special" (L1: cambio de jugador sin la pelota; gambeta y combinaciones
+## con la pelota), &"pause".
 
 
 ## Se llama una vez por tick antes de leer (para fuentes que llevan estado).
@@ -16,6 +17,11 @@ func poll() -> void:
 
 ## Dirección de movimiento en el plano de la cancha (x = derecha, z = abajo en pantalla).
 func move_vector() -> Vector3:
+	return Vector3.ZERO
+
+
+## Stick derecho (mismo sistema que move_vector): giros para la marsellesa.
+func right_vector() -> Vector3:
 	return Vector3.ZERO
 
 

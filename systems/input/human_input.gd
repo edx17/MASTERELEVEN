@@ -19,6 +19,11 @@ func move_vector() -> Vector3:
 	return Vector3(v.x, 0.0, v.y)
 
 
+func right_vector() -> Vector3:
+	var v := Input.get_vector(_a(&"rs_left"), _a(&"rs_right"), _a(&"rs_up"), _a(&"rs_down"))
+	return Vector3(v.x, 0.0, v.y)
+
+
 func pressed(action: StringName) -> bool:
 	return Input.is_action_pressed(_a(action))
 
