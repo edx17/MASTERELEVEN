@@ -40,6 +40,13 @@ func tick(p: Footballer, ai: TeamAI, dt: float) -> void:
 	var v := ball.state.vel
 	# 1) Remate en curso: se tira al punto de cruce.
 	var plan: Dictionary = _match.save_plan
+	if plan.get("keeper") == p and plan.get("elapsed", 1.0) < plan.get("react", 0.0):
+		# Reacción: plantado, mirando la pelota (todavía no se movió).
+		p.debug_state = "reacciona"
+		p.desired_move = Vector3.ZERO
+		p.wants_sprint = false
+		p.face_point = bp
+		return
 	if plan.get("keeper") == p:
 		# Va al punto del tramo final donde mejor la intercepta (si está
 		# adelantado, achica el ángulo sin volver a la línea).

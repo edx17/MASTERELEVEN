@@ -41,6 +41,10 @@ var _event_len: float = 0.0
 var _event_side: float = 1.0
 var _pose: int = Pose.NORMAL
 var _lean: float = 0.0
+## Esperando para sacar un lateral: la pelota con las dos manos atrás de la nuca.
+var throw_hold := false
+## Ángulos de la pose del lateral: [brazo adelante/arriba, brazo hacia afuera, codo].
+var throw_pose := Vector3(-2.75, -0.35, -1.9)
 
 
 ## colors: {shirt, shorts, socks, boots}. `seed` varía piel y pelo.

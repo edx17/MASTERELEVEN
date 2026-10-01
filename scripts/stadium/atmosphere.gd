@@ -54,8 +54,15 @@ func attach(camera: MatchCamera, world: Node) -> void:
 func grass_params() -> Dictionary:
 	return {
 		"wetness": conditions.wetness,
-		"snow": 0.85 if conditions.is_snow() else 0.0,
+		"snow": SNOW_START if conditions.is_snow() else 0.0,
 	}
+
+
+## Nieve acumulada según el minuto del partido (segundos de juego 0..5400).
+const SNOW_START := 0.3
+const SNOW_END := 1.0
+static func snow_level(total_game_seconds: float) -> float:
+	return lerpf(SNOW_START, SNOW_END, clampf(total_game_seconds / (MatchClock.HALF_GAME_SECONDS * 2.0), 0.0, 1.0))
 
 
 func _process(dt: float) -> void:
@@ -64,9 +71,12 @@ func _process(dt: float) -> void:
 		precipitation.global_position = precipitation_origin(_camera)
 	# Nieve: los surcos de las líneas se van tapando durante cada tiempo (en el
 	# entretiempo se vuelven a limpiar: el reloj del tiempo vuelve a cero).
+	# La nieve se acumula durante todo el partido (arranca en manchas y va
+	# tapando el verde); en el entretiempo sólo se limpian las líneas.
 	if conditions.is_snow() and _match != null and _match.clock != null and PitchBuilder.grass_material != null:
 		var progress := clampf(_match.clock.game_seconds / MatchClock.HALF_GAME_SECONDS, 0.0, 1.0)
 		PitchBuilder.grass_material.set_shader_parameter("groove_clear", 1.0 - 0.85 * progress)
+		PitchBuilder.grass_material.set_shader_parameter("snow", snow_level(_match.clock.total_game_seconds()))
 	# Banderines: flamean hacia donde sopla el viento.
 	if not _flags.is_empty():
 		var w := conditions.wind_vector()

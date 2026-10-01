@@ -372,6 +372,16 @@ func hold_point() -> Vector3:
 	return p + global_basis.z * 0.12
 
 
+## Entre las dos manos, sin adelantarla (lateral: la pelota atrás de la nuca).
+func throw_point() -> Vector3:
+	var l := _skel.find_bone("hand_l")
+	var r := _skel.find_bone("hand_r")
+	if l < 0 or r < 0:
+		return global_position + Vector3(0, 2.0, 0)
+	var mid := (_skel.get_bone_global_pose(l).origin + _skel.get_bone_global_pose(r).origin) * 0.5
+	return _skel.global_transform * mid + Vector3(0, 0.06, 0)
+
+
 ## Pie (punta del botín) o cabeza en la pose actual del gesto.
 func contact_point(event: int) -> Vector3:
 	var bones: Array = ["Head"] if event == Event.HEADER else ["foot_r", "ball_r"]
@@ -494,6 +504,14 @@ func _apply_gestures() -> void:
 	_rotate_bone("spine_01", Vector3.RIGHT, _lean)
 	if _current.begins_with("Stand_") and not holding:
 		_apply_stance()
+	if throw_hold and _event < 0 and not holding:
+		# Lateral: brazos arriba con los codos doblados, la pelota atrás de la
+		# nuca (sobre los brazos al costado de la postura de parado).
+		for side in ["l", "r"]:
+			var sgn := 1.0 if side == "l" else -1.0
+			_rotate_bone("upperarm_" + side, Vector3.RIGHT, throw_pose.x)
+			_rotate_bone("upperarm_" + side, Vector3.FORWARD, sgn * throw_pose.y)
+			_rotate_bone("lowerarm_" + side, Vector3.RIGHT, throw_pose.z)
 	if holding and _event < 0:
 		# Pelota contra el pecho: brazos adelante, hacia el centro, y los
 		# antebrazos doblados hacia arriba.

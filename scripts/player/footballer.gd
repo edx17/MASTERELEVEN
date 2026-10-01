@@ -395,13 +395,25 @@ func look_at_point(point: Vector3) -> void:
 		facing = d.normalized()
 
 
+## En la presentación previa no se ve ninguna marca (nombre, número,
+## flecha, aro): sólo los jugadores.
+var presenting := false
+
+
+func set_presenting(on: bool) -> void:
+	presenting = on
+	set_human_slot(human_slot)
+	if _pass_marker != null and on:
+		_pass_marker.visible = false
+
+
 func set_human_slot(slot: int) -> void:
 	human_slot = slot
 	refresh_label()
 	if _arrow == null:
 		return
-	_arrow.visible = slot >= 0
-	_control_ring.visible = slot >= 0
+	_arrow.visible = slot >= 0 and not presenting
+	_control_ring.visible = slot >= 0 and not presenting
 	if slot >= 0:
 		var c := SLOT_COLORS[slot % SLOT_COLORS.size()]
 		(_arrow.material_override as StandardMaterial3D).albedo_color = c
@@ -413,6 +425,9 @@ func set_human_slot(slot: int) -> void:
 ## o nada.
 func refresh_label() -> void:
 	if _label == null:
+		return
+	if presenting:
+		_label.visible = false
 		return
 	match GameSettings.player_label:
 		0:

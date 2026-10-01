@@ -112,3 +112,36 @@ func test_deflection_replans_the_save() -> void:
 		pass_test("el desvío no va al arco: sin plan")
 		return
 	assert_ne(m.save_plan["point"], old_point, "el plan se rehízo para la nueva trayectoria")
+
+
+func test_keeper_reacts_then_dives_late() -> void:
+	# Remate de lejos: plantado durante la reacción y la estirada recién
+	# cuando la pelota está por llegar (no apenas le pegan).
+	var t1 := m.teams[1]
+	var shooter: Footballer = m.teams[0].players[9]
+	var goal := t1.own_goal()
+	shooter.teleport(goal + Vector3(-t1.own_side() * 24.0, 0, 0), Vector3(t1.own_side(), 0, 0))
+	m.ball.place(shooter.flat_pos() + Vector3(t1.own_side() * 0.5, 0.11, 0))
+	m.ball.give_to(shooter)
+	m.kicks.randomize_error = false
+	m.perform_kick(shooter, KickActions.Kind.SHOT, Vector3(0, 0, 1), 0.6)
+	if m.save_plan.is_empty():
+		pass_test("el remate no fue al arco")
+		return
+	var gk := t1.keeper()
+	var start := gk.flat_pos()
+	assert_false(m.save_plan["dove"], "no se tira al momento del remate")
+	assert_gt(float(m.save_plan["dive_at"]), float(m.save_plan["react"]) - 0.001)
+	_step(int(float(m.save_plan["react"]) * 60.0) - 2)
+	assert_lt(gk.flat_pos().distance_to(start), 0.15, "plantado mientras reacciona")
+	var dove_at := -1.0
+	var t := 0.0
+	for i in 120:
+		_step(1)
+		t += dt
+		if m.save_plan.is_empty():
+			break
+		if m.save_plan["dove"]:
+			dove_at = t
+			break
+	assert_gt(dove_at, 0.0, "se tira antes de que llegue")

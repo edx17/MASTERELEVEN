@@ -291,6 +291,7 @@ func _physics_process(dt: float) -> void:
 	if phase == Phase.RESTART:
 		_keep_distance_from_restart()
 
+	_update_throw_in_hold()
 	ball.tick(dt)
 	for t in teams:
 		var gk := t.keeper()
@@ -331,6 +332,11 @@ func _update_phase(dt: float) -> void:
 	_phase_timer -= dt
 	if not save_plan.is_empty():
 		save_plan["time_left"] -= dt
+		save_plan["elapsed"] += dt
+		# La estirada recién cuando la pelota está por llegar.
+		if not save_plan["dove"] and save_plan["elapsed"] >= save_plan["dive_at"]:
+			save_plan["dove"] = true
+			_show_dive(save_plan["keeper"], save_plan["save_point"])
 		if save_plan["time_left"] <= 0.0 or not ball.is_loose():
 			save_plan = {}
 	match phase:
@@ -467,9 +473,35 @@ func _plan_save_for(defenders: Team, extra_reaction: float) -> void:
 	var will_save := randf() < plan.chance
 	# Embolsa si le llega cómoda y no tan fuerte; si no, da rebote.
 	var parry := ball.speed() > 20.0 or plan.margin < 0.5
+	# Tiempos: reacciona plantado, se acomoda de costado y se tira cuando la
+	# pelota está por llegar (lo que dura la estirada), no al momento del remate.
+	var react := SaveModel.reaction_time(reaction, extra_reaction)
 	save_plan = {"keeper": gk, "will_save": will_save, "parry": parry, "point": plan.point,
-		"save_point": plan.save_point, "time_left": plan.time + 0.3, "chance": plan.chance}
-	_show_dive(gk, plan.save_point)
+		"save_point": plan.save_point, "time_left": plan.time + 0.3, "chance": plan.chance,
+		"elapsed": 0.0, "react": react, "dive_at": maxf(react, plan.save_time - DIVE_LEAD), "dove": false}
+
+
+## Lo que dura la estirada del arquero hasta el contacto (s).
+const DIVE_LEAD := 0.45
+
+
+## Lateral (sólo presentación): el que saca espera con la pelota en las dos
+## manos atrás de la nuca; al sacar, la pelota sale desde las manos.
+var _throw_holder: Footballer
+
+func _update_throw_in_hold() -> void:
+	var holder: Footballer = null
+	if phase == Phase.RESTART and restart_type == MatchRules.Restart.THROW_IN and restart_taker != null:
+		holder = restart_taker
+	if _throw_holder != null and _throw_holder != holder and _throw_holder.visual != null:
+		_throw_holder.visual.throw_hold = false
+	_throw_holder = holder
+	if holder == null or holder.visual == null:
+		return
+	holder.visual.throw_hold = true
+	if holder.visual is ModelVisual:
+		var off := (holder.visual as ModelVisual).throw_point() - ball.state.pos
+		ball.visual_offset = off if off.length() < 3.0 else Vector3.ZERO
 
 
 ## Animación de quien la tocó (sólo presentación).

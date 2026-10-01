@@ -178,3 +178,21 @@ func test_passer_slows_down_while_passing() -> void:
 	var after := Vector3(p.velocity.x, 0, p.velocity.z).length()
 	assert_gt(p.kick_brake, 0.0)
 	assert_lt(after, before * 0.6, "frena mientras pasa (%.1f -> %.1f m/s)" % [before, after])
+
+
+func test_throw_in_holds_the_ball_behind_the_head() -> void:
+	var t0 := m.teams[0]
+	var spot := Vector3(-10.0, 0.11, Pitch.HALF_WIDTH)
+	m._pending = MatchRules.Outcome.new(MatchRules.Restart.THROW_IN, 0, spot)
+	m._setup_restart(m._pending)
+	var thrower := m.restart_taker
+	_step(5)
+	assert_true(thrower.visual.throw_hold, "espera con la pelota en las manos")
+	var drawn := m.ball.state.pos + m.ball.visual_offset
+	if thrower.visual is ModelVisual:
+		assert_gt(drawn.y, 1.2, "la pelota se ve en las manos, no en el piso")
+	m._restart_elapsed = 2.0
+	var mate: Footballer = t0.players[6]
+	m.perform_kick(thrower, KickActions.Kind.SHORT_PASS, mate.flat_pos() - thrower.flat_pos(), 0.4, mate)
+	_step(1)
+	assert_false(thrower.visual.throw_hold, "ya la sacó")

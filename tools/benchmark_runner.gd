@@ -92,6 +92,9 @@ static func summarize(frames: PackedFloat32Array) -> Dictionary:
 
 
 func _back_to_menu() -> void:
+	# Start/Esc también abre la pausa del partido en este mismo cuadro: se
+	# despausa después, ya en el menú.
+	get_tree().set_deferred("paused", false)
 	get_tree().paused = false
 	if _match != null:
 		_match.queue_free()
