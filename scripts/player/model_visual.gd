@@ -24,6 +24,11 @@ const BODY_MESH := "SuperHero_Male"
 ## animación se ve natural (el pie no patina).
 const LOCOMOTION := [["Idle", 0.0, 0.0], ["Walk", 0.35, 1.5], ["Jog_Fwd", 2.4, 3.9], ["Sprint", 6.6, 7.4]]
 const BLEND := 0.18
+## Tiempo (s) que tarda en levantarse tras una caída (el clip se acelera para
+## terminar justo cuando la simulación le devuelve el control).
+const GETUP_TIME := 0.9
+## Clips que no se cortan por otro gesto (en el piso, festejando).
+const UNINTERRUPTIBLE := ["trip", "get_up", "celebrate"]
 
 static var _body_scene: PackedScene
 static var _anim_lib: AnimationLibrary
@@ -48,6 +53,13 @@ var _slide_played := false
 ## Lo fija el Footballer: es arquero / lleva la pelota (elige la locomoción).
 var keeper := false
 var carrying := false
+## Lo fija el Footballer: derribado por una barrida, cuánto le falta para
+## volver a jugar y velocidad de costado (+ = hacia el +X del modelo).
+var tripped := false
+var recover_left := 0.0
+var side_speed := 0.0
+var _trip_played := false
+var _getup_played := false
 
 
 ## Hay modelo y animaciones importados en el proyecto.
@@ -155,6 +167,19 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 			_slide_played = true
 	else:
 		_slide_played = false
+	# Derribado: se cae y, al final, se levanta (a tiempo con la simulación).
+	if pose == Pose.FALLEN and tripped:
+		if not _trip_played:
+			_trip_played = _play_clip("trip", 1.25, true)
+		elif not _getup_played and recover_left <= GETUP_TIME:
+			var m: Dictionary = MixamoLibrary.marks.get("get_up", {})
+			var span: float = m.get("end", 1.6) - m.get("start", 0.0)
+			_getup_played = _play_clip("get_up", span / maxf(recover_left, 0.3))
+	else:
+		_trip_played = false
+		_getup_played = false
+		if _clip == "trip":
+			_clip_left = 0.0 # lo reubicaron (pelota parada): vuelve a estar de pie
 	if _clip != "":
 		_clip_left -= dt
 		if _clip_left <= 0.0:
@@ -171,6 +196,8 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 func play(event: int, side: float = 1.0) -> void:
 	if _clip.begins_with("gk_dive") and event != Event.DIVE_LEFT and event != Event.DIVE_RIGHT:
 		return # ya está volando: la estirada termina (atrapa o rechaza en el aire)
+	if _clip in UNINTERRUPTIBLE:
+		return
 	super.play(event, side)
 	var clip := ""
 	match event:
@@ -184,24 +211,45 @@ func play(event: int, side: float = 1.0) -> void:
 			clip = "gk_throw" if keeper else ""
 		Event.CATCH:
 			clip = "gk_catch"
+		Event.CATCH_HIGH:
+			clip = "gk_catch_high"
+		Event.CATCH_LOW:
+			clip = "gk_catch_low"
+		Event.BLOCK:
+			clip = "gk_block"
+		Event.ROLL:
+			clip = "gk_roll"
+		Event.TACKLE:
+			clip = "tackle"
+		Event.RECEIVE:
+			clip = "receive"
+		Event.CELEBRATE:
+			clip = "celebrate"
+		Event.DEJECTED:
+			clip = "gk_miss" if keeper else ""
 		Event.DIVE_RIGHT:
 			clip = "gk_dive_px"
 		Event.DIVE_LEFT:
 			clip = "gk_dive_nx"
+	# La atajada anticipada y la de contacto son el mismo gesto: no se reinicia.
+	if clip != "" and clip == _clip and clip.begins_with("gk_"):
+		_event = -1
+		return
 	if clip != "" and _play_clip(clip):
 		_event = -1 # la animación reemplaza al gesto armado por código
 
 
 ## Reproduce un clip de fútbol desde un poco antes del golpe. false si no está.
-func _play_clip(clip: String) -> bool:
+## `hold`: queda en el último cuadro hasta que otro clip lo reemplace.
+func _play_clip(clip: String, speed: float = 1.0, hold: bool = false) -> bool:
 	if _mx == null or not _mx.has_animation(clip):
 		return false
 	var m: Dictionary = MixamoLibrary.marks.get(clip, {})
 	var start: float = m.get("start", 0.0)
 	var end: float = m.get("end", _mx.get_animation(clip).length)
 	_clip = clip
-	_clip_left = end - start
-	_anim.speed_scale = 1.0
+	_clip_left = INF if hold else (end - start) / speed
+	_anim.speed_scale = speed
 	_anim.play("mx/" + clip, 0.08)
 	_anim.seek(start, true)
 	return true
@@ -220,6 +268,11 @@ func _play_locomotion(speed: float) -> void:
 			pick = ["mx/gk_idle", 0.0, 0.0]
 		elif carrying and anim_name == "Jog_Fwd" and _mx.has_animation("dribble"):
 			pick = ["mx/dribble", 2.4, 2.8]
+		elif keeper and absf(side_speed) > 0.6 and absf(side_speed) > speed * 0.7 and speed < 4.5 \
+				and _mx.has_animation("gk_side_a"):
+			# Arquero que se acomoda de costado mirando la pelota: paso lateral.
+			var a_side := signf(side_speed) == MixamoLibrary.side_sign
+			pick = ["mx/gk_side_a" if a_side else "mx/gk_side_b", 0.6, MixamoLibrary.side_nominal]
 		anim_name = pick[0]
 	if anim_name != _current:
 		_current = anim_name
@@ -318,6 +371,14 @@ func _apply_gestures() -> void:
 			_rotate_bone("upperarm_l", Vector3.RIGHT, a)
 			_rotate_bone("upperarm_r", Vector3.RIGHT, a)
 			_rotate_bone("spine_01", Vector3.RIGHT, lerpf(-0.3, 0.3, k))
+		Event.CHEST:
+			# Pecho afuera para bajar la pelota y brazos abiertos.
+			_rotate_bone("spine_01", Vector3.RIGHT, -0.45 * strike)
+			_rotate_bone("upperarm_l", Vector3.FORWARD, -0.9 * strike)
+			_rotate_bone("upperarm_r", Vector3.FORWARD, 0.9 * strike)
+		Event.CELEBRATE:
+			_rotate_bone("upperarm_l", Vector3.RIGHT, -2.9 * minf(k * 5.0, 1.0))
+			_rotate_bone("upperarm_r", Vector3.RIGHT, -2.9 * minf(k * 5.0, 1.0))
 		Event.CATCH:
 			_rotate_bone("upperarm_l", Vector3.RIGHT, -1.4 * strike)
 			_rotate_bone("upperarm_r", Vector3.RIGHT, -1.4 * strike)

@@ -413,8 +413,11 @@ func _show_kick(kicker: Footballer) -> void:
 	if kicker == null or kicker.visual == null:
 		return
 	var ev := PlayerVisual.Event.KICK
-	if kicks.throw_in_mode or (_in_kick and kicks.hand_throw):
+	if kicks.throw_in_mode:
 		ev = PlayerVisual.Event.THROW
+	elif _in_kick and kicks.hand_throw:
+		# Saque con la mano del arquero: rodando, como en las bochas.
+		ev = PlayerVisual.Event.ROLL
 	elif ball.state.pos.y > 1.3:
 		ev = PlayerVisual.Event.HEADER
 	elif kicker.is_keeper() and ball.state.pos.y > 0.5:
@@ -431,7 +434,7 @@ func _show_dive(gk: Footballer, point: Vector3) -> void:
 	var rel := point - gk.flat_pos()
 	rel.y = 0.0
 	if rel.length() < 1.2:
-		gk.visual.play(PlayerVisual.Event.CATCH)
+		gk.visual.play(catch_event(point.y))
 		return
 	var right := gk.global_basis.x
 	gk.visual.play(PlayerVisual.Event.DIVE_RIGHT if right.dot(rel) > 0.0 else PlayerVisual.Event.DIVE_LEFT)
@@ -606,9 +609,30 @@ func _try_take_loose_ball() -> void:
 	if receiver != null and receiver != best:
 		receiver.clear_pass_target()
 	save_plan = {}
-	if hands and best.visual != null:
-		best.visual.play(PlayerVisual.Event.CATCH)
+	if best.visual != null:
+		if hands:
+			best.visual.play(catch_event(h))
+		elif best == receiver or ball.speed() > 6.0:
+			_show_receive(best, h)
 	ball.give_to(best, true, hands)
+
+
+## Gesto del arquero al embolsarla según la altura de la pelota.
+static func catch_event(height: float) -> int:
+	if height > 1.7:
+		return PlayerVisual.Event.CATCH_HIGH
+	if height < 0.45:
+		return PlayerVisual.Event.CATCH_LOW
+	return PlayerVisual.Event.CATCH
+
+
+## Gesto del que recibe (sólo presentación): de pecho si viene alta; con la
+## suela si llega frenado (a la carrera la recibe sin gesto, como en WE).
+func _show_receive(p: Footballer, height: float) -> void:
+	if height > 0.9:
+		p.visual.play(PlayerVisual.Event.CHEST)
+	elif Vector3(p.velocity.x, 0.0, p.velocity.z).length() < 3.5:
+		p.visual.play(PlayerVisual.Event.RECEIVE)
 
 
 ## Pase atrás: la pelota la jugó a propósito (con el pie o de lateral) un
@@ -635,12 +659,17 @@ func _try_steal(dt: float) -> void:
 		if o.state == Footballer.State.SLIDING and d < tuning.slide_reach:
 			ball.kick(o.facing * 7.0 + Vector3.UP * 0.5, Vector3.ZERO, o)
 			carrier.touch_block = tuning.lost_ball_cooldown
+			# La barrida se lleva puesto al que conducía (como en WE).
+			if randf() < tuning.slide_trip_chance:
+				carrier.trip(tuning.trip_duration)
 			return
 		if o.is_keeper() and o.state == Footballer.State.NORMAL and d < tuning.keeper_smother_radius \
 				and Pitch.in_penalty_area(o.flat_pos(), o.team.own_side()):
 			# El arquero se tira a los pies del atacante.
 			if randf() < tuning.keeper_smother_rate * dt:
 				carrier.touch_block = tuning.lost_ball_cooldown
+				if o.visual != null:
+					o.visual.play(PlayerVisual.Event.BLOCK)
 				ball.give_to(o, false, true)
 				stats["saves"][o.team.index] += 1
 				return
@@ -760,6 +789,7 @@ func _check_rules() -> void:
 	ball.owner_player = null
 	ball.intended_receiver = null
 	if outcome.type == MatchRules.Restart.GOAL:
+		_show_goal(outcome.team)
 		teams[outcome.team].score += 1
 		banner_text = "¡GOL!"
 		_phase_timer = GOAL_DELAY
@@ -774,6 +804,16 @@ func _check_rules() -> void:
 	banner_text = names.get(outcome.type, "")
 	_phase_timer = STOP_DELAY
 	_set_phase(Phase.STOPPED)
+
+
+## Festejo del goleador y lamento del arquero (sólo presentación).
+func _show_goal(scoring_team: int) -> void:
+	var scorer := ball.last_toucher
+	if scorer != null and scorer.team.index == scoring_team:
+		scorer.celebrate(GOAL_DELAY)
+	var keeper := teams[1 - scoring_team].keeper()
+	if keeper != null and keeper.visual != null:
+		keeper.visual.play(PlayerVisual.Event.DEJECTED)
 
 
 func _end_half() -> void:

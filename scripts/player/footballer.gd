@@ -7,6 +7,8 @@ extends CharacterBody3D
 enum Role { GK, DF, MF, FW }
 enum State { NORMAL, SLIDING, RECOVERING }
 
+## Hasta esta velocidad se puede desplazar de costado mirando a otro lado.
+const STRAFE_MAX_SPEED := 4.5
 const SLOT_COLORS: Array[Color] = [Color(1.0, 0.85, 0.1), Color(0.2, 0.9, 1.0)]
 
 var team: Team
@@ -61,6 +63,13 @@ var shield_from: Vector3 = Vector3.ZERO
 var tackle_cooldown: float = 0.0
 ## El controlador pide una entrada este tick (la resuelve el partido).
 var wants_tackle: bool = false
+## Punto al que mira mientras se desplaza despacio (el arquero de costado,
+## de frente a la pelota). Lo fija el controlador cada tick; INF = no.
+var face_point: Vector3 = Vector3.INF
+## En el piso tras una barrida (dentro de RECOVERING): se cae y se levanta.
+var tripped: bool = false
+## Festejando un gol: no se mueve hasta que termina.
+var celebrate_timer: float = 0.0
 
 var _tuning: Tuning
 var _arrow: MeshInstance3D
@@ -165,11 +174,31 @@ func stagger(duration: float) -> void:
 	velocity *= 0.4
 
 
+## Derribado por una barrida: queda en el piso y se levanta (no puede tocar
+## la pelota ni moverse mientras tanto).
+func trip(duration: float) -> void:
+	if state == State.SLIDING:
+		return
+	state = State.RECOVERING
+	state_timer = duration
+	tripped = true
+	velocity *= 0.3
+
+
+## Festejo de gol (sólo presentación; el partido está detenido).
+func celebrate(duration: float) -> void:
+	celebrate_timer = duration
+	if visual != null:
+		visual.play(PlayerVisual.Event.CELEBRATE)
+
+
 ## Mueve instantáneamente al jugador (reubicaciones de pelota parada).
 func teleport(pos: Vector3, look_dir: Vector3 = Vector3.ZERO) -> void:
 	global_position = Vector3(pos.x, 0.0, pos.z)
 	velocity = Vector3.ZERO
 	state = State.NORMAL
+	tripped = false
+	celebrate_timer = 0.0
 	if look_dir.length_squared() > 0.01:
 		facing = Vector3(look_dir.x, 0.0, look_dir.z).normalized()
 	_apply_facing()
@@ -182,6 +211,7 @@ func tick(dt: float, has_ball: bool) -> void:
 	pass_target_timer = maxf(0.0, pass_target_timer - dt)
 	possession_time = possession_time + dt if has_ball else 0.0
 	reaction_timer = maxf(0.0, reaction_timer - dt)
+	celebrate_timer = maxf(0.0, celebrate_timer - dt)
 	update_stamina(dt)
 
 	match state:
@@ -196,6 +226,7 @@ func tick(dt: float, has_ball: bool) -> void:
 			velocity = velocity.move_toward(Vector3.ZERO, _tuning.deceleration * dt)
 			if state_timer <= 0.0:
 				state = State.NORMAL
+				tripped = false
 		State.NORMAL:
 			_tick_normal(dt, has_ball)
 
@@ -204,6 +235,7 @@ func tick(dt: float, has_ball: bool) -> void:
 	# así que no se usa move_and_slide() y el movimiento es determinista.
 	global_position += velocity * dt
 	global_position.y = 0.0
+	face_point = Vector3.INF
 	_apply_facing()
 	_update_visual(dt)
 
@@ -217,12 +249,16 @@ func _update_visual(dt: float) -> void:
 	var pose := PlayerVisual.Pose.NORMAL
 	if state == State.SLIDING:
 		pose = PlayerVisual.Pose.SLIDING
-	elif state == State.RECOVERING and state_timer > 0.3:
+	elif state == State.RECOVERING and (tripped or state_timer > 0.3):
 		pose = PlayerVisual.Pose.FALLEN
 	if visual is ModelVisual:
 		var mv := visual as ModelVisual
 		mv.keeper = is_keeper()
 		mv.carrying = possession_time > 0.0
+		mv.tripped = tripped
+		mv.recover_left = state_timer if state == State.RECOVERING else 0.0
+		# Desplazamiento de costado (eje X del modelo = su izquierda).
+		mv.side_speed = velocity.dot(global_basis.x)
 	visual.update(dt, spd, _tuning.sprint_speed, pose, accel)
 
 
@@ -231,6 +267,9 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 	move.y = 0.0
 	if move.length() > 1.0:
 		move = move.normalized()
+	if celebrate_timer > 0.0:
+		velocity = velocity.move_toward(Vector3.ZERO, _tuning.deceleration * dt)
+		return
 	if locked:
 		# Puede girar para apuntar pero no desplazarse.
 		if move.length_squared() > 0.04:
@@ -262,7 +301,13 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 	if has_ball:
 		turn *= _tuning.turn_rate_ball_factor
 	var cut := false
-	if move.length_squared() > 0.01:
+	if face_point != Vector3.INF and not sprinting and cur_speed < STRAFE_MAX_SPEED:
+		# Se desplaza de costado sin dejar de mirar el punto (arquero).
+		var look := face_point - global_position
+		look.y = 0.0
+		if look.length_squared() > 0.01:
+			facing = _rotate_towards(facing, look.normalized(), turn * dt)
+	elif move.length_squared() > 0.01:
 		var off := absf(facing.signed_angle_to(move.normalized(), Vector3.UP))
 		cut = off > deg_to_rad(_tuning.cut_angle) and cur_speed > 1.5
 		facing = _rotate_towards(facing, move.normalized(), (turn * 2.0 if cut else turn) * dt)

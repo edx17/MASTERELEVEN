@@ -26,23 +26,43 @@ const BONE_MAP := {
 	"RightUpLeg": "thigh_r", "RightLeg": "calf_r", "RightFoot": "foot_r", "RightToeBase": "ball_r",
 }
 
-## Clips que usa el juego: nombre -> [archivo, espejado, loop].
+## Clips que usa el juego: nombre -> opciones.
+##   file: archivo (sin .fbx). mirror: espejado (el otro lado). loop: en bucle.
+##   lateral: cuánto del vuelo de costado de la cadera se conserva (estiradas).
+##   face: se descarta el giro del cuerpo que trae el clip (el rumbo lo manda
+##     la simulación; p. ej. el control que en Mixamo termina mirando atrás).
+##   range: [inicio, golpe, fin] en segundos (si no, se buscan en el clip).
 const CLIPS := {
-	"kick": ["Kick_Soccerball", false, false],
-	"shot": ["Soccer_Penalty_Kick", false, false],
-	"pass": ["Soccer_Pass", false, false],
-	"header": ["Soccer_Header", false, false],
-	"slide": ["Soccer_Tackle", false, false],
-	"receive": ["Receive", false, false],
-	"dribble": ["Dribble", false, true],
-	"gk_idle": ["Goalkeeper_Idle", false, true],
-	"gk_catch": ["Goalkeeper_Catch", false, false],
-	"gk_throw": ["Goalkeeper_Overhand_Throw", false, false],
-	"gk_kick": ["Goalkeeper_Pass", false, false],
+	"kick": {"file": "Kick_Soccerball"},
+	"shot": {"file": "Soccer_Penalty_Kick"},
+	"pass": {"file": "Soccer_Pass"},
+	"header": {"file": "Soccer_Header"},
+	"slide": {"file": "Soccer_Tackle"},
+	"dribble": {"file": "Dribble", "loop": true},
+	# Entrada de pie (X): sólo la estocada con la pierna, sin la caída.
+	"tackle": {"file": "Soccer_Tackle_1", "face": true, "range": [0.45, 0.72, 0.9]},
+	# Control con la suela al recibir un pase.
+	"receive": {"file": "Receive_Soccerball", "face": true, "range": [0.75, 1.0, 1.6]},
+	# Caída tras una barrida y cómo se levanta.
+	"trip": {"file": "Soccer_Trip", "face": true, "range": [0.15, 0.4, 1.6]},
+	"get_up": {"file": "Standing_Up", "face": true},
+	"celebrate": {"file": "Cartwheel", "face": true, "range": [0.2, 0.5, 2.8]},
+	"gk_idle": {"file": "Goalkeeper_Idle", "loop": true},
+	"gk_catch": {"file": "Goalkeeper_Catch"},
+	"gk_catch_high": {"file": "Goalkeeper_Catch_1", "face": true, "range": [0.9, 1.55, 2.2]},
+	"gk_catch_low": {"file": "Goalkeeper_Catch_2", "face": true, "range": [0.3, 0.8, 1.6]},
+	"gk_block": {"file": "Goalkeeper_Body_Block", "face": true, "range": [0.2, 0.75, 1.9]},
+	"gk_miss": {"file": "Goalkeeper_Miss", "face": true},
+	"gk_throw": {"file": "Goalkeeper_Overhand_Throw"},
+	# Saque con la mano rodando: el gesto de bochas del final del clip.
+	"gk_roll": {"file": "Goalkeeper_Placing_Ball", "face": true, "range": [1.4, 2.0, 2.6]},
+	"gk_kick": {"file": "Goalkeeper_Pass"},
+	"gk_side_a": {"file": "Goalkeeper_Sidestep", "loop": true, "face": true},
+	"gk_side_b": {"file": "Goalkeeper_Sidestep", "loop": true, "face": true, "mirror": true},
 	# La estirada de Mixamo va hacia +X del modelo (su izquierda); hacia -X es
 	# la misma, espejada.
-	"gk_dive_px": ["Goalkeeper_Diving_Save", false, false],
-	"gk_dive_nx": ["Goalkeeper_Diving_Save", true, false],
+	"gk_dive_px": {"file": "Goalkeeper_Diving_Save", "lateral": 0.6},
+	"gk_dive_nx": {"file": "Goalkeeper_Diving_Save", "mirror": true, "lateral": 0.6},
 }
 
 static var _lib: AnimationLibrary
@@ -51,6 +71,14 @@ static var _lib: AnimationLibrary
 static var marks := {}
 static var _checked := false
 static var _dive_contact := 1.0
+## Sentido (+1/-1 en X del modelo) hacia el que se desplaza el paso lateral
+## del arquero sin espejar ("gk_side_a"); el espejado va al revés.
+static var side_sign := 1.0
+## Velocidad de costado (m/s) a la que ese paso se ve natural.
+static var side_nominal := 1.5
+## Desplazamiento de la cadera de Mixamo en el último clip adaptado.
+static var _last_travel := Vector3.ZERO
+static var _last_height_ratio := 1.0
 
 
 ## Construye (una vez) la librería con los clips disponibles. `body` es un
@@ -65,20 +93,21 @@ static func library(body_scene: PackedScene) -> AnimationLibrary:
 	var target := body.find_child("Skeleton3D", true, false) as Skeleton3D
 	var lib := AnimationLibrary.new()
 	for clip_name in CLIPS:
-		var spec: Array = CLIPS[clip_name]
-		# Acepta el nombre con guiones bajos o con espacios (como baja de Mixamo).
-		var path: String = DIR + spec[0] + ".fbx"
-		if not ResourceLoader.exists(path):
-			path = DIR + String(spec[0]).replace("_", " ") + ".fbx"
-		if not ResourceLoader.exists(path):
+		var spec: Dictionary = CLIPS[clip_name]
+		var path := file_path(spec["file"])
+		if path == "":
 			continue
-		# Las estiradas conservan parte del vuelo de costado (el resto lo pone
-		# el desplazamiento del arquero en la simulación).
-		var lateral := 0.6 if String(clip_name).begins_with("gk_dive") else 0.0
-		var anim := _retarget(path, target, spec[1], spec[2], lateral)
+		var anim := _retarget(path, target, spec)
 		if anim != null:
 			lib.add_animation(clip_name, anim)
-			marks[clip_name] = _marks(clip_name, anim, target)
+			if clip_name == "gk_side_a":
+				side_sign = 1.0 if _last_travel.x >= 0.0 else -1.0
+				side_nominal = clampf(absf(_last_travel.x) * _last_height_ratio / anim.length, 0.8, 3.0)
+			if spec.has("range"):
+				var r: Array = spec["range"]
+				marks[clip_name] = {"start": r[0], "contact": r[1], "end": minf(r[2], anim.length)}
+			else:
+				marks[clip_name] = _marks(clip_name, anim, target)
 	body.free()
 	if lib.get_animation_list().is_empty():
 		return null
@@ -86,7 +115,21 @@ static func library(body_scene: PackedScene) -> AnimationLibrary:
 	return _lib
 
 
-static func _retarget(path: String, target: Skeleton3D, mirror: bool, loop: bool, lateral: float = 0.0) -> Animation:
+## Ruta del FBX en la copia local, con guiones bajos o con espacios (como
+## baja de Mixamo). Vacío si no está.
+static func file_path(file: String) -> String:
+	for candidate in [file, file.replace("_", " ")]:
+		var path: String = DIR + candidate + ".fbx"
+		if ResourceLoader.exists(path):
+			return path
+	return ""
+
+
+static func _retarget(path: String, target: Skeleton3D, spec: Dictionary) -> Animation:
+	var mirror: bool = spec.get("mirror", false)
+	var loop: bool = spec.get("loop", false)
+	var lateral: float = spec.get("lateral", 0.0)
+	var face: bool = spec.get("face", false)
 	var src_scene := (load(path) as PackedScene).instantiate()
 	var src := src_scene.find_child("Skeleton3D", true, false) as Skeleton3D
 	var player := src_scene.find_children("*", "AnimationPlayer", true, false)
@@ -146,6 +189,10 @@ static func _retarget(path: String, target: Skeleton3D, mirror: bool, loop: bool
 	if lateral > 0.0 and hips_pos_track >= 0:
 		_dive_contact = _fastest_x_time(src_anim, hips_pos_track)
 		base_x = (src_anim.position_track_interpolate(hips_pos_track, maxf(0.0, _dive_contact - 0.2)) as Vector3).x
+	_last_travel = Vector3.ZERO
+	_last_height_ratio = height_ratio
+	if hips_pos_track >= 0:
+		_last_travel = src_anim.position_track_interpolate(hips_pos_track, src_anim.length) - src_anim.position_track_interpolate(hips_pos_track, 0.0)
 	var frames := int(ceil(src_anim.length * FPS))
 	for f in frames + 1:
 		var time := minf(f / FPS, src_anim.length)
@@ -158,6 +205,13 @@ static func _retarget(path: String, target: Skeleton3D, mirror: bool, loop: bool
 				local = src_anim.rotation_track_interpolate(rot_track[bname], time)
 			var p := src.get_bone_parent(b)
 			src_g[b] = (src_g[p] * local) if p >= 0 else local
+		# Giro propio del clip (alrededor del eje vertical) a descartar.
+		var unturn := Quaternion.IDENTITY
+		if face and src_hips >= 0:
+			var hd: Quaternion = src_g[src_hips] * (src_rest_g[src_hips] as Quaternion).inverse()
+			if mirror:
+				hd = Quaternion(hd.x, -hd.y, -hd.z, hd.w)
+			unturn = Quaternion(0.0, hd.y, 0.0, hd.w).normalized().inverse()
 		# Rotaciones globales nuestras y paso a locales.
 		var tgt_g := {}
 		for tb in target.get_bone_count():
@@ -168,7 +222,7 @@ static func _retarget(path: String, target: Skeleton3D, mirror: bool, loop: bool
 				var delta: Quaternion = src_g[sb] * (src_rest_g[sb] as Quaternion).inverse()
 				if mirror:
 					delta = Quaternion(delta.x, -delta.y, -delta.z, delta.w)
-				var g: Quaternion = (delta * tgt_rest_g[tb]).normalized()
+				var g: Quaternion = (unturn * delta * tgt_rest_g[tb]).normalized()
 				tgt_g[tb] = g
 				out.rotation_track_insert_key(out_track[tb], time, (parent_g.inverse() * g).normalized())
 			else:

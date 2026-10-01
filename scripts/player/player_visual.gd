@@ -9,7 +9,10 @@ extends Node3D
 ##   setup(colors, seed), update(dt, speed, sprint_speed, state), play(event, side)
 
 ## Eventos que dispara la simulación.
-enum Event { KICK, PASS, HEADER, THROW, DIVE_LEFT, DIVE_RIGHT, CATCH, TACKLE }
+## Las variantes (atajada alta/baja, achique, recepción, festejo...) usan
+## un clip propio en ModelVisual; acá se dibujan con el gesto más parecido.
+enum Event { KICK, PASS, HEADER, THROW, DIVE_LEFT, DIVE_RIGHT, CATCH, TACKLE,
+		RECEIVE, CHEST, CATCH_HIGH, CATCH_LOW, BLOCK, CELEBRATE, DEJECTED, ROLL }
 ## Estado continuo (lo decide el Footballer a partir de su State).
 enum Pose { NORMAL, SLIDING, FALLEN }
 
@@ -109,6 +112,13 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 
 
 func play(event: int, side: float = 1.0) -> void:
+	match event:
+		Event.CATCH_HIGH, Event.CATCH_LOW, Event.BLOCK:
+			event = Event.CATCH
+		Event.ROLL:
+			event = Event.THROW
+		Event.RECEIVE, Event.DEJECTED:
+			return # sin gesto propio en el humanoide armado por piezas
 	_event = event
 	_event_t = 0.0
 	_event_side = side
@@ -120,6 +130,8 @@ func play(event: int, side: float = 1.0) -> void:
 		Event.THROW: _event_len = 0.6
 		Event.CATCH: _event_len = 0.45
 		Event.TACKLE: _event_len = 0.45
+		Event.CHEST: _event_len = 0.5
+		Event.CELEBRATE: _event_len = 2.5
 		_: _event_len = 1.1
 
 
@@ -174,6 +186,16 @@ func _apply(run: float) -> void:
 		Event.CATCH:
 			for i in 2:
 				_arm[i].rotation = Vector3(-1.4 * strike, 0, 0)
+		Event.CHEST:
+			# Pecho afuera para bajarla, brazos abiertos.
+			_torso.rotation.x = _lean - 0.45 * strike
+			for i in 2:
+				_arm[i].rotation = Vector3(0, 0, (-1.0 if i == 0 else 1.0) * 0.8 * strike)
+		Event.CELEBRATE:
+			# Brazos arriba y saltito.
+			_hips.position.y += 0.2 * absf(sin(k * PI * 4.0))
+			for i in 2:
+				_arm[i].rotation = Vector3(-2.9 * minf(k * 5.0, 1.0), 0, 0)
 		Event.TACKLE:
 			_leg[1].rotation = Vector3(-1.2 * strike, 0, 0)
 			_torso.rotation.x = _lean + 0.35 * strike

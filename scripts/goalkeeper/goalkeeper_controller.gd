@@ -85,6 +85,7 @@ func tick(p: Footballer, ai: TeamAI, dt: float) -> void:
 				p.speed_override = _match.tuning.keeper_dive_speed
 				p.debug_state = "cubre el arco"
 				ai.go_to(p, spot2, true)
+				p.face_point = bp
 				return
 	# 4) Mano a mano: atacante con pelota encarando dentro del área.
 	var carrier := ball.owner_player
@@ -112,6 +113,8 @@ func tick(p: Footballer, ai: TeamAI, dt: float) -> void:
 	# Si quedó lejos de su lugar (volvía de líbero o de una salida), vuelve
 	# corriendo: un arquero fuera de posición es gol seguro de lejos.
 	ai.go_to(p, spot3, p.flat_pos().distance_to(spot3) > 3.0)
+	# Se acomoda de costado sin dejar de mirar la pelota (paso lateral).
+	p.face_point = bp
 	p.look_at_point(bp)
 
 

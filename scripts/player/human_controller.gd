@@ -45,6 +45,8 @@ var _switch_cooldown: float = 0.0
 var _handled_kick: int = -1
 
 var _match: MatchController
+## Stick en rumbos fijos (8/16, estilo WE2002); se lee de GameSettings.
+var _directions := StickDirections.new()
 
 
 func _init(p_slot: int, p_team: Team, p_match: MatchController, p_input: InputSource = null) -> void:
@@ -106,10 +108,15 @@ func tick(dt: float) -> void:
 		return
 
 	# El stick está en coordenadas de pantalla: se traduce según la cámara.
-	var move := _match.screen_to_world(input.move_vector())
+	# Para apuntar pases se usa el ángulo exacto; para correr, el rumbo fijo
+	# más cercano (8/16 direcciones, como el WE2002).
+	var raw := input.move_vector()
+	var aim_move := _match.screen_to_world(raw)
+	_directions.steps = GameSettings.stick_directions
+	var move := _match.screen_to_world(_directions.apply(raw))
 	_aim_age += dt
-	if move.length_squared() > 0.09:
-		_aim_dir = move.normalized()
+	if aim_move.length_squared() > 0.09:
+		_aim_dir = aim_move.normalized()
 		_aim_age = 0.0
 	var opponent_has_ball := ball.owner_player != null and ball.owner_player.team != team
 
@@ -167,7 +174,7 @@ func tick(dt: float) -> void:
 	if is_charging():
 		power = minf(1.0, power + dt / _match.tuning.power_charge_time)
 		var kind: int = KICK_BUTTONS[charging_action]
-		var aim := aim_direction(move)
+		var aim := aim_direction(aim_move)
 		# Mientras se carga, se marca a quién va el pase (y se puede corregir
 		# con el stick). Al soltar, ese receptor queda "trabado".
 		_set_preview(_match.kicks.preview_receiver(kind, p, aim) if kind != KickActions.Kind.SHOT else null)

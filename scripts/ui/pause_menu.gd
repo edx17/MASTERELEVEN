@@ -6,6 +6,7 @@ var _panel: PanelContainer
 var _resume: Button
 var _formation_btn: Button
 var _difficulty_btn: Button
+var _stick_btn: Button
 
 
 func _ready() -> void:
@@ -32,6 +33,7 @@ func _ready() -> void:
 	_resume = _button(box, "Continuar", _toggle)
 	_formation_btn = _button(box, "", _cycle_formation)
 	_difficulty_btn = _button(box, "", _cycle_difficulty)
+	_stick_btn = _button(box, "", _cycle_stick)
 	_button(box, "Salir al menú", _exit)
 	_panel.visible = false
 
@@ -80,6 +82,8 @@ func _refresh() -> void:
 	var t := m.teams[_my_team_index()]
 	_formation_btn.text = "Formación (%s): %s" % [t.short_name, t.formation.formation_name if t.formation else "-"]
 	_difficulty_btn.text = "Dificultad CPU: %s" % Difficulty.NAMES[GameSettings.difficulty]
+	var dirs := GameSettings.stick_directions
+	_stick_btn.text = "Movimiento: %s" % ("%d direcciones" % dirs if dirs > 0 else "libre")
 
 
 func _cycle_formation() -> void:
@@ -101,6 +105,14 @@ func _cycle_difficulty() -> void:
 	GameSettings.difficulty = (GameSettings.difficulty + 1) % Difficulty.NAMES.size()
 	if m != null:
 		m.apply_difficulty(GameSettings.difficulty)
+	_refresh()
+
+
+## Rumbos del stick: 8 -> 16 -> libre.
+func _cycle_stick() -> void:
+	var opts := GameSettings.STICK_OPTIONS
+	var i := opts.find(GameSettings.stick_directions)
+	GameSettings.stick_directions = opts[(i + 1) % opts.size()]
 	_refresh()
 
 

@@ -8,6 +8,7 @@ const TUNING_PATH := "res://data/config/tuning.tres"
 const DURATION_OPTIONS: Array[int] = [5, 7, 10, 3]
 const DEFAULT_HOME := "res://data/teams/aurora.tres"
 const DEFAULT_AWAY := "res://data/teams/halcones.tres"
+const STICK_OPTIONS: Array[int] = [8, 16, 0]
 
 ## Minutos reales que dura un partido completo (los 90' se aceleran a esto).
 var match_minutes: int = 5
@@ -23,6 +24,9 @@ var camera_preset: int = 0
 var show_pass_target: bool = false
 ## Dificultad de la CPU (Difficulty.Level).
 var difficulty: int = 1
+## Rumbos del stick del humano: 8, 16 (estilo WE2002) o 0 = libre. Arranca
+## con el valor de tuning.tres y se cambia desde la pausa.
+var stick_directions: int = 8
 
 
 func _ready() -> void:
@@ -30,6 +34,7 @@ func _ready() -> void:
 	if tuning == null:
 		push_warning("No se pudo cargar %s; se usan valores por defecto." % TUNING_PATH)
 		tuning = Tuning.new()
+	stick_directions = tuning.stick_directions
 	InputRouter.setup_for_mode(mode)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 	_check_capture_mode()
