@@ -87,12 +87,15 @@ Si esto no funciona, NO se agregan sistemas: se corrige el gameplay primero.
 | Pase al hueco / arquero sale a achicar (mantenido, defendiendo) | Triángulo / Y  | I           |
 | Sprint                 | R1 / RB        | Shift       |
 | Cambiar jugador        | L1 / LB        | Q           |
+| Cancelar la orden que espera la pelota | R2 / RT | E      |
 | Pausa                  | Start          | Esc         |
 | Cambiar cámara         | Select / Back  | C           |
 | Debug                  | —              | F9          |
 La potencia de tiro y pase se gradúa manteniendo el botón (barra de potencia).
 Pase de primera: apretar el pase mientras la pelota viene; el stick sólo
-apunta el próximo pase (el receptor sigue yendo a buscar la pelota).
+apunta el próximo pase (el receptor sigue yendo a buscar la pelota). La orden
+espera hasta que llega la pelota (de cabeza si viene alta), hasta que el rival
+la anticipa o hasta cancelarla con R2 / E.
 Arquero: con la pelota lo maneja el humano. En las manos: X / Triángulo =
 saque con la mano (rodando), Círculo / Cuadrado = pelotazo. Pase atrás de un
 compañero: la juega con los pies, como un jugador más.

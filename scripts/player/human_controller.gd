@@ -30,7 +30,6 @@ var power: float = 0.0
 var _buffered_kind: int = -1
 var _buffered_power: float = 0.0
 var _buffered_dir: Vector3 = Vector3.ZERO
-var _buffer_timer: float = 0.0
 var _buffered_receiver: Footballer = null
 ## Compañero que recibiría el pase que se está cargando (marcado en la cancha).
 var preview_receiver: Footballer = null
@@ -63,6 +62,7 @@ func is_charging() -> bool:
 func select(player: Footballer) -> void:
 	if player == controlled:
 		return
+	cancel_order()
 	if controlled != null:
 		controlled.set_human_slot(-1)
 		controlled.desired_move = Vector3.ZERO
@@ -92,7 +92,6 @@ func nearest_to_ball(exclude: Footballer = null) -> Footballer:
 func tick(dt: float) -> void:
 	input.poll()
 	_switch_cooldown = maxf(0.0, _switch_cooldown - dt)
-	_buffer_timer = maxf(0.0, _buffer_timer - dt)
 	var ball := _match.ball
 	_auto_switch(ball)
 
@@ -138,9 +137,10 @@ func tick(dt: float) -> void:
 	# próximo pase: el receptor sigue yendo a la pelota.
 	var one_touch_pending := is_charging() or _buffered_kind >= 0
 	var incoming := ball.is_loose() and ball.intended_receiver == p
-	if incoming and _buffered_kind >= 0:
-		# La orden guardada dura hasta que la pelota llega (pase largo).
-		_buffer_timer = maxf(_buffer_timer, 0.2)
+	# Con una orden guardada y el stick suelto también va a buscar una pelota
+	# suelta cualquiera (como en WE: "esperando" para patear de primera).
+	if _buffered_kind >= 0 and ball.is_loose() and move.length_squared() < 0.04:
+		incoming = true
 	if incoming and (move.length_squared() < 0.04 or one_touch_pending):
 		var meet := _match.loose_ball_intercept(p)
 		var to_meet := meet - p.flat_pos()
@@ -189,15 +189,37 @@ func tick(dt: float) -> void:
 	elif _buffered_kind < 0:
 		_set_preview(null)
 
-	# Toque de primera: si la pelota llegó y había una acción guardada.
-	if _buffered_kind >= 0 and _buffer_timer > 0.0 and _match.can_kick(p):
-		var k := _buffered_kind
-		_buffered_kind = -1
-		_set_preview(null)
-		_do_kick(k, _buffered_power, _buffered_dir, _buffered_receiver)
-	elif _buffer_timer <= 0.0 and _buffered_kind >= 0:
-		_buffered_kind = -1
-		_set_preview(null)
+	# Orden guardada (como en WE): el jugador queda esperando la pelota y
+	# patea (o cabecea) de primera apenas le llega. Se pierde si el rival la
+	# anticipa, si se corta el juego o si se cancela (R2 / E).
+	if _buffered_kind >= 0:
+		if _order_cancelled(ball):
+			cancel_order()
+		elif _match.can_kick(p):
+			var k := _buffered_kind
+			_buffered_kind = -1
+			_set_preview(null)
+			_do_kick(k, _buffered_power, _buffered_dir, _buffered_receiver)
+
+
+## Hay una orden esperando la pelota.
+func has_order() -> bool:
+	return _buffered_kind >= 0
+
+
+func cancel_order() -> void:
+	_buffered_kind = -1
+	_buffered_receiver = null
+	_set_preview(null)
+
+
+func _order_cancelled(ball: Ball) -> bool:
+	if input.just_pressed(&"cancel"):
+		return true
+	if _match.phase != MatchController.Phase.PLAYING:
+		return true
+	# El rival la anticipó (o un compañero la ganó antes).
+	return ball.owner_player != null and ball.owner_player != controlled
 
 
 ## Dirección a usar para un pase/tiro: el stick actual o, si se soltó hace
@@ -233,7 +255,6 @@ func _try_kick(kind: int, pwr: float, move: Vector3, target: Footballer = null) 
 	_buffered_power = pwr
 	_buffered_dir = move
 	_buffered_receiver = target
-	_buffer_timer = _match.tuning.one_touch_buffer
 	_set_preview(target)
 
 
@@ -288,7 +309,8 @@ func _auto_switch(ball: Ball) -> void:
 		# Soltó la pelota el arquero: vuelve a un jugador de campo.
 		select(nearest_to_ball())
 		return
-	if is_charging() or _switch_cooldown > 0.0:
+	# Cargando o con una orden esperando la pelota: no se cambia de jugador.
+	if is_charging() or has_order() or _switch_cooldown > 0.0:
 		return
 	var nearest := nearest_to_ball()
 	if nearest != null and nearest != controlled:

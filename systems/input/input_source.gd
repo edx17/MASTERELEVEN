@@ -6,7 +6,7 @@ extends RefCounted
 ## NetworkInput sin tocar la lógica de juego.
 ##
 ## Acciones: &"pass_short", &"shoot", &"pass_long", &"pass_through", &"sprint",
-## &"switch_player", &"pause".
+## &"switch_player", &"cancel" (cancela la orden que espera la pelota), &"pause".
 
 
 ## Se llama una vez por tick antes de leer (para fuentes que llevan estado).

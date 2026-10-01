@@ -280,7 +280,9 @@ static func _marks(clip_name: String, anim: Animation, target: Skeleton3D) -> Di
 	# Los golpes se disparan en el instante del contacto: el clip arranca
 	# apenas antes (el pie ya viene bajando). Atajadas y saques, con algo de
 	# anticipación.
-	var lead := 0.08 if clip_name in ["kick", "shot", "pass", "gk_kick", "header"] else 0.3
+	# La pelota sale en el instante de la orden (como en WE): el clip arranca
+	# justo en el golpe para que el pie (o la cabeza) esté en la pelota.
+	var lead := 0.03 if clip_name in ["kick", "shot", "pass", "gk_kick", "header"] else 0.3
 	if clip_name.begins_with("gk_dive"):
 		lead = 0.2 # el remate ya salió: el vuelo arranca enseguida
 	var start := maxf(0.0, contact - lead)

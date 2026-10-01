@@ -59,6 +59,14 @@ Ver `Claude.md` para visión, criterios y fases.
 
 Corrección: antes del saque del medio todos se seguían acomodando con la pelota quieta; ahora quedan quietos en su puesto (CPU y humano) hasta que se saca.
 
+### Ronda 5b (tu prueba)
+| Falla / pedido | Cambio |
+|---|---|
+| El arquero ataja, se cae y la pelota queda flotando | En las manos, la pelota sigue el punto medio de las manos del modelo (atajada, estirada, achique, caída). |
+| No cabecean / no saben cuándo | Duelo aéreo: la pelota alta que nadie puede bajar con el pecho la cabecea el que llega (alcance 1 m, hasta 2,6 m de altura saltando). CPU: cerca del arco rival, **remate de cabeza**; en su campo, **despeje** largo; si no, pase de cabeza. Los compañeros del destinatario de un pase no se la "roban" de cabeza (la deja bajar y la controla). Tu jugador cabecea cuando tiene una orden: tiro = cabezazo al arco, pase = pase de cabeza. |
+| Orden que espera la pelota (WE) | Pase / tiro pedido antes de tener la pelota queda **esperando hasta que llega** (antes vencía a los 0,55 s): se ejecuta de primera o de cabeza apenas está al alcance. Con el stick suelto el jugador va a buscarla. Se pierde si el rival la anticipa, si se corta el juego o con **R2 / E (cancelar)**. Mientras espera no se cambia de jugador solo. |
+| La pelota sale del aire, no del pie | El gesto arranca justo en el golpe y la pelota se **dibuja saliendo del pie** (o de la frente) y en 0,08 s se acomoda a su posición real (sólo presentación). |
+
 Sin usar por ahora: `Kick Up` / `Stall Soccerball` (sin pelota se ven raros), `Soccer Spin` (va con los amagues de la Fase 4), `Receiver Catch` (es de fútbol americano), `Defender` y `Situp To Idle`.
 
 ### Pendiente

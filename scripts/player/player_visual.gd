@@ -111,6 +111,19 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 	_apply(run)
 
 
+## Dónde se ve la pelota cuando el arquero la tiene en las manos (global).
+func hold_point() -> Vector3:
+	return global_transform * Vector3(0.0, 1.0, 0.35)
+
+
+## Dónde toca la pelota el gesto recién lanzado (pie derecho; cabeza en el
+## cabezazo), en coordenadas globales. La pelota se dibuja saliendo de ahí.
+func contact_point(event: int) -> Vector3:
+	if event == Event.HEADER:
+		return global_transform * Vector3(0.0, 1.85, 0.15)
+	return global_transform * Vector3(-0.12, 0.11, 0.45)
+
+
 func play(event: int, side: float = 1.0) -> void:
 	match event:
 		Event.CATCH_HIGH, Event.CATCH_LOW, Event.BLOCK:

@@ -20,6 +20,8 @@ const RESTART_HUMAN_DELAY := 0.35
 const PLAYER_SEPARATION := 0.85
 ## Distancia máxima jugador-pelota para poder patear.
 const KICK_REACH := 1.25
+## Desde esta altura un toque es de cabeza (más abajo, pecho / muslo / pie).
+const HEADER_MIN_HEIGHT := 1.3
 ## Un desvío más rápido que esto hacia el arco se trata como remate (plan de atajada).
 const DEFLECTION_SHOT_SPEED := 12.0
 ## Tiempo tras el despeje del arquero con las manos en que un rival no la puede
@@ -431,6 +433,10 @@ func _show_kick(kicker: Footballer) -> void:
 	elif _in_kick and ball.speed() < 16.0:
 		ev = PlayerVisual.Event.PASS
 	kicker.visual.play(ev)
+	# La pelota se dibuja saliendo del pie (o de la cabeza) del gesto.
+	if ev in [PlayerVisual.Event.KICK, PlayerVisual.Event.PASS, PlayerVisual.Event.HEADER]:
+		var off := kicker.visual.contact_point(ev) - ball.state.pos
+		ball.visual_offset = off if off.length() < 1.3 else Vector3.ZERO
 
 
 ## El arquero se tira hacia donde va la pelota (sólo presentación).
@@ -512,14 +518,29 @@ func can_kick(player: Footballer) -> bool:
 		return false
 	if ball.owner_player == null and not player.can_touch_ball():
 		return false
-	return ball.flat_pos().distance_to(player.flat_pos()) < KICK_REACH and ball.state.pos.y < 1.8
+	var d := ball.flat_pos().distance_to(player.flat_pos())
+	if ball.state.pos.y < 1.8:
+		return d < KICK_REACH
+	# Pelota alta: de cabeza (saltando), con menos alcance.
+	return in_header_reach(player)
+
+
+## La pelota está donde el jugador la puede cabecear (saltando).
+func in_header_reach(p: Footballer) -> bool:
+	var h := ball.state.pos.y
+	if h < HEADER_MIN_HEIGHT or h > tuning.header_max_height or not p.can_touch_ball():
+		return false
+	if p.state != Footballer.State.NORMAL:
+		return false
+	return ball.flat_pos().distance_to(p.flat_pos()) < tuning.header_reach
 
 
 # --- Posesión -----------------------------------------------------------------
 
 func _update_possession(dt: float) -> void:
 	if ball.owner_player == null:
-		_try_take_loose_ball()
+		if not _try_header():
+			_try_take_loose_ball()
 	else:
 		var carrier := ball.owner_player
 		var opp := _nearest_opponent(carrier)
@@ -639,6 +660,67 @@ func _show_receive(p: Footballer, height: float) -> void:
 		p.visual.play(PlayerVisual.Event.CHEST)
 	elif Vector3(p.velocity.x, 0.0, p.velocity.z).length() < 3.5:
 		p.visual.play(PlayerVisual.Event.RECEIVE)
+
+
+## Duelo aéreo: una pelota alta que nadie puede bajar con el pecho la
+## cabecea quien llegue (el más cercano). La CPU elige: cerca del arco rival,
+## remate de cabeza; en su campo, despeje largo; si no, pase de cabeza a un
+## compañero. El humano cabecea sólo si lo pidió (su orden guardada la
+## ejecuta su controlador antes, con can_kick).
+func _try_header() -> bool:
+	var h := ball.state.pos.y
+	if h < HEADER_MIN_HEIGHT:
+		return false
+	var best: Footballer = null
+	var best_d := INF
+	for p in all_players():
+		if not in_header_reach(p) or not _wants_header(p, h):
+			continue
+		var d := p.flat_pos().distance_to(ball.flat_pos())
+		if d < best_d:
+			best = p
+			best_d = d
+	if best == null:
+		return false
+	var kind := KickActions.Kind.SHORT_PASS
+	var dir := best.facing
+	var goal := best.team.target_goal()
+	if not best.is_human() and best.flat_pos().distance_to(goal) < 18.0 and best.team.progress_of(best.flat_pos()) > 0.75:
+		kind = KickActions.Kind.SHOT
+		dir = Vector3.ZERO
+	elif not best.is_human() and best.team.progress_of(best.flat_pos()) < 0.35:
+		# Despeje: lejos del arco propio, hacia arriba de la cancha.
+		kind = KickActions.Kind.LONG_PASS
+		dir = Vector3(best.team.attack_dir, 0.0, signf(best.flat_pos().z) * 0.6).normalized()
+	elif not best.is_human():
+		dir = Vector3(best.team.attack_dir, 0.0, 0.0)
+	_header_by(best, kind, dir)
+	return true
+
+
+## Si este jugador va a cabecear una pelota a esa altura (en vez de dejarla
+## pasar o de bajarla con el pecho).
+func _wants_header(p: Footballer, h: float) -> bool:
+	# El arquero en su área la agarra con las manos.
+	if p.is_keeper() and Pitch.in_penalty_area(p.flat_pos(), p.team.own_side()):
+		return false
+	# El humano cabecea cuando lo pide (orden guardada, ver HumanController).
+	if p.is_human():
+		return false
+	# Atacante de la CPU cerca del arco: la cabecea aunque la pudiera bajar.
+	if not p.is_human() and p.team.progress_of(p.flat_pos()) > 0.75 and p.flat_pos().distance_to(p.team.target_goal()) < 18.0:
+		return true
+	# El destinatario de un pase la deja bajar y la controla, y sus
+	# compañeros no se la "roban" de cabeza.
+	var recv := ball.intended_receiver
+	if recv != null and recv.team == p.team:
+		return false
+	return h > control_height_for(p)
+
+
+func _header_by(p: Footballer, kind: int, dir: Vector3) -> void:
+	perform_kick(p, kind, dir, 0.55)
+	p.touch_block = maxf(p.touch_block, 0.3)
 
 
 ## Pase atrás: la pelota la jugó a propósito (con el pie o de lateral) un

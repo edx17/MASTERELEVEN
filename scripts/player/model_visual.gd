@@ -239,6 +239,36 @@ func play(event: int, side: float = 1.0) -> void:
 		_event = -1 # la animación reemplaza al gesto armado por código
 
 
+## Punto medio entre las manos (sigue a la atajada, la estirada y la caída).
+func hold_point() -> Vector3:
+	var l := _skel.find_bone("hand_l")
+	var r := _skel.find_bone("hand_r")
+	if l < 0 or r < 0:
+		return super.hold_point()
+	var mid := (_skel.get_bone_global_pose(l).origin + _skel.get_bone_global_pose(r).origin) * 0.5
+	var p := _skel.global_transform * mid
+	# Las manos agarran la pelota por delante de los huesos de la muñeca.
+	return p + global_basis.z * 0.12
+
+
+## Pie (punta del botín) o cabeza en la pose actual del gesto.
+func contact_point(event: int) -> Vector3:
+	var bones: Array = ["Head"] if event == Event.HEADER else ["foot_r", "ball_r"]
+	var sum := Vector3.ZERO
+	var n := 0
+	for bn in bones:
+		var b := _skel.find_bone(bn)
+		if b >= 0:
+			sum += _skel.get_bone_global_pose(b).origin
+			n += 1
+	if n == 0:
+		return super.contact_point(event)
+	var p := _skel.global_transform * (sum / n)
+	if event == Event.HEADER:
+		p += global_basis.z * 0.12 # la frente, no el centro de la cabeza
+	return p
+
+
 ## Reproduce un clip de fútbol desde un poco antes del golpe. false si no está.
 ## `hold`: queda en el último cuadro hasta que otro clip lo reemplace.
 func _play_clip(clip: String, speed: float = 1.0, hold: bool = false) -> bool:
