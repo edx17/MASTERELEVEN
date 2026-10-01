@@ -283,10 +283,18 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 		crowd.multimesh = crowd_mm
 		crowd.material_override = crowd_material
 		crowd.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# Fuera de la iluminación global: SDFGI re-voxeliza lo estático cada
+		# vez que la cámara cambia de zona (decenas de miles de instancias =
+		# tirones). Escalones, paredes y techos alcanzan para el rebote.
+		crowd.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 		stand.add_child(crowd)
 
 	var seats := MultiMeshInstance3D.new()
 	seats.multimesh = mm
+	# Las butacas no proyectan sombra (miles de instancias en cada pasada de
+	# sombra; los escalones ya dan la sombra de la tribuna).
+	seats.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	seats.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	var seat_mat := _mat(Color.WHITE, 0.6)
 	seat_mat.vertex_color_use_as_albedo = true
 	seats.material_override = seat_mat
@@ -352,6 +360,8 @@ static func _roof(stand: Node3D, roof_type: String, back_len: float, front_len: 
 			var tr := MeshInstance3D.new()
 			tr.mesh = st.commit()
 			tr.material_override = white
+			# Van sobre el techo: no rayan el césped con sombras.
+			tr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			stand.add_child(tr)
 		"truss":
 			# Techo oscuro sostenido por vigas rojas enormes: una a lo largo del
@@ -377,6 +387,7 @@ static func _roof(stand: Node3D, roof_type: String, back_len: float, front_len: 
 			var g := MeshInstance3D.new()
 			g.mesh = st2.commit()
 			g.material_override = red
+			g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			stand.add_child(g)
 		_:
 			# Techo con vigas (dejan franjas de sombra sobre el césped).
@@ -665,6 +676,7 @@ static func _banners(stand: Node3D, length: float, y: float, z: float, fans: Dic
 				mi.material_override = m
 				mi.position = Vector3(x + w * 0.5, y + 0.75 - i * 0.5, z)
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 				stand.add_child(mi)
 		x += w + rng.randf_range(1.5, 7.0)
 
@@ -688,6 +700,7 @@ static func _railing(stand: Node3D, length: float, y: float, z: float, cut: floa
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = _mat(Color(0.55, 0.56, 0.6), 0.3)
+	mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	stand.add_child(mi)
 
 
@@ -701,8 +714,19 @@ static func set_camera_side(root: Node3D, stand_name: String) -> void:
 		if stand_name != "" and String(stand.name).begins_with(stand_name):
 			mode = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 		for child in stand.get_children():
-			if child is GeometryInstance3D:
-				(child as GeometryInstance3D).cast_shadow = mode
+			if not child is GeometryInstance3D:
+				continue
+			var g := child as GeometryInstance3D
+			# Lo que no proyecta sombra (público, butacas, cerchas) sigue sin
+			# proyectarla; en la tribuna oculta directamente no se dibuja.
+			if not g.has_meta("base_shadow"):
+				g.set_meta("base_shadow", g.cast_shadow)
+			var casts: bool = g.get_meta("base_shadow") != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			if casts:
+				g.cast_shadow = mode
+				g.visible = true
+			else:
+				g.visible = mode == GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 
 
 ## Caja alineada a los ejes agregada a un SurfaceTool.

@@ -43,6 +43,10 @@ var state: State = State.NORMAL
 var state_timer: float = 0.0
 ## Tiempo durante el que no puede tocar la pelota.
 var touch_block: float = 0.0
+## Tiempo que sigue frenado después de patear o pasar (el cuerpo acompaña el
+## golpe, como en el WE: no se patea deslizándose a toda velocidad).
+var kick_brake: float = 0.0
+const KICK_BRAKE_SPEED := 0.35
 ## Quieto obligado (ejecutor de pelota parada).
 var locked: bool = false
 ## Humano que lo controla (-1 = IA).
@@ -243,6 +247,7 @@ func teleport(pos: Vector3, look_dir: Vector3 = Vector3.ZERO) -> void:
 ## Avanza un paso de simulación. `has_ball` lo informa el partido.
 func tick(dt: float, has_ball: bool) -> void:
 	touch_block = maxf(0.0, touch_block - dt)
+	kick_brake = maxf(0.0, kick_brake - dt)
 	tackle_cooldown = maxf(0.0, tackle_cooldown - dt)
 	pass_target_timer = maxf(0.0, pass_target_timer - dt)
 	possession_time = possession_time + dt if has_ball else 0.0
@@ -335,6 +340,8 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 			max_speed *= 0.5
 		Skill.BURST:
 			max_speed *= 1.05
+	if kick_brake > 0.0:
+		max_speed *= KICK_BRAKE_SPEED
 	if speed_override > 0.0:
 		max_speed = speed_override
 
@@ -366,6 +373,8 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 	var rate := (_tuning.acceleration * (1.0 + 0.15 * acc_attr)) if move.length_squared() > 0.01 else _tuning.deceleration
 	if cut:
 		rate = maxf(rate, _tuning.deceleration * 1.3)
+	if kick_brake > 0.0:
+		rate = maxf(rate, _tuning.deceleration)
 	if skill == Skill.BURST:
 		rate *= 1.6
 	velocity = velocity.move_toward(target_vel, rate * dt)

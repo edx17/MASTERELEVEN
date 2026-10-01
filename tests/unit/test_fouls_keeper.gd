@@ -160,3 +160,21 @@ func test_game_speed_slows_the_game_but_not_the_clock() -> void:
 		m._physics_process(dt * Engine.time_scale)
 	var real_rate := m.clock._scale
 	assert_almost_eq(m.clock.game_seconds - g0, real_rate, real_rate * 0.05, "el reloj avanza 1 s real de partido")
+
+
+func test_passer_slows_down_while_passing() -> void:
+	var p: Footballer = m.teams[0].players[6]
+	p.teleport(Vector3(-10, 0, 0), Vector3(1, 0, 0))
+	p.velocity = Vector3(7.0, 0, 0)
+	m.ball.place(p.flat_pos() + Vector3(0.5, 0.11, 0))
+	m.ball.give_to(p)
+	var before := Vector3(p.velocity.x, 0, p.velocity.z).length()
+	var mate: Footballer = m.teams[0].players[7]
+	assert_not_null(m.perform_kick(p, KickActions.Kind.SHORT_PASS, mate.flat_pos() - p.flat_pos(), 0.5, mate))
+	for i in 12:
+		p.desired_move = Vector3(1, 0, 0)
+		p.wants_sprint = true
+		p.tick(dt, false)
+	var after := Vector3(p.velocity.x, 0, p.velocity.z).length()
+	assert_gt(p.kick_brake, 0.0)
+	assert_lt(after, before * 0.6, "frena mientras pasa (%.1f -> %.1f m/s)" % [before, after])

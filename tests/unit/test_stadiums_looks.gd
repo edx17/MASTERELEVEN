@@ -74,3 +74,16 @@ func test_auto_build_follows_attributes() -> void:
 	var chosen := PlayerData.new()
 	chosen.build = PlayerData.Build.HEAVY
 	assert_eq(chosen.visual_build(), PlayerData.Build.HEAVY)
+
+
+func test_rain_falls_diagonally_with_wind() -> void:
+	var calm := Atmosphere.new()
+	add_child_autofree(calm)
+	calm.setup(MatchConditions.create(MatchConditions.TimeOfDay.AFTERNOON, MatchConditions.Weather.RAIN, 0.0, 0.0, 0.6))
+	var windy := Atmosphere.new()
+	add_child_autofree(windy)
+	windy.setup(MatchConditions.create(MatchConditions.TimeOfDay.AFTERNOON, MatchConditions.Weather.RAIN, 9.0, 90.0, 0.6))
+	var d0: Vector3 = (calm.precipitation.process_material as ParticleProcessMaterial).direction
+	var d1: Vector3 = (windy.precipitation.process_material as ParticleProcessMaterial).direction
+	assert_lt(Vector2(d0.x, d0.z).length(), 0.05, "sin viento cae derecha")
+	assert_gt(Vector2(d1.x, d1.z).length(), 0.4, "con viento fuerte, en diagonal")

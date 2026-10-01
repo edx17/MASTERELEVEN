@@ -47,9 +47,11 @@ float noise(vec2 p) {
 float fbm(vec2 p) {
 	float v = 0.0;
 	float a = 0.5;
+	// Cada octava rotada: el ruido de valor no deja la grilla de cuadrados.
+	mat2 rot = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8));
 	for (int i = 0; i < 4; i++) {
 		v += a * noise(p);
-		p *= 2.03;
+		p = rot * p * 2.03 + vec2(17.3, 9.1);
 		a *= 0.5;
 	}
 	return v;
@@ -98,7 +100,7 @@ void fragment() {
 	vec3 c = mix(color_a, color_b, stripe);
 	// Variación: manchas grandes, parches medianos y textura fina de hojas.
 	// El detalle fino se apaga con la distancia (si no, "chisporrotea").
-	float fine = 1.0 - smoothstep(20.0, 65.0, length(VERTEX));
+	float fine = 1.0 - smoothstep(12.0, 38.0, length(VERTEX));
 	float n = fbm(p * 0.08) * 0.5 + fbm(p * 0.6) * 0.3 + mix(0.5, noise(p * 18.0), fine) * 0.2;
 	c *= (1.0 - variation * 0.5) + n * variation;
 	float roughness = mix(0.82, 0.92, stripe);
@@ -130,10 +132,13 @@ void fragment() {
 	// Nieve: cubre el césped (menos donde se juega más: el centro y las áreas).
 	// Más nieve hacia las bandas y los fondos; en el medio, donde se juega, el
 	// pasto se ve (como una cancha nevada que se fue pisando).
+	// Capa pareja con variaciones suaves (sin manchas recortadas): el pasto
+	// asoma un poco donde se juega más (el medio y las áreas chicas).
 	vec2 edge = abs(p) / vec2(half_length, 34.0);
-	float outer = smoothstep(0.35, 1.0, max(edge.x, edge.y));
-	float patches = smoothstep(0.42, 0.7, fbm(p * 0.22) + 0.15 * outer);
-	float snow_mask = snow * clamp(patches * (0.55 + 0.6 * outer), 0.0, 1.0) * (1.0 - 0.8 * wear_mask(p));
+	float outer = smoothstep(0.2, 1.0, max(edge.x, edge.y));
+	float soft = fbm(p * 0.05) * 0.65 + fbm(p * 0.35) * 0.35;
+	float trodden = (1.0 - outer) * 0.35 + wear_mask(p) * 0.5;
+	float snow_mask = snow * clamp(1.15 - trodden - (1.0 - soft) * 0.35, 0.0, 1.0);
 	// Surco limpio de ~0,5 m al lado de cada línea (se va tapando).
 	float groove = 1.0 - smoothstep(0.12, 0.55, line_dist(p));
 	snow_mask *= 1.0 - groove * groove_clear;

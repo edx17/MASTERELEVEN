@@ -62,8 +62,18 @@ func test_camera_side_stand_only_casts_shadow() -> void:
 	_preset("TV")
 	var south := m.stadium.get_node("StandSouth")
 	for child in south.get_children():
-		if child is GeometryInstance3D:
-			assert_eq((child as GeometryInstance3D).cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY)
+		if not child is GeometryInstance3D:
+			continue
+		var g := child as GeometryInstance3D
+		if g.get_meta("base_shadow", 1) == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+			# Público y butacas: no proyectan sombra, así que ni se dibujan.
+			assert_false(g.visible, "%s oculto" % g.name)
+		else:
+			assert_eq(g.cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY)
+	# La tribuna de enfrente: el público se ve pero no proyecta sombra.
+	var crowd := m.stadium.get_node("StandNorth/Crowd") as GeometryInstance3D
+	assert_true(crowd.visible)
+	assert_eq(crowd.cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
 
 
 func test_near_touchline_is_in_view() -> void:
