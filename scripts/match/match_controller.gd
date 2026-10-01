@@ -194,30 +194,31 @@ func _build_lighting() -> void:
 	environment.background_mode = Environment.BG_SKY
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	environment.ambient_light_energy = 0.75
+	environment.ambient_light_energy = 1.0
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-	environment.tonemap_exposure = 1.05
+	environment.tonemap_exposure = 1.2
 	environment.ssao_enabled = true
-	environment.ssao_radius = 1.2
-	environment.ssao_intensity = 1.6
+	environment.ssao_radius = 1.0
+	environment.ssao_intensity = 1.0
 	# Iluminación global (Forward+): la luz rebota en el césped y las tribunas,
 	# como en la referencia. En Compatibilidad se ignora.
 	environment.sdfgi_enabled = true
 	environment.sdfgi_use_occlusion = true
-	environment.sdfgi_energy = 0.8
+	environment.sdfgi_energy = 1.0
 	environment.glow_enabled = true
 	environment.glow_intensity = 0.25
 	environment.glow_bloom = 0.03
 	environment.adjustment_enabled = true
 	environment.adjustment_contrast = 0.97
-	environment.adjustment_saturation = 0.9
+	environment.adjustment_saturation = 1.05
 	env.environment = environment
 	add_child(env)
 
 	var sun := DirectionalLight3D.new()
-	# Luz desde atrás de la tribuna principal (-Z), baja y algo lateral.
-	sun.rotation_degrees = Vector3(-58.0, 160.0, 0.0)
-	sun.light_energy = 1.0
+	# Sol del lado de la cámara (+Z) y algo lateral: los jugadores quedan
+	# iluminados de frente (como en la referencia), no a contraluz.
+	sun.rotation_degrees = Vector3(-52.0, -25.0, 0.0)
+	sun.light_energy = 1.15
 	sun.light_color = Color(1.0, 0.96, 0.88)
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 160.0

@@ -84,9 +84,20 @@ Corrección: antes del saque del medio todos se seguían acomodando con la pelot
 
 Sin usar por ahora: `Kick Up` / `Stall Soccerball` (sin pelota se ven raros), `Soccer Spin` (va con los amagues de la Fase 4), `Receiver Catch` (es de fútbol americano), `Defender` y `Situp To Idle`.
 
+### Cierre de Visual 1 (comparación con ForeverEleven en Forward+)
+Hasta ahora las capturas salían en Compatibilidad; esta vez se compiló Godot
+con Vulkan y se comparó en **Forward+**, que es lo que corre en tu máquina.
+| Diferencia con la referencia | Cambio |
+|---|---|
+| En Forward+ todo salía oscuro y los jugadores casi negros (a contraluz) | Sol del lado de la cámara (los jugadores quedan iluminados de frente), exposición 1,2, luz ambiente 1,0, oclusión ambiental más suave. |
+| Césped oscuro | Césped más claro y amarillento, con franjas suaves (como la referencia). |
+| Cámara casi cenital (40°) | Cámara "WE" más baja (≈24°, lente 25°): se ve la perspectiva de la cancha y la tribuna de enfrente, como en ForeverEleven. |
+| Butacas lavadas a blanco | Butacas con el color del club más profundo y saturado. |
+| Medir los 60 FPS | **Prueba de rendimiento** en el menú principal (30 s de CPU vs CPU): promedio, 1 % más lentos y peor cuadro; queda guardada en `benchmark.txt`. FPS también en F9. |
+
 ### Pendiente
-- [ ] **Tu prueba** de esta ronda (8 direcciones y animaciones nuevas).
-- [ ] Cierre de Visual 1: capturas lado a lado con ForeverEleven y 60 FPS en tu máquina.
+- [ ] **Tu prueba**: correr la prueba de rendimiento y pasarme el resultado (criterio: 1 % más lentos ≥ 55 FPS).
+- [ ] Tu opinión del look nuevo y de los movimientos (si algo se ve raro, un video corto).
 - [x] Tribunas de dos bandejas (también detrás de los arcos), butacas con respaldo y color parejo, barandas metálicas y frente oscuro de la bandeja superior.
 - [x] Número en la espalda (sigue al torso; blanco o negro según la camiseta).
 - [x] Iluminación global (SDFGI) y un leve brillo en Forward+ (en Compatibilidad se ignora).

@@ -3,8 +3,8 @@ shader_type spatial;
 // + una variación natural muy leve (ruido procedural).
 // Sin texturas externas: funciona en Forward+ y en Compatibilidad.
 
-uniform vec3 color_a : source_color = vec3(0.19, 0.30, 0.115);
-uniform vec3 color_b : source_color = vec3(0.18, 0.285, 0.108);
+uniform vec3 color_a : source_color = vec3(0.27, 0.42, 0.15);
+uniform vec3 color_b : source_color = vec3(0.255, 0.40, 0.142);
 uniform float stripe_width = 5.25;
 uniform float variation = 0.1;
 

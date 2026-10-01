@@ -17,11 +17,18 @@ const SEAT_BASE := Color(0.72, 0.72, 0.74)
 const CONCRETE := Color(0.42, 0.42, 0.44)
 
 
+## Butacas: el color del club más profundo y saturado (con sol pleno un
+## celeste o un amarillo claros se lavan a blanco; en la referencia las
+## tribunas se ven de un color firme).
+static func seat_tone(c: Color) -> Color:
+	return Color.from_hsv(c.h, minf(1.0, c.s * 1.25 + 0.1), c.v * 0.72)
+
+
 ## `home` define los colores de las butacas y el nombre en la tribuna.
 static func build(home: TeamData) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Stadium"
-	var seat_color := home.color if home != null else Color(0.8, 0.15, 0.15)
+	var seat_color := seat_tone(home.color) if home != null else Color(0.8, 0.15, 0.15)
 	var text_color := home.secondary_color if home != null else Color.WHITE
 	if text_color.get_luminance() < 0.25:
 		text_color = Color(0.95, 0.95, 0.95)

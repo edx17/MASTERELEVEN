@@ -43,10 +43,19 @@ func _ready() -> void:
 ## Herramienta de desarrollo: `-- --capture=<carpeta>` saca capturas y sale.
 func _check_capture_mode() -> void:
 	for arg in OS.get_cmdline_user_args():
+		if arg == "--benchmark":
+			start_benchmark(true)
 		if arg.begins_with("--capture="):
 			var runner: Node = load("res://tools/capture_runner.gd").new()
 			runner.set("out_dir", arg.trim_prefix("--capture="))
 			get_tree().root.add_child.call_deferred(runner)
+
+
+## Prueba de rendimiento (tools/benchmark_runner.gd). `quit`: sale al terminar.
+func start_benchmark(quit: bool = false) -> void:
+	var runner: Node = load("res://tools/benchmark_runner.gd").new()
+	runner.set("quit_when_done", quit)
+	get_tree().root.add_child.call_deferred(runner)
 
 
 func set_mode(new_mode: int) -> void:

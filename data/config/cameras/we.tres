@@ -5,9 +5,9 @@
 [resource]
 script = ExtResource("1_cam")
 display_name = "WE"
-camera_height = 30.0
-camera_distance = 36.0
-base_fov = 28.0
+camera_height = 21.0
+camera_distance = 46.0
+base_fov = 25.0
 vertical_offset = -3.0
 track_factor = 0.85
 track_z = 0.8

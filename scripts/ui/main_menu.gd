@@ -41,6 +41,7 @@ func _ready() -> void:
 	_button(box, "CPU vs CPU (demo)", _start.bind(GameSettings.Mode.CPU_VS_CPU))
 	_duration_btn = _button(box, "", _cycle_duration)
 	_difficulty_btn = _button(box, "", _cycle_difficulty)
+	_button(box, "Prueba de rendimiento (30 s)", GameSettings.start_benchmark)
 	_button(box, "Salir", get_tree().quit)
 
 	_info = Label.new()
