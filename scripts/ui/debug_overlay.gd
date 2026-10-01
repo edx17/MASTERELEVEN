@@ -58,7 +58,8 @@ func _status_text() -> String:
 	var b := _match.ball
 	var owner := b.owner_player
 	var lines: Array[String] = []
-	lines.append("DEBUG (F9)   fase: %s   reloj: %s" % [MatchController.Phase.keys()[_match.phase], _match.clock.display()])
+	lines.append("DEBUG (F9)   fase: %s   reloj: %s   %d FPS (%.1f ms)" % [MatchController.Phase.keys()[_match.phase],
+		_match.clock.display(), Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0])
 	var poss := "LIBRE"
 	if owner != null:
 		poss = "%s (%s)" % [owner.team.short_name, owner.name]

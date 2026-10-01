@@ -33,6 +33,9 @@ const DEFLECTION_SHOT_SPEED := 12.0
 const KEEPER_KICK_SHIELD := 0.3
 
 var tuning: Tuning
+## Horario, clima, viento y césped de este partido.
+var conditions: MatchConditions
+var atmosphere: Atmosphere
 var ball: Ball
 var teams: Array[Team] = []
 var clock: MatchClock
@@ -81,7 +84,11 @@ var _in_kick: bool = false
 
 
 func _ready() -> void:
-	tuning = GameSettings.tuning
+	# Copia del ajuste para este partido: el clima la modifica (césped mojado,
+	# nieve, viento) sin tocar los valores base.
+	conditions = GameSettings.make_conditions()
+	tuning = GameSettings.tuning.duplicate()
+	conditions.apply_to(tuning)
 	randomize()
 	_build_world()
 	clock = MatchClock.new(float(GameSettings.match_minutes))
@@ -138,9 +145,13 @@ func attack_dirs() -> Array[int]:
 # --- Construcción -------------------------------------------------------------
 
 func _build_world() -> void:
-	_build_lighting()
-	add_child(PitchBuilder.build())
-	stadium = StadiumBuilder.build(GameSettings.home_team())
+	# Luz, cielo y clima según las condiciones del partido.
+	atmosphere = Atmosphere.new()
+	atmosphere.name = "Atmosphere"
+	add_child(atmosphere)
+	atmosphere.setup(conditions)
+	add_child(PitchBuilder.build(atmosphere.grass_params()))
+	stadium = StadiumBuilder.build(GameSettings.home_team(), GameSettings.away_team())
 	add_child(stadium)
 
 	ball = Ball.new()
@@ -172,57 +183,11 @@ func _build_world() -> void:
 	_camera.setup(self)
 	_camera.current = true
 	_camera.mode_changed.connect(func(n: String) -> void: show_toast("Cámara: %s" % n))
+	atmosphere.attach(_camera, self)
+	show_toast(conditions.describe(), 4.0)
 
 	var pause := PauseMenu.new()
 	add_child(pause)
-
-
-## Iluminación de día (como la referencia): sol alto desde atrás de la tribuna
-## principal (sombras cortas), cielo, ambiente claro, poco contraste y
-## oclusión ambiental e iluminación global (Forward+) para asentar a los
-## jugadores sobre el césped.
-func _build_lighting() -> void:
-	var env := WorldEnvironment.new()
-	var environment := Environment.new()
-	var sky := Sky.new()
-	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.32, 0.5, 0.78)
-	sky_mat.sky_horizon_color = Color(0.75, 0.8, 0.85)
-	sky_mat.ground_bottom_color = Color(0.2, 0.2, 0.2)
-	sky_mat.ground_horizon_color = Color(0.5, 0.52, 0.5)
-	sky.sky_material = sky_mat
-	environment.background_mode = Environment.BG_SKY
-	environment.sky = sky
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	environment.ambient_light_energy = 0.75
-	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-	environment.tonemap_exposure = 1.05
-	environment.ssao_enabled = true
-	environment.ssao_radius = 1.2
-	environment.ssao_intensity = 1.6
-	# Iluminación global (Forward+): la luz rebota en el césped y las tribunas,
-	# como en la referencia. En Compatibilidad se ignora.
-	environment.sdfgi_enabled = true
-	environment.sdfgi_use_occlusion = true
-	environment.sdfgi_energy = 0.8
-	environment.glow_enabled = true
-	environment.glow_intensity = 0.25
-	environment.glow_bloom = 0.03
-	environment.adjustment_enabled = true
-	environment.adjustment_contrast = 0.97
-	environment.adjustment_saturation = 0.9
-	env.environment = environment
-	add_child(env)
-
-	var sun := DirectionalLight3D.new()
-	# Luz desde atrás de la tribuna principal (-Z), baja y algo lateral.
-	sun.rotation_degrees = Vector3(-58.0, 160.0, 0.0)
-	sun.light_energy = 1.0
-	sun.light_color = Color(1.0, 0.96, 0.88)
-	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 160.0
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
-	add_child(sun)
 
 
 func _setup_controllers() -> void:
@@ -999,6 +964,12 @@ func _check_rules() -> void:
 
 ## Festejo del goleador y lamento del arquero (sólo presentación).
 func _show_goal(scoring_team: int) -> void:
+	# El público salta unos segundos.
+	if StadiumBuilder.crowd_material != null:
+		StadiumBuilder.crowd_material.set_shader_parameter("cheer", 1.0)
+		var tw := create_tween()
+		tw.tween_interval(GOAL_DELAY)
+		tw.tween_method(func(v: float) -> void: StadiumBuilder.crowd_material.set_shader_parameter("cheer", v), 1.0, 0.0, 1.5)
 	var scorer := ball.last_toucher
 	if scorer != null and scorer.team.index == scoring_team:
 		scorer.celebrate(GOAL_DELAY)

@@ -1,0 +1,301 @@
+class_name Atmosphere
+extends Node3D
+## Luz, cielo y clima del partido según MatchConditions (sólo presentación;
+## los efectos en el juego los aplica MatchConditions.apply_to()).
+##   Horario: mañana (sol bajo y frío), tarde (sol alto), atardecer (sol
+##     naranja rasante y luces del estadio a media potencia), noche (cuatro
+##     torres de luz que dan las sombras múltiples de un partido nocturno).
+##   Clima: nublado (luz difusa), lluvia (gotas, niebla, césped que brilla),
+##     nieve (copos, luz blanca, césped nevado). El viento inclina la lluvia
+##     y la nieve y mueve los banderines.
+
+const FLOOD_HEIGHT := 46.0
+
+var conditions: MatchConditions
+var environment: Environment
+var sun: DirectionalLight3D
+var floodlights: Array[SpotLight3D] = []
+var precipitation: GPUParticles3D
+var _camera: MatchCamera
+var _flags: Array[Node3D] = []
+var _t := 0.0
+
+
+func setup(p_conditions: MatchConditions) -> void:
+	conditions = p_conditions
+	_build_environment()
+	_build_sun()
+	if conditions.time_of_day == MatchConditions.TimeOfDay.NIGHT or conditions.time_of_day == MatchConditions.TimeOfDay.DUSK:
+		_build_floodlights()
+	match conditions.weather:
+		MatchConditions.Weather.RAIN:
+			precipitation = _build_precipitation(false)
+		MatchConditions.Weather.SNOW:
+			precipitation = _build_precipitation(true)
+
+
+## La cámara (para que la lluvia caiga donde se mira) y los banderines.
+func attach(camera: MatchCamera, world: Node) -> void:
+	_camera = camera
+	for n in world.find_children("CornerFlag*", "", true, false):
+		_flags.append(n as Node3D)
+
+
+## Parámetros del césped según el clima (lo mojado brilla; la nieve lo cubre).
+func grass_params() -> Dictionary:
+	return {
+		"wetness": conditions.wetness,
+		"snow": 0.5 if conditions.is_snow() else 0.0,
+	}
+
+
+func _process(dt: float) -> void:
+	_t += dt
+	if precipitation != null and _camera != null:
+		var f := _camera._focus
+		# Por debajo de la altura de la cámara (si no, pasan pegadas al lente).
+		precipitation.global_position = Vector3(f.x, 0.0, f.z) + Vector3(0.0, 13.0, 4.0)
+	# Banderines: flamean hacia donde sopla el viento.
+	if not _flags.is_empty():
+		var w := conditions.wind_vector()
+		var strength := clampf(w.length() / 10.0, 0.05, 1.0)
+		var yaw := atan2(-w.z, w.x) if w.length() > 0.2 else 0.0
+		for i in _flags.size():
+			var fl := _flags[i]
+			fl.rotation.y = yaw + sin(_t * (3.0 + 6.0 * strength) + i) * (0.15 + 0.35 * strength)
+
+
+# --- Cielo, ambiente y color --------------------------------------------------
+
+func _build_environment() -> void:
+	var env_node := WorldEnvironment.new()
+	environment = Environment.new()
+	var sky := Sky.new()
+	var sky_mat := ProceduralSkyMaterial.new()
+	var cloudy := conditions.weather != MatchConditions.Weather.CLEAR
+	var top := Color(0.24, 0.42, 0.72)
+	var horizon := Color(0.66, 0.72, 0.8)
+	var ambient := 0.8
+	var exposure := 1.0
+	match conditions.time_of_day:
+		MatchConditions.TimeOfDay.MORNING:
+			top = Color(0.3, 0.48, 0.75)
+			horizon = Color(0.78, 0.8, 0.82)
+			ambient = 0.75
+		MatchConditions.TimeOfDay.DUSK:
+			top = Color(0.2, 0.25, 0.45)
+			horizon = Color(0.95, 0.55, 0.3)
+			ambient = 0.45
+			exposure = 1.05
+		MatchConditions.TimeOfDay.NIGHT:
+			top = Color(0.01, 0.015, 0.04)
+			horizon = Color(0.05, 0.06, 0.1)
+			ambient = 0.12
+			exposure = 1.0
+	if cloudy:
+		var gray := Color(0.42, 0.44, 0.47) if conditions.time_of_day != MatchConditions.TimeOfDay.NIGHT else Color(0.03, 0.03, 0.04)
+		top = top.lerp(gray, 0.75)
+		horizon = horizon.lerp(gray.lightened(0.15), 0.7)
+		ambient += 0.15
+	sky_mat.sky_top_color = top
+	sky_mat.sky_horizon_color = horizon
+	sky_mat.ground_bottom_color = top.darkened(0.6)
+	sky_mat.ground_horizon_color = horizon.darkened(0.3)
+	sky_mat.sun_angle_max = 20.0
+	sky.sky_material = sky_mat
+	environment.background_mode = Environment.BG_SKY
+	environment.sky = sky
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	environment.ambient_light_energy = ambient
+	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
+	environment.tonemap_exposure = exposure
+	environment.tonemap_white = 6.0
+	# Oclusión ambiental: asienta a los jugadores y da volumen a las tribunas.
+	environment.ssao_enabled = true
+	environment.ssao_radius = 1.2
+	environment.ssao_intensity = 1.4
+	environment.ssao_detail = 0.6
+	# Iluminación global (Forward+): la luz rebota en el césped y las tribunas.
+	environment.sdfgi_enabled = true
+	environment.sdfgi_use_occlusion = true
+	environment.sdfgi_energy = 0.9
+	environment.glow_enabled = true
+	environment.glow_intensity = 0.35 if conditions.time_of_day == MatchConditions.TimeOfDay.NIGHT else 0.2
+	environment.glow_bloom = 0.04
+	environment.glow_hdr_threshold = 1.1
+	# Más contraste y algo de "película" para que no se vea plano.
+	environment.adjustment_enabled = true
+	environment.adjustment_contrast = 1.1
+	environment.adjustment_saturation = 1.0 if not cloudy else 0.85
+	environment.adjustment_brightness = 0.97
+	# Bruma de distancia (más con lluvia o nieve): da profundidad al estadio.
+	environment.fog_enabled = true
+	environment.fog_light_color = horizon.lerp(Color(0.7, 0.72, 0.75), 0.3)
+	environment.fog_density = 0.0015
+	environment.fog_sky_affect = 0.3
+	match conditions.weather:
+		MatchConditions.Weather.RAIN:
+			environment.fog_density = 0.0028
+		MatchConditions.Weather.SNOW:
+			environment.fog_density = 0.002
+			environment.fog_light_color = Color(0.82, 0.84, 0.88)
+	env_node.environment = environment
+	add_child(env_node)
+
+
+func _build_sun() -> void:
+	sun = DirectionalLight3D.new()
+	sun.shadow_enabled = true
+	sun.directional_shadow_max_distance = 170.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sun.directional_shadow_blend_splits = true
+	sun.shadow_blur = 1.2
+	# Sol del lado de la cámara (+Z) y algo lateral: los jugadores quedan
+	# iluminados de frente; la altura y el color dependen del horario.
+	var elev := -45.0
+	var yaw := -25.0
+	var color := Color(1.0, 0.95, 0.86)
+	var energy := 1.25
+	match conditions.time_of_day:
+		MatchConditions.TimeOfDay.MORNING:
+			elev = -28.0
+			yaw = 35.0
+			color = Color(1.0, 0.92, 0.8)
+			energy = 1.1
+		MatchConditions.TimeOfDay.DUSK:
+			elev = -11.0
+			yaw = -55.0
+			color = Color(1.0, 0.62, 0.36)
+			energy = 1.0
+		MatchConditions.TimeOfDay.NIGHT:
+			# Luna: apenas un tono frío; la luz la dan las torres.
+			elev = -55.0
+			color = Color(0.6, 0.7, 1.0)
+			energy = 0.06
+			sun.shadow_enabled = false
+	match conditions.weather:
+		MatchConditions.Weather.CLOUDY:
+			energy *= 0.45
+			sun.light_angular_distance = 4.0
+		MatchConditions.Weather.RAIN:
+			energy *= 0.3
+			sun.light_angular_distance = 6.0
+		MatchConditions.Weather.SNOW:
+			energy *= 0.4
+			sun.light_angular_distance = 5.0
+			color = color.lerp(Color(0.85, 0.9, 1.0), 0.5)
+		_:
+			sun.light_angular_distance = 0.6
+	sun.rotation_degrees = Vector3(elev, yaw, 0.0)
+	sun.light_color = color
+	sun.light_energy = energy
+	add_child(sun)
+
+
+# --- Noche: torres de luz -----------------------------------------------------
+
+func _build_floodlights() -> void:
+	var night := conditions.time_of_day == MatchConditions.TimeOfDay.NIGHT
+	var lamp_mat := StandardMaterial3D.new()
+	lamp_mat.albedo_color = Color(1.0, 1.0, 0.95)
+	lamp_mat.emission_enabled = true
+	lamp_mat.emission = Color(1.0, 0.98, 0.9)
+	lamp_mat.emission_energy_multiplier = 6.0 if night else 2.5
+	var pole_mat := StandardMaterial3D.new()
+	pole_mat.albedo_color = Color(0.3, 0.31, 0.33)
+	pole_mat.metallic = 0.6
+	pole_mat.roughness = 0.5
+	var i := 0
+	for xs: int in [-1, 1]:
+		for zs: int in [-1, 1]:
+			var base := Vector3(xs * (Pitch.HALF_LENGTH + 22.0), 0.0, zs * (Pitch.HALF_WIDTH + 30.0))
+			# Mástil y panel de reflectores.
+			var pole := MeshInstance3D.new()
+			var cyl := CylinderMesh.new()
+			cyl.top_radius = 0.6
+			cyl.bottom_radius = 1.0
+			cyl.height = FLOOD_HEIGHT
+			pole.mesh = cyl
+			pole.material_override = pole_mat
+			pole.position = base + Vector3(0.0, FLOOD_HEIGHT * 0.5, 0.0)
+			add_child(pole)
+			var panel := MeshInstance3D.new()
+			var box := BoxMesh.new()
+			box.size = Vector3(10.0, 6.0, 0.6)
+			panel.mesh = box
+			panel.material_override = lamp_mat
+			panel.position = base + Vector3(0.0, FLOOD_HEIGHT + 2.0, 0.0)
+			add_child(panel)
+			panel.look_at(Vector3(0.0, 0.0, 0.0), Vector3.UP)
+			panel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			# Reflector: apunta al cuarto de cancha opuesto (cruzan las luces).
+			var spot := SpotLight3D.new()
+			spot.position = base + Vector3(0.0, FLOOD_HEIGHT + 2.0, 0.0)
+			spot.spot_range = 240.0
+			spot.spot_angle = 38.0
+			spot.spot_attenuation = 0.4
+			spot.light_energy = (3.2 if night else 1.5)
+			spot.light_color = Color(1.0, 0.98, 0.92)
+			# Sombras sólo en dos torres (costo): igual se ven sombras cruzadas.
+			spot.shadow_enabled = night and i < 2
+			spot.light_specular = 0.6
+			add_child(spot)
+			spot.look_at(Vector3(-xs * 8.0, 0.0, -zs * 6.0), Vector3.UP)
+			floodlights.append(spot)
+			i += 1
+
+
+# --- Lluvia y nieve -----------------------------------------------------------
+
+func _build_precipitation(snow: bool) -> GPUParticles3D:
+	var p := GPUParticles3D.new()
+	p.amount = 2500 if snow else 6000
+	# Caen desde 13 m: la lluvia tarda ~0,8 s, la nieve ~7 s.
+	p.lifetime = 7.0 if snow else 0.9
+	p.preprocess = p.lifetime
+	p.visibility_aabb = AABB(Vector3(-50, -30, -40), Vector3(100, 40, 80))
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var m := ParticleProcessMaterial.new()
+	m.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	m.emission_box_extents = Vector3(45.0, 1.0, 34.0)
+	var wind := conditions.wind_vector()
+	if snow:
+		m.direction = Vector3(wind.x * 0.15, -1.0, wind.z * 0.15).normalized()
+		m.initial_velocity_min = 1.2
+		m.initial_velocity_max = 2.2
+		m.gravity = Vector3(wind.x * 0.25, -0.6, wind.z * 0.25)
+		m.turbulence_enabled = true
+		m.turbulence_noise_strength = 1.5
+		m.turbulence_noise_scale = 4.0
+		m.scale_min = 0.6
+		m.scale_max = 1.3
+	else:
+		m.direction = Vector3(wind.x * 0.06, -1.0, wind.z * 0.06).normalized()
+		m.initial_velocity_min = 16.0
+		m.initial_velocity_max = 20.0
+		m.gravity = Vector3(wind.x * 0.6, -9.8, wind.z * 0.6)
+		m.particle_flag_align_y = true
+	p.process_material = m
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var mesh: PrimitiveMesh
+	if snow:
+		var flake := SphereMesh.new()
+		flake.radius = 0.05
+		flake.height = 0.1
+		flake.radial_segments = 6
+		flake.rings = 3
+		mesh = flake
+		mat.albedo_color = Color(1.0, 1.0, 1.0, 0.95)
+	else:
+		var streak := QuadMesh.new()
+		streak.size = Vector2(0.012, 0.45)
+		mesh = streak
+		mat.albedo_color = Color(0.75, 0.8, 0.9, 0.22)
+		mat.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
+		mat.billboard_keep_scale = true
+	mesh.material = mat
+	p.draw_pass_1 = mesh
+	add_child(p)
+	return p

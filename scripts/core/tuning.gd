@@ -39,6 +39,9 @@ extends Resource
 ## Rebote contra la red (bajo: la red "absorbe").
 @export var net_restitution: float = 0.05
 
+## Viento (m/s): lo fija el partido según el clima (MatchConditions).
+@export var wind: Vector3 = Vector3.ZERO
+
 @export_group("Jugadores")
 @export var run_speed: float = 6.2
 @export var sprint_speed: float = 8.4

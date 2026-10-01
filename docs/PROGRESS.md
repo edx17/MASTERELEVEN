@@ -17,6 +17,27 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Visual 2 — Look con más profundidad y condiciones del partido (en curso)
+
+### Pedido
+"Debería tener mejores texturas, iluminación y sombras; está bastante plano,
+parece un juego de navegador; un poco más oscuro. Y el clima: noche / día /
+mañana / tarde, viento, lluvia, nieve, seco, húmedo."
+
+### Hecho
+| Tema | Cambio |
+|---|---|
+| Condiciones (`MatchConditions`) | Horario (mañana, tarde, atardecer, noche), clima (despejado, nublado, lluvia, nieve), viento (sin, leve 4 m/s, fuerte 9 m/s, con dirección) y césped (seco, húmedo, mojado). En el menú principal, cada una con "Aleatorio". Al empezar se muestra el resumen ("Noche · Lluvia · viento 9 m/s · césped mojado"). |
+| Efectos en el juego | Cada partido usa una **copia** del ajuste base modificada por el clima. Mojado: la pelota corre ~25 % más y patina en los piques, la conducción se va un poco más larga, las barridas resbalan más lejos y derriban más. Nieve: la pelota frena (~25 % menos de recorrido) y pica menos, jugadores algo más lentos. Viento: empuja la pelota **en el aire** (un pelotazo con 9 m/s de costado se desvía ~3 m); rodando no la afecta. |
+| Luz por horario (`Atmosphere`) | Mañana: sol bajo y frío. Tarde: sol alto. Atardecer: sol naranja rasante y luces del estadio a media potencia. Noche: cielo negro, cuatro torres de luz (reflectores que se cruzan; sombras de dos torres por costo). Nublado / lluvia / nieve: luz difusa y sombras blandas. |
+| Lluvia, nieve y viento visibles | Gotas (inclinadas por el viento) con algo de bruma; césped mojado más oscuro y con brillo. Copos que caen despacio y césped nevado en manchones (más en las bandas; el medio pisado se ve verde). Banderines del córner que flamean con el viento. Indicador de viento (flecha + m/s) bajo el marcador. |
+| Menos plano, más oscuro | Exposición 1,0 y más contraste; oclusión ambiental más marcada; bruma de distancia. Césped con detalle en varias escalas, relieve fino (normal procedural que se suaviza a lo lejos) y desgaste en las áreas chicas y el círculo central. Hormigón con manchas y relieve. **Público** en las tribunas (≈60 % de ocupación, con los colores del local y la cabecera visitante con los suyos) que salta en los goles. |
+| Texturas fotográficas | `GrassTextures`: si se ponen texturas CC0 de césped en `assets/textures/grass/`, se usan en lugar del detalle procedural (instrucciones en `assets/CREDITS.md`). |
+
+### Pendiente
+- [ ] **Tu prueba**: el look nuevo (¿sigue plano? ¿muy oscuro?), cada clima y la prueba de rendimiento con el público y la noche (si baja de 60 FPS, agrego un ajuste de calidad).
+- [ ] Si querés más realismo: bajar las texturas de césped de `assets/CREDITS.md`.
+
 ## Visual 1 — Que se vea como la referencia (antes de la Fase 4, a pedido tuyo)
 
 ### Hecho (parte 1)
@@ -84,9 +105,20 @@ Corrección: antes del saque del medio todos se seguían acomodando con la pelot
 
 Sin usar por ahora: `Kick Up` / `Stall Soccerball` (sin pelota se ven raros), `Soccer Spin` (va con los amagues de la Fase 4), `Receiver Catch` (es de fútbol americano), `Defender` y `Situp To Idle`.
 
+### Cierre de Visual 1 (comparación con ForeverEleven en Forward+)
+Hasta ahora las capturas salían en Compatibilidad; esta vez se compiló Godot
+con Vulkan y se comparó en **Forward+**, que es lo que corre en tu máquina.
+| Diferencia con la referencia | Cambio |
+|---|---|
+| En Forward+ todo salía oscuro y los jugadores casi negros (a contraluz) | Sol del lado de la cámara (los jugadores quedan iluminados de frente), exposición 1,2, luz ambiente 1,0, oclusión ambiental más suave. |
+| Césped oscuro | Césped más claro y amarillento, con franjas suaves (como la referencia). |
+| Cámara casi cenital (40°) | Cámara "WE" más baja (≈24°, lente 25°): se ve la perspectiva de la cancha y la tribuna de enfrente, como en ForeverEleven. |
+| Butacas lavadas a blanco | Butacas con el color del club más profundo y saturado. |
+| Medir los 60 FPS | **Prueba de rendimiento** en el menú principal (30 s de CPU vs CPU): promedio, 1 % más lentos y peor cuadro; queda guardada en `benchmark.txt`. FPS también en F9. |
+
 ### Pendiente
-- [ ] **Tu prueba** de esta ronda (8 direcciones y animaciones nuevas).
-- [ ] Cierre de Visual 1: capturas lado a lado con ForeverEleven y 60 FPS en tu máquina.
+- [ ] **Tu prueba**: correr la prueba de rendimiento y pasarme el resultado (criterio: 1 % más lentos ≥ 55 FPS).
+- [ ] Tu opinión del look nuevo y de los movimientos (si algo se ve raro, un video corto).
 - [x] Tribunas de dos bandejas (también detrás de los arcos), butacas con respaldo y color parejo, barandas metálicas y frente oscuro de la bandeja superior.
 - [x] Número en la espalda (sigue al torso; blanco o negro según la camiseta).
 - [x] Iluminación global (SDFGI) y un leve brillo en Forward+ (en Compatibilidad se ignora).

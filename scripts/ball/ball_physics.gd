@@ -21,8 +21,11 @@ static func step(s: BallState, dt: float, t: Tuning) -> int:
 	var prev := s.pos
 	var grounded := s.pos.y <= r + 0.001 and absf(s.vel.y) < 0.01
 
-	var speed := s.vel.length()
-	var acc := -s.vel * speed * drag_k(speed, t)
+	# El arrastre depende de la velocidad respecto del aire: con viento, la
+	# pelota en el aire se desvía hacia donde sopla (en el piso no influye).
+	var rel := s.vel if grounded else s.vel - t.wind
+	var speed := rel.length()
+	var acc := -rel * speed * drag_k(speed, t)
 	if s.spin.length_squared() > 0.0001:
 		acc += t.magnus * s.spin.cross(s.vel)
 

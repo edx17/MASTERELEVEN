@@ -36,6 +36,14 @@ func setup(p_match: MatchController) -> void:
 	top.add_child(_score)
 	top.add_child(_flag(_match.teams[1]))
 
+	# Viento: flecha (en la dirección de pantalla) y velocidad, bajo el marcador.
+	if _match.conditions != null and _match.conditions.wind_speed >= 0.5:
+		var wind := WindIndicator.new()
+		wind.wind = _match.conditions.wind_vector()
+		wind.position = Vector2(26, 64)
+		wind.size = Vector2(130, 30)
+		add_child(wind)
+
 	# Reloj.
 	_clock = _label("1st 00:00", 28)
 	_clock.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
@@ -267,3 +275,32 @@ class Radar:
 				if p.is_human():
 					draw_arc(_to_radar(p.global_position), r + 1.5, 0, TAU, 12, Color.WHITE, 1.0)
 		draw_circle(_to_radar(_match.ball.state.pos), 3.0, Color(1.0, 0.2, 0.2))
+
+
+## Flecha del viento según cómo se ve la cancha desde la cámara actual.
+class WindIndicator:
+	extends Control
+	var wind: Vector3 = Vector3.ZERO
+
+	func _process(_dt: float) -> void:
+		queue_redraw()
+
+	func _draw() -> void:
+		var cam := get_viewport().get_camera_3d()
+		var dir := Vector2(wind.x, wind.z)
+		if cam != null:
+			var right := cam.global_basis.x
+			var down := -cam.global_basis.y
+			right.y = 0.0
+			down.y = 0.0
+			dir = Vector2(wind.dot(right.normalized()), wind.dot(down.normalized()))
+		dir = dir.normalized() if dir.length() > 0.01 else Vector2.RIGHT
+		var c := Vector2(14, 15)
+		var col := Color(1, 1, 1, 0.9)
+		draw_circle(c, 13.0, Color(0, 0, 0, 0.45))
+		var tip := c + dir * 10.0
+		draw_line(c - dir * 9.0, tip, col, 2.5, true)
+		var side := dir.orthogonal() * 4.5
+		draw_colored_polygon(PackedVector2Array([tip + dir * 2.0, tip - dir * 5.0 + side, tip - dir * 5.0 - side]), col)
+		draw_string(get_theme_default_font(), Vector2(32, 21), "%d m/s" % roundi(wind.length()),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 16, col)

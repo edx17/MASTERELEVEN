@@ -91,6 +91,19 @@ var _script := [
 
 
 func _ready() -> void:
+	# `-- --capture=<dir> --quick`: sólo las vistas de juego (para comparar look).
+	if "--quick" in OS.get_cmdline_user_args():
+		_script = [[20, "freeze"], [40, "shot:capture_tv.png"], [95, "attack"],
+			[140, "shot:capture_tv_attack.png"], [145, "corner"], [146, "simulate:1.5"],
+			[190, "shot:capture_corner.png"], [200, "quit"]]
+	# `--cond=horario,clima,viento,césped` (índices; -1 = al azar).
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--cond="):
+			var v := a.trim_prefix("--cond=").split(",")
+			GameSettings.time_choice = int(v[0])
+			GameSettings.weather_choice = int(v[1])
+			GameSettings.wind_choice = int(v[2]) if v.size() > 2 else 0
+			GameSettings.pitch_choice = int(v[3]) if v.size() > 3 else -1
 	GameSettings.set_mode(GameSettings.Mode.VS_CPU)
 	GameSettings.camera_preset = 0
 	_match = load("res://scenes/match/match.tscn").instantiate()
