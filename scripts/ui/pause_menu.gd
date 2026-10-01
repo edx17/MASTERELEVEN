@@ -85,6 +85,7 @@ func _my_team_index() -> int:
 
 
 func _refresh() -> void:
+	GameSettings.save_settings()
 	var m := get_parent() as MatchController
 	if m == null:
 		return

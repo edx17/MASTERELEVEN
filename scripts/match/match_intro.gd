@@ -24,8 +24,8 @@ const JOG := 4.2
 ## Fila del local en el saludo y carril (1 m adelante) por donde pasa el visitante.
 const ROW_Z := 3.0
 const LANE_Z := ROW_Z + 1.0
-## Boca del túnel (StadiumBuilder) y momento del corte a la toma lateral.
-const TUNNEL_Z := Pitch.HALF_WIDTH + StadiumBuilder.WALL_GAP + 1.5
+## Momento del corte a la toma lateral (la boca del túnel depende del
+## estadio: StadiumBuilder.tunnel_z).
 const TUNNEL_CUT := 4.5
 ## Duración de cada etapa (s); el menú espera al jugador.
 const DURATION := {Step.WARMUP: 6.0, Step.TUNNEL: 9.0, Step.LINEUP: 4.0, Step.HANDSHAKE: 12.0, Step.FORMATION: 5.0}
@@ -87,7 +87,7 @@ func tick(dt: float) -> void:
 			if step == Step.TUNNEL:
 				if _t < TUNNEL_CUT:
 					# Salen del túnel: cámara en la cancha, mirando la boca.
-					_cam.set_shot(Vector3(7.0, 2.0, TUNNEL_Z - 9.0), Vector3(0.0, 1.4, TUNNEL_Z), 38.0)
+					_cam.set_shot(Vector3(7.0, 2.0, StadiumBuilder.tunnel_z - 9.0), Vector3(0.0, 1.4, StadiumBuilder.tunnel_z), 38.0)
 				else:
 					if _t - dt < TUNNEL_CUT:
 						_skip_ahead_on_pitch()
@@ -169,7 +169,7 @@ func _line_up_in_tunnel() -> void:
 		var side := -1.0 if i == 0 else 1.0
 		for n in t.players.size():
 			var p: Footballer = t.players[n]
-			var pos := Vector3(side * 0.9, 0.0, TUNNEL_Z + 1.0 + n * 1.3)
+			var pos := Vector3(side * 0.9, 0.0, StadiumBuilder.tunnel_z + 1.0 + n * 1.3)
 			p.teleport(pos, Vector3.FORWARD)
 			_targets[p] = Vector3(side * (2.0 + n * 1.05), 0.0, ROW_Z)
 
@@ -316,7 +316,7 @@ func _build_ui() -> void:
 	_option("Saltear la presentación", func() -> void: _enter(Step.DONE))
 	_option("Salir al menú", func() -> void: _match.exit_to_menu())
 	var cond := Label.new()
-	cond.text = _match.conditions.describe() if _match.conditions != null else ""
+	cond.text = String(StadiumStyles.current["name"]) + (" · " + _match.conditions.describe() if _match.conditions != null else "")
 	cond.add_theme_font_size_override("font_size", 18)
 	cond.add_theme_color_override("font_outline_color", Color.BLACK)
 	cond.add_theme_constant_override("outline_size", 6)

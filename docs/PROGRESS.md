@@ -17,6 +17,64 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Ronda WE2002 (6): configuración guardada y vista previa de estadios
+
+> **Nota:** la ronda 5 (estadios, túnel, pelo y físicos) había quedado fuera de `main`. El PR #15 se mergeó antes de que se subiera ese commit. Va en el mismo PR que esta ronda.
+
+| Pedido | Cambio |
+|---|---|
+| Guardar la configuración | `GameSettings` guarda las opciones en `user://settings.cfg` cada vez que cambian (menú principal, pausa, cámara) y las lee al abrir el juego. Las opciones guardadas son: duración, dificultad, estadio, horario, clima, viento, césped, velocidad, marca del jugador, arquero a los 6 s, rumbos del stick, cámara y ayuda de pase. Un valor inválido o de otro tipo se ignora o se ajusta al rango. Los tests y las herramientas no leen ni pisan tu configuración. |
+| Vista previa de estadios | El botón "Estadio" del menú muestra el nombre y una miniatura aérea que cambian juntos. Para "Aleatorio" se ve un recuadro neutro. Las miniaturas (`assets/ui/stadiums/<n>.png`, CC0 propias) se generan con `-- --stadium-thumbs=res://assets/ui/stadiums`. |
+
+**Herramienta:** `-- --menu-shot=archivo.png` saca una captura del menú principal.
+
+**Tests:** 188 en verde. Se agregaron:
+- guardar y cargar la configuración;
+- valores inválidos;
+- que los tests no tocan tu configuración;
+- miniaturas de todos los estadios.
+
+## Ronda WE2002 (5): estadios, túnel, pelo y físicos
+
+| Pedido | Cambio |
+|---|---|
+| Tres estadios más | Los estadios son datos (`scripts/stadium/stadium_styles.gd`). `StadiumBuilder` arma cualquiera de los cuatro. Todos son ficticios y sólo toman ideas de arquitectura. Se elige en el menú principal (opción "Estadio", con "Aleatorio"). |
+| Túnel que nace de la tribuna | La tribuna sur tiene un hueco real: sin escalones, butacas, baranda ni banderas sobre la boca. Adentro es todo negro (paredes, techo y fondo) con marco de hormigón. El muro perimetral se abre frente a la salida. La boca depende del estadio (`StadiumBuilder.tunnel_z`). |
+| Pelo pintado | Peinados con volumen (`scripts/player/hair_builder.gd`): corto degradé, pelado, casco, mohicano, coleta, rulos con vincha, rastas, pelado arriba y largo con raya. El pelo va pegado al hueso de la cabeza, con textura de mechones. Se arregló la línea negra entre la piel y el pelo: la zona de color ahora se interpola plana. |
+| Físicos | Normal, gordo, flaco, alto, bajo, fornido y musculoso: escala por hueso, compensando a los hijos, más la altura total. `PlayerData.build` lo fija a mano. Si no, sale de los atributos: arqueros y buenos cabeceadores, altos; con mucha fuerza, fornidos o musculosos; rápidos y livianos, flacos; poca resistencia, a veces gordos. `PlayerData.hair` fija el peinado. |
+
+Los cuatro estadios:
+- **Estadio Master:** el de siempre.
+- **Northbridge Park** (estilo inglés):
+  - tribunas pegadas a la cancha y esquinas cerradas;
+  - techo blanco en voladizo, todo techado;
+  - butacas rojas;
+  - reflectores colgados del techo.
+- **Gran Coliseo del Plata** (herradura rioplatense):
+  - pista de atletismo con andariveles;
+  - dos bandejas, la baja blanca y la alta roja;
+  - casi sin techo;
+  - torres de luz altas por fuera.
+- **Stadio delle Torri:**
+  - tres bandejas empinadas, todo cerrado;
+  - techo oscuro sobre vigas rojas;
+  - cuatro torres grandes en las esquinas y ocho torres con rampas en espiral.
+
+**Herramientas:**
+- `tools/pose_sheet.gd` arma hojas de peinados (`--poses=...hair...png`) y de físicos (`--poses=...build...png`).
+- Las capturas aceptan `--stadium=N` y `--tunnel` (boca del túnel y vista de TV).
+
+**Tests:** 184 en verde. Se agregaron:
+- los cuatro estadios con túnel y salida libre;
+- las esquinas y las torres;
+- los peinados;
+- los físicos;
+- el físico automático.
+
+**Pendiente:**
+- Creador de estadios y creador de jugadores (pedido tuyo), después del diseño final del jugador. Ya está la base: estadios como datos (`StadiumStyles`) y aspecto en `PlayerData`.
+- Medir FPS en tu máquina con el Stadio delle Torri: tiene más del doble de butacas y público que el Estadio Master.
+
 ## Ronda WE2002 (4): correcciones de tu prueba
 
 | Pedido | Cambio |

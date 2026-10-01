@@ -32,6 +32,8 @@ var weather_choice: int = MatchConditions.Weather.CLEAR
 var wind_choice: int = 0
 ## Césped: 0 seco, 1 húmedo, 2 mojado, -1 según el clima.
 var pitch_choice: int = -1
+## Estadio (StadiumStyles.STYLES); -1 = al azar.
+var stadium_choice: int = 0
 const WIND_NAMES := ["Sin viento", "Viento leve", "Viento fuerte"]
 const PITCH_NAMES := ["Césped seco", "Césped húmedo", "Césped mojado"]
 const PITCH_WETNESS := [0.0, 0.4, 0.85]
@@ -64,6 +66,15 @@ const KEEPER_AUTO_NAMES := ["patea", "la suelta"]
 ## con el valor de tuning.tres y se cambia desde la pausa.
 var stick_directions: int = 8
 
+## Configuración guardada entre sesiones (las opciones del menú y de la pausa).
+const SETTINGS_PATH := "user://settings.cfg"
+const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", "wind_choice",
+	"pitch_choice", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
+	"stick_directions", "camera_preset", "show_pass_target"]
+## Falso en los tests y las herramientas: no leen ni pisan la configuración
+## del jugador (así los resultados no dependen de lo que eligió).
+var persist := true
+
 
 func _ready() -> void:
 	tuning = load(TUNING_PATH) as Tuning
@@ -71,9 +82,62 @@ func _ready() -> void:
 		push_warning("No se pudo cargar %s; se usan valores por defecto." % TUNING_PATH)
 		tuning = Tuning.new()
 	stick_directions = tuning.stick_directions
+	persist = not _is_tool_run()
+	if persist:
+		load_settings()
 	InputRouter.setup_for_mode(mode)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 	_check_capture_mode()
+
+
+## Corre un test, una captura, la hoja de poses o la prueba de rendimiento
+## automática (no un jugador).
+func _is_tool_run() -> bool:
+	for a in OS.get_cmdline_args():
+		if a.contains("gut_cmdln"):
+			return true
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--capture=") or a.begins_with("--poses=") or a.begins_with("--stadium-thumbs=") or a.begins_with("--menu-shot=") or a == "--benchmark":
+			return true
+	return false
+
+
+## Guarda las opciones (si es una partida de verdad).
+func save_settings(path: String = SETTINGS_PATH) -> void:
+	if not persist and path == SETTINGS_PATH:
+		return
+	var cfg := ConfigFile.new()
+	cfg.set_value("meta", "version", 1)
+	for key in SAVED:
+		cfg.set_value("options", key, get(key))
+	cfg.save(path)
+
+
+## Lee las opciones guardadas; lo que falte o no tenga sentido queda como está.
+func load_settings(path: String = SETTINGS_PATH) -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(path) != OK:
+		return
+	for key in SAVED:
+		if not cfg.has_section_key("options", key):
+			continue
+		var v: Variant = cfg.get_value("options", key)
+		if typeof(v) == typeof(get(key)):
+			set(key, v)
+	if not match_minutes in DURATION_OPTIONS:
+		match_minutes = DURATION_OPTIONS[0]
+	difficulty = clampi(difficulty, 0, Difficulty.NAMES.size() - 1)
+	time_choice = clampi(time_choice, -1, MatchConditions.TIME_NAMES.size() - 1)
+	weather_choice = clampi(weather_choice, -1, MatchConditions.WEATHER_NAMES.size() - 1)
+	wind_choice = clampi(wind_choice, -1, WIND_NAMES.size() - 1)
+	pitch_choice = clampi(pitch_choice, -1, PITCH_NAMES.size() - 1)
+	stadium_choice = clampi(stadium_choice, -1, StadiumStyles.STYLES.size() - 1)
+	game_speed = clampi(game_speed, -2, 2)
+	player_label = clampi(player_label, 0, PLAYER_LABEL_NAMES.size() - 1)
+	keeper_auto_action = clampi(keeper_auto_action, 0, 1)
+	if not stick_directions in STICK_OPTIONS:
+		stick_directions = tuning.stick_directions
+	camera_preset = maxi(camera_preset, 0)
 
 
 ## Herramienta de desarrollo: `-- --capture=<carpeta>` saca capturas y sale.
@@ -83,6 +147,14 @@ func _check_capture_mode() -> void:
 			var poses: Node = load("res://tools/pose_sheet.gd").new()
 			poses.set("out", arg.trim_prefix("--poses="))
 			get_tree().root.add_child.call_deferred(poses)
+		if arg.begins_with("--menu-shot="):
+			var shot: Node = load("res://tools/menu_shot.gd").new()
+			shot.set("out", arg.trim_prefix("--menu-shot="))
+			get_tree().root.add_child.call_deferred(shot)
+		if arg.begins_with("--stadium-thumbs="):
+			var thumbs: Node = load("res://tools/stadium_thumbs.gd").new()
+			thumbs.set("out_dir", arg.trim_prefix("--stadium-thumbs="))
+			get_tree().root.add_child.call_deferred(thumbs)
 		if arg == "--benchmark":
 			start_benchmark(true)
 		if arg.begins_with("--capture="):

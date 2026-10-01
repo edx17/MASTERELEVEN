@@ -106,6 +106,15 @@ func _ready() -> void:
 			GameSettings.weather_choice = int(v[1])
 			GameSettings.wind_choice = int(v[2]) if v.size() > 2 else 0
 			GameSettings.pitch_choice = int(v[3]) if v.size() > 3 else -1
+	# `--tunnel`: la boca del túnel con los equipos saliendo y la vista de TV.
+	if "--tunnel" in OS.get_cmdline_user_args():
+		GameSettings.play_intro = true
+		_script = [[5, "freeze"], [10, "intro:2"], [11, "simulate:2.5"], [20, "shot:intro_tunnel_mouth.png"],
+			[25, "intro:6"], [40, "shot:capture_tv.png"], [45, "quit"]]
+	# `--stadium=N`: estadio (StadiumStyles).
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--stadium="):
+			GameSettings.stadium_choice = int(arg.trim_prefix("--stadium="))
 	# `--intro`: la presentación previa (menú, calentamiento, túnel, saludo...).
 	if "--intro" in OS.get_cmdline_user_args():
 		GameSettings.play_intro = true

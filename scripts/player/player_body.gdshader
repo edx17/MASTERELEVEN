@@ -18,7 +18,8 @@ uniform vec3 trim : source_color = vec3(1.0);
 uniform float cloth_inflate = 0.012;
 uniform float cloth_smooth = 0.8;
 
-varying float v_region;
+// Plano: entre la piel (3) y el pelo (5) no tiene que aparecer otra zona.
+varying flat float v_region;
 varying float v_torso;
 varying float v_trim;
 varying vec3 v_cyl_normal;

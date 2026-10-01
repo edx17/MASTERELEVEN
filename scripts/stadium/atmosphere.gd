@@ -217,32 +217,40 @@ func _build_floodlights() -> void:
 	pole_mat.albedo_color = Color(0.3, 0.31, 0.33)
 	pole_mat.metallic = 0.6
 	pole_mat.roughness = 0.5
+	# Ubicación según el estadio: torres con mástil por fuera, o reflectores
+	# colgados del techo en las esquinas.
+	var flood: Array = StadiumStyles.current["flood"]
+	var fx: float = flood[0]
+	var fz: float = flood[1]
+	var height: float = flood[2]
+	var has_pole: bool = flood[3]
 	var i := 0
 	for xs: int in [-1, 1]:
 		for zs: int in [-1, 1]:
-			var base := Vector3(xs * (Pitch.HALF_LENGTH + 22.0), 0.0, zs * (Pitch.HALF_WIDTH + 30.0))
+			var base := Vector3(xs * (Pitch.HALF_LENGTH + fx), 0.0, zs * (Pitch.HALF_WIDTH + fz))
 			# Mástil y panel de reflectores.
-			var pole := MeshInstance3D.new()
-			var cyl := CylinderMesh.new()
-			cyl.top_radius = 0.6
-			cyl.bottom_radius = 1.0
-			cyl.height = FLOOD_HEIGHT
-			pole.mesh = cyl
-			pole.material_override = pole_mat
-			pole.position = base + Vector3(0.0, FLOOD_HEIGHT * 0.5, 0.0)
-			add_child(pole)
+			if has_pole:
+				var pole := MeshInstance3D.new()
+				var cyl := CylinderMesh.new()
+				cyl.top_radius = 0.6
+				cyl.bottom_radius = 1.0
+				cyl.height = height
+				pole.mesh = cyl
+				pole.material_override = pole_mat
+				pole.position = base + Vector3(0.0, height * 0.5, 0.0)
+				add_child(pole)
 			var panel := MeshInstance3D.new()
 			var box := BoxMesh.new()
-			box.size = Vector3(10.0, 6.0, 0.6)
+			box.size = Vector3(10.0, 6.0, 0.6) if has_pole else Vector3(14.0, 1.6, 0.6)
 			panel.mesh = box
 			panel.material_override = lamp_mat
-			panel.position = base + Vector3(0.0, FLOOD_HEIGHT + 2.0, 0.0)
+			panel.position = base + Vector3(0.0, height + 2.0, 0.0)
 			add_child(panel)
 			panel.look_at(Vector3(0.0, 0.0, 0.0), Vector3.UP)
 			panel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			# Reflector: apunta al cuarto de cancha opuesto (cruzan las luces).
 			var spot := SpotLight3D.new()
-			spot.position = base + Vector3(0.0, FLOOD_HEIGHT + 2.0, 0.0)
+			spot.position = base + Vector3(0.0, height + 2.0, 0.0)
 			spot.spot_range = 240.0
 			spot.spot_angle = 38.0
 			spot.spot_attenuation = 0.4

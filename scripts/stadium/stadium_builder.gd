@@ -31,12 +31,25 @@ static var crowd_material: ShaderMaterial
 const CROWD_DENSITY := 0.85
 
 
-static func build(home: TeamData, away: TeamData = null) -> Node3D:
+## Boca del túnel (z del mundo, del lado de la cámara) del último estadio
+## armado; la presentación saca a los equipos por acá.
+static var tunnel_z := Pitch.HALF_WIDTH + 7.0
+const TUNNEL_HALF := 2.4
+const TUNNEL_H := 3.2
+const TUNNEL_DEPTH := 16.0
+
+
+## Arma el estadio `style` (StadiumStyles; por defecto, el del partido).
+static func build(home: TeamData, away: TeamData = null, style: Dictionary = {}) -> Node3D:
+	if style.is_empty():
+		style = StadiumStyles.current
 	var root := Node3D.new()
 	root.name = "Stadium"
 	var seat_color := seat_tone(home.color) if home != null else Color(0.8, 0.15, 0.15)
+	if style.get("seat") != null:
+		seat_color = style["seat"]
 	var text_color := home.secondary_color if home != null else Color.WHITE
-	if text_color.get_luminance() < 0.25:
+	if text_color.get_luminance() < 0.25 or text_color.is_equal_approx(seat_color):
 		text_color = Color(0.95, 0.95, 0.95)
 	var name := home.team_name.to_upper() if home != null else "MASTER ELEVEN"
 	crowd_material = ShaderMaterial.new()
@@ -46,16 +59,39 @@ static func build(home: TeamData, away: TeamData = null) -> Node3D:
 		"home2": home.secondary_color if home != null else Color.WHITE,
 		"away": away.color if away != null else Color(0.2, 0.3, 0.8),
 	}
-
-	# Tribuna principal (frente a la cámara): dos bandejas y el nombre del club.
-	_stand(root, "North", Vector3(0, 0, -1), Pitch.HALF_LENGTH * 2.0 + 20.0, [26, 20], seat_color, text_color, name, fans)
-	# Cabeceras (la visitante, en la del este).
-	_stand(root, "West", Vector3(-1, 0, 0), Pitch.HALF_WIDTH * 2.0 + 14.0, [22, 16], seat_color, text_color, "", fans)
-	_stand(root, "East", Vector3(1, 0, 0), Pitch.HALF_WIDTH * 2.0 + 14.0, [22, 16], seat_color, text_color, "", fans, true)
-	# Tribuna detrás de la cámara (casi no se ve; da sombra y cierre).
-	_stand(root, "South", Vector3(0, 0, 1), Pitch.HALF_LENGTH * 2.0 + 20.0, [18], seat_color, text_color, "", fans)
-	_perimeter(root)
-	_technical_area(root)
+	var ctx := {"seat": seat_color, "text_color": text_color, "fans": fans, "style": style}
+	var gap: float = style["gap"]
+	var hl := Pitch.HALF_LENGTH
+	var hw := Pitch.HALF_WIDTH
+	var stands: Dictionary = style["stands"]
+	var corners: Array = style["corners"]
+	var closed := not corners.is_empty()
+	# Con esquinas, las tribunas cubren el largo de la cancha y se abren hacia
+	# atrás (22,5° por lado) para empalmar en diagonal con las esquinas.
+	var widen := 2.0 * tan(PI / 8.0) if closed else 0.0
+	var side_len := hl * 2.0 + (0.0 if closed else 20.0)
+	var end_len := hw * 2.0 + (0.0 if closed else 14.0)
+	# Tribuna principal (frente a la cámara) con el nombre del club.
+	var main := _stand(root, "North", Vector3(0, 0, -1), side_len, stands["North"], ctx,
+			{"text": name if style["club_text"] else "", "widen": widen})
+	_stand(root, "West", Vector3(-1, 0, 0), end_len, stands["West"], ctx, {"widen": widen})
+	_stand(root, "East", Vector3(1, 0, 0), end_len, stands["East"], ctx, {"widen": widen, "away_end": true})
+	# Detrás de la cámara (casi no se ve; da sombra y cierre); acá está el túnel.
+	_stand(root, "South", Vector3(0, 0, 1), side_len, stands["South"], ctx, {"widen": widen, "tunnel": true})
+	if closed:
+		for sx: int in [-1, 1]:
+			for sz: int in [-1, 1]:
+				var corner_name := ("North" if sz < 0 else "South") + ("West" if sx < 0 else "East")
+				_stand(root, corner_name, Vector3(sx, 0, sz).normalized(), gap * sqrt(2.0), corners, ctx,
+						{"widen": widen, "away_end": sx > 0, "roof_key": "Corner",
+						"position": Vector3(sx * (hl + gap * 0.5), 0.0, sz * (hw + gap * 0.5))})
+	tunnel_z = hw + gap
+	_perimeter(root, style)
+	_technical_area(root, style)
+	if style["track"]:
+		_track(root, style)
+	if style["towers"]:
+		_towers(root, style, main)
 	return root
 
 
@@ -103,8 +139,22 @@ static func _concrete_mat() -> StandardMaterial3D:
 
 ## Una tribuna mirando hacia el centro. `outward` apunta desde la cancha hacia
 ## la tribuna. Cada elemento de `tiers` es la cantidad de filas de una bandeja.
+## opts: text (nombre con butacas), away_end, widen (cuánto se alarga cada fila
+## por metro hacia atrás), position (frente, si no es una lateral), tunnel
+## (hueco del túnel en el centro), roof_key (tipo de techo a usar).
+## Devuelve {"depth", "height", "length"} de la tribuna terminada.
 static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: float, tiers: Array,
-		seat_color: Color, text_color: Color, text: String, fans: Dictionary = {}, away_end: bool = false) -> void:
+		ctx: Dictionary, opts: Dictionary = {}) -> Dictionary:
+	var style: Dictionary = ctx["style"]
+	var fans: Dictionary = ctx["fans"]
+	var seat_color: Color = ctx["seat"]
+	var text_color: Color = ctx["text_color"]
+	var text: String = opts.get("text", "")
+	var away_end: bool = opts.get("away_end", false)
+	var widen: float = opts.get("widen", 0.0)
+	var tunnel: bool = opts.get("tunnel", false)
+	var tier_colors: Array = style.get("tier_colors", [])
+	var tier_step: Array = style["tier_step"]
 	var stand := Node3D.new()
 	stand.name = "Stand" + stand_name
 	root.add_child(stand)
@@ -112,24 +162,34 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 	var edge := Pitch.HALF_WIDTH if absf(outward.z) > 0.5 else Pitch.HALF_LENGTH
 	# Base de la tribuna orientada: X local = a lo largo, Z local = hacia afuera.
 	stand.basis = Basis.looking_at(-outward, Vector3.UP)
-	stand.position = outward * (edge + STAND_GAP)
+	stand.position = opts.get("position", outward * (edge + float(style["gap"])))
 
-	var seats_per_row := int(length / SEAT_PITCH)
-	var total_rows := 0
-	for t in tiers:
-		total_rows += int(t)
+	var base_seats := int(length / SEAT_PITCH)
+	# Butacas por fila (las filas se alargan hacia atrás si la tribuna empalma
+	# con las esquinas).
+	var rows_seats: Array[int] = []
+	var zz := 0.0
+	for tier_i in tiers.size():
+		if tier_i > 0:
+			zz += float(tier_step[0])
+		for r in int(tiers[tier_i]):
+			rows_seats.append(int((length + widen * zz) / SEAT_PITCH))
+			zz += ROW_DEPTH
+	var total := 0
+	for n in rows_seats:
+		total += n
 	var seat_mesh := _seat_mesh()
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
 	mm.mesh = seat_mesh
-	mm.instance_count = seats_per_row * total_rows
+	mm.instance_count = total
 	var steps := SurfaceTool.new()
 	steps.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var fascia := SurfaceTool.new()
 	fascia.begin(Mesh.PRIMITIVE_TRIANGLES)
 
-	var letters := PixelFont.layout(text, seats_per_row, tiers[0] if tiers.size() > 0 else 0)
+	var letters := PixelFont.layout(text, base_seats, tiers[0] if tiers.size() > 0 else 0)
 	# Público: personas en una parte de las butacas (no en las escaleras ni
 	# sobre las letras del nombre del club).
 	var rng := RandomNumberGenerator.new()
@@ -140,34 +200,54 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 	var row_global := 0
 	var y := 0.0
 	var z := 0.0
+	# Hueco del túnel: sin escalones ni butacas sobre la boca.
+	var hole := TUNNEL_HALF + 0.35
 	for tier_i in tiers.size():
 		var rows: int = tiers[tier_i]
+		var tier_seat := seat_color
+		if tier_i < tier_colors.size():
+			tier_seat = tier_colors[tier_i]
 		if tier_i > 0:
 			# Pasillo y voladizo entre bandejas: frente oscuro de la bandeja
 			# superior (como en los estadios modernos).
-			z += 2.5
-			y += 3.2
-			_box(fascia, Vector3(-length * 0.5, y - ROW_RISE - 2.2, z - 0.4), Vector3(length * 0.5, y - ROW_RISE + 0.3, z))
+			z += float(tier_step[0])
+			y += float(tier_step[1])
+			var fl := (length + widen * z) * 0.5
+			_box(fascia, Vector3(-fl, y - ROW_RISE - 2.2, z - 0.4), Vector3(fl, y - ROW_RISE + 0.3, z))
+		var front_len := length + widen * z
+		var cut := hole if tunnel and tier_i == 0 else 0.0
 		# Baranda al frente de cada bandeja, con banderas de los hinchas.
-		_railing(stand, length, y - ROW_RISE, z - 0.1)
+		_railing(stand, front_len, y - ROW_RISE, z - 0.1, cut)
 		if not fans.is_empty():
-			_banners(stand, length, y - ROW_RISE, z - 0.15, fans, away_end, rng)
+			_banners(stand, front_len, y - ROW_RISE, z - 0.15, fans, away_end, rng, cut)
 		for r in rows:
-			# Escalón de hormigón.
-			_box(steps, Vector3(-length * 0.5, y - ROW_RISE, z), Vector3(length * 0.5, y, z + ROW_DEPTH))
+			var seats_per_row: int = rows_seats[row_global]
+			var row_len := seats_per_row * SEAT_PITCH
+			var in_hole := tunnel and y - ROW_RISE < TUNNEL_H + 0.3
+			# Escalón de hormigón (partido en dos sobre la boca del túnel).
+			if in_hole:
+				_box(steps, Vector3(-row_len * 0.5, y - ROW_RISE, z), Vector3(-hole, y, z + ROW_DEPTH))
+				_box(steps, Vector3(hole, y - ROW_RISE, z), Vector3(row_len * 0.5, y, z + ROW_DEPTH))
+			else:
+				_box(steps, Vector3(-row_len * 0.5, y - ROW_RISE, z), Vector3(row_len * 0.5, y, z + ROW_DEPTH))
+			var shift := (seats_per_row - base_seats) / 2
 			for s in seats_per_row:
-				var x := -length * 0.5 + (s + 0.5) * SEAT_PITCH
-				var c := seat_color
+				var x := -row_len * 0.5 + (s + 0.5) * SEAT_PITCH
+				var c := tier_seat
 				# Escaleras cada 24 butacas.
-				if s % 24 == 0:
+				if (s - shift) % 24 == 0:
 					c = CONCRETE.lightened(0.2)
 				# El eje X local de la tribuna mira al revés que la cámara: se invierte.
-				elif tier_i == 0 and letters.has(Vector2i(seats_per_row - 1 - s, rows - 1 - r)):
+				elif tier_i == 0 and letters.has(Vector2i(base_seats - 1 - (s - shift), rows - 1 - r)):
 					c = text_color
-				mm.set_instance_transform(idx, Transform3D(Basis.IDENTITY, Vector3(x, y, z + ROW_DEPTH * 0.5)))
+				if in_hole and absf(x) < hole:
+					c = Color(0, 0, 0, 0)
+					mm.set_instance_transform(idx, Transform3D(Basis.IDENTITY.scaled(Vector3.ZERO), Vector3.ZERO))
+				else:
+					mm.set_instance_transform(idx, Transform3D(Basis.IDENTITY, Vector3(x, y, z + ROW_DEPTH * 0.5)))
 				mm.set_instance_color(idx, c)
 				idx += 1
-				if c == seat_color and not fans.is_empty() and rng.randf() < CROWD_DENSITY:
+				if c == tier_seat and not fans.is_empty() and rng.randf() < CROWD_DENSITY:
 					var scale := rng.randf_range(0.92, 1.08)
 					var tf := Transform3D(Basis(Vector3.UP, rng.randf_range(-0.3, 0.3)).scaled(Vector3(scale, scale, scale)),
 						Vector3(x + rng.randf_range(-0.05, 0.05), y, z + ROW_DEPTH * 0.5))
@@ -212,33 +292,243 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 	seats.material_override = seat_mat
 	stand.add_child(seats)
 
-	# Pared trasera y techo con vigas (las vigas dejan franjas de sombra).
+	# Pared trasera.
+	var back_len := length + widen * z
 	var back := MeshInstance3D.new()
 	var back_box := BoxMesh.new()
-	back_box.size = Vector3(length, y + 6.0, 0.6)
+	back_box.size = Vector3(back_len, y + 6.0, 0.6)
 	back.mesh = back_box
 	back.material_override = _mat(Color(0.2, 0.2, 0.23))
 	back.position = Vector3(0, (y + 6.0) * 0.5 - 1.0, z + 0.5)
 	stand.add_child(back)
-	var roof_y := y + 5.0
-	var roof_depth := z + 8.0
-	var beam_mat := _mat(Color(0.25, 0.25, 0.28))
-	var beams := int(length / 9.0)
-	for b in beams + 1:
-		var beam := MeshInstance3D.new()
-		var bb := BoxMesh.new()
-		bb.size = Vector3(0.35, 0.6, roof_depth)
-		beam.mesh = bb
-		beam.material_override = beam_mat
-		beam.position = Vector3(-length * 0.5 + b * (length / beams), roof_y, z + 0.5 - roof_depth * 0.5)
-		stand.add_child(beam)
-	var roof := MeshInstance3D.new()
-	var rb := BoxMesh.new()
-	rb.size = Vector3(length, 0.3, roof_depth * 0.55)
-	roof.mesh = rb
-	roof.material_override = _mat(Color(0.3, 0.3, 0.33))
-	roof.position = Vector3(0, roof_y + 0.6, z + 0.5 - roof_depth * 0.275)
-	stand.add_child(roof)
+	var roofs: Dictionary = style["roof"]
+	var roof_type: String = roofs.get(opts.get("roof_key", stand_name), "beams")
+	_roof(stand, roof_type, back_len, length, y, z)
+	if tunnel:
+		_tunnel(stand)
+	return {"depth": z, "height": y, "length": back_len}
+
+
+## Techo de una tribuna terminada (`y`, `z`: arriba y fondo de la última fila).
+static func _roof(stand: Node3D, roof_type: String, back_len: float, front_len: float, y: float, z: float) -> void:
+	match roof_type:
+		"none":
+			# Sin techo: un parapeto de hormigón remata la última fila.
+			var rim := MeshInstance3D.new()
+			var rb := BoxMesh.new()
+			rb.size = Vector3(back_len, 1.2, 0.5)
+			rim.mesh = rb
+			rim.material_override = _concrete_mat()
+			rim.position = Vector3(0, y + 0.6, z + 0.2)
+			stand.add_child(rim)
+		"cantilever":
+			# Voladizo liviano que cubre toda la tribuna, sin columnas: chapa
+			# clara por debajo, borde blanco al frente y cerchas por arriba.
+			var roof_y := y + 4.0
+			var depth := z + 3.0
+			var plate := MeshInstance3D.new()
+			var pb := BoxMesh.new()
+			pb.size = Vector3(back_len, 0.3, depth)
+			plate.mesh = pb
+			plate.material_override = _mat(Color(0.72, 0.73, 0.75), 0.7)
+			plate.position = Vector3(0, roof_y, z + 0.5 - depth * 0.5)
+			plate.rotation.x = -0.06
+			stand.add_child(plate)
+			var white := _mat(Color(0.93, 0.93, 0.94), 0.5)
+			var edge := MeshInstance3D.new()
+			var eb := BoxMesh.new()
+			eb.size = Vector3((back_len + front_len) * 0.5, 0.9, 0.5)
+			edge.mesh = eb
+			edge.material_override = white
+			edge.position = Vector3(0, roof_y + 0.35 - depth * 0.06 * 0.5, z + 0.5 - depth)
+			stand.add_child(edge)
+			var st := SurfaceTool.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			var trusses := int(back_len / 12.0)
+			for i in trusses + 1:
+				var x := -back_len * 0.5 + i * (back_len / trusses)
+				_box(st, Vector3(x - 0.2, roof_y + 0.2, z + 0.5 - depth), Vector3(x + 0.2, roof_y + 2.4, z + 0.5))
+			st.generate_normals()
+			var tr := MeshInstance3D.new()
+			tr.mesh = st.commit()
+			tr.material_override = white
+			stand.add_child(tr)
+		"truss":
+			# Techo oscuro sostenido por vigas rojas enormes: una a lo largo del
+			# frente y otras que cruzan por encima.
+			var roof_y2 := y + 5.0
+			var depth2 := z + 8.0
+			var red := _mat(Color(0.62, 0.08, 0.08), 0.55)
+			var plate2 := MeshInstance3D.new()
+			var pb2 := BoxMesh.new()
+			pb2.size = Vector3(back_len, 0.3, depth2)
+			plate2.mesh = pb2
+			plate2.material_override = _mat(Color(0.32, 0.33, 0.36), 0.6)
+			plate2.position = Vector3(0, roof_y2, z + 0.5 - depth2 * 0.5)
+			stand.add_child(plate2)
+			var st2 := SurfaceTool.new()
+			st2.begin(Mesh.PRIMITIVE_TRIANGLES)
+			_box(st2, Vector3(-back_len * 0.5, roof_y2 + 0.15, z + 0.5 - depth2), Vector3(back_len * 0.5, roof_y2 + 3.0, z + 0.5 - depth2 + 1.4))
+			var girders := int(back_len / 16.0)
+			for i in girders + 1:
+				var x2 := -back_len * 0.5 + i * (back_len / girders)
+				_box(st2, Vector3(x2 - 0.45, roof_y2 + 0.15, z + 0.5 - depth2), Vector3(x2 + 0.45, roof_y2 + 2.2, z + 0.5))
+			st2.generate_normals()
+			var g := MeshInstance3D.new()
+			g.mesh = st2.commit()
+			g.material_override = red
+			stand.add_child(g)
+		_:
+			# Techo con vigas (dejan franjas de sombra sobre el césped).
+			var roof_y3 := y + 5.0
+			var roof_depth := z + 8.0
+			var beam_mat := _mat(Color(0.25, 0.25, 0.28))
+			var beams := int(back_len / 9.0)
+			for b in beams + 1:
+				var beam := MeshInstance3D.new()
+				var bb := BoxMesh.new()
+				bb.size = Vector3(0.35, 0.6, roof_depth)
+				beam.mesh = bb
+				beam.material_override = beam_mat
+				beam.position = Vector3(-back_len * 0.5 + b * (back_len / beams), roof_y3, z + 0.5 - roof_depth * 0.5)
+				stand.add_child(beam)
+			var roof := MeshInstance3D.new()
+			var rb3 := BoxMesh.new()
+			rb3.size = Vector3(back_len, 0.3, roof_depth * 0.55)
+			roof.mesh = rb3
+			roof.material_override = _mat(Color(0.3, 0.3, 0.33))
+			roof.position = Vector3(0, roof_y3 + 0.6, z + 0.5 - roof_depth * 0.275)
+			stand.add_child(roof)
+
+
+## Túnel bajo la tribuna (coordenadas de la tribuna sur): marco de hormigón en
+## la boca y adentro todo negro (paredes, techo y fondo), así se ve el hueco y
+## los jugadores salen de la oscuridad.
+static func _tunnel(stand: Node3D) -> void:
+	var dark := StandardMaterial3D.new()
+	dark.albedo_color = Color(0.012, 0.012, 0.014)
+	dark.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var h := TUNNEL_HALF
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	_box(st, Vector3(-h - 0.4, 0.0, 0.3), Vector3(-h, TUNNEL_H, TUNNEL_DEPTH))
+	_box(st, Vector3(h, 0.0, 0.3), Vector3(h + 0.4, TUNNEL_H, TUNNEL_DEPTH))
+	_box(st, Vector3(-h - 0.4, TUNNEL_H, 0.3), Vector3(h + 0.4, TUNNEL_H + 0.4, TUNNEL_DEPTH))
+	_box(st, Vector3(-h, 0.0, TUNNEL_DEPTH - 0.3), Vector3(h, TUNNEL_H, TUNNEL_DEPTH))
+	_box(st, Vector3(-h, -0.05, 0.3), Vector3(h, 0.01, TUNNEL_DEPTH))
+	st.generate_normals()
+	var inside := MeshInstance3D.new()
+	inside.name = "Tunnel"
+	inside.mesh = st.commit()
+	inside.material_override = dark
+	stand.add_child(inside)
+	var fr := SurfaceTool.new()
+	fr.begin(Mesh.PRIMITIVE_TRIANGLES)
+	_box(fr, Vector3(-h - 0.6, 0.0, -0.3), Vector3(-h, TUNNEL_H + 0.6, 0.3))
+	_box(fr, Vector3(h, 0.0, -0.3), Vector3(h + 0.6, TUNNEL_H + 0.6, 0.3))
+	_box(fr, Vector3(-h - 0.6, TUNNEL_H, -0.3), Vector3(h + 0.6, TUNNEL_H + 0.6, 0.3))
+	fr.generate_normals()
+	var frame := MeshInstance3D.new()
+	frame.name = "TunnelFrame"
+	frame.mesh = fr.commit()
+	frame.material_override = _concrete_mat()
+	stand.add_child(frame)
+
+
+## Pista de atletismo (rojiza, con andariveles) entre la cancha y el muro.
+static func _track(root: Node3D, style: Dictionary) -> void:
+	var wall: float = style["wall"]
+	var hl := Pitch.HALF_LENGTH + wall
+	var hw := Pitch.HALF_WIDTH + wall
+	var track := MeshInstance3D.new()
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(hl * 2.0, hw * 2.0)
+	track.mesh = plane
+	track.material_override = _mat(Color(0.5, 0.2, 0.14), 0.95)
+	track.position.y = -0.012
+	root.add_child(track)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for lane in 6:
+		var d := 6.0 + lane * 1.1
+		var lx := Pitch.HALF_LENGTH + d
+		var lz := Pitch.HALF_WIDTH + d
+		if d > wall - 0.3:
+			break
+		_box(st, Vector3(-lx, -0.008, -lz - 0.03), Vector3(lx, -0.004, -lz + 0.03))
+		_box(st, Vector3(-lx, -0.008, lz - 0.03), Vector3(lx, -0.004, lz + 0.03))
+		_box(st, Vector3(-lx - 0.03, -0.008, -lz), Vector3(-lx + 0.03, -0.004, lz))
+		_box(st, Vector3(lx - 0.03, -0.008, -lz), Vector3(lx + 0.03, -0.004, lz))
+	st.generate_normals()
+	var lines := MeshInstance3D.new()
+	lines.mesh = st.commit()
+	lines.material_override = _mat(Color(0.9, 0.88, 0.85), 0.9)
+	root.add_child(lines)
+
+
+## Torres cilíndricas por fuera: cuatro grandes en las esquinas (sostienen el
+## techo) y ocho con rampas en espiral a lo largo de las tribunas.
+static func _towers(root: Node3D, style: Dictionary, main: Dictionary) -> void:
+	var gap: float = style["gap"]
+	var depth: float = main["depth"]
+	var height: float = main["height"]
+	var hl := Pitch.HALF_LENGTH
+	var hw := Pitch.HALF_WIDTH
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var spots: Array = []
+	for sx: int in [-1, 1]:
+		for sz: int in [-1, 1]:
+			spots.append([Vector3(sx * (hl + gap + depth * 0.62 + 5.0), 0, sz * (hw + gap + depth * 0.62 + 5.0)), 6.5, height + 10.0])
+			spots.append([Vector3(sx * 32.0, 0, sz * (hw + gap + depth + 5.0)), 4.6, height * 0.92])
+			spots.append([Vector3(sx * (hl + gap + depth + 5.0), 0, sz * 14.0), 4.6, height * 0.92])
+	var core_mat := _concrete_mat()
+	for spot in spots:
+		var c: Vector3 = spot[0]
+		var radius: float = spot[1]
+		var h: float = spot[2]
+		var core := MeshInstance3D.new()
+		var cyl := CylinderMesh.new()
+		cyl.top_radius = radius - 1.6
+		cyl.bottom_radius = radius - 1.6
+		cyl.height = h
+		cyl.radial_segments = 20
+		core.mesh = cyl
+		core.material_override = core_mat
+		core.position = c + Vector3(0, h * 0.5, 0)
+		root.add_child(core)
+		# Rampa en espiral: tramos inclinados alrededor del núcleo.
+		var per_turn := 20
+		var turns := int(h / 4.5)
+		var seg_len := TAU * (radius - 0.8) / per_turn * 1.08
+		for i in per_turn * turns:
+			var a := float(i) / per_turn * TAU
+			var y := float(i) / per_turn * 4.5
+			var p := c + Vector3(cos(a) * (radius - 0.8), y, sin(a) * (radius - 0.8))
+			# El eje X del tramo, tangente a la circunferencia.
+			var tf := Transform3D(Basis(Vector3.UP, -a - PI * 0.5), p)
+			_obox(st, tf, Vector3(seg_len, 0.3, 1.6))
+			# Baranda exterior de la rampa.
+			_obox(st, Transform3D(tf.basis, c + Vector3(cos(a) * (radius - 0.05), y + 0.6, sin(a) * (radius - 0.05))), Vector3(seg_len, 1.2, 0.12))
+	st.generate_normals()
+	var ramps := MeshInstance3D.new()
+	ramps.name = "Towers"
+	ramps.mesh = st.commit()
+	ramps.material_override = _mat(Color(0.62, 0.62, 0.64), 0.9)
+	root.add_child(ramps)
+
+
+## Caja orientada (centro y base de `tf`) agregada a un SurfaceTool.
+static func _obox(st: SurfaceTool, tf: Transform3D, size: Vector3) -> void:
+	var h := size * 0.5
+	var v := []
+	for k in 8:
+		var p := Vector3(h.x if k & 1 else -h.x, h.y if k & 2 else -h.y, h.z if k & 4 else -h.z)
+		v.append(tf * p)
+	var faces := [[0, 1, 3, 2], [5, 4, 6, 7], [4, 0, 2, 6], [1, 5, 7, 3], [2, 3, 7, 6], [4, 5, 1, 0]]
+	for f in faces:
+		for i in [0, 1, 2, 0, 2, 3]:
+			st.add_vertex(v[f[i]])
 
 
 ## Butaca: asiento y respaldo (una sola malla, instanciada por MultiMesh).
@@ -356,11 +646,13 @@ static func _seat_mesh() -> ArrayMesh:
 
 
 ## Banderas colgadas de la baranda (dos franjas con los colores del club).
-static func _banners(stand: Node3D, length: float, y: float, z: float, fans: Dictionary, away_end: bool, rng: RandomNumberGenerator) -> void:
+static func _banners(stand: Node3D, length: float, y: float, z: float, fans: Dictionary, away_end: bool,
+		rng: RandomNumberGenerator, cut: float = 0.0) -> void:
 	var x := -length * 0.5 + rng.randf_range(2.0, 8.0)
 	while x < length * 0.5 - 4.0:
 		var w := rng.randf_range(3.0, 6.5)
-		if rng.randf() < 0.6:
+		var over_cut := cut > 0.0 and x < cut + 0.5 and x + w > -cut - 0.5
+		if rng.randf() < 0.6 and not over_cut:
 			var a: Color = fans["away"] if away_end else (fans["home"] if rng.randf() < 0.8 else fans["away"])
 			var b: Color = Color(0.95, 0.95, 0.95) if rng.randf() < 0.6 else (fans["home2"] if not away_end else Color(0.1, 0.1, 0.12))
 			for i in 2:
@@ -378,14 +670,19 @@ static func _banners(stand: Node3D, length: float, y: float, z: float, fans: Dic
 
 
 ## Baranda metálica (pasamanos y parantes) al frente de una bandeja.
-static func _railing(stand: Node3D, length: float, y: float, z: float) -> void:
+## `cut` > 0 deja libre el centro (|x| < cut): la boca del túnel.
+static func _railing(stand: Node3D, length: float, y: float, z: float, cut: float = 0.0) -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	_box(st, Vector3(-length * 0.5, y + 0.95, z - 0.03), Vector3(length * 0.5, y + 1.0, z + 0.03))
-	_box(st, Vector3(-length * 0.5, y + 0.5, z - 0.02), Vector3(length * 0.5, y + 0.53, z + 0.02))
+	var spans := [[-length * 0.5, length * 0.5]] if cut <= 0.0 else [[-length * 0.5, -cut], [cut, length * 0.5]]
+	for sp in spans:
+		_box(st, Vector3(sp[0], y + 0.95, z - 0.03), Vector3(sp[1], y + 1.0, z + 0.03))
+		_box(st, Vector3(sp[0], y + 0.5, z - 0.02), Vector3(sp[1], y + 0.53, z + 0.02))
 	var posts := int(length / 2.5)
 	for i in posts + 1:
 		var x := -length * 0.5 + i * (length / posts)
+		if absf(x) < cut:
+			continue
 		_box(st, Vector3(x - 0.025, y, z - 0.025), Vector3(x + 0.025, y + 1.0, z + 0.025))
 	st.generate_normals()
 	var mi := MeshInstance3D.new()
@@ -421,13 +718,18 @@ static func _box(st: SurfaceTool, a: Vector3, b: Vector3) -> void:
 
 
 ## Muro oscuro alrededor de la cancha y carteles lisos (sin marcas).
-static func _perimeter(root: Node3D) -> void:
+static func _perimeter(root: Node3D, style: Dictionary) -> void:
 	var wall_mat := _mat(Color(0.08, 0.08, 0.09))
-	var hl := Pitch.HALF_LENGTH + WALL_GAP
-	var hw := Pitch.HALF_WIDTH + WALL_GAP
+	var wall: float = style["wall"]
+	var hl := Pitch.HALF_LENGTH + wall
+	var hw := Pitch.HALF_WIDTH + wall
+	# Del lado del túnel el muro se abre para que pasen los equipos.
+	var open := TUNNEL_HALF + 0.8
+	var half := (hl - open) * 0.5
 	var sides := [
 		[Vector3(0, 0.6, -hw), Vector3(hl * 2.0, 1.2, 0.3)],
-		[Vector3(0, 0.6, hw), Vector3(hl * 2.0, 1.2, 0.3)],
+		[Vector3(-open - half, 0.6, hw), Vector3(half * 2.0, 1.2, 0.3)],
+		[Vector3(open + half, 0.6, hw), Vector3(half * 2.0, 1.2, 0.3)],
 		[Vector3(-hl, 0.6, 0), Vector3(0.3, 1.2, hw * 2.0)],
 		[Vector3(hl, 0.6, 0), Vector3(0.3, 1.2, hw * 2.0)],
 	]
@@ -485,8 +787,9 @@ static func _perimeter(root: Node3D) -> void:
 	root.add_child(track)
 
 
-## Bancos de suplentes, túnel y marcas del área técnica (lado de la cámara).
-static func _technical_area(parent: Node3D) -> void:
+## Bancos de suplentes y marcas del área técnica (lado de la cámara). El túnel
+## lo arma la tribuna sur (_tunnel).
+static func _technical_area(parent: Node3D, style: Dictionary) -> void:
 	# Van en su propio nodo "StandSouthTech": del lado de la cámara de TV, así
 	# que se ocultan junto con la tribuna sur (sólo proyectan sombra).
 	var root := Node3D.new()
@@ -514,29 +817,8 @@ static func _technical_area(parent: Node3D) -> void:
 		bb.size = Vector3(9.0, 2.2, 1.6)
 		bench.mesh = bb
 		bench.material_override = _mat(Color(0.15, 0.17, 0.2))
-		bench.position = Vector3(cx, 1.1, Pitch.HALF_WIDTH + WALL_GAP - 1.2)
+		bench.position = Vector3(cx, 1.1, Pitch.HALF_WIDTH + float(style["wall"]) - 1.2)
 		root.add_child(bench)
-	# Túnel: boca con marco de hormigón y el interior oscuro (por acá salen
-	# los equipos en la presentación).
-	var mouth_z := Pitch.HALF_WIDTH + WALL_GAP + 0.5
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	_box(st, Vector3(-2.6, 0.0, mouth_z), Vector3(-2.0, 3.0, mouth_z + 6.0))
-	_box(st, Vector3(2.0, 0.0, mouth_z), Vector3(2.6, 3.0, mouth_z + 6.0))
-	_box(st, Vector3(-2.6, 2.6, mouth_z), Vector3(2.6, 3.2, mouth_z + 6.0))
-	st.generate_normals()
-	var frame := MeshInstance3D.new()
-	frame.name = "Tunnel"
-	frame.mesh = st.commit()
-	frame.material_override = _concrete_mat()
-	root.add_child(frame)
-	var inside := MeshInstance3D.new()
-	var ib := BoxMesh.new()
-	ib.size = Vector3(4.0, 2.6, 0.2)
-	inside.mesh = ib
-	inside.material_override = _mat(Color(0.02, 0.02, 0.025))
-	inside.position = Vector3(0, 1.3, mouth_z + 5.8)
-	root.add_child(inside)
 
 
 ## Tipografía de 5x7 "píxeles" para escribir con butacas (cada píxel = 2x2 butacas).

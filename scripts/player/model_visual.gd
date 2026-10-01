@@ -67,6 +67,24 @@ enum Stance { AUTO, RELAXED, HEART, BEHIND, HIPS }
 var stance: int = Stance.AUTO
 var look_yaw := 0.0
 var _breath := 0.0
+## Físico (PlayerData.Build): escala visible por zona y altura total.
+## [panza baja, panza alta, pecho, grosor de brazo, de muslo, de pantorrilla, altura]
+const BUILDS := {
+	PlayerData.Build.NORMAL: [Vector3(1, 1, 1), Vector3(1.02, 1, 1.02), Vector3(1.14, 1, 1.12), 1.0, 1.0, 1.0, 1.0],
+	PlayerData.Build.HEAVY: [Vector3(1.26, 1, 1.45), Vector3(1.3, 1, 1.55), Vector3(1.2, 1, 1.2), 1.12, 1.16, 1.08, 0.99],
+	PlayerData.Build.SLIM: [Vector3(0.9, 1, 0.9), Vector3(0.9, 1, 0.88), Vector3(1.0, 1, 0.95), 0.86, 0.88, 0.88, 1.02],
+	PlayerData.Build.TALL: [Vector3(1, 1, 1), Vector3(1, 1, 1), Vector3(1.1, 1, 1.08), 0.97, 0.97, 0.97, 1.08],
+	PlayerData.Build.SHORT: [Vector3(1, 1, 1), Vector3(1.02, 1, 1.02), Vector3(1.12, 1, 1.1), 1.0, 1.03, 1.02, 0.91],
+	PlayerData.Build.STOCKY: [Vector3(1.1, 1, 1.12), Vector3(1.14, 1, 1.14), Vector3(1.26, 1, 1.2), 1.12, 1.16, 1.1, 0.95],
+	PlayerData.Build.MUSCULAR: [Vector3(1, 1, 1), Vector3(1.06, 1, 1.06), Vector3(1.3, 1, 1.22), 1.22, 1.14, 1.1, 1.0],
+}
+const BOOTS := Vector3(1.2, 1.15, 1.15)
+var body_build: int = PlayerData.Build.NORMAL
+var _height := 1.0
+var _build_scales := {}
+## Peinado (HairBuilder.Style) y su malla.
+var hair_style: int = -1
+var hair_node: MeshInstance3D
 var recover_left := 0.0
 var side_speed := 0.0
 var _trip_played := false
@@ -116,7 +134,16 @@ func setup(colors: Dictionary, seed: int) -> void:
 		mat.set_shader_parameter("socks", colors.get("socks", shirt))
 		mat.set_shader_parameter("boots", colors.get("boots", Color(0.06, 0.06, 0.06)))
 		mat.set_shader_parameter("skin", skin)
-		mat.set_shader_parameter("hair", HAIR_TONES[rng.randi() % HAIR_TONES.size()])
+		# Peinado con volumen (malla aparte pegada a la cabeza). Debajo, el cuero
+		# cabelludo va del color del pelo, salvo si arriba no hay pelo.
+		var hair_color: Color = HAIR_TONES[rng.randi() % HAIR_TONES.size()]
+		hair_style = int(colors.get("hair_style", rng.randi() % HairBuilder.Style.size()))
+		set_build(int(colors.get("build", PlayerData.Build.NORMAL)))
+		var scalp := hair_color
+		if hair_style in [HairBuilder.Style.SHAVED, HairBuilder.Style.HORSESHOE]:
+			scalp = skin.darkened(0.08)
+		mat.set_shader_parameter("hair", scalp)
+		_add_hair(hair_style, hair_color, colors.get("shirt", Color.WHITE))
 		mat.set_shader_parameter("hands", colors.get("gloves", skin))
 		var trim: Color = colors.get("shorts", Color.WHITE)
 		if trim.is_equal_approx(shirt) or absf(trim.get_luminance() - shirt.get_luminance()) < 0.08:
@@ -140,6 +167,67 @@ func setup(colors: Dictionary, seed: int) -> void:
 		_anim.add_animation_library(&"mx", _mx)
 	_anim.mixer_applied.connect(_apply_gestures)
 	_play_locomotion(0.0)
+
+
+## Fija el físico: calcula la escala de cada hueso. Escalar un hueso escala a
+## sus hijos, así que cada hijo se compensa (en sus ejes, según su rotación de
+## reposo) para que, por ejemplo, el pecho ancho no ensanche la cabeza.
+func set_build(b: int) -> void:
+	body_build = b if BUILDS.has(b) else PlayerData.Build.NORMAL
+	var d: Array = BUILDS[body_build]
+	_height = d[6]
+	_build_scales.clear()
+	var arm := Vector3(d[3], 1.0, d[3])
+	var low := Vector3(lerpf(1.0, d[3], 0.7), 1.0, lerpf(1.0, d[3], 0.7))
+	var thigh := Vector3(d[4], 1.0, d[4])
+	var calf := Vector3(d[5], 1.0, d[5])
+	_chain("spine_01", Vector3.ONE, d[0])
+	_chain("spine_02", d[0], d[1])
+	_chain("spine_03", d[1], d[2])
+	_chain("neck_01", d[2], Vector3.ONE)
+	for side in ["l", "r"]:
+		_chain("clavicle_" + side, d[2], Vector3.ONE)
+		_chain("upperarm_" + side, Vector3.ONE, arm)
+		_chain("lowerarm_" + side, arm, low)
+		_chain("hand_" + side, low, Vector3.ONE)
+		_chain("thigh_" + side, Vector3.ONE, thigh)
+		_chain("calf_" + side, thigh, calf)
+		_chain("foot_" + side, calf, BOOTS)
+
+
+## Escala de `bone` para que se vea `visible` aunque el padre esté escalado
+## `parent_visible` (aproximada: se toma la diagonal del cambio de ejes).
+func _chain(bone: String, parent_visible: Vector3, visible: Vector3) -> void:
+	var b := _skel.find_bone(bone)
+	if b < 0:
+		return
+	var r := _skel.get_bone_rest(b).basis.orthonormalized()
+	var m := r.transposed() * Basis.from_scale(Vector3.ONE / parent_visible) * r
+	var sc := Vector3(absf(m.x.x), absf(m.y.y), absf(m.z.z)) * visible
+	if not sc.is_equal_approx(Vector3.ONE):
+		_build_scales[b] = sc
+
+
+## Pelo: la malla de HairBuilder sigue al hueso de la cabeza. Está armada en el
+## espacio de reposo del esqueleto, así que se compensa la pose de reposo.
+func _add_hair(style: int, color: Color, band_color: Color) -> void:
+	var m := HairBuilder.mesh(style)
+	if m == null:
+		return
+	var head := _skel.find_bone("Head")
+	var att := BoneAttachment3D.new()
+	att.name = "Hair"
+	att.bone_idx = head
+	_skel.add_child(att)
+	var mi := MeshInstance3D.new()
+	mi.mesh = m
+	mi.transform = _skel.get_bone_global_rest(head).affine_inverse()
+	mi.set_surface_override_material(0, HairBuilder.material(color))
+	if m.get_surface_count() > 1:
+		var b := band_color if band_color.get_luminance() > 0.2 else Color(0.95, 0.95, 0.95)
+		mi.set_surface_override_material(1, _mat(b))
+	att.add_child(mi)
+	hair_node = mi
 
 
 ## Número en la espalda: sigue al hueso del pecho (se mueve con el torso).
@@ -207,7 +295,7 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 		_play_locomotion(speed)
 		_place_model()
 	else:
-		_model.transform = Transform3D.IDENTITY
+		_model.transform = Transform3D(Basis.from_scale(Vector3.ONE * _height), Vector3.ZERO)
 
 
 ## Gestos: con animación de Mixamo si está disponible; si no, por código.
@@ -383,7 +471,8 @@ func _place_model() -> void:
 			rot.x = 0.12 * sin(k * PI)
 	var pivot := Vector3(0.0, HIP_Y, 0.0)
 	var basis := Basis.from_euler(rot)
-	_model.transform = Transform3D(basis, pivot - basis * pivot + offset)
+	var h := Basis.from_scale(Vector3.ONE * _height)
+	_model.transform = Transform3D(basis * h, pivot * _height - basis * (pivot * _height) + offset)
 
 
 ## Gestos que la librería no trae, aplicados sobre la pose ya animada.
@@ -394,11 +483,9 @@ func _apply_gestures() -> void:
 		if _skel.get_bone_pose_rotation(b).is_equal_approx(_last_set[b]):
 			_skel.set_bone_pose_rotation(b, _clean[b])
 	_last_set.clear()
-	# Físico "cuadrado" (WE2002): pecho y hombros más anchos, botines grandes.
-	_skel.set_bone_pose_scale(_bones["spine_03"], Vector3(1.14, 1.0, 1.12))
-	for foot in [_foot_l, _foot_r]:
-		if foot >= 0:
-			_skel.set_bone_pose_scale(foot, Vector3(1.2, 1.15, 1.15))
+	# Físico: escala por hueso (pecho, panza, brazos, piernas, botines).
+	for b in _build_scales:
+		_skel.set_bone_pose_scale(b, _build_scales[b])
 	if _clip != "":
 		return # la animación de Mixamo manda
 	# Inclinación del torso al acelerar / correr (esfuerzo en el sprint).
