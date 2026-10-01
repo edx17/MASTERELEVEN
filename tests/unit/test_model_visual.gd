@@ -171,3 +171,11 @@ func test_keeper_side_steps_when_moving_sideways() -> void:
 	v.side_speed = 2.0
 	_step(v, 2.0, 5)
 	assert_ne(other, v._current, "cada lado usa su versión")
+
+
+func test_mixamo_file_names_accept_windows_numbering() -> void:
+	var c := MixamoLibrary.file_candidates("Goalkeeper_Catch_1")
+	assert_has(c, "Goalkeeper_Catch_1")
+	assert_has(c, "Goalkeeper Catch 1")
+	assert_has(c, "Goalkeeper Catch (1)")
+	assert_eq(MixamoLibrary.file_candidates("Soccer_Pass").size(), 2, "sin número, sin variante numerada")

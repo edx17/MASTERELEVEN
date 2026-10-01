@@ -3,6 +3,12 @@ extends RefCounted
 ## Control de un jugador humano sobre su equipo: movimiento, sprint, barra de
 ## potencia para pases/tiros, toque de primera (acción "guardada" mientras llega
 ## la pelota), presión, barrida y cambio de jugador automático + manual.
+## Combinaciones (como en el WE):
+##   L1 + Cuadrado = globo · doble Cuadrado = remate rasante
+##   L1 + Círculo = centro alto · doble Círculo = centro raso
+##   L1 + X = pared · L1 + R1 = super cancel · L1 x3 = bicicleta
+##   Cuadrado + X / Círculo + X = amague · stick derecho 360° = marsellesa
+##   L1 mantenido con la pelota = conducción cerrada; sin la pelota, cambia de jugador.
 
 const KICK_BUTTONS := {
 	&"pass_short": KickActions.Kind.SHORT_PASS,
@@ -17,6 +23,11 @@ const RECEIVE_RELEASE_ANGLE := deg_to_rad(50.0)
 ## Durante cuánto se recuerda la última dirección del stick (para pasar hacia
 ## donde se apuntó aunque el stick ya se haya soltado al apretar el botón).
 const AIM_MEMORY := 0.35
+## Ventana del doble toque (remate rasante / centro raso), de los tres toques
+## de L1 (bicicleta) y del giro del stick derecho (marsellesa).
+const DOUBLE_TAP := 0.2
+const TRIPLE_TAP := 0.8
+const SPIN_WINDOW := 1.0
 
 var slot: int = 0
 var team: Team
@@ -30,8 +41,21 @@ var power: float = 0.0
 var _buffered_kind: int = -1
 var _buffered_power: float = 0.0
 var _buffered_dir: Vector3 = Vector3.ZERO
-var _buffer_timer: float = 0.0
 var _buffered_receiver: Footballer = null
+var _buffered_variant: int = KickActions.Variant.NORMAL
+var _buffered_one_two: bool = false
+## L1 estaba apretado al empezar a cargar (globo, centro alto, pared).
+var _charge_l1: bool = false
+## Remate / centro soltado esperando un posible segundo toque:
+## {kind, power, aim, target, time}. Vacío = nada pendiente.
+var _tap := {}
+var _l1_taps: Array[float] = []
+var _spin_acc: float = 0.0
+var _spin_prev: float = INF
+var _spin_time: float = 0.0
+var _clock: float = 0.0
+## Super cancel: el jugador deja de ir solo a buscar la pelota.
+var _auto_off: bool = false
 ## Compañero que recibiría el pase que se está cargando (marcado en la cancha).
 var preview_receiver: Footballer = null
 ## Recepción asistida trabada: tras pasar, el receptor va a buscar la pelota
@@ -63,6 +87,7 @@ func is_charging() -> bool:
 func select(player: Footballer) -> void:
 	if player == controlled:
 		return
+	cancel_order()
 	if controlled != null:
 		controlled.set_human_slot(-1)
 		controlled.desired_move = Vector3.ZERO
@@ -92,11 +117,26 @@ func nearest_to_ball(exclude: Footballer = null) -> Footballer:
 func tick(dt: float) -> void:
 	input.poll()
 	_switch_cooldown = maxf(0.0, _switch_cooldown - dt)
-	_buffer_timer = maxf(0.0, _buffer_timer - dt)
 	var ball := _match.ball
 	_auto_switch(ball)
 
-	if input.just_pressed(&"switch_player") and not _match.is_restart_taker(controlled):
+	var l1 := input.pressed(&"special")
+	var r1 := input.pressed(&"sprint")
+	_clock += dt
+	# Super cancel (L1 + R1): se cancela la orden, la pared y la carrera
+	# automática a buscar la pelota.
+	if l1 and r1 and (input.just_pressed(&"special") or input.just_pressed(&"sprint")):
+		cancel_order()
+		_tap = {}
+		_match.cancel_one_two()
+		_receive_lock = false
+		_auto_off = true
+	var p0 := controlled
+	var has_ball := p0 != null and ball.owner_player == p0
+	if _auto_off and ball.owner_player != null:
+		_auto_off = false
+	# L1 sin la pelota = cambio de jugador (con la pelota es gambeta).
+	if input.just_pressed(&"special") and not r1 and not has_ball and not _match.is_restart_taker(controlled):
 		var next := nearest_to_ball(controlled)
 		if next != null:
 			select(next)
@@ -125,9 +165,35 @@ func tick(dt: float) -> void:
 	if p.is_keeper() and ball.in_hands and ball.owner_player == p and move.length_squared() > 0.01:
 		if not Pitch.in_penalty_area(p.flat_pos() + move.normalized() * 0.8, team.own_side()):
 			move = Vector3.ZERO
-	p.wants_sprint = input.pressed(&"sprint")
+	# Antes del saque del medio no se mueve nadie (sólo el que saca apunta).
+	if _match.waiting_kickoff(p):
+		move = Vector3.ZERO
+	p.wants_sprint = r1 and not l1
 	p.desired_move = move
 	p.pressing = false
+	# L1 mantenido con la pelota: conducción cerrada (gambeta).
+	p.close_control = has_ball and l1 and not r1
+
+	# Gambetas con la pelota: bicicleta (L1 x3) y marsellesa (stick derecho 360°).
+	if has_ball:
+		if input.just_pressed(&"special"):
+			_l1_taps.append(_clock)
+			while not _l1_taps.is_empty() and _clock - _l1_taps[0] > TRIPLE_TAP:
+				_l1_taps.pop_front()
+			if _l1_taps.size() >= 3:
+				_l1_taps.clear()
+				_match.perform_skill(p, Footballer.Skill.STEPOVER)
+		if _right_stick_spin(dt):
+			_match.perform_skill(p, Footballer.Skill.ROULETTE)
+	else:
+		_l1_taps.clear()
+
+	# Pared en curso: con el stick suelto, el que la tocó pica al espacio.
+	if not _match.one_two.is_empty() and _match.one_two.get("passer") == p and move.length_squared() < 0.04:
+		var to_run: Vector3 = (_match.one_two["run"] as Vector3) - p.flat_pos()
+		if to_run.length() > 0.6:
+			p.desired_move = to_run.normalized()
+			p.wants_sprint = true
 
 	# Recepción asistida: con el stick suelto, el receptor de un pase va al
 	# encuentro de la pelota (como en WE); mover el stick lo cancela. Si ya
@@ -135,10 +201,11 @@ func tick(dt: float) -> void:
 	# próximo pase: el receptor sigue yendo a la pelota.
 	var one_touch_pending := is_charging() or _buffered_kind >= 0
 	var incoming := ball.is_loose() and ball.intended_receiver == p
-	if incoming and _buffered_kind >= 0:
-		# La orden guardada dura hasta que la pelota llega (pase largo).
-		_buffer_timer = maxf(_buffer_timer, 0.2)
-	if incoming and (move.length_squared() < 0.04 or one_touch_pending):
+	# Con una orden guardada y el stick suelto también va a buscar una pelota
+	# suelta cualquiera (como en WE: "esperando" para patear de primera).
+	if _buffered_kind >= 0 and ball.is_loose() and move.length_squared() < 0.04:
+		incoming = true
+	if incoming and not _auto_off and (move.length_squared() < 0.04 or one_touch_pending):
 		var meet := _match.loose_ball_intercept(p)
 		var to_meet := meet - p.flat_pos()
 		if to_meet.length() > 0.4:
@@ -154,6 +221,9 @@ func tick(dt: float) -> void:
 		var to_ball := ball.flat_pos() - p.flat_pos()
 		if move.length_squared() < 0.04 and to_ball.length() > 0.3:
 			p.desired_move = to_ball.normalized()
+	# Sin pelota: Cuadrado mantenido = un compañero (CPU) sale a presionar.
+	if opponent_has_ball and input.pressed(&"shoot"):
+		_match.support_press[team.index] = true
 	# Sin pelota: pase al hueco (Triángulo) mantenido = el arquero sale a
 	# achicar (con el rival conduciendo o con la pelota suelta que tocó él).
 	var rival_ball := opponent_has_ball or (ball.is_loose() and ball.last_touch_team != team.index)
@@ -164,37 +234,120 @@ func tick(dt: float) -> void:
 		p.start_slide(move if move.length_squared() > 0.04 else ball.flat_pos() - p.flat_pos())
 		return
 
+	# Doble toque: el remate / centro soltado espera un instante un segundo
+	# toque (rasante / raso); si no llega, sale normal.
+	if not _tap.is_empty():
+		var action: StringName = _tap["action"]
+		if input.just_pressed(action):
+			var t := _tap
+			_tap = {}
+			_try_kick(t["kind"], t["power"], t["aim"], t["target"], KickActions.Variant.LOW)
+			return
+		_tap["time"] += dt
+		if _tap["time"] >= DOUBLE_TAP:
+			var t2 := _tap
+			_tap = {}
+			_try_kick(t2["kind"], t2["power"], t2["aim"], t2["target"])
+
 	# Barra de potencia.
-	if not is_charging() and not opponent_has_ball:
+	if not is_charging() and not opponent_has_ball and _tap.is_empty():
 		for action in KICK_BUTTONS:
 			if input.just_pressed(action):
 				charging_action = action
 				power = 0.0
+				_charge_l1 = l1
 				break
 	if is_charging():
 		power = minf(1.0, power + dt / _match.tuning.power_charge_time)
 		var kind: int = KICK_BUTTONS[charging_action]
 		var aim := aim_direction(aim_move)
+		# Amague (Cuadrado + X / Círculo + X): no patea, engancha.
+		if (kind == KickActions.Kind.SHOT or kind == KickActions.Kind.LONG_PASS) and input.just_pressed(&"pass_short"):
+			charging_action = &""
+			_set_preview(null)
+			_match.perform_feint(p, aim)
+			return
 		# Mientras se carga, se marca a quién va el pase (y se puede corregir
 		# con el stick). Al soltar, ese receptor queda "trabado".
 		_set_preview(_match.kicks.preview_receiver(kind, p, aim) if kind != KickActions.Kind.SHOT else null)
 		if input.just_released(charging_action) or not input.pressed(charging_action):
+			var released := charging_action
 			charging_action = &""
 			var target := preview_receiver
 			_set_preview(null)
-			_try_kick(kind, power, aim, target)
+			if _charge_l1:
+				# L1 + botón: globo, centro alto o pared.
+				match kind:
+					KickActions.Kind.SHOT, KickActions.Kind.LONG_PASS:
+						_try_kick(kind, power, aim, target, KickActions.Variant.HIGH)
+					KickActions.Kind.SHORT_PASS:
+						_try_kick(kind, power, aim, target, KickActions.Variant.NORMAL, true)
+					_:
+						_try_kick(kind, power, aim, target)
+			elif kind == KickActions.Kind.SHOT or kind == KickActions.Kind.LONG_PASS:
+				_tap = {"action": released, "kind": kind, "power": power, "aim": aim, "target": target, "time": 0.0}
+			else:
+				_try_kick(kind, power, aim, target)
 	elif _buffered_kind < 0:
 		_set_preview(null)
 
-	# Toque de primera: si la pelota llegó y había una acción guardada.
-	if _buffered_kind >= 0 and _buffer_timer > 0.0 and _match.can_kick(p):
-		var k := _buffered_kind
-		_buffered_kind = -1
-		_set_preview(null)
-		_do_kick(k, _buffered_power, _buffered_dir, _buffered_receiver)
-	elif _buffer_timer <= 0.0 and _buffered_kind >= 0:
-		_buffered_kind = -1
-		_set_preview(null)
+	# Orden guardada (como en WE): el jugador queda esperando la pelota y
+	# patea (o cabecea) de primera apenas le llega. Se pierde si el rival la
+	# anticipa, si se corta el juego o con el super cancel (L1 + R1).
+	if _buffered_kind >= 0:
+		if _order_cancelled(ball):
+			cancel_order()
+		elif _match.can_kick(p):
+			var k := _buffered_kind
+			_buffered_kind = -1
+			_set_preview(null)
+			_do_kick(k, _buffered_power, _buffered_dir, _buffered_receiver, _buffered_variant, _buffered_one_two)
+
+
+## Giro completo del stick derecho (marsellesa) en menos de SPIN_WINDOW.
+func _right_stick_spin(dt: float) -> bool:
+	var r := input.right_vector()
+	var v := Vector2(r.x, r.z)
+	_spin_time += dt
+	if v.length() < 0.6:
+		if v.length() < 0.3:
+			_spin_acc = 0.0
+			_spin_prev = INF
+			_spin_time = 0.0
+		return false
+	var a := v.angle()
+	if _spin_prev != INF:
+		_spin_acc += angle_difference(_spin_prev, a)
+	else:
+		_spin_time = 0.0
+	_spin_prev = a
+	if _spin_time > SPIN_WINDOW:
+		_spin_acc = 0.0
+		_spin_time = 0.0
+	if absf(_spin_acc) >= TAU * 0.9:
+		_spin_acc = 0.0
+		_spin_prev = INF
+		return true
+	return false
+
+
+## Hay una orden esperando la pelota.
+func has_order() -> bool:
+	return _buffered_kind >= 0
+
+
+func cancel_order() -> void:
+	_buffered_kind = -1
+	_buffered_receiver = null
+	_buffered_one_two = false
+	_set_preview(null)
+
+
+func _order_cancelled(ball: Ball) -> bool:
+	if _match.phase != MatchController.Phase.PLAYING:
+		return true
+	# El rival la anticipó (o un compañero la ganó antes).
+	return ball.owner_player != null and ball.owner_player != controlled
 
 
 ## Dirección a usar para un pase/tiro: el stick actual o, si se soltó hace
@@ -219,10 +372,13 @@ func _set_preview(p: Footballer) -> void:
 		preview_receiver.set_pass_marker(slot)
 
 
-func _try_kick(kind: int, pwr: float, move: Vector3, target: Footballer = null) -> void:
+func _try_kick(kind: int, pwr: float, move: Vector3, target: Footballer = null,
+		variant: int = KickActions.Variant.NORMAL, one_two: bool = false) -> void:
+	if controlled == null:
+		return
 	# Pelota al alcance (conducida o suelta): se patea ya, de primera.
 	if _match.can_kick(controlled):
-		_do_kick(kind, pwr, move, target)
+		_do_kick(kind, pwr, move, target, variant, one_two)
 		return
 	# Si no (la pelota viene o quedó adelantada en la conducción), la orden se
 	# guarda y se ejecuta apenas la pelota esté al alcance.
@@ -230,12 +386,22 @@ func _try_kick(kind: int, pwr: float, move: Vector3, target: Footballer = null) 
 	_buffered_power = pwr
 	_buffered_dir = move
 	_buffered_receiver = target
-	_buffer_timer = _match.tuning.one_touch_buffer
+	_buffered_variant = variant
+	_buffered_one_two = one_two
 	_set_preview(target)
 
 
-func _do_kick(kind: int, pwr: float, move: Vector3, target: Footballer = null) -> void:
-	var receiver := _match.perform_kick(controlled, kind, move, pwr, target)
+func _do_kick(kind: int, pwr: float, move: Vector3, target: Footballer = null,
+		variant: int = KickActions.Variant.NORMAL, one_two: bool = false) -> void:
+	kind = aerial_kind(kind, controlled, _match.ball)
+	var passer := controlled
+	var receiver := _match.perform_kick(controlled, kind, move, pwr, target, variant)
+	_auto_off = false
+	if one_two and receiver != null and receiver.team == team and not receiver.is_keeper():
+		# Pared: el control se queda en el que la tocó, que pica al espacio.
+		_match.start_one_two(passer, receiver)
+		_handled_kick = _match.kick_count
+		return
 	if receiver != null and receiver.team == team and not receiver.is_keeper():
 		# Cambio automático al receptor del pase (como en WE).
 		select(receiver)
@@ -243,6 +409,21 @@ func _do_kick(kind: int, pwr: float, move: Vector3, target: Footballer = null) -
 		# El stick que se usó para pasar no debe mandar al receptor para ese lado.
 		_receive_lock = true
 		_receive_lock_dir = move.normalized() if move.length_squared() > 0.01 else Vector3.ZERO
+
+
+## Pelota aérea (al salto o alta): cada botón hace otra cosa.
+## X = pase de cabeza a un compañero (sí o sí). Círculo = despeje (con el pie
+## o de cabeza). Cuadrado = en campo propio despeja de cabeza; en el rival,
+## remate de cabeza (si no está tan alta, de volea). Triángulo = al hueco.
+static func aerial_kind(kind: int, p: Footballer, ball: Ball) -> int:
+	if p == null or ball.owner_player == p:
+		return kind
+	var h := ball.state.pos.y
+	if kind == KickActions.Kind.LONG_PASS and h > 0.9:
+		return KickActions.Kind.CLEAR
+	if kind == KickActions.Kind.SHOT and h >= MatchController.HEADER_MIN_HEIGHT and p.team.progress_of(p.flat_pos()) < 0.5:
+		return KickActions.Kind.CLEAR
+	return kind
 
 
 ## Mientras la pelota viaja hacia el receptor, el stick que quedó apretado en
@@ -285,7 +466,8 @@ func _auto_switch(ball: Ball) -> void:
 		# Soltó la pelota el arquero: vuelve a un jugador de campo.
 		select(nearest_to_ball())
 		return
-	if is_charging() or _switch_cooldown > 0.0:
+	# Cargando o con una orden esperando la pelota: no se cambia de jugador.
+	if is_charging() or has_order() or _switch_cooldown > 0.0:
 		return
 	var nearest := nearest_to_ball()
 	if nearest != null and nearest != controlled:

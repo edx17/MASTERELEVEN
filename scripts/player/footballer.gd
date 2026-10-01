@@ -6,6 +6,9 @@ extends CharacterBody3D
 
 enum Role { GK, DF, MF, FW }
 enum State { NORMAL, SLIDING, RECOVERING }
+## Gambetas en curso: amague (enganche), marsellesa, bicicleta y el pique
+## que sale después de la bicicleta.
+enum Skill { NONE, FEINT, ROULETTE, STEPOVER, BURST }
 
 ## Hasta esta velocidad se puede desplazar de costado mirando a otro lado.
 const STRAFE_MAX_SPEED := 4.5
@@ -70,6 +73,12 @@ var face_point: Vector3 = Vector3.INF
 var tripped: bool = false
 ## Festejando un gol: no se mueve hasta que termina.
 var celebrate_timer: float = 0.0
+## Gambeta en curso y cuánto le queda.
+var skill: int = Skill.NONE
+var skill_timer: float = 0.0
+## Conducción cerrada (L1 mantenido con la pelota): pelota pegada, giros más
+## cortos, algo más lento. Lo fija el controlador cada tick.
+var close_control: bool = false
 
 var _tuning: Tuning
 var _arrow: MeshInstance3D
@@ -185,6 +194,23 @@ func trip(duration: float) -> void:
 	velocity *= 0.3
 
 
+func start_skill(kind: int, duration: float) -> void:
+	skill = kind
+	skill_timer = duration
+
+
+func _tick_skill(dt: float) -> void:
+	if skill == Skill.NONE:
+		return
+	skill_timer -= dt
+	if skill_timer <= 0.0:
+		# Tras la bicicleta, pique: sale disparado hacia donde apunte.
+		if skill == Skill.STEPOVER:
+			start_skill(Skill.BURST, 0.6)
+		else:
+			skill = Skill.NONE
+
+
 ## Festejo de gol (sólo presentación; el partido está detenido).
 func celebrate(duration: float) -> void:
 	celebrate_timer = duration
@@ -199,6 +225,7 @@ func teleport(pos: Vector3, look_dir: Vector3 = Vector3.ZERO) -> void:
 	state = State.NORMAL
 	tripped = false
 	celebrate_timer = 0.0
+	skill = Skill.NONE
 	if look_dir.length_squared() > 0.01:
 		facing = Vector3(look_dir.x, 0.0, look_dir.z).normalized()
 	_apply_facing()
@@ -212,6 +239,7 @@ func tick(dt: float, has_ball: bool) -> void:
 	possession_time = possession_time + dt if has_ball else 0.0
 	reaction_timer = maxf(0.0, reaction_timer - dt)
 	celebrate_timer = maxf(0.0, celebrate_timer - dt)
+	_tick_skill(dt)
 	update_stamina(dt)
 
 	match state:
@@ -290,6 +318,13 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 	max_speed *= fatigue_speed_factor()
 	if has_ball:
 		max_speed *= _tuning.dribble_speed_factor
+		if close_control:
+			max_speed *= 0.78
+	match skill:
+		Skill.ROULETTE, Skill.STEPOVER:
+			max_speed *= 0.5
+		Skill.BURST:
+			max_speed *= 1.05
 	if speed_override > 0.0:
 		max_speed = speed_override
 
@@ -300,6 +335,8 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 	var turn := lerpf(_tuning.turn_rate, _tuning.turn_rate_sprint, clampf(cur_speed / _tuning.sprint_speed, 0.0, 1.0))
 	if has_ball:
 		turn *= _tuning.turn_rate_ball_factor
+		if close_control:
+			turn *= 1.4
 	var cut := false
 	if face_point != Vector3.INF and not sprinting and cur_speed < STRAFE_MAX_SPEED:
 		# Se desplaza de costado sin dejar de mirar el punto (arquero).
@@ -319,6 +356,8 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 	var rate := (_tuning.acceleration * (1.0 + 0.15 * acc_attr)) if move.length_squared() > 0.01 else _tuning.deceleration
 	if cut:
 		rate = maxf(rate, _tuning.deceleration * 1.3)
+	if skill == Skill.BURST:
+		rate *= 1.6
 	velocity = velocity.move_toward(target_vel, rate * dt)
 
 

@@ -78,6 +78,10 @@ func tick(dt: float) -> void:
 	_carrier_timer -= dt
 
 	var owner := ball.owner_player
+	# Cuadrado mantenido por el humano defendiendo: un compañero sale a presionar.
+	var helper: Footballer = null
+	if _match.support_press[team.index] and owner != null and owner.team != team:
+		helper = _support_helper(owner)
 	for p in team.players:
 		if p.is_human():
 			continue
@@ -91,8 +95,19 @@ func tick(dt: float) -> void:
 			p.debug_state = "saque"
 			_restart_taker(p)
 			continue
+		if _match.waiting_kickoff(p):
+			# Esperando el saque del medio: quieto, mirando la pelota.
+			p.debug_state = "espera el saque"
+			p.desired_move = Vector3.ZERO
+			p.wants_sprint = false
+			p.look_at_point(ball.flat_pos())
+			continue
 		if p.is_keeper():
 			keeper.tick(p, self, dt)
+			continue
+		if p == helper:
+			p.debug_state = "presiona (pedido)"
+			_chase(p, ball, true)
 			continue
 		if owner == p:
 			p.debug_state = "conduce"
@@ -442,6 +457,19 @@ func _hold_shape(p: Footballer, ball: Ball) -> void:
 	var urgent := state in [S.COUNTER_ATTACK, S.RETREATING] and d > 4.0
 	go_to(p, target, urgent or d > 14.0, not urgent)
 	p.look_at_point(ball.flat_pos())
+
+
+## Compañero de la CPU más cercano al rival con la pelota (para la presión
+## pedida con Cuadrado).
+func _support_helper(carrier: Footballer) -> Footballer:
+	var best: Footballer = null
+	var best_d := INF
+	for p in _field_players():
+		var d := p.flat_pos().distance_to(carrier.flat_pos())
+		if d < best_d:
+			best_d = d
+			best = p
+	return best
 
 
 func _chase(p: Footballer, ball: Ball, pressing: bool) -> void:

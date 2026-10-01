@@ -57,6 +57,31 @@ Ver `Claude.md` para visión, criterios y fases.
 | Festejos | El goleador hace la medialuna y se queda festejando hasta el saque del medio. |
 | Revisión | `tools/clip_sheet.gd`: hoja de cuadros de cualquier clip (para elegir tramos); los clips que en Mixamo giran el cuerpo se adaptan sin ese giro (el rumbo lo manda la simulación). |
 
+Corrección: antes del saque del medio todos se seguían acomodando con la pelota quieta; ahora quedan quietos en su puesto (CPU y humano) hasta que se saca.
+
+### Ronda 5b (tu prueba)
+| Falla / pedido | Cambio |
+|---|---|
+| El arquero ataja, se cae y la pelota queda flotando | En las manos, la pelota sigue el punto medio de las manos del modelo (atajada, estirada, achique, caída). |
+| No cabecean / no saben cuándo | Duelo aéreo: la pelota alta que nadie puede bajar con el pecho la cabecea el que llega (alcance 1 m, hasta 2,6 m de altura saltando). CPU: cerca del arco rival, **remate de cabeza**; en su campo, **despeje** largo; si no, pase de cabeza. Los compañeros del destinatario de un pase no se la "roban" de cabeza (la deja bajar y la controla). Tu jugador cabecea cuando tiene una orden: tiro = cabezazo al arco, pase = pase de cabeza. |
+| Orden que espera la pelota (WE) | Pase / tiro pedido antes de tener la pelota queda **esperando hasta que llega** (antes vencía a los 0,55 s): se ejecuta de primera o de cabeza apenas está al alcance. Con el stick suelto el jugador va a buscarla. Se pierde si el rival la anticipa, si se corta el juego o con **R2 / E (cancelar)**. Mientras espera no se cambia de jugador solo. |
+| La pelota sale del aire, no del pie | El gesto arranca justo en el golpe y la pelota se **dibuja saliendo del pie** (o de la frente) y en 0,08 s se acomoda a su posición real (sólo presentación). |
+
+### Ronda 5c: controles a tu gusto y combinaciones del WE
+| Pedido | Cambio |
+|---|---|
+| Mapa de botones | X pase, Cuadrado remate, Círculo centro, Triángulo profundidad, R1 correr, L1 gambeta / combinaciones (sin la pelota: cambio de jugador), cruceta y stick izquierdo para moverse. Se quitó el cancelar con R2 / E. |
+| Menús con X | `ui_accept` incluye X (botón inferior) y `ui_cancel` Círculo, en el menú inicial y en la pausa. |
+| L1 + Cuadrado / doble Cuadrado | Globo (picada por arriba del arquero) / remate rasante por el piso. El doble toque espera 0,2 s un segundo toque antes de patear. |
+| L1 + Círculo / doble Círculo | Centro alto (más bombeado) / centro raso (tenso, por el piso). |
+| L1 + X | Pared: el compañero la devuelve de primera al espacio y el que la tocó pica (con el stick suelto). |
+| L1 + R1 | Super cancel: cancela la orden guardada, la pared y la carrera automática a la pelota. |
+| L1 mantenido | Conducción cerrada: pelota pegada, giros más cortos, algo más lento. |
+| L1 x3 / stick derecho 360° | Bicicleta (después, pique) / marsellesa (clip `Soccer Spin`; mientras gira, la entrada rival tiene 35 % de su chance). |
+| Cuadrado + X / Círculo + X | Enganche: hace el gesto de patear, engancha para el lado del stick (o lejos del rival) y los rivales cerca de la CPU quedan medio segundo sin reaccionar. |
+| Pelota aérea | X pase de cabeza; Círculo despeje (pie o cabeza); Cuadrado: despeje de cabeza en campo propio, remate de cabeza en el rival (volea si viene más baja). |
+| Cuadrado defendiendo | Mantenido: el compañero de la CPU más cercano sale a presionar. |
+
 Sin usar por ahora: `Kick Up` / `Stall Soccerball` (sin pelota se ven raros), `Soccer Spin` (va con los amagues de la Fase 4), `Receiver Catch` (es de fútbol americano), `Defender` y `Situp To Idle`.
 
 ### Pendiente

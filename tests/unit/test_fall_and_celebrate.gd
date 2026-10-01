@@ -70,3 +70,21 @@ func test_catch_gesture_depends_on_height() -> void:
 	assert_eq(MatchController.catch_event(2.0), PlayerVisual.Event.CATCH_HIGH)
 	assert_eq(MatchController.catch_event(1.1), PlayerVisual.Event.CATCH)
 	assert_eq(MatchController.catch_event(0.2), PlayerVisual.Event.CATCH_LOW)
+
+
+func test_nobody_moves_before_the_kickoff() -> void:
+	m._setup_kickoff(0)
+	var before := {}
+	for p in m.all_players():
+		before[p] = p.flat_pos()
+	# (La CPU saca después de 1 s; el humano, cuando quiere.)
+	for i in 50:
+		m._physics_process(1.0 / 60.0)
+	for p in m.all_players():
+		assert_lt(p.flat_pos().distance_to(before[p]), 0.05, "%s quieto antes del saque" % p.name)
+	# Al sacar, todos vuelven a jugar.
+	var taker := m.restart_taker
+	m._restart_elapsed = 10.0
+	m.perform_kick(taker, KickActions.Kind.SHORT_PASS, Vector3(-taker.team.attack_dir, 0, 0), 0.3)
+	for p in m.all_players():
+		assert_false(m.waiting_kickoff(p))

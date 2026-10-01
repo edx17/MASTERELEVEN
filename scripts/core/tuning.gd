@@ -97,6 +97,9 @@ extends Resource
 ## (el resto de los jugadores, hasta loose_chest_height).
 @export var chest_control_height: float = 1.9
 @export var loose_chest_height: float = 1.5
+## Cabezazo: alcance horizontal y altura máxima de la pelota (saltando).
+@export var header_reach: float = 1.0
+@export var header_max_height: float = 2.6
 ## Probabilidad por segundo de que un rival se quede con una pelota expuesta
 ## (lejos del pie del conductor, p. ej. en sprint) si está dentro de control_radius.
 @export var intercept_rate: float = 4.0
@@ -158,8 +161,6 @@ extends Resource
 @export var pass_assist: float = 0.97
 ## Cono (grados) para buscar receptor en la dirección del stick.
 @export var pass_cone_degrees: float = 50.0
-## Tiempo durante el que se recuerda un pase/tiro pedido antes de recibir (toque de primera).
-@export var one_touch_buffer: float = 0.55
 
 @export_group("Arquero")
 @export var keeper_reach: float = 1.9

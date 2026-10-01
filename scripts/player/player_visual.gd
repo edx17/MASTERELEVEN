@@ -12,7 +12,8 @@ extends Node3D
 ## Las variantes (atajada alta/baja, achique, recepción, festejo...) usan
 ## un clip propio en ModelVisual; acá se dibujan con el gesto más parecido.
 enum Event { KICK, PASS, HEADER, THROW, DIVE_LEFT, DIVE_RIGHT, CATCH, TACKLE,
-		RECEIVE, CHEST, CATCH_HIGH, CATCH_LOW, BLOCK, CELEBRATE, DEJECTED, ROLL }
+		RECEIVE, CHEST, CATCH_HIGH, CATCH_LOW, BLOCK, CELEBRATE, DEJECTED, ROLL,
+		FEINT, ROULETTE, STEPOVER }
 ## Estado continuo (lo decide el Footballer a partir de su State).
 enum Pose { NORMAL, SLIDING, FALLEN }
 
@@ -111,6 +112,19 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 	_apply(run)
 
 
+## Dónde se ve la pelota cuando el arquero la tiene en las manos (global).
+func hold_point() -> Vector3:
+	return global_transform * Vector3(0.0, 1.0, 0.35)
+
+
+## Dónde toca la pelota el gesto recién lanzado (pie derecho; cabeza en el
+## cabezazo), en coordenadas globales. La pelota se dibuja saliendo de ahí.
+func contact_point(event: int) -> Vector3:
+	if event == Event.HEADER:
+		return global_transform * Vector3(0.0, 1.85, 0.15)
+	return global_transform * Vector3(-0.12, 0.11, 0.45)
+
+
 func play(event: int, side: float = 1.0) -> void:
 	match event:
 		Event.CATCH_HIGH, Event.CATCH_LOW, Event.BLOCK:
@@ -132,6 +146,9 @@ func play(event: int, side: float = 1.0) -> void:
 		Event.TACKLE: _event_len = 0.45
 		Event.CHEST: _event_len = 0.5
 		Event.CELEBRATE: _event_len = 2.5
+		Event.FEINT: _event_len = 0.35
+		Event.ROULETTE: _event_len = 0.7
+		Event.STEPOVER: _event_len = 0.6
 		_: _event_len = 1.1
 
 
@@ -191,6 +208,17 @@ func _apply(run: float) -> void:
 			_torso.rotation.x = _lean - 0.45 * strike
 			for i in 2:
 				_arm[i].rotation = Vector3(0, 0, (-1.0 if i == 0 else 1.0) * 0.8 * strike)
+		Event.FEINT:
+			# Carga la pierna como para patear y frena.
+			_leg[1].rotation = Vector3(0.9 * strike, 0, 0)
+			_knee[1].rotation = Vector3(1.0 * strike, 0, 0)
+		Event.ROULETTE:
+			_hips.rotation.y = k * TAU
+		Event.STEPOVER:
+			# Pasa una pierna y la otra por encima de la pelota.
+			var first := k < 0.5
+			var kk := sin(fmod(k * 2.0, 1.0) * PI)
+			_leg[1 if first else 0].rotation = Vector3(-0.6 * kk, 0, (1.0 if first else -1.0) * -0.7 * kk)
 		Event.CELEBRATE:
 			# Brazos arriba y saltito.
 			_hips.position.y += 0.2 * absf(sin(k * PI * 4.0))

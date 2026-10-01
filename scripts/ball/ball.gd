@@ -25,6 +25,11 @@ var kick_age: float = 0.0
 ## El arquero la tiene en las manos (si la recibió con los pies, por un pase
 ## atrás de un compañero, la juega como un jugador más).
 var in_hands: bool = false
+## Sólo presentación: desfase con el que se dibuja la pelota respecto de su
+## posición simulada. Al patear se dibuja saliendo del pie y se acomoda en
+## unas centésimas (VISUAL_SETTLE).
+var visual_offset: Vector3 = Vector3.ZERO
+const VISUAL_SETTLE := 0.08
 
 var _tuning: Tuning
 var _mesh: MeshInstance3D
@@ -68,6 +73,7 @@ func place(pos: Vector3) -> void:
 ## control: la pelota se frena al ritmo del jugador según su ball_control y la
 ## velocidad con la que llegaba (un mal control la deja picando lejos).
 func give_to(player: Footballer, receive: bool = false, hands: bool = false) -> void:
+	visual_offset = Vector3.ZERO
 	owner_player = player
 	in_hands = hands and player.is_keeper()
 	last_touch_team = player.team.index
@@ -138,7 +144,9 @@ func _in_keeper_hands() -> bool:
 
 func _hold_in_hands(dt: float) -> void:
 	var p := owner_player
-	state.pos = p.flat_pos() + p.facing * 0.35 + Vector3.UP * 1.0
+	# Entre las manos del modelo: acompaña la atajada, la estirada y la caída.
+	state.pos = p.visual.hold_point() if p.visual != null else p.flat_pos() + p.facing * 0.35 + Vector3.UP * 1.0
+	state.pos.y = maxf(state.pos.y, _tuning.ball_radius)
 	state.vel = Vector3(p.velocity.x, 0.0, p.velocity.z)
 	state.spin = Vector3.ZERO
 	_sync_node(dt)
@@ -178,6 +186,9 @@ func _dribble(dt: float) -> void:
 		if _touch_phase < before:
 			p.touches += 1
 		var d := Dribble.touch_distance(frac, control_c, p.dribble_pressure, _tuning)
+		# Conducción cerrada (L1) y gambetas: la pelota pegada al pie.
+		if p.close_control or p.skill in [Footballer.Skill.ROULETTE, Footballer.Skill.STEPOVER]:
+			d *= 0.55
 		target = Dribble.dribble_target(p.global_position, p.facing, Dribble.pulse(_touch_phase, d),
 			p.shield_from, shielding)
 	var to_target := target - Vector3(state.pos.x, 0.0, state.pos.z)
@@ -189,7 +200,9 @@ func _dribble(dt: float) -> void:
 
 
 func _sync_node(dt: float) -> void:
-	global_position = state.pos
+	if dt > 0.0:
+		visual_offset *= exp(-dt / VISUAL_SETTLE)
+	global_position = state.pos + visual_offset
 	# Rotación visual: rueda en la dirección del movimiento.
 	var hv := Vector3(state.vel.x, 0.0, state.vel.z)
 	var hs := hv.length()

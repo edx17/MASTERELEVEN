@@ -47,6 +47,8 @@ const CLIPS := {
 	"trip": {"file": "Soccer_Trip", "face": true, "range": [0.15, 0.4, 1.6]},
 	"get_up": {"file": "Standing_Up", "face": true},
 	"celebrate": {"file": "Cartwheel", "face": true, "range": [0.2, 0.5, 2.8]},
+	# Marsellesa: el giro de 360° lo pone el clip (el rumbo del jugador no gira).
+	"spin": {"file": "Soccer_Spin", "range": [0.0, 0.6, 1.27]},
 	"gk_idle": {"file": "Goalkeeper_Idle", "loop": true},
 	"gk_catch": {"file": "Goalkeeper_Catch"},
 	"gk_catch_high": {"file": "Goalkeeper_Catch_1", "face": true, "range": [0.9, 1.55, 2.2]},
@@ -115,14 +117,26 @@ static func library(body_scene: PackedScene) -> AnimationLibrary:
 	return _lib
 
 
-## Ruta del FBX en la copia local, con guiones bajos o con espacios (como
-## baja de Mixamo). Vacío si no está.
+## Ruta del FBX en la copia local. Acepta el nombre con guiones bajos
+## ("Goalkeeper_Catch_1"), con espacios ("Goalkeeper Catch 1") o como lo
+## numera Windows al bajar varias versiones ("Goalkeeper Catch (1)").
+## Vacío si no está.
 static func file_path(file: String) -> String:
-	for candidate in [file, file.replace("_", " ")]:
+	for candidate in file_candidates(file):
 		var path: String = DIR + candidate + ".fbx"
 		if ResourceLoader.exists(path):
 			return path
 	return ""
+
+
+static func file_candidates(file: String) -> Array[String]:
+	var spaced := file.replace("_", " ")
+	var out: Array[String] = [file, spaced]
+	# Variante numerada: "Nombre_1" -> "Nombre (1)".
+	var parts := file.rsplit("_", true, 1)
+	if parts.size() == 2 and parts[1].is_valid_int():
+		out.append("%s (%s)" % [parts[0].replace("_", " "), parts[1]])
+	return out
 
 
 static func _retarget(path: String, target: Skeleton3D, spec: Dictionary) -> Animation:
@@ -268,7 +282,9 @@ static func _marks(clip_name: String, anim: Animation, target: Skeleton3D) -> Di
 	# Los golpes se disparan en el instante del contacto: el clip arranca
 	# apenas antes (el pie ya viene bajando). Atajadas y saques, con algo de
 	# anticipación.
-	var lead := 0.08 if clip_name in ["kick", "shot", "pass", "gk_kick", "header"] else 0.3
+	# La pelota sale en el instante de la orden (como en WE): el clip arranca
+	# justo en el golpe para que el pie (o la cabeza) esté en la pelota.
+	var lead := 0.03 if clip_name in ["kick", "shot", "pass", "gk_kick", "header"] else 0.3
 	if clip_name.begins_with("gk_dive"):
 		lead = 0.2 # el remate ya salió: el vuelo arranca enseguida
 	var start := maxf(0.0, contact - lead)
