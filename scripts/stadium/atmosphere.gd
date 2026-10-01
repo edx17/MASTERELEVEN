@@ -271,7 +271,10 @@ func _build_floodlights() -> void:
 			spot.light_color = Color(1.0, 0.98, 0.92)
 			# Sombras sólo en dos torres (costo): igual se ven sombras cruzadas.
 			spot.shadow_enabled = night and i < 2
-			spot.light_specular = 0.6
+			# Poco brillo especular: si no, el pasto húmedo se vuelve un espejo.
+			spot.light_specular = 0.25
+			# Sombras de los jugadores tenues (con varias torres casi no se ven).
+			spot.shadow_opacity = 0.45
 			add_child(spot)
 			spot.look_at(Vector3(-xs * 8.0, 0.0, -zs * 6.0), Vector3.UP)
 			floodlights.append(spot)
@@ -351,9 +354,9 @@ static func precipitation_origin(cam: MatchCamera) -> Vector3:
 
 func _build_precipitation(snow: bool) -> GPUParticles3D:
 	var p := GPUParticles3D.new()
-	p.amount = 5000 if snow else 6000
-	# Caen desde 13 m: la lluvia tarda ~0,8 s, la nieve ~7 s.
-	p.lifetime = 7.0 if snow else 0.9
+	p.amount = 7000 if snow else 6000
+	# Caen desde 13 m: la lluvia tarda ~0,8 s, la nieve ~4,5 s.
+	p.lifetime = 4.5 if snow else 0.9
 	p.preprocess = p.lifetime
 	p.visibility_aabb = AABB(Vector3(-50, -30, -40), Vector3(100, 40, 80))
 	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -362,15 +365,20 @@ func _build_precipitation(snow: bool) -> GPUParticles3D:
 	m.emission_box_extents = Vector3(45.0, 1.0, 34.0)
 	var wind := conditions.wind_vector()
 	if snow:
-		m.direction = Vector3(wind.x * 0.15, -1.0, wind.z * 0.15).normalized()
-		m.initial_velocity_min = 1.2
-		m.initial_velocity_max = 2.2
-		m.gravity = Vector3(wind.x * 0.25, -0.6, wind.z * 0.25)
+		# Copos que caen de verdad (~2,5-3,5 m/s) y derivan con el viento,
+		# con un vaivén leve (antes caían a 1-2 m/s con mucha turbulencia y
+		# parecían quietos frente a la cámara).
+		var drift := Vector3(wind.x * 0.6, -3.0, wind.z * 0.6)
+		m.direction = drift.normalized()
+		m.spread = 6.0
+		m.initial_velocity_min = drift.length() * 0.85
+		m.initial_velocity_max = drift.length() * 1.15
+		m.gravity = Vector3.ZERO
 		m.turbulence_enabled = true
-		m.turbulence_noise_strength = 1.5
-		m.turbulence_noise_scale = 4.0
-		m.scale_min = 0.6
-		m.scale_max = 1.3
+		m.turbulence_noise_strength = 0.35
+		m.turbulence_noise_scale = 6.0
+		m.scale_min = 0.5
+		m.scale_max = 1.0
 	else:
 		# Gotas a ~15 m/s; el viento las corre de costado a su misma velocidad
 		# (con viento fuerte caen bien en diagonal). Sin gravedad extra: ya
@@ -389,8 +397,8 @@ func _build_precipitation(snow: bool) -> GPUParticles3D:
 	var mesh: Mesh
 	if snow:
 		var flake := SphereMesh.new()
-		flake.radius = 0.065
-		flake.height = 0.13
+		flake.radius = 0.045
+		flake.height = 0.09
 		flake.radial_segments = 6
 		flake.rings = 3
 		mesh = flake

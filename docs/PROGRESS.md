@@ -17,6 +17,20 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Ronda WE2002 (9): nieve, brillo del piso y sombras de noche
+
+| Reclamo | Causa | Cambio |
+|---|---|---|
+| El piso brilla rarísimo (noche, húmedo) | Mojado, el pasto quedaba casi como un espejo (rugosidad 0,28) y los reflectores tenían mucho brillo especular. | Pasto mojado: oscurece y brilla un poco (rugosidad ≥ 0,55); reflectores con poco brillo especular. La nieve es mate. |
+| Triángulos y franjas en el césped de noche | Las vigas del techo común proyectaban sombra desde las cuatro torres de luz, y se cruzaban. | De noche el estadio no proyecta ninguna sombra: sólo los jugadores, tenues (opacidad 45 %). Las vigas tampoco proyectan sombra de día. |
+| La nieve flota en el aire | Los copos caían a 1-2 m/s con mucha turbulencia y eran grandes: parecían quietos frente a la cámara. | Copos más chicos que caen a ~3 m/s, derivan con el viento y tienen un vaivén leve. |
+| La nieve crece de afuera hacia adentro y en "cuadrados" | La cobertura dependía de la distancia al borde de la cancha (un máximo entre largo y ancho, que arma contornos rectangulares y diagonales). | Dispersa por toda la cancha: manchas de varios tamaños que crecen y se juntan, un poco menos donde más se pisa. Al final del partido queda algo de verde. |
+| El arquero se tira un poco antes de tiempo | — | La estirada arranca 0,3 s antes de que llegue la pelota (antes, 0,45 s). |
+
+**Herramienta:** las capturas aceptan `--late` (reloj en el segundo tiempo, para ver la nieve acumulada).
+
+**Tests:** 195 en verde. Se agregó un test de que de noche el estadio no proyecta sombras.
+
 ## Ronda WE2002 (8): nieve que se acumula, lateral, arquero que reacciona y menú
 
 Resultados de tu prueba de rendimiento con la ronda 7: todos los casos en "OK".
