@@ -7,6 +7,9 @@ var _resume: Button
 var _formation_btn: Button
 var _difficulty_btn: Button
 var _stick_btn: Button
+var _speed_btn: Button
+var _keeper_btn: Button
+var _label_btn: Button
 
 
 func _ready() -> void:
@@ -34,6 +37,9 @@ func _ready() -> void:
 	_formation_btn = _button(box, "", _cycle_formation)
 	_difficulty_btn = _button(box, "", _cycle_difficulty)
 	_stick_btn = _button(box, "", _cycle_stick)
+	_speed_btn = _button(box, "", _cycle_speed)
+	_keeper_btn = _button(box, "", _cycle_keeper)
+	_label_btn = _button(box, "", _cycle_label)
 	_button(box, "Salir al menú", _exit)
 	_panel.visible = false
 
@@ -53,6 +59,9 @@ func _process(_dt: float) -> void:
 	if m != null and m.phase == MatchController.Phase.FULLTIME and not _panel.visible:
 		if Input.is_action_just_pressed(&"ui_accept") or Input.is_action_just_pressed(&"pause"):
 			_exit()
+		return
+	# Durante la presentación, Start la saltea (no pausa).
+	if m != null and m.phase == MatchController.Phase.INTRO:
 		return
 	if Input.is_action_just_pressed(&"pause"):
 		_toggle()
@@ -82,6 +91,9 @@ func _refresh() -> void:
 	var t := m.teams[_my_team_index()]
 	_formation_btn.text = "Formación (%s): %s" % [t.short_name, t.formation.formation_name if t.formation else "-"]
 	_difficulty_btn.text = "Dificultad CPU: %s" % Difficulty.NAMES[GameSettings.difficulty]
+	_speed_btn.text = "Velocidad del juego: %+d" % GameSettings.game_speed
+	_keeper_btn.text = "Arquero a los 6 s: %s" % GameSettings.KEEPER_AUTO_NAMES[GameSettings.keeper_auto_action]
+	_label_btn.text = "Sobre los jugadores: %s" % GameSettings.PLAYER_LABEL_NAMES[GameSettings.player_label]
 	var dirs := GameSettings.stick_directions
 	_stick_btn.text = "Movimiento: %s" % ("%d direcciones" % dirs if dirs > 0 else "libre")
 
@@ -105,6 +117,27 @@ func _cycle_difficulty() -> void:
 	GameSettings.difficulty = (GameSettings.difficulty + 1) % Difficulty.NAMES.size()
 	if m != null:
 		m.apply_difficulty(GameSettings.difficulty)
+	_refresh()
+
+
+## Velocidad -2 .. +2 (se aplica al volver al partido).
+func _cycle_speed() -> void:
+	GameSettings.game_speed = GameSettings.game_speed + 1 if GameSettings.game_speed < 2 else -2
+	Engine.time_scale = GameSettings.game_time_scale()
+	_refresh()
+
+
+func _cycle_label() -> void:
+	GameSettings.player_label = (GameSettings.player_label + 1) % GameSettings.PLAYER_LABEL_NAMES.size()
+	var m := get_parent() as MatchController
+	if m != null:
+		for p in m.all_players():
+			p.refresh_label()
+	_refresh()
+
+
+func _cycle_keeper() -> void:
+	GameSettings.keeper_auto_action = 1 - GameSettings.keeper_auto_action
 	_refresh()
 
 

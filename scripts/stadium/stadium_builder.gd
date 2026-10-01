@@ -28,7 +28,7 @@ static func seat_tone(c: Color) -> Color:
 ## Material compartido del público (MatchController lo hace saltar en los goles).
 static var crowd_material: ShaderMaterial
 ## Proporción de butacas ocupadas.
-const CROWD_DENSITY := 0.62
+const CROWD_DENSITY := 0.85
 
 
 static func build(home: TeamData, away: TeamData = null) -> Node3D:
@@ -148,8 +148,10 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 			z += 2.5
 			y += 3.2
 			_box(fascia, Vector3(-length * 0.5, y - ROW_RISE - 2.2, z - 0.4), Vector3(length * 0.5, y - ROW_RISE + 0.3, z))
-		# Baranda al frente de cada bandeja.
+		# Baranda al frente de cada bandeja, con banderas de los hinchas.
 		_railing(stand, length, y - ROW_RISE, z - 0.1)
+		if not fans.is_empty():
+			_banners(stand, length, y - ROW_RISE, z - 0.15, fans, away_end, rng)
 		for r in rows:
 			# Escalón de hormigón.
 			_box(steps, Vector3(-length * 0.5, y - ROW_RISE, z), Vector3(length * 0.5, y, z + ROW_DEPTH))
@@ -167,7 +169,8 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 				idx += 1
 				if c == seat_color and not fans.is_empty() and rng.randf() < CROWD_DENSITY:
 					var scale := rng.randf_range(0.92, 1.08)
-					var tf := Transform3D(Basis.IDENTITY.scaled(Vector3(scale, scale, scale)), Vector3(x + rng.randf_range(-0.05, 0.05), y, z + ROW_DEPTH * 0.5))
+					var tf := Transform3D(Basis(Vector3.UP, rng.randf_range(-0.3, 0.3)).scaled(Vector3(scale, scale, scale)),
+						Vector3(x + rng.randf_range(-0.05, 0.05), y, z + ROW_DEPTH * 0.5))
 					people.append(tf)
 					people_custom.append(_fan_color(rng, fans, away_end))
 			y += ROW_RISE
@@ -242,34 +245,104 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 ## Ropa de un hincha (rgb) y tono de piel (a): la mayoría con los colores del
 ## local; en la cabecera visitante, con los del visitante.
 static func _fan_color(rng: RandomNumberGenerator, fans: Dictionary, away_end: bool) -> Color:
+	# Como en el WE: una masa con mucho blanco y gris claro, algo oscuro y los
+	# colores de los equipos salpicados (más en las cabeceras).
 	var r := rng.randf()
 	var c: Color
-	if away_end:
-		c = fans["away"] if r < 0.7 else (Color(0.12, 0.12, 0.14) if r < 0.85 else Color(0.85, 0.85, 0.85))
-	elif r < 0.5:
-		c = fans["home"]
-	elif r < 0.62:
-		c = fans["home2"]
-	elif r < 0.7:
+	var team_share := 0.55 if away_end else 0.35
+	if r < team_share:
+		var home_c: Color = fans["home"] if rng.randf() < 0.75 else fans["home2"]
+		c = fans["away"] if away_end else home_c
+	elif not away_end and r < team_share + 0.05:
 		c = fans["away"]
 	else:
-		var neutral := [Color(0.1, 0.1, 0.12), Color(0.85, 0.85, 0.87), Color(0.2, 0.25, 0.4), Color(0.45, 0.45, 0.47), Color(0.55, 0.15, 0.12)]
+		var neutral := [Color(0.92, 0.92, 0.9), Color(0.85, 0.85, 0.86), Color(0.7, 0.7, 0.72),
+			Color(0.15, 0.15, 0.17), Color(0.3, 0.32, 0.4), Color(0.55, 0.45, 0.35)]
 		c = neutral[rng.randi() % neutral.size()]
-	c = c.darkened(rng.randf_range(0.0, 0.25))
+	c = c.darkened(rng.randf_range(0.0, 0.2))
 	return Color(c.r, c.g, c.b, rng.randf())
 
 
 ## Un hincha sentado, muy simple (se ve a 40-60 m): torso y cabeza. El color
 ## de vértice rojo marca la cabeza (lo usa crowd.gdshader).
-static func _person_mesh() -> ArrayMesh:
+static var _person: ArrayMesh
+static func _person_mesh() -> Mesh:
+	if _person != null:
+		return _person
+	# Persona sentada, de pocos polígonos (~90 triángulos), mirando a -Z (a la
+	# cancha): piernas dobladas, torso con hombros más anchos que la cintura,
+	# brazos al costado, cuello y cabeza redondeada con pelo.
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	st.set_color(Color(0, 0, 0))
-	_box(st, Vector3(-0.17, 0.42, -0.08), Vector3(0.17, 0.95, 0.12))
-	st.set_color(Color(1, 0, 0))
-	_box(st, Vector3(-0.09, 0.98, -0.07), Vector3(0.09, 1.2, 0.1))
+	var cloth := Color(0, 0, 0)
+	var skin := Color(1, 0, 0)
+	var hair := Color(0, 1, 0)
+	var pants := Color(0, 0, 1)
+	# Muslos (hacia adelante) y piernas (hacia abajo).
+	for sx: float in [-0.1, 0.1]:
+		_cbox(st, Vector3(sx, 0.47, -0.12), Vector3(0.13, 0.12, 0.34), pants)
+		_cbox(st, Vector3(sx, 0.25, -0.27), Vector3(0.11, 0.38, 0.11), pants)
+	# Torso trapecial (cintura 0,3, hombros 0,42).
+	_trapezoid(st, 0.55, 0.98, 0.3, 0.42, 0.2, cloth)
+	# Brazos: manga y antebrazo, apenas separados del cuerpo.
+	for sx: float in [-1.0, 1.0]:
+		_cbox(st, Vector3(sx * 0.25, 0.85, 0.0), Vector3(0.1, 0.22, 0.12), cloth)
+		_cbox(st, Vector3(sx * 0.26, 0.65, -0.05), Vector3(0.08, 0.22, 0.09), skin)
+	# Cuello y cabeza (prisma octogonal con tapas: se lee redonda a distancia).
+	_cbox(st, Vector3(0.0, 1.02, 0.0), Vector3(0.09, 0.08, 0.09), skin)
+	_head(st, Vector3(0.0, 1.15, 0.0), 0.1, 0.22, skin, hair)
 	st.generate_normals()
-	return st.commit()
+	_person = st.commit()
+	return _person
+
+
+## Caja centrada en `c` con color de vértice (zona) para el shader del público.
+static func _cbox(st: SurfaceTool, c: Vector3, size: Vector3, col: Color) -> void:
+	st.set_color(col)
+	_box(st, c - size * 0.5, c + size * 0.5)
+
+
+## Torso: caja más angosta abajo (y0) que arriba (y1).
+static func _trapezoid(st: SurfaceTool, y0: float, y1: float, w0: float, w1: float, d: float, col: Color) -> void:
+	st.set_color(col)
+	var v := [
+		Vector3(-w0 * 0.5, y0, -d * 0.5), Vector3(w0 * 0.5, y0, -d * 0.5), Vector3(w1 * 0.5, y1, -d * 0.5), Vector3(-w1 * 0.5, y1, -d * 0.5),
+		Vector3(-w0 * 0.5, y0, d * 0.5), Vector3(w0 * 0.5, y0, d * 0.5), Vector3(w1 * 0.5, y1, d * 0.5), Vector3(-w1 * 0.5, y1, d * 0.5),
+	]
+	var faces := [[0, 1, 2, 3], [5, 4, 7, 6], [4, 0, 3, 7], [1, 5, 6, 2], [3, 2, 6, 7], [4, 5, 1, 0]]
+	for f in faces:
+		st.add_vertex(v[f[0]])
+		st.add_vertex(v[f[1]])
+		st.add_vertex(v[f[2]])
+		st.add_vertex(v[f[0]])
+		st.add_vertex(v[f[2]])
+		st.add_vertex(v[f[3]])
+
+
+## Cabeza: prisma de 8 lados (cara de piel, parte de arriba y nuca de pelo).
+static func _head(st: SurfaceTool, c: Vector3, r: float, h: float, skin: Color, hair: Color) -> void:
+	var n := 8
+	var y0 := c.y - h * 0.5
+	var y1 := c.y + h * 0.5
+	for i in n:
+		var a0 := TAU * i / n
+		var a1 := TAU * (i + 1) / n
+		var p0 := Vector3(c.x + cos(a0) * r, 0.0, c.z + sin(a0) * r)
+		var p1 := Vector3(c.x + cos(a1) * r, 0.0, c.z + sin(a1) * r)
+		# Nuca (z > 0: atrás, del lado contrario a la cancha) con pelo.
+		var back := sin((a0 + a1) * 0.5) > 0.3
+		st.set_color(hair if back else skin)
+		st.add_vertex(Vector3(p0.x, y0, p0.z))
+		st.add_vertex(Vector3(p0.x, y1, p0.z))
+		st.add_vertex(Vector3(p1.x, y1, p1.z))
+		st.add_vertex(Vector3(p0.x, y0, p0.z))
+		st.add_vertex(Vector3(p1.x, y1, p1.z))
+		st.add_vertex(Vector3(p1.x, y0, p1.z))
+		# Tapa de arriba (pelo), un poco abombada.
+		st.set_color(hair)
+		st.add_vertex(Vector3(c.x, y1 + r * 0.45, c.z))
+		st.add_vertex(Vector3(p1.x, y1, p1.z))
+		st.add_vertex(Vector3(p0.x, y1, p0.z))
 
 
 static func _seat_mesh() -> ArrayMesh:
@@ -280,6 +353,28 @@ static func _seat_mesh() -> ArrayMesh:
 	_box(st, Vector3(-w, 0.36, 0.16), Vector3(w, 0.82, 0.24))
 	st.generate_normals()
 	return st.commit()
+
+
+## Banderas colgadas de la baranda (dos franjas con los colores del club).
+static func _banners(stand: Node3D, length: float, y: float, z: float, fans: Dictionary, away_end: bool, rng: RandomNumberGenerator) -> void:
+	var x := -length * 0.5 + rng.randf_range(2.0, 8.0)
+	while x < length * 0.5 - 4.0:
+		var w := rng.randf_range(3.0, 6.5)
+		if rng.randf() < 0.6:
+			var a: Color = fans["away"] if away_end else (fans["home"] if rng.randf() < 0.8 else fans["away"])
+			var b: Color = Color(0.95, 0.95, 0.95) if rng.randf() < 0.6 else (fans["home2"] if not away_end else Color(0.1, 0.1, 0.12))
+			for i in 2:
+				var mi := MeshInstance3D.new()
+				var q := QuadMesh.new()
+				q.size = Vector2(w, 0.5)
+				mi.mesh = q
+				var m := _mat(a if i == 0 else b, 0.9)
+				m.cull_mode = BaseMaterial3D.CULL_DISABLED
+				mi.material_override = m
+				mi.position = Vector3(x + w * 0.5, y + 0.75 - i * 0.5, z)
+				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				stand.add_child(mi)
+		x += w + rng.randf_range(1.5, 7.0)
 
 
 ## Baranda metálica (pasamanos y parantes) al frente de una bandeja.
@@ -421,14 +516,27 @@ static func _technical_area(parent: Node3D) -> void:
 		bench.material_override = _mat(Color(0.15, 0.17, 0.2))
 		bench.position = Vector3(cx, 1.1, Pitch.HALF_WIDTH + WALL_GAP - 1.2)
 		root.add_child(bench)
-	# Túnel.
-	var tunnel := MeshInstance3D.new()
-	var tb := BoxMesh.new()
-	tb.size = Vector3(4.0, 2.8, 4.0)
-	tunnel.mesh = tb
-	tunnel.material_override = _mat(Color(0.1, 0.1, 0.12))
-	tunnel.position = Vector3(0, 1.4, Pitch.HALF_WIDTH + WALL_GAP + 1.5)
-	root.add_child(tunnel)
+	# Túnel: boca con marco de hormigón y el interior oscuro (por acá salen
+	# los equipos en la presentación).
+	var mouth_z := Pitch.HALF_WIDTH + WALL_GAP + 0.5
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	_box(st, Vector3(-2.6, 0.0, mouth_z), Vector3(-2.0, 3.0, mouth_z + 6.0))
+	_box(st, Vector3(2.0, 0.0, mouth_z), Vector3(2.6, 3.0, mouth_z + 6.0))
+	_box(st, Vector3(-2.6, 2.6, mouth_z), Vector3(2.6, 3.2, mouth_z + 6.0))
+	st.generate_normals()
+	var frame := MeshInstance3D.new()
+	frame.name = "Tunnel"
+	frame.mesh = st.commit()
+	frame.material_override = _concrete_mat()
+	root.add_child(frame)
+	var inside := MeshInstance3D.new()
+	var ib := BoxMesh.new()
+	ib.size = Vector3(4.0, 2.6, 0.2)
+	inside.mesh = ib
+	inside.material_override = _mat(Color(0.02, 0.02, 0.025))
+	inside.position = Vector3(0, 1.3, mouth_z + 5.8)
+	root.add_child(inside)
 
 
 ## Tipografía de 5x7 "píxeles" para escribir con butacas (cada píxel = 2x2 butacas).

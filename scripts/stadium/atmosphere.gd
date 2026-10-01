@@ -18,6 +18,11 @@ var floodlights: Array[SpotLight3D] = []
 var precipitation: GPUParticles3D
 var _camera: MatchCamera
 var _flags: Array[Node3D] = []
+var _match: MatchController
+## Marcas de barridas en el césped mojado / nevado (las más viejas se borran).
+var _marks: Array[Decal] = []
+const MAX_MARKS := 30
+static var _mark_tex: Texture2D
 var _t := 0.0
 
 
@@ -37,6 +42,10 @@ func setup(p_conditions: MatchConditions) -> void:
 ## La cámara (para que la lluvia caiga donde se mira) y los banderines.
 func attach(camera: MatchCamera, world: Node) -> void:
 	_camera = camera
+	_match = world as MatchController
+	if _match != null and (conditions.wetness >= 0.3 or conditions.is_snow()):
+		for p in _match.all_players():
+			p.slide_started.connect(_on_slide.bind(p))
 	for n in world.find_children("CornerFlag*", "", true, false):
 		_flags.append(n as Node3D)
 
@@ -45,7 +54,7 @@ func attach(camera: MatchCamera, world: Node) -> void:
 func grass_params() -> Dictionary:
 	return {
 		"wetness": conditions.wetness,
-		"snow": 0.5 if conditions.is_snow() else 0.0,
+		"snow": 0.62 if conditions.is_snow() else 0.0,
 	}
 
 
@@ -55,6 +64,11 @@ func _process(dt: float) -> void:
 		var f := _camera._focus
 		# Por debajo de la altura de la cámara (si no, pasan pegadas al lente).
 		precipitation.global_position = Vector3(f.x, 0.0, f.z) + Vector3(0.0, 13.0, 4.0)
+	# Nieve: los surcos de las líneas se van tapando durante cada tiempo (en el
+	# entretiempo se vuelven a limpiar: el reloj del tiempo vuelve a cero).
+	if conditions.is_snow() and _match != null and _match.clock != null and PitchBuilder.grass_material != null:
+		var progress := clampf(_match.clock.game_seconds / MatchClock.HALF_GAME_SECONDS, 0.0, 1.0)
+		PitchBuilder.grass_material.set_shader_parameter("groove_clear", 1.0 - 0.85 * progress)
 	# Banderines: flamean hacia donde sopla el viento.
 	if not _flags.is_empty():
 		var w := conditions.wind_vector()
@@ -245,11 +259,51 @@ func _build_floodlights() -> void:
 			i += 1
 
 
+# --- Marcas de barridas --------------------------------------------------------
+
+## Barrida con el césped mojado o nevado: queda una marca de barro (o de
+## pasto a la vista, con nieve) a lo largo del deslizamiento.
+func _on_slide(p: Footballer) -> void:
+	var d := Decal.new()
+	d.texture_albedo = _mark_texture()
+	var length := 4.5
+	d.size = Vector3(0.7, 0.6, length)
+	d.modulate = Color(0.35, 0.27, 0.17, 0.85) if not conditions.is_snow() else Color(0.28, 0.33, 0.2, 0.9)
+	d.cull_mask = 1
+	add_child(d)
+	var dir := Vector3(p.facing.x, 0.0, p.facing.z).normalized()
+	d.global_position = p.flat_pos() + dir * length * 0.5 + Vector3.UP * 0.1
+	d.global_basis = Basis.looking_at(dir, Vector3.UP)
+	_marks.append(d)
+	if _marks.size() > MAX_MARKS:
+		_marks.pop_front().queue_free()
+
+
+static func _mark_texture() -> Texture2D:
+	if _mark_tex != null:
+		return _mark_tex
+	var w := 32
+	var h := 128
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	for y in h:
+		for x in w:
+			var u := absf(x / float(w - 1) * 2.0 - 1.0)
+			var v := y / float(h - 1)
+			# Borde suave a los costados y en las puntas, con algo de ruido.
+			var a := (1.0 - smoothstep(0.55, 1.0, u)) * smoothstep(0.0, 0.15, v) * (1.0 - smoothstep(0.85, 1.0, v))
+			a *= 0.75 + 0.25 * rng.randf()
+			img.set_pixel(x, y, Color(1, 1, 1, a))
+	_mark_tex = ImageTexture.create_from_image(img)
+	return _mark_tex
+
+
 # --- Lluvia y nieve -----------------------------------------------------------
 
 func _build_precipitation(snow: bool) -> GPUParticles3D:
 	var p := GPUParticles3D.new()
-	p.amount = 2500 if snow else 6000
+	p.amount = 5000 if snow else 6000
 	# Caen desde 13 m: la lluvia tarda ~0,8 s, la nieve ~7 s.
 	p.lifetime = 7.0 if snow else 0.9
 	p.preprocess = p.lifetime
@@ -282,8 +336,8 @@ func _build_precipitation(snow: bool) -> GPUParticles3D:
 	var mesh: PrimitiveMesh
 	if snow:
 		var flake := SphereMesh.new()
-		flake.radius = 0.05
-		flake.height = 0.1
+		flake.radius = 0.065
+		flake.height = 0.13
 		flake.radial_segments = 6
 		flake.rings = 3
 		mesh = flake

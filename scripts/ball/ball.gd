@@ -41,6 +41,12 @@ var _touch_phase: float = 0.0
 var _settle: float = 0.0
 
 
+## Pelota de invierno (naranja), para que se vea sobre la nieve.
+func set_winter_ball(on: bool) -> void:
+	if _mesh != null and _mesh.material_override is StandardMaterial3D:
+		(_mesh.material_override as StandardMaterial3D).albedo_color = Color(1.0, 0.55, 0.12) if on else Color.WHITE
+
+
 func setup(tuning: Tuning) -> void:
 	_tuning = tuning
 	_build_visuals()

@@ -17,7 +17,40 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
-## Visual 2 — Look con más profundidad y condiciones del partido (en curso)
+## Ronda "WE2002" (tu prueba de jugabilidad) — en 3 rondas
+
+### Ronda 1: juego (hecha)
+| Pedido | Cambio |
+|---|---|
+| El arquero no tiene la pelota en las manos (flota, brazos abajo) | Pose de agarre: brazos adelante y antebrazos doblados, la pelota entre las manos contra el pecho (sigue también en la atajada, la estirada y la caída). |
+| Todo va muy rápido | Velocidad del juego como en el WE2002: -2 .. +2 en la pausa. Por defecto el juego corre al 84 % (todo: jugadores, pelota, animaciones); el reloj del partido se compensa, así que la duración en minutos reales no cambia. |
+| 6 s del arquero (FIFA) | Cuenta en pantalla en los últimos 3 s. A los 6 s la juega solo según la opción de la pausa: pelotazo hacia adelante o la suelta al piso. **Triángulo** con la pelota en las manos: la suelta para jugarla con los pies (no la puede volver a agarrar hasta que la toque otro). |
+| Saque de arco | La pelota en el borde del área chica y el arquero patea con el pie: X pase corto a un compañero, Círculo pelotazo largo (fuerza y dirección). Verificado con un test. |
+| No se cobran faltas ni tiros libres | Faltas en barridas (de atrás casi siempre, de costado a veces, de frente rara vez; con el césped mojado, más) y en algunas entradas fallidas. Tiro libre donde fue (con barrera de 2-4 a 9,15 m si está a menos de 32 m del arco), **penal** si fue en el área (todos afuera, patea el mejor rematador), y **amarilla** según la gravedad. La CPU patea al arco los tiros libres cercanos y los penales. |
+| Nieve que no se ve caer; pelota | Copos más grandes y más; **pelota naranja**. Las líneas tienen un **surco limpio** al costado que se va tapando de nieve durante cada tiempo y se limpia en el entretiempo. |
+| Barro en barridas | Con lluvia o césped mojado (y con nieve) cada barrida deja una marca de barro a lo largo del deslizamiento. |
+| Nombre arriba del jugador | El nombre del que manejás arriba de la flecha (como en el WE). En la pausa: nombre / números de todos / nada. |
+
+Pendiente para la Fase 4: segunda amarilla y roja (expulsión), que van con los cambios y el plantel.
+
+### Ronda 2: look WE2002 (hecha)
+| Pedido | Cambio |
+|---|---|
+| Público: con volumen, pero no "conos con cabeza" | Cada hincha es una persona sentada de pocos polígonos (~90 triángulos): piernas dobladas, torso con hombros más anchos que la cintura, brazos, cuello y cabeza redondeada con pelo; algo girados y de distinto tamaño. 85 % de las butacas ocupadas; como en el WE, mucho blanco y gris con los colores de los clubes salpicados (la cabecera visitante, con los suyos). Saltan en los goles. Banderas de los hinchas colgadas de las barandas. |
+| Jugadores más "cuadrados" (WE2002) | Sombreado facetado (caras planas), pecho y hombros más anchos y botines más grandes. |
+| Césped como la referencia | Franjas de corte con más contraste. |
+
+### Ronda 3: presentación (hecha)
+Al entrar a un partido desde el menú principal (`MatchIntro`; X / Start saltea cada etapa):
+1. **Menú previo** con el estadio de fondo (la cámara recorre el estadio por dentro, los jugadores calientan): "Comenzar el partido", "Saltear la presentación", "Salir al menú" y el resumen del clima. Barras violáceas al estilo WE.
+2. **Calentamiento**: toma abierta y un corte cerca de un jugador.
+3. **Salida por el túnel**: dos filas salen de la boca del túnel (nueva, con marco y el interior oscuro, bajo la tribuna de la cámara) y caminan hacia el centro.
+4. **Formación protocolar** frente a la tribuna principal, con paneo a lo largo de las filas.
+5. **Saludo**: la fila visitante pasa frente a la local.
+6. **Formaciones**: pantalla con los dos equipos en la cancha (números y nombres).
+Después, saque del medio. En los tests y la prueba de rendimiento no hay presentación.
+
+## Visual 2 — Look con más profundidad y condiciones del partido
 
 ### Pedido
 "Debería tener mejores texturas, iluminación y sombras; está bastante plano,

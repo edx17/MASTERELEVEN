@@ -10,6 +10,8 @@ uniform vec3 skin : source_color = vec3(0.9, 0.75, 0.6);
 uniform vec3 boots : source_color = vec3(0.06);
 uniform vec3 hair : source_color = vec3(0.08, 0.06, 0.05);
 uniform vec3 hands : source_color = vec3(0.9, 0.75, 0.6);
+// Sombreado facetado (caras planas, como los jugadores "cuadrados" del WE2002).
+uniform bool faceted = true;
 
 void fragment() {
 	int region = int(round(COLOR.r * 10.0));
@@ -21,6 +23,10 @@ void fragment() {
 	else if (region == 4) { c = boots; rough = 0.4; }
 	else if (region == 5) { c = hair; rough = 0.7; }
 	else if (region == 6) { c = hands; rough = 0.6; }
+	if (faceted) {
+		vec3 n = normalize(cross(dFdx(VERTEX), dFdy(VERTEX)));
+		NORMAL = dot(n, -VERTEX) < 0.0 ? -n : n;
+	}
 	ALBEDO = c;
 	ROUGHNESS = rough;
 	SPECULAR = 0.25;

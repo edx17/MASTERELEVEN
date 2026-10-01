@@ -35,7 +35,9 @@ func _ready() -> void:
 	layer.add_child(_label)
 
 
-func _process(dt: float) -> void:
+func _process(scaled_dt: float) -> void:
+	# Tiempo real del cuadro (el juego puede correr más lento: velocidad).
+	var dt := scaled_dt / maxf(Engine.time_scale, 0.01)
 	if _done:
 		if Input.is_action_just_pressed(&"ui_accept") or Input.is_action_just_pressed(&"pause"):
 			_back_to_menu()

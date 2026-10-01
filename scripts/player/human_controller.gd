@@ -249,6 +249,12 @@ func tick(dt: float) -> void:
 			_tap = {}
 			_try_kick(t2["kind"], t2["power"], t2["aim"], t2["target"])
 
+	# Arquero con la pelota en las manos: Triángulo la suelta para jugarla con
+	# los pies (no en un saque de arco: ahí ya está en el piso).
+	if p.is_keeper() and ball.in_hands and ball.owner_player == p and input.just_pressed(&"pass_through"):
+		_match.keeper_drop(p)
+		return
+
 	# Barra de potencia.
 	if not is_charging() and not opponent_has_ball and _tap.is_empty():
 		for action in KICK_BUTTONS:

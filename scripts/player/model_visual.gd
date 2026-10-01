@@ -41,6 +41,8 @@ var _anim: AnimationPlayer
 var _current := ""
 var _bones := {}
 var _speed := 0.0
+var _foot_l := -1
+var _foot_r := -1
 var _run := 0.0
 ## Rotación animada limpia y última rotación puesta por un gesto, por hueso.
 var _clean := {}
@@ -56,6 +58,8 @@ var carrying := false
 ## Lo fija el Footballer: derribado por una barrida, cuánto le falta para
 ## volver a jugar y velocidad de costado (+ = hacia el +X del modelo).
 var tripped := false
+## Arquero con la pelota en las manos: brazos que la sostienen contra el pecho.
+var holding := false
 var recover_left := 0.0
 var side_speed := 0.0
 var _trip_played := false
@@ -88,6 +92,8 @@ func setup(colors: Dictionary, seed: int) -> void:
 			"upperarm_l", "upperarm_r", "lowerarm_l", "lowerarm_r", "Head"]:
 		_bones[n] = _skel.find_bone(n)
 
+	_foot_l = _skel.find_bone("foot_l")
+	_foot_r = _skel.find_bone("foot_r")
 	var body := _skel.find_child(BODY_MESH, false, false) as MeshInstance3D
 	if body != null:
 		if _region_mesh == null:
@@ -369,10 +375,24 @@ func _apply_gestures() -> void:
 		if _skel.get_bone_pose_rotation(b).is_equal_approx(_last_set[b]):
 			_skel.set_bone_pose_rotation(b, _clean[b])
 	_last_set.clear()
+	# Físico "cuadrado" (WE2002): pecho y hombros más anchos, botines grandes.
+	_skel.set_bone_pose_scale(_bones["spine_03"], Vector3(1.14, 1.0, 1.12))
+	for foot in [_foot_l, _foot_r]:
+		if foot >= 0:
+			_skel.set_bone_pose_scale(foot, Vector3(1.2, 1.15, 1.15))
 	if _clip != "":
 		return # la animación de Mixamo manda
 	# Inclinación del torso al acelerar / correr (esfuerzo en el sprint).
 	_rotate_bone("spine_01", Vector3.RIGHT, _lean)
+	if holding and _event < 0:
+		# Pelota contra el pecho: brazos adelante, hacia el centro, y los
+		# antebrazos doblados hacia arriba.
+		_rotate_bone("upperarm_l", Vector3.RIGHT, -0.95)
+		_rotate_bone("upperarm_r", Vector3.RIGHT, -0.95)
+		_rotate_bone("upperarm_l", Vector3.UP, -0.45)
+		_rotate_bone("upperarm_r", Vector3.UP, 0.45)
+		_rotate_bone("lowerarm_l", Vector3.RIGHT, -0.7)
+		_rotate_bone("lowerarm_r", Vector3.RIGHT, -0.7)
 	if _pose == Pose.SLIDING:
 		_rotate_bone("thigh_r", Vector3.RIGHT, -1.2)
 		_rotate_bone("thigh_l", Vector3.RIGHT, -0.3)

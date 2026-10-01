@@ -23,6 +23,13 @@ var presets: Array[CameraConfig] = []
 var preset_index: int = 0
 var _match: MatchController
 var _focus: Vector3 = Vector3.ZERO
+## Toma cinematográfica (presentación previa): la cámara va a `shot_pos`
+## mirando a `shot_look`, con suavizado `shot_speed` (0 = corte directo).
+var cinematic := false
+var shot_pos := Vector3.ZERO
+var shot_look := Vector3.ZERO
+var shot_fov := 40.0
+var shot_speed := 0.0
 
 
 func setup(p_match: MatchController) -> void:
@@ -54,8 +61,39 @@ func _unhandled_input(event: InputEvent) -> void:
 		set_preset(preset_index + 1)
 
 
+## Toma cinematográfica: corte (speed = 0) o movimiento suave hacia la toma.
+func set_shot(pos: Vector3, look: Vector3, p_fov: float = 40.0, speed: float = 0.0) -> void:
+	if not cinematic and _match != null and _match.stadium != null:
+		# En las tomas se ven todas las tribunas (en juego, la del lado de la
+		# cámara sólo da sombra).
+		StadiumBuilder.set_camera_side(_match.stadium, "")
+	cinematic = true
+	shot_pos = pos
+	shot_look = look
+	shot_fov = p_fov
+	shot_speed = speed
+	if speed <= 0.0:
+		global_position = pos
+		fov = p_fov
+		look_at(look, Vector3.UP)
+
+
+func end_cinematic() -> void:
+	cinematic = false
+	_update_occlusion()
+	_focus = target_focus()
+	_apply()
+
+
 func _process(dt: float) -> void:
 	if _match == null:
+		return
+	if cinematic:
+		if shot_speed > 0.0:
+			var k := 1.0 - exp(-shot_speed * dt)
+			global_position = global_position.lerp(shot_pos, k)
+			fov = lerpf(fov, shot_fov, k)
+		look_at(shot_look, Vector3.UP)
 		return
 	var k := 1.0 - exp(-config.follow_speed * dt)
 	_focus = _focus.lerp(target_focus(), k)

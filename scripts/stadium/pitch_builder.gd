@@ -8,6 +8,10 @@ const LINE_Y := 0.012
 
 
 ## `grass`: parámetros del césped según el clima (wetness, snow).
+## Material del césped (el clima lo actualiza durante el partido).
+static var grass_material: ShaderMaterial
+
+
 static func build(grass: Dictionary = {}) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Pitch"
@@ -39,6 +43,7 @@ static func _build_grass(root: Node3D, params: Dictionary = {}) -> void:
 	for k in params:
 		mat.set_shader_parameter(k, params[k])
 	GrassTextures.apply(mat)
+	grass_material = mat
 	grass.material_override = mat
 	root.add_child(grass)
 

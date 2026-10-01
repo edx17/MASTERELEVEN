@@ -31,10 +31,34 @@ var time_choice: int = MatchConditions.TimeOfDay.AFTERNOON
 var weather_choice: int = MatchConditions.Weather.CLEAR
 var wind_choice: int = 0
 ## Césped: 0 seco, 1 húmedo, 2 mojado, -1 según el clima.
-var pitch_choice: int = 0
+var pitch_choice: int = -1
 const WIND_NAMES := ["Sin viento", "Viento leve", "Viento fuerte"]
 const PITCH_NAMES := ["Césped seco", "Césped húmedo", "Césped mojado"]
 const PITCH_WETNESS := [0.0, 0.4, 0.85]
+
+## Velocidad del juego (como la opción del WE2002): nivel -2..+2. Todo el
+## partido (jugadores, pelota, animaciones) corre a esa escala de tiempo; el
+## reloj del partido se compensa (la duración en minutos reales no cambia).
+var game_speed: int = 0
+const GAME_SPEEDS := {-2: 0.68, -1: 0.76, 0: 0.84, 1: 0.92, 2: 1.0}
+
+
+func game_time_scale() -> float:
+	return GAME_SPEEDS.get(game_speed, 0.84)
+
+
+## Marca sobre los jugadores: 0 = nombre del que manejás (como el WE),
+## 1 = número de todos, 2 = nada.
+var player_label: int = 0
+const PLAYER_LABEL_NAMES := ["nombre del controlado", "números", "nada"]
+
+## El próximo partido arranca con la presentación (lo pide el menú principal).
+var play_intro: bool = false
+
+## Arquero al cumplir los 6 s con la pelota en las manos: 0 = pelotazo
+## hacia adelante, 1 = la suelta y la juega con los pies.
+var keeper_auto_action: int = 0
+const KEEPER_AUTO_NAMES := ["patea", "la suelta"]
 
 ## Rumbos del stick del humano: 8, 16 (estilo WE2002) o 0 = libre. Arranca
 ## con el valor de tuning.tres y se cambia desde la pausa.
