@@ -36,4 +36,4 @@ en el juego, poné en esa carpeta (FBX, "Without Skin" o "With Skin"):
 `Goalkeeper Catch 1`, `Goalkeeper Catch 2`, `Goalkeeper Body Block`,
 `Goalkeeper Miss`, `Goalkeeper Sidestep`, `Goalkeeper Placing Ball`,
 `Goalkeeper Overhand Throw`, `Goalkeeper Pass`, `Goalkeeper Diving Save`
-(con espacios o guiones bajos). Si falta alguna, ese gesto se hace por código.
+(con espacios o guiones bajos; las variantes numeradas pueden llamarse `Goalkeeper Catch 1` o `Goalkeeper Catch (1)`, como las numera Windows). Si falta alguna, ese gesto se hace por código.
