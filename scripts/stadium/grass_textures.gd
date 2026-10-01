@@ -13,8 +13,23 @@ static func _find(base: String) -> Texture2D:
 	for ext in ["png", "jpg", "jpeg", "webp"]:
 		var path: String = DIR + base + "." + ext
 		if ResourceLoader.exists(path):
-			return load(path) as Texture2D
+			return _with_mipmaps(load(path) as Texture2D)
 	return null
+
+
+## Sin mipmaps, a la distancia de la cámara cada píxel de pantalla toma un
+## píxel suelto de la textura (4K) y el césped se ve "granulado". Se generan
+## al cargar, así funciona sin importar cómo se importó el archivo.
+static func _with_mipmaps(tex: Texture2D) -> Texture2D:
+	if tex == null:
+		return null
+	var img := tex.get_image()
+	if img == null or img.has_mipmaps():
+		return tex
+	if img.is_compressed():
+		img.decompress()
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
 
 
 ## Configura el material del césped: con textura si hay, si no procedural.

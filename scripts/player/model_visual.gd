@@ -117,6 +117,7 @@ func setup(colors: Dictionary, seed: int) -> void:
 			"hand_l", "hand_r",
 			"upperarm_l", "upperarm_r", "lowerarm_l", "lowerarm_r", "Head"]:
 		_bones[n] = _skel.find_bone(n)
+	_bake_stands()
 
 	_foot_l = _skel.find_bone("foot_l")
 	_foot_r = _skel.find_bone("foot_r")
@@ -416,9 +417,10 @@ func _play_locomotion(speed: float) -> void:
 	# de la librería; los brazos los acomoda _apply_stance.
 	# El arquero también, si está en la formación (postura elegida).
 	var formal := keeper and stance != Stance.AUTO
-	if anim_name == "Idle" and (not keeper or formal) and _anim_lib.has_animation("A_TPose"):
-		pick = ["A_TPose", 0.0, 0.0]
-		anim_name = "A_TPose"
+	var stand := "Stand_%d" % (stance if stance != Stance.AUTO else Stance.RELAXED)
+	if anim_name == "Idle" and (not keeper or formal) and _anim_lib.has_animation(stand):
+		pick = [stand, 0.0, 0.0]
+		anim_name = stand
 	if _mx != null:
 		# Arquero quieto: postura de espera. Conduciendo al trote: conducción.
 		if keeper and not formal and anim_name == "Idle" and _mx.has_animation("gk_idle"):
@@ -490,7 +492,7 @@ func _apply_gestures() -> void:
 		return # la animación de Mixamo manda
 	# Inclinación del torso al acelerar / correr (esfuerzo en el sprint).
 	_rotate_bone("spine_01", Vector3.RIGHT, _lean)
-	if _current == "A_TPose" and (_event < 0 or _event == Event.HIGH_FIVE) and not holding:
+	if _current.begins_with("Stand_") and not holding:
 		_apply_stance()
 	if holding and _event < 0:
 		# Pelota contra el pecho: brazos adelante, hacia el centro, y los
@@ -590,14 +592,20 @@ func _apply_gestures() -> void:
 			_rotate_bone("lowerarm_r", Vector3.RIGHT, 0.2 * up)
 
 
-## Postura de pie sobre la pose base (A_TPose): brazos según `stance`,
-## respiración leve y la cabeza girada `look_yaw`.
+## Parado: respiración leve y la cabeza girada `look_yaw` (los brazos ya
+## vienen en la animación "Stand_<postura>", ver _bake_stands).
 func _apply_stance() -> void:
 	_breath += get_process_delta_time() * 1.6
 	var b := sin(_breath) * 0.02
 	_rotate_bone("spine_01", Vector3.RIGHT, 0.03 + b)
-	# Mientras choca los cinco, los brazos al costado (el gesto sube el derecho).
-	match Stance.RELAXED if _event == Event.HIGH_FIVE else stance:
+	if absf(look_yaw) > 0.01:
+		_rotate_bone("neck_01", Vector3.UP, look_yaw * 0.6)
+		_rotate_bone("Head", Vector3.UP, look_yaw * 0.4)
+
+
+## Brazos de cada postura, sobre la pose en T de la librería.
+func _stance_arms(st: int) -> void:
+	match st:
 		Stance.HEART:
 			_arm_down("l", 0.12)
 			# Mano derecha sobre el pecho (lado izquierdo del cuerpo).
@@ -619,9 +627,62 @@ func _apply_stance() -> void:
 		_:
 			_arm_down("l", 0.1)
 			_arm_down("r", 0.1)
-	if absf(look_yaw) > 0.01:
-		_rotate_bone("neck_01", Vector3.UP, look_yaw * 0.6)
-		_rotate_bone("Head", Vector3.UP, look_yaw * 0.4)
+
+
+## Animaciones de parado (una por postura): la pose en T de la librería con
+## los brazos ya acomodados. Al mezclar parado <-> caminar nunca aparecen los
+## brazos extendidos (antes se bajaban por código sólo con la pose en T
+## activa, y en la mezcla o con un gesto se veía la T).
+const ARM_BONES := ["clavicle_l", "clavicle_r", "upperarm_l", "upperarm_r", "lowerarm_l", "lowerarm_r", "hand_l", "hand_r"]
+static var _stands_baked := false
+
+func _bake_stands() -> void:
+	if _stands_baked or not _anim_lib.has_animation("A_TPose"):
+		return
+	var src: Animation = _anim_lib.get_animation("A_TPose")
+	var prefix := ""
+	for ti in src.get_track_count():
+		var path := src.track_get_path(ti)
+		if path.get_subname_count() > 0:
+			prefix = String(path.get_concatenated_names())
+			break
+	for st in [Stance.RELAXED, Stance.HEART, Stance.BEHIND, Stance.HIPS]:
+		_skel.reset_bone_poses()
+		for ti in src.get_track_count():
+			var path := src.track_get_path(ti)
+			if path.get_subname_count() == 0:
+				continue
+			var bone := _skel.find_bone(String(path.get_subname(0)))
+			if bone < 0:
+				continue
+			match src.track_get_type(ti):
+				Animation.TYPE_ROTATION_3D:
+					_skel.set_bone_pose_rotation(bone, src.rotation_track_interpolate(ti, 0.0))
+				Animation.TYPE_POSITION_3D:
+					_skel.set_bone_pose_position(bone, src.position_track_interpolate(ti, 0.0))
+		_clean.clear()
+		_last_set.clear()
+		_stance_arms(st)
+		var anim := src.duplicate(true) as Animation
+		for bone_name in ARM_BONES:
+			var bone := _skel.find_bone(bone_name)
+			if bone < 0:
+				continue
+			var q := _skel.get_bone_pose_rotation(bone)
+			var tpath := NodePath(prefix + ":" + bone_name)
+			var ti := anim.find_track(tpath, Animation.TYPE_ROTATION_3D)
+			if ti < 0:
+				ti = anim.add_track(Animation.TYPE_ROTATION_3D)
+				anim.track_set_path(ti, tpath)
+				anim.rotation_track_insert_key(ti, 0.0, q)
+			else:
+				for k in anim.track_get_key_count(ti):
+					anim.track_set_key_value(ti, k, q)
+		_anim_lib.add_animation("Stand_%d" % st, anim)
+	_clean.clear()
+	_last_set.clear()
+	_skel.reset_bone_poses()
+	_stands_baked = true
 
 
 ## Brazos de la pose en T llevados al costado del cuerpo (codo apenas doblado).

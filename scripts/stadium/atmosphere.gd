@@ -54,7 +54,7 @@ func attach(camera: MatchCamera, world: Node) -> void:
 func grass_params() -> Dictionary:
 	return {
 		"wetness": conditions.wetness,
-		"snow": 0.62 if conditions.is_snow() else 0.0,
+		"snow": 0.85 if conditions.is_snow() else 0.0,
 	}
 
 
@@ -162,6 +162,9 @@ func _build_sun() -> void:
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 	sun.directional_shadow_blend_splits = true
 	sun.shadow_blur = 1.2
+	# Tamaño aparente del sol: la sombra de un techo alto tiene el borde
+	# difuso (penumbra) y la de un jugador queda nítida.
+	sun.light_angular_distance = 1.6
 	# Sol del lado de la cámara (+Z) y algo lateral: los jugadores quedan
 	# iluminados de frente; la altura y el color dependen del horario.
 	var elev := -45.0
@@ -219,7 +222,7 @@ func _build_floodlights() -> void:
 	pole_mat.roughness = 0.5
 	# Ubicación según el estadio: torres con mástil por fuera, o reflectores
 	# colgados del techo en las esquinas.
-	var flood: Array = StadiumStyles.current["flood"]
+	var flood: Array = StadiumStyles.flood_layout(StadiumStyles.current)
 	var fx: float = flood[0]
 	var fz: float = flood[1]
 	var height: float = flood[2]
@@ -227,7 +230,7 @@ func _build_floodlights() -> void:
 	var i := 0
 	for xs: int in [-1, 1]:
 		for zs: int in [-1, 1]:
-			var base := Vector3(xs * (Pitch.HALF_LENGTH + fx), 0.0, zs * (Pitch.HALF_WIDTH + fz))
+			var base := Vector3(xs * fx, 0.0, zs * fz)
 			# Mástil y panel de reflectores.
 			if has_pole:
 				var pole := MeshInstance3D.new()
@@ -307,6 +310,20 @@ static func _mark_texture() -> Texture2D:
 
 # --- Lluvia y nieve -----------------------------------------------------------
 
+## Gota: dos tiras finas cruzadas, de 0,5 m a lo largo del eje Y.
+static func _rain_streak() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var w := 0.008
+	for axis: Vector3 in [Vector3.RIGHT, Vector3.BACK]:
+		var a := -axis * w
+		var b := axis * w
+		var q := [a + Vector3(0, -0.25, 0), b + Vector3(0, -0.25, 0), b + Vector3(0, 0.25, 0), a + Vector3(0, 0.25, 0)]
+		for i in [0, 1, 2, 0, 2, 3]:
+			st.add_vertex(q[i])
+	return st.commit()
+
+
 ## Dónde se emite la lluvia/nieve. En juego, sobre el foco de la cámara y por
 ## debajo de su altura (si no, pasan pegadas al lente). En las tomas de la
 ## presentación el foco no se actualiza y la cámara puede estar más alta que
@@ -345,16 +362,21 @@ func _build_precipitation(snow: bool) -> GPUParticles3D:
 		m.scale_min = 0.6
 		m.scale_max = 1.3
 	else:
-		m.direction = Vector3(wind.x * 0.06, -1.0, wind.z * 0.06).normalized()
-		m.initial_velocity_min = 16.0
-		m.initial_velocity_max = 20.0
-		m.gravity = Vector3(wind.x * 0.6, -9.8, wind.z * 0.6)
+		# Gotas a ~15 m/s; el viento las corre de costado a su misma velocidad
+		# (con viento fuerte caen bien en diagonal). Sin gravedad extra: ya
+		# llegan a la velocidad final.
+		var fall := Vector3(wind.x, -15.0, wind.z)
+		m.direction = fall.normalized()
+		m.spread = 2.0
+		m.initial_velocity_min = fall.length() * 0.92
+		m.initial_velocity_max = fall.length() * 1.08
+		m.gravity = Vector3.ZERO
 		m.particle_flag_align_y = true
 	p.process_material = m
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	var mesh: PrimitiveMesh
+	var mesh: Mesh
 	if snow:
 		var flake := SphereMesh.new()
 		flake.radius = 0.065
@@ -364,13 +386,15 @@ func _build_precipitation(snow: bool) -> GPUParticles3D:
 		mesh = flake
 		mat.albedo_color = Color(1.0, 1.0, 1.0, 0.95)
 	else:
-		var streak := QuadMesh.new()
-		streak.size = Vector2(0.012, 0.45)
-		mesh = streak
-		mat.albedo_color = Color(0.75, 0.8, 0.9, 0.22)
-		mat.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
-		mat.billboard_keep_scale = true
-	mesh.material = mat
+		# Dos planos cruzados a lo largo de la caída (orientados por la
+		# velocidad): se ven desde cualquier lado, sin el giro del billboard.
+		mesh = _rain_streak()
+		mat.albedo_color = Color(0.82, 0.84, 0.88, 0.2)
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	if mesh is PrimitiveMesh:
+		(mesh as PrimitiveMesh).material = mat
+	else:
+		(mesh as ArrayMesh).surface_set_material(0, mat)
 	p.draw_pass_1 = mesh
 	add_child(p)
 	return p

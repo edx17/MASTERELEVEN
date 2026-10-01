@@ -23,7 +23,7 @@ func test_models_are_imported() -> void:
 func test_locomotion_follows_speed() -> void:
 	var v := _visual()
 	_step(v, 0.0, 5)
-	assert_eq(v._current, "A_TPose", "parado derecho (no en guardia): los brazos los pone la postura")
+	assert_eq(v._current, "Stand_%d" % ModelVisual.Stance.RELAXED, "parado derecho (no en guardia), con los brazos al costado")
 	_step(v, 4.5, 5)
 	assert_eq(v._current, "Jog_Fwd")
 	_step(v, 8.0, 5)
@@ -198,3 +198,17 @@ func test_stances_and_high_five_move_the_arms() -> void:
 	_step(v, 0.0, 22)
 	var hand_up: Vector3 = v._skel.get_bone_global_pose(v._bones["hand_r"]).origin
 	assert_gt(hand_up.y - hand_down.y, 0.5, "choca los cinco: la mano sube")
+
+
+func test_standing_never_shows_the_t_pose() -> void:
+	var v := _visual()
+	# Parado, y también a mitad de la mezcla de parado a caminar: las manos
+	# quedan abajo (en la pose en T están a la altura de los hombros).
+	_step(v, 0.0, 10)
+	var shoulder: float = v._skel.get_bone_global_pose(v._bones["upperarm_l"]).origin.y
+	for frames in [0, 4]:
+		if frames > 0:
+			_step(v, 1.0, frames)
+		for hand in ["hand_l", "hand_r"]:
+			var y: float = v._skel.get_bone_global_pose(v._bones[hand]).origin.y
+			assert_lt(y, shoulder - 0.3, "%s abajo (cuadro %d de la mezcla)" % [hand, frames])

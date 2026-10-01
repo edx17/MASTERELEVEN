@@ -17,6 +17,29 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Ronda WE2002 (7): correcciones de tu prueba (animación, césped, clima, luz y rendimiento)
+
+| Reclamo | Causa | Cambio |
+|---|---|---|
+| Reciben la pelota "deslizándose de pie" | El gesto de recepción (con la suela, en el lugar) se usaba hasta 3,5 m/s, o sea trotando. | Sólo casi quieto (< 1,2 m/s). Andando, recibe con la carrera, como en el WE. |
+| Siguen desplazándose mientras pasan | La animación de pase es en el lugar y el cuerpo seguía a toda velocidad. | Al patear o pasar frena 0,3 s (35 % de la velocidad, con la desaceleración normal): el cuerpo acompaña el golpe. |
+| A veces se paran en T (también en los laterales) | Parado se usaba la pose en T de la librería y los brazos se bajaban por código sólo si no había un gesto. En las mezclas (parado ↔ caminar) y con un gesto activo se veía la T. | Al cargar se arman animaciones de parado con los brazos ya acomodados, una por postura (al costado, mano en el pecho, atrás, cintura). Las mezclas nunca pasan por la T. Por código quedan sólo la respiración y el giro de cabeza. |
+| Césped "granulado" (atardecer, Northbridge) | La textura del césped (4K) se importaba sin mipmaps: a la distancia de la cámara cada píxel de pantalla toma un píxel suelto de la textura. | Los mipmaps se generan al cargar la textura, sirve para cualquier textura local. El detalle procedural fino se apaga antes con la distancia. |
+| Nieve espantosa en el piso | El ruido de las manchas tenía una grilla alineada a los ejes (cuadrados) y la cobertura era parcial. | Capa pareja con variaciones suaves (ruido rotado por octava). Asoma el pasto donde más se juega y se ven los surcos de las líneas. |
+| Lluvia como palitos celestes zigzagueando | Las gotas eran planos que giraban hacia la cámara sólo sobre el eje vertical, mientras se movían en otra dirección. | Gotas de dos planos cruzados orientados por la velocidad, de color gris claro. El viento las corre de costado a su velocidad: con viento fuerte caen en diagonal. |
+| Sombra demasiado firme (techo alto) y rayas en el césped | El sol no tenía tamaño aparente. Las cerchas de arriba del techo proyectaban rayas. | Sombra con penumbra (`light_angular_distance`): la de un techo alto se desdibuja y la de un jugador queda nítida. Las cerchas y vigas de arriba del techo no proyectan sombra. |
+| No se ve nada en el córner (Torri al atardecer) | Los reflectores de los estadios techados estaban arriba del techo, y los que hacen sombra quedaban tapados. | En los estadios techados los reflectores cuelgan debajo del borde del techo, en las esquinas; la altura sale de los datos del estadio. |
+| 1 % más lentos 29-41 FPS | Al ocultar la tribuna del lado de la cámara se volvía a encender la sombra de todo (público y butacas incluidos: decenas de miles de instancias por pasada de sombra). Además, la iluminación global (SDFGI) re-voxelizaba el público y las butacas cada vez que la cámara cambiaba de zona. La simulación no es: ~0,65 ms por paso, sin picos. | El público, las butacas, barandas y banderas no proyectan sombra ni entran en la iluminación global. En la tribuna oculta directamente no se dibujan. |
+
+**Tests:** 191 en verde. Se agregaron:
+- parado sin pose en T, también en la mezcla;
+- el que pasa frena;
+- lluvia en diagonal con viento.
+
+Se actualizó el test de la tribuna oculta.
+
+**Pendiente:** que repitas la prueba de rendimiento (Torri y Northbridge, con nieve y sin nieve) para ver cuánto mejoraron los cuadros lentos.
+
 ## Ronda WE2002 (6): configuración guardada y vista previa de estadios
 
 > **Nota:** la ronda 5 (estadios, túnel, pelo y físicos) había quedado fuera de `main`. El PR #15 se mergeó antes de que se subiera ese commit. Va en el mismo PR que esta ronda.

@@ -489,6 +489,9 @@ func _show_kick(kicker: Footballer) -> void:
 	elif _in_kick and ball.speed() < 16.0:
 		ev = PlayerVisual.Event.PASS
 	kicker.visual.play(ev)
+	# Patada o pase a propósito: frena un instante mientras hace el gesto.
+	if _in_kick and ev in [PlayerVisual.Event.KICK, PlayerVisual.Event.PASS] and not kicker.is_keeper():
+		kicker.kick_brake = 0.3
 	# La pelota se dibuja saliendo del pie (o de la cabeza) del gesto.
 	if ev in [PlayerVisual.Event.KICK, PlayerVisual.Event.PASS, PlayerVisual.Event.HEADER]:
 		var off := kicker.visual.contact_point(ev) - ball.state.pos
@@ -909,7 +912,9 @@ static func catch_event(height: float) -> int:
 func _show_receive(p: Footballer, height: float) -> void:
 	if height > 0.9:
 		p.visual.play(PlayerVisual.Event.CHEST)
-	elif Vector3(p.velocity.x, 0.0, p.velocity.z).length() < 3.5:
+	elif Vector3(p.velocity.x, 0.0, p.velocity.z).length() < 1.2:
+		# Casi quieto: control con la suela (el gesto es en el lugar; andando
+		# se vería deslizarse de pie).
 		p.visual.play(PlayerVisual.Event.RECEIVE)
 
 

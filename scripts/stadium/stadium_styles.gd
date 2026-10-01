@@ -77,6 +77,29 @@ const STYLES := [
 static var current: Dictionary = STYLES[0]
 
 
+## Altura (m) del borde del techo de una tribuna con `tiers` filas por bandeja
+## (las mismas cuentas que StadiumBuilder._stand y _roof).
+static func roof_height(style: Dictionary, tiers: Array) -> float:
+	var rows := 0
+	for t in tiers:
+		rows += int(t)
+	var step: Array = style["tier_step"]
+	var y := rows * StadiumBuilder.ROW_RISE + (tiers.size() - 1) * float(step[1])
+	return y + 5.0
+
+
+## Reflectores de la noche: [posición base por esquina (x, z) desde el centro,
+## altura, con mástil]. Con techo, cuelgan debajo del borde, en las esquinas
+## (arriba del techo el propio techo los tapa).
+static func flood_layout(style: Dictionary) -> Array:
+	var f: Array = style["flood"]
+	if f[3]:
+		return [Pitch.HALF_LENGTH + float(f[0]), Pitch.HALF_WIDTH + float(f[1]), float(f[2]), true]
+	var tiers: Array = style["corners"] if not (style["corners"] as Array).is_empty() else style["stands"]["North"]
+	var gap: float = style["gap"]
+	return [Pitch.HALF_LENGTH + gap * 0.5, Pitch.HALF_WIDTH + gap * 0.5, roof_height(style, tiers) - 3.0, false]
+
+
 static func names() -> Array:
 	var out := []
 	for s in STYLES:
