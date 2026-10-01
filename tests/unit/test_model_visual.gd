@@ -104,3 +104,70 @@ func test_mixamo_clips_when_present() -> void:
 	v._skel.force_update_all_bone_transforms()
 	var pelvis := v._skel.get_bone_global_pose(v._skel.find_bone("pelvis")).origin
 	assert_gt(pelvis.x, 0.3, "vuela de costado hacia +X")
+
+
+func _mixamo_or_skip() -> bool:
+	if MixamoLibrary.library(ModelVisual._body_scene) == null:
+		pass_test("sin animaciones de Mixamo en esta copia")
+		return false
+	return true
+
+
+func test_tripped_player_falls_and_gets_up_in_time() -> void:
+	if not _mixamo_or_skip():
+		return
+	var v := _visual()
+	v.tripped = true
+	var left := 1.7
+	var clips: Array[String] = []
+	while left > 0.0:
+		v.recover_left = left
+		v.update(1.0 / 60.0, 0.0, 8.4, PlayerVisual.Pose.FALLEN, 0.0)
+		v._anim.advance(1.0 / 60.0)
+		if clips.is_empty() or clips[-1] != v._clip:
+			clips.append(v._clip)
+		left -= 1.0 / 60.0
+	assert_eq(clips.slice(0, 2), ["trip", "get_up"] as Array[String], "se cae y después se levanta")
+	v.tripped = false
+	v.recover_left = 0.0
+	_step(v, 0.0, 6)
+	assert_eq(v._clip, "", "al volver a jugar, vuelve la locomoción")
+
+
+func test_new_gestures_use_their_clips() -> void:
+	if not _mixamo_or_skip():
+		return
+	var v := _visual()
+	_step(v, 0.0, 5)
+	v.play(PlayerVisual.Event.TACKLE)
+	assert_eq(v._clip, "tackle", "entrada de pie")
+	_step(v, 0.0, 60)
+	v.play(PlayerVisual.Event.RECEIVE)
+	assert_eq(v._clip, "receive", "control con la suela")
+	_step(v, 0.0, 60)
+	v.keeper = true
+	for ev in [[PlayerVisual.Event.CATCH_HIGH, "gk_catch_high"], [PlayerVisual.Event.CATCH_LOW, "gk_catch_low"],
+			[PlayerVisual.Event.BLOCK, "gk_block"], [PlayerVisual.Event.ROLL, "gk_roll"]]:
+		v.play(ev[0])
+		assert_eq(v._clip, ev[1])
+		_step(v, 0.0, 150)
+	v.play(PlayerVisual.Event.CELEBRATE)
+	assert_eq(v._clip, "celebrate")
+	v.play(PlayerVisual.Event.KICK)
+	assert_eq(v._clip, "celebrate", "el festejo no se corta")
+
+
+func test_keeper_side_steps_when_moving_sideways() -> void:
+	if not _mixamo_or_skip():
+		return
+	var v := _visual()
+	v.keeper = true
+	v.side_speed = 2.0
+	_step(v, 2.0, 5)
+	assert_true(v._current.begins_with("mx/gk_side"), "paso lateral (%s)" % v._current)
+	v.side_speed = -2.0
+	_step(v, 2.0, 5)
+	var other := v._current
+	v.side_speed = 2.0
+	_step(v, 2.0, 5)
+	assert_ne(other, v._current, "cada lado usa su versión")

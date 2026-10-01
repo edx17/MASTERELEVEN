@@ -80,7 +80,7 @@ Si esto no funciona, NO se agregan sistemas: se corrige el gameplay primero.
 ## Controles (estilo WE)
 | Acción                 | Mando          | Teclado     |
 |------------------------|----------------|-------------|
-| Mover                  | Stick izq/cruz | WASD        |
+| Mover (8 direcciones; 16 o libre desde la pausa) | Stick izq/cruz | WASD |
 | Pase corto / presión y entrada (mantenido, defendiendo) | X / A | J |
 | Tiro                   | Cuadrado / X   | K           |
 | Pase largo / centro / barrida (defendiendo) | Círculo / B | L |

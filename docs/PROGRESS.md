@@ -46,8 +46,22 @@ Ver `Claude.md` para visión, criterios y fases.
 | Triángulo no es pase en profundidad | Pase al hueco con adelanto largo (9-24 m) y que cae **detrás de la última línea** rival. |
 | Visual como ForeverEleven | Carteles LED negros "MASTER ELEVEN." alrededor de la cancha; césped verde natural más apagado y mate; luz de menos contraste, tonemap ACES y oclusión ambiental (Forward+). |
 
+### Ronda 5 (segunda tanda de animaciones + movimiento WE2002)
+| Pedido | Cambio |
+|---|---|
+| Moverse en 8/16 direcciones como el WE2002 | `StickDirections`: el stick del humano se lleva al rumbo fijo más cercano (8 por defecto), en coordenadas de pantalla y con histéresis para que no haga zigzag. Desde la pausa: 8 → 16 → libre (`tuning.stick_directions` fija el inicial). Los pases siguen apuntando con el ángulo exacto del stick. La CPU se mueve libre. |
+| Entrada de pie (X) | Clip de estocada con la pierna (`Soccer Tackle 1`, sólo el tramo del cruce). |
+| Recepción | Control con la suela al recibir frenado; de pecho si llega alta (gesto por código). A la carrera, sin gesto (como en WE). |
+| Caídas | La barrida que roba **derriba** al que conducía (50 %, `slide_trip_chance`): cae, queda en el piso y se levanta en 1,7 s (`trip_duration`), sin poder jugar mientras tanto. Clip de caída + clip de levantarse ajustado para terminar justo cuando vuelve a jugar. |
+| Más atajadas | Según la altura: arriba con salto, a media altura, abajo agachado; achique a los pies con el cuerpo. Saque con la mano rodando con gesto de bochas. **Paso lateral**: el arquero se acomoda de costado sin dejar de mirar la pelota. Tras un gol, el arquero se lamenta. |
+| Festejos | El goleador hace la medialuna y se queda festejando hasta el saque del medio. |
+| Revisión | `tools/clip_sheet.gd`: hoja de cuadros de cualquier clip (para elegir tramos); los clips que en Mixamo giran el cuerpo se adaptan sin ese giro (el rumbo lo manda la simulación). |
+
+Sin usar por ahora: `Kick Up` / `Stall Soccerball` (sin pelota se ven raros), `Soccer Spin` (va con los amagues de la Fase 4), `Receiver Catch` (es de fútbol americano), `Defender` y `Situp To Idle`.
+
 ### Pendiente
-- [ ] **Tu prueba** de esta ronda.
+- [ ] **Tu prueba** de esta ronda (8 direcciones y animaciones nuevas).
+- [ ] Cierre de Visual 1: capturas lado a lado con ForeverEleven y 60 FPS en tu máquina.
 - [x] Tribunas de dos bandejas (también detrás de los arcos), butacas con respaldo y color parejo, barandas metálicas y frente oscuro de la bandeja superior.
 - [x] Número en la espalda (sigue al torso; blanco o negro según la camiseta).
 - [x] Iluminación global (SDFGI) y un leve brillo en Forward+ (en Compatibilidad se ignora).

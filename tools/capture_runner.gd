@@ -58,7 +58,21 @@ var _script := [
 	[615, "shot:capture_dive2.png"],
 	[616, "simulate:0.3"],
 	[630, "shot:capture_dive3.png"],
-	[640, "quit"],
+	# Barrida que derriba, entrada de pie y festejo de gol.
+	[640, "slide_scene"],
+	[641, "simulate:0.35"],
+	[655, "shot:capture_slide.png"],
+	[656, "simulate:0.5"],
+	[670, "shot:capture_trip.png"],
+	[671, "simulate:0.8"],
+	[685, "shot:capture_get_up.png"],
+	[690, "tackle_scene"],
+	[691, "simulate:0.2"],
+	[705, "shot:capture_tackle.png"],
+	[710, "goal_scene"],
+	[711, "simulate:1.3"],
+	[725, "shot:capture_celebrate.png"],
+	[730, "quit"],
 ]
 
 
@@ -109,6 +123,11 @@ func _run(action: String) -> void:
 	elif action.begins_with("simulate:"):
 		# Avanza la simulación un tiempo exacto sin depender de los FPS.
 		var secs := float(action.trim_prefix("simulate:"))
+		# Animaciones sólo con el reloj de la simulación: entre la simulación y
+		# la foto pasan cuadros reales (lentos sin GPU) que la adelantarían.
+		for p in _match.all_players():
+			if p.visual is ModelVisual:
+				(p.visual as ModelVisual)._anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 		for i in int(secs * 60.0):
 			_match._physics_process(1.0 / 60.0)
 			# Las animaciones avanzan con el mismo reloj (si no, quedan congeladas).
@@ -149,6 +168,29 @@ func _run(action: String) -> void:
 		_place(Vector3(-5, 0, 2), Vector3(-4.5, 0.11, 2), p)
 		_camera._focus = p.flat_pos()
 		_match.perform_kick(p, KickActions.Kind.SHORT_PASS, Vector3(1, 0, 0), 0.5)
+	elif action == "slide_scene":
+		var carrier: Footballer = _match.teams[0].players[6]
+		_place(Vector3(-5, 0, 2), Vector3(-4.6, 0.11, 2), carrier)
+		var slider: Footballer = _match.teams[1].players[6]
+		slider.teleport(Vector3(-2.6, 0, 2), Vector3.LEFT)
+		slider.start_slide(Vector3.LEFT)
+		_match.tuning.slide_trip_chance = 1.0
+		_camera._focus = carrier.flat_pos()
+	elif action == "tackle_scene":
+		_match.tuning.slide_trip_chance = 0.5
+		var c2: Footballer = _match.teams[0].players[6]
+		_place(Vector3(-5, 0, 2), Vector3(-4.6, 0.11, 2), c2)
+		var d2: Footballer = _match.teams[1].players[6]
+		d2.teleport(Vector3(-3.8, 0, 2), Vector3.LEFT)
+		d2.visual.play(PlayerVisual.Event.TACKLE)
+		_camera._focus = c2.flat_pos()
+	elif action == "goal_scene":
+		var scorer: Footballer = _match.teams[0].players[9]
+		_place(Vector3(30, 0, 4), Vector3(30.5, 0.11, 4), scorer)
+		_match.ball.owner_player = null
+		_match.ball.last_toucher = scorer
+		_match._show_goal(0)
+		_camera._focus = scorer.flat_pos()
 	elif action.begins_with("preset:"):
 		var name := action.trim_prefix("preset:")
 		for i in _camera.presets.size():

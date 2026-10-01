@@ -56,6 +56,10 @@ extends Resource
 ## seco y gira el doble de rápido (los cortes de 90-180° de WE).
 @export var cut_angle: float = 100.0
 
+@export_group("Control")
+## Rumbos del stick del jugador humano: 8 o 16 (como el WE2002) o 0 = libre.
+@export_enum("Libre:0", "8 direcciones:8", "16 direcciones:16") var stick_directions: int = 8
+
 @export_group("Energía y reacción")
 ## Puntos de energía (0-100) por segundo de sprint (jugador promedio).
 @export var stamina_sprint_drain: float = 2.6
@@ -116,6 +120,10 @@ extends Resource
 @export var slide_duration: float = 0.45
 @export var slide_recovery: float = 0.55
 @export var slide_reach: float = 1.1
+## Probabilidad de que la barrida que roba derribe al que conducía, y cuánto
+## tarda en levantarse (s).
+@export var slide_trip_chance: float = 0.5
+@export var trip_duration: float = 1.7
 
 @export_group("Pases y tiros")
 ## Tiempo para cargar la barra de potencia de 0 a 1.
