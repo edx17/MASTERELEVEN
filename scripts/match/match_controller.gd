@@ -20,6 +20,11 @@ const GOAL_DELAY := 3.0
 const HALFTIME_DELAY := 3.0
 const RESTART_AI_DELAY := 1.0
 const RESTART_HUMAN_DELAY := 0.35
+## Saque de arco: el arquero deja la pelota en la línea del área chica,
+## retrocede para tomar carrera y recién ahí va a patear.
+const GOAL_KICK_RUNUP := 5.0
+const GOAL_KICK_WALK := 2.0
+const GOAL_KICK_RUN := 5.2
 const PLAYER_SEPARATION := 0.85
 ## Distancia máxima jugador-pelota para poder patear.
 const KICK_REACH := 1.25
@@ -88,6 +93,12 @@ var banner_text: String = ""
 
 var _phase_timer: float = 0.0
 var _restart_elapsed: float = 0.0
+## Saque de arco en curso: 0 = retrocede, 1 = listo, 2 = carrera hacia la
+## pelota con la orden guardada (`_goal_kick_order`).
+enum GoalKickStage { BACKING, READY, RUNNING }
+var goal_kick_stage: int = GoalKickStage.READY
+var _goal_kick_order: Array = []
+var _goal_kick_kicking := false
 var _pending: MatchRules.Outcome = null
 var _first_half_kicker: int = 0
 var _camera: MatchCamera
@@ -159,7 +170,15 @@ func waiting_kickoff(p: Footballer) -> bool:
 
 ## La IA ejecutora puede sacar.
 func restart_ready() -> bool:
+	if phase == Phase.RESTART and restart_type == MatchRules.Restart.GOAL_KICK and goal_kick_stage == GoalKickStage.BACKING:
+		return false # todavía está tomando carrera
 	return phase == Phase.RESTART and _restart_elapsed >= RESTART_AI_DELAY
+
+
+## Saque de arco: la pelota quieta en el piso (el arquero no la lleva aunque
+## sea el ejecutor).
+func goal_kick_in_progress() -> bool:
+	return phase == Phase.RESTART and restart_type == MatchRules.Restart.GOAL_KICK and restart_taker != null
 
 
 func attack_dirs() -> Array[int]:
@@ -258,8 +277,11 @@ func _physics_process(dt: float) -> void:
 		h.tick(dt)
 	for a in ais:
 		a.tick(dt)
+	var goal_kick := goal_kick_in_progress()
+	if goal_kick:
+		_drive_goal_kick()
 	for p in all_players():
-		p.tick(dt, ball.owner_player == p)
+		p.tick(dt, ball.owner_player == p and not (goal_kick and p == restart_taker))
 	_separate_players()
 	if phase == Phase.RESTART:
 		_keep_distance_from_restart()
@@ -355,6 +377,13 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 	if phase == Phase.RESTART:
 		if player != restart_taker or _restart_elapsed < RESTART_HUMAN_DELAY:
 			return null
+		if restart_type == MatchRules.Restart.GOAL_KICK and not _goal_kick_kicking:
+			# La orden se guarda: primero corre hasta la pelota.
+			if _goal_kick_order.is_empty():
+				_goal_kick_order = [kind, dir, power, receiver_hint, variant]
+				goal_kick_stage = GoalKickStage.RUNNING
+			return null
+		player.speed_override = 0.0
 		ball.frozen = false
 		player.locked = false
 		wall_targets = {}
@@ -1161,6 +1190,12 @@ func _begin_restart(type: int, taker: Footballer) -> void:
 	taker.locked = true
 	ball.give_to(taker)
 	ball.frozen = true
+	_goal_kick_order = []
+	goal_kick_stage = GoalKickStage.READY
+	if type == MatchRules.Restart.GOAL_KICK:
+		# El arquero se mueve solo (toma carrera); la pelota queda en la línea.
+		taker.locked = false
+		goal_kick_stage = GoalKickStage.BACKING
 	_set_phase(Phase.RESTART)
 
 
@@ -1213,6 +1248,52 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 	if outcome.type == MatchRules.Restart.FREE_KICK:
 		_build_wall(opponents_of(team), spot)
 	_begin_restart(outcome.type, taker)
+
+
+## Dónde arranca la carrera del saque de arco: atrás de la pelota y un poco
+## abierto hacia el centro (entra en diagonal, como los arqueros).
+func goal_kick_runup_spot() -> Vector3:
+	var spot := ball.flat_pos()
+	var fwd := Vector3(restart_taker.team.attack_dir, 0.0, 0.0)
+	return spot - fwd * GOAL_KICK_RUNUP + Vector3(0.0, 0.0, -signf(spot.z) * 1.8)
+
+
+## Mueve al arquero en el saque de arco: retrocede, espera y, con la orden
+## dada, corre a la pelota y patea al llegar.
+func _drive_goal_kick() -> void:
+	var k := restart_taker
+	var spot := ball.flat_pos()
+	var runup := goal_kick_runup_spot()
+	k.wants_sprint = false
+	match goal_kick_stage:
+		GoalKickStage.BACKING:
+			var d := runup - k.flat_pos()
+			if d.length() < 0.3:
+				goal_kick_stage = GoalKickStage.READY
+				k.desired_move = Vector3.ZERO
+			else:
+				k.speed_override = GOAL_KICK_WALK
+				k.desired_move = d.normalized()
+		GoalKickStage.READY:
+			k.desired_move = Vector3.ZERO
+			k.speed_override = 0.0
+			k.facing = (spot - k.flat_pos()).normalized()
+		GoalKickStage.RUNNING:
+			var approach := (spot - runup).normalized()
+			var contact := spot - approach * 0.55
+			var d2 := contact - k.flat_pos()
+			if d2.length() < 0.35:
+				var o := _goal_kick_order
+				_goal_kick_kicking = true
+				k.desired_move = Vector3.ZERO
+				k.speed_override = 0.0
+				perform_kick(k, o[0], o[1], o[2], o[3], o[4])
+				_goal_kick_kicking = false
+				_goal_kick_order = []
+				goal_kick_stage = GoalKickStage.READY
+			else:
+				k.speed_override = GOAL_KICK_RUN
+				k.desired_move = d2.normalized()
 
 
 ## Barrera: en un tiro libre cerca del arco, 2-4 defensores a 9,15 m de la
@@ -1294,6 +1375,13 @@ func _keep_distance_from_restart() -> void:
 				continue
 			if Pitch.in_penalty_area(p.flat_pos(), defenders.own_side()):
 				p.global_position.x = defenders.own_side() * line
+	# Saque de arco: los rivales fuera del área.
+	if restart_type == MatchRules.Restart.GOAL_KICK:
+		var own := restart_taker.team
+		var gline := absf(Pitch.HALF_LENGTH - Pitch.PENALTY_AREA_DEPTH) - 1.0
+		for p in opponents_of(own).players:
+			if Pitch.in_penalty_area(p.flat_pos(), own.own_side()):
+				p.global_position.x = own.own_side() * gline
 	# En el saque del medio, además, cada equipo en su campo.
 	if restart_type == MatchRules.Restart.KICKOFF:
 		for t in teams:

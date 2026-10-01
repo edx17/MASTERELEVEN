@@ -60,6 +60,13 @@ var carrying := false
 var tripped := false
 ## Arquero con la pelota en las manos: brazos que la sostienen contra el pecho.
 var holding := false
+## Postura parado (formación, espera): AUTO = brazos al costado; HEART = mano
+## en el pecho; BEHIND = manos atrás; HIPS = manos en la cintura. `look_yaw`
+## gira la cabeza (radianes, + = hacia su izquierda).
+enum Stance { AUTO, RELAXED, HEART, BEHIND, HIPS }
+var stance: int = Stance.AUTO
+var look_yaw := 0.0
+var _breath := 0.0
 var recover_left := 0.0
 var side_speed := 0.0
 var _trip_played := false
@@ -88,7 +95,8 @@ func setup(colors: Dictionary, seed: int) -> void:
 	_model = _body_scene.instantiate() as Node3D
 	add_child(_model)
 	_skel = _model.find_child("Skeleton3D", true, false) as Skeleton3D
-	for n in ["pelvis", "spine_01", "spine_03", "thigh_l", "thigh_r", "calf_l", "calf_r",
+	for n in ["pelvis", "spine_01", "spine_03", "neck_01", "thigh_l", "thigh_r", "calf_l", "calf_r",
+			"hand_l", "hand_r",
 			"upperarm_l", "upperarm_r", "lowerarm_l", "lowerarm_r", "Head"]:
 		_bones[n] = _skel.find_bone(n)
 
@@ -110,6 +118,10 @@ func setup(colors: Dictionary, seed: int) -> void:
 		mat.set_shader_parameter("skin", skin)
 		mat.set_shader_parameter("hair", HAIR_TONES[rng.randi() % HAIR_TONES.size()])
 		mat.set_shader_parameter("hands", colors.get("gloves", skin))
+		var trim: Color = colors.get("shorts", Color.WHITE)
+		if trim.is_equal_approx(shirt) or absf(trim.get_luminance() - shirt.get_luminance()) < 0.08:
+			trim = shirt.darkened(0.35)
+		mat.set_shader_parameter("trim", trim)
 		body.material_override = mat
 	if colors.has("number"):
 		_add_back_number(int(colors["number"]), colors.get("shirt", Color.WHITE))
@@ -312,9 +324,16 @@ func _play_locomotion(speed: float) -> void:
 		if speed >= float(entry[1]):
 			pick = entry
 	var anim_name: String = pick[0]
+	# Parado (jugador de campo): de pie y derecho, no en guardia como el Idle
+	# de la librería; los brazos los acomoda _apply_stance.
+	# El arquero también, si está en la formación (postura elegida).
+	var formal := keeper and stance != Stance.AUTO
+	if anim_name == "Idle" and (not keeper or formal) and _anim_lib.has_animation("A_TPose"):
+		pick = ["A_TPose", 0.0, 0.0]
+		anim_name = "A_TPose"
 	if _mx != null:
 		# Arquero quieto: postura de espera. Conduciendo al trote: conducción.
-		if keeper and anim_name == "Idle" and _mx.has_animation("gk_idle"):
+		if keeper and not formal and anim_name == "Idle" and _mx.has_animation("gk_idle"):
 			pick = ["mx/gk_idle", 0.0, 0.0]
 		elif carrying and anim_name == "Jog_Fwd" and _mx.has_animation("dribble"):
 			pick = ["mx/dribble", 2.4, 2.8]
@@ -384,6 +403,8 @@ func _apply_gestures() -> void:
 		return # la animación de Mixamo manda
 	# Inclinación del torso al acelerar / correr (esfuerzo en el sprint).
 	_rotate_bone("spine_01", Vector3.RIGHT, _lean)
+	if _current == "A_TPose" and (_event < 0 or _event == Event.HIGH_FIVE) and not holding:
+		_apply_stance()
 	if holding and _event < 0:
 		# Pelota contra el pecho: brazos adelante, hacia el centro, y los
 		# antebrazos doblados hacia arriba.
@@ -405,6 +426,14 @@ func _apply_gestures() -> void:
 	var k := clampf(_event_t / _event_len, 0.0, 1.0)
 	var strike := sin(k * PI)
 	match _event:
+		Event.HIGH_FIVE:
+			# Choque de manos: la derecha sube adelante, a la altura de la
+			# cabeza, y vuelve (sobre los brazos al costado de la postura o
+			# de la caminata).
+			var up := smoothstep(0.0, 0.3, k) * (1.0 - smoothstep(0.7, 1.0, k))
+			_rotate_bone("upperarm_r", Vector3.RIGHT, -1.85 * up)
+			_rotate_bone("upperarm_r", Vector3.UP, 0.2 * up)
+			_rotate_bone("lowerarm_r", Vector3.RIGHT, -0.55 * up)
 		Event.KICK, Event.PASS:
 			# Carga atrás (rodilla doblada), golpe adelante y acompañamiento;
 			# brazo contrario abierto para equilibrar y torso que gira.
@@ -474,6 +503,48 @@ func _apply_gestures() -> void:
 			_rotate_bone("lowerarm_r", Vector3.RIGHT, 0.2 * up)
 
 
+## Postura de pie sobre la pose base (A_TPose): brazos según `stance`,
+## respiración leve y la cabeza girada `look_yaw`.
+func _apply_stance() -> void:
+	_breath += get_process_delta_time() * 1.6
+	var b := sin(_breath) * 0.02
+	_rotate_bone("spine_01", Vector3.RIGHT, 0.03 + b)
+	# Mientras choca los cinco, los brazos al costado (el gesto sube el derecho).
+	match Stance.RELAXED if _event == Event.HIGH_FIVE else stance:
+		Stance.HEART:
+			_arm_down("l", 0.12)
+			# Mano derecha sobre el pecho (lado izquierdo del cuerpo).
+			_rotate_bone("upperarm_r", Vector3.FORWARD, -(ARM_DOWN - 0.3))
+			_rotate_bone("upperarm_r", Vector3.RIGHT, -0.15)
+			_rotate_bone("lowerarm_r", Vector3.RIGHT, -1.6)
+			_rotate_bone("lowerarm_r", Vector3.UP, 1.75)
+		Stance.BEHIND:
+			for side in ["l", "r"]:
+				var sgn := 1.0 if side == "l" else -1.0
+				_rotate_bone("upperarm_" + side, Vector3.FORWARD, sgn * (ARM_DOWN - 0.1))
+				_rotate_bone("upperarm_" + side, Vector3.RIGHT, 0.22)
+				_rotate_bone("lowerarm_" + side, Vector3.UP, sgn * 1.75)
+		Stance.HIPS:
+			for side in ["l", "r"]:
+				var sgn := 1.0 if side == "l" else -1.0
+				_rotate_bone("upperarm_" + side, Vector3.FORWARD, sgn * (ARM_DOWN - 0.6))
+				_rotate_bone("lowerarm_" + side, Vector3.FORWARD, sgn * 1.7)
+		_:
+			_arm_down("l", 0.1)
+			_arm_down("r", 0.1)
+	if absf(look_yaw) > 0.01:
+		_rotate_bone("neck_01", Vector3.UP, look_yaw * 0.6)
+		_rotate_bone("Head", Vector3.UP, look_yaw * 0.4)
+
+
+## Brazos de la pose en T llevados al costado del cuerpo (codo apenas doblado).
+const ARM_DOWN := 1.42
+func _arm_down(side: String, elbow: float) -> void:
+	var sgn := 1.0 if side == "l" else -1.0
+	_rotate_bone("upperarm_" + side, Vector3.FORWARD, sgn * ARM_DOWN)
+	_rotate_bone("lowerarm_" + side, Vector3.RIGHT, -elbow)
+
+
 ## Gira un hueso alrededor de un eje del modelo (espacio del esqueleto),
 ## sobre su articulación; los hijos lo acompañan. Se parte siempre de la
 ## rotación animada "limpia" del hueso: si la animación de este cuadro no lo
@@ -510,11 +581,24 @@ static func _bake_regions(src: Mesh) -> ArrayMesh:
 		var colors := PackedColorArray()
 		colors.resize(verts.size())
 		for i in verts.size():
-			colors[i] = Color(_region(verts[i]) / 10.0, 0.0, 0.0)
+			var v := verts[i]
+			var r := _region(v)
+			colors[i] = Color(r / 10.0, 1.0 if (r == 0 and absf(v.x) < 0.26) else 0.0, 1.0 if _is_trim(v, r) else 0.0)
 		arrays[Mesh.ARRAY_COLOR] = colors
 		var flags: int = src.surface_get_format(s) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS
 		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, flags)
 	return out
+
+
+## Ribetes de la ropa: cuello, puños de las mangas, ruedo de la camiseta y
+## del short (se pintan con el color secundario).
+static func _is_trim(v: Vector3, region: int) -> bool:
+	var ax := absf(v.x)
+	if region == 0:
+		return (v.y > 1.47 and ax < 0.13) or (ax > 0.42 and ax < 0.46) or v.y < 1.01
+	if region == 1:
+		return v.y < 0.61
+	return false
 
 
 ## Zona del cuerpo de un vértice en reposo (modelo de 1,81 m en T-pose).

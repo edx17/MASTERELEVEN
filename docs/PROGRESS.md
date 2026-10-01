@@ -17,6 +17,25 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Ronda WE2002 (4): correcciones de tu prueba
+
+| Pedido | Cambio |
+|---|---|
+| La camiseta parece la piel pintada | La camiseta es una capa de tela: se infla apenas sobre el cuerpo y el torso se sombrea como un cilindro liso (no marca músculos). Tiene trama de tejido, brillo de tela y vivos de otro color: cuello, puños y ruedo de la camiseta y del pantalón. Se sacó el sombreado facetado. |
+| Parados como peleadores de MMA | Parado, el jugador de campo está derecho (ya no en guardia) y respira. En la formación, cada uno tiene su postura: brazos al costado, mano en el pecho, manos atrás o en la cintura. Los arqueros también se paran derechos. Giran la cabeza para mirar a los compañeros. En el saludo, el local mira al visitante que se acerca. |
+| Saque de arco | El arquero deja la pelota en la línea del área chica y retrocede unos 5 m, abierto hacia el centro, para tomar carrera. Con la orden (la tuya o la de la CPU), corre y patea al llegar a la pelota. Los rivales quedan fuera del área. |
+| La defensa rival encima del arquero con la pelota en las manos | Cuando el arquero rival tiene la pelota en las manos, la CPU no presiona: todos vuelven a su puesto, como mínimo a 24 m de la línea del arco. |
+| Lluvia "rara" en la toma que gira | En las tomas de la presentación, la lluvia y la nieve se emiten delante de la cámara y por encima de ella. Antes salían de un punto viejo y la cámara del menú quedaba por encima del emisor. |
+| Saludo FIFA | El visitante da un paso al frente y pasa en fila, 1 m por delante de la fila local, sin atravesarla. Todos caminan a la misma velocidad y el primero de la fila llega más lejos. Chocan los cinco con cada jugador local (gesto nuevo `HIGH_FIVE`). |
+| Texturas pesadas | Las texturas que falten quedan en `.gitignore` (`assets/textures/grass/`) y se usan desde tu copia local. `grass_albedo.jpg` ya está en el repo. |
+
+**Herramienta:** `tools/pose_sheet.gd` (`-- --poses=archivo.png`) arma una hoja con las posturas de frente y de costado.
+
+**Tests:** 179 en verde. Se agregaron:
+- posturas y choque de manos;
+- carrera del saque de arco;
+- repliegue con el arquero rival con la pelota en las manos.
+
 ## Ronda "WE2002" (tu prueba de jugabilidad) — en 3 rondas
 
 ### Ronda 1: juego (hecha)

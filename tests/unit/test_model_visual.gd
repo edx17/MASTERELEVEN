@@ -23,7 +23,7 @@ func test_models_are_imported() -> void:
 func test_locomotion_follows_speed() -> void:
 	var v := _visual()
 	_step(v, 0.0, 5)
-	assert_eq(v._current, "Idle")
+	assert_eq(v._current, "A_TPose", "parado derecho (no en guardia): los brazos los pone la postura")
 	_step(v, 4.5, 5)
 	assert_eq(v._current, "Jog_Fwd")
 	_step(v, 8.0, 5)
@@ -179,3 +179,22 @@ func test_mixamo_file_names_accept_windows_numbering() -> void:
 	assert_has(c, "Goalkeeper Catch 1")
 	assert_has(c, "Goalkeeper Catch (1)")
 	assert_eq(MixamoLibrary.file_candidates("Soccer_Pass").size(), 2, "sin número, sin variante numerada")
+
+
+func test_stances_and_high_five_move_the_arms() -> void:
+	var v := _visual()
+	var arm: int = v._bones["upperarm_r"]
+	var rots := {}
+	for st in [ModelVisual.Stance.RELAXED, ModelVisual.Stance.HEART, ModelVisual.Stance.BEHIND, ModelVisual.Stance.HIPS]:
+		v.stance = st
+		_step(v, 0.0, 3)
+		rots[st] = v._skel.get_bone_pose_rotation(arm)
+	assert_false(rots[ModelVisual.Stance.RELAXED].is_equal_approx(rots[ModelVisual.Stance.HEART]), "mano en el pecho")
+	assert_false(rots[ModelVisual.Stance.RELAXED].is_equal_approx(rots[ModelVisual.Stance.BEHIND]), "manos atrás")
+	v.stance = ModelVisual.Stance.RELAXED
+	_step(v, 0.0, 3)
+	var hand_down: Vector3 = v._skel.get_bone_global_pose(v._bones["hand_r"]).origin
+	v.play(PlayerVisual.Event.HIGH_FIVE)
+	_step(v, 0.0, 22)
+	var hand_up: Vector3 = v._skel.get_bone_global_pose(v._bones["hand_r"]).origin
+	assert_gt(hand_up.y - hand_down.y, 0.5, "choca los cinco: la mano sube")
