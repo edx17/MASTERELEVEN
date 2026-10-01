@@ -52,6 +52,9 @@ func game_time_scale() -> float:
 var player_label: int = 0
 const PLAYER_LABEL_NAMES := ["nombre del controlado", "números", "nada"]
 
+## El próximo partido arranca con la presentación (lo pide el menú principal).
+var play_intro: bool = false
+
 ## Arquero al cumplir los 6 s con la pelota en las manos: 0 = pelotazo
 ## hacia adelante, 1 = la suelta y la juega con los pies.
 var keeper_auto_action: int = 0

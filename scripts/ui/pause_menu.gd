@@ -60,6 +60,9 @@ func _process(_dt: float) -> void:
 		if Input.is_action_just_pressed(&"ui_accept") or Input.is_action_just_pressed(&"pause"):
 			_exit()
 		return
+	# Durante la presentación, Start la saltea (no pausa).
+	if m != null and m.phase == MatchController.Phase.INTRO:
+		return
 	if Input.is_action_just_pressed(&"pause"):
 		_toggle()
 

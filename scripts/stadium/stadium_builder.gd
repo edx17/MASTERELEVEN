@@ -516,14 +516,27 @@ static func _technical_area(parent: Node3D) -> void:
 		bench.material_override = _mat(Color(0.15, 0.17, 0.2))
 		bench.position = Vector3(cx, 1.1, Pitch.HALF_WIDTH + WALL_GAP - 1.2)
 		root.add_child(bench)
-	# Túnel.
-	var tunnel := MeshInstance3D.new()
-	var tb := BoxMesh.new()
-	tb.size = Vector3(4.0, 2.8, 4.0)
-	tunnel.mesh = tb
-	tunnel.material_override = _mat(Color(0.1, 0.1, 0.12))
-	tunnel.position = Vector3(0, 1.4, Pitch.HALF_WIDTH + WALL_GAP + 1.5)
-	root.add_child(tunnel)
+	# Túnel: boca con marco de hormigón y el interior oscuro (por acá salen
+	# los equipos en la presentación).
+	var mouth_z := Pitch.HALF_WIDTH + WALL_GAP + 0.5
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	_box(st, Vector3(-2.6, 0.0, mouth_z), Vector3(-2.0, 3.0, mouth_z + 6.0))
+	_box(st, Vector3(2.0, 0.0, mouth_z), Vector3(2.6, 3.0, mouth_z + 6.0))
+	_box(st, Vector3(-2.6, 2.6, mouth_z), Vector3(2.6, 3.2, mouth_z + 6.0))
+	st.generate_normals()
+	var frame := MeshInstance3D.new()
+	frame.name = "Tunnel"
+	frame.mesh = st.commit()
+	frame.material_override = _concrete_mat()
+	root.add_child(frame)
+	var inside := MeshInstance3D.new()
+	var ib := BoxMesh.new()
+	ib.size = Vector3(4.0, 2.6, 0.2)
+	inside.mesh = ib
+	inside.material_override = _mat(Color(0.02, 0.02, 0.025))
+	inside.position = Vector3(0, 1.3, mouth_z + 5.8)
+	root.add_child(inside)
 
 
 ## Tipografía de 5x7 "píxeles" para escribir con butacas (cada píxel = 2x2 butacas).

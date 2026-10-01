@@ -10,7 +10,7 @@ signal phase_changed(phase: int)
 ## Se mostró una tarjeta amarilla.
 signal card_shown(player: Footballer)
 
-enum Phase { PLAYING, STOPPED, RESTART, GOAL, HALFTIME, FULLTIME }
+enum Phase { PLAYING, STOPPED, RESTART, GOAL, HALFTIME, FULLTIME, INTRO }
 
 const FORECAST_STEP := 0.1
 const FORECAST_POINTS := 30
@@ -39,6 +39,8 @@ var tuning: Tuning
 ## Horario, clima, viento y césped de este partido.
 var conditions: MatchConditions
 var atmosphere: Atmosphere
+## Presentación previa (sólo al entrar desde el menú).
+var intro: MatchIntro
 var ball: Ball
 var teams: Array[Team] = []
 var clock: MatchClock
@@ -113,7 +115,18 @@ func _ready() -> void:
 	add_child(dbg)
 	dbg.setup(self)
 	_first_half_kicker = randi() % 2
-	_setup_kickoff(_first_half_kicker)
+	if GameSettings.play_intro:
+		# Desde el menú: presentación previa (menú con el estadio de fondo,
+		# calentamiento, túnel, saludo, formaciones) y después el saque.
+		GameSettings.play_intro = false
+		_set_phase(Phase.INTRO)
+		_hud.visible = false
+		intro = MatchIntro.new()
+		add_child(intro)
+		intro.setup(self, _camera)
+		intro.finished.connect(_on_intro_finished)
+	else:
+		_setup_kickoff(_first_half_kicker)
 
 
 # --- Consultas usadas por controladores/IA/HUD --------------------------------
@@ -222,7 +235,18 @@ func _setup_controllers() -> void:
 
 # --- Bucle principal ----------------------------------------------------------
 
+func _on_intro_finished() -> void:
+	_hud.visible = true
+	_setup_kickoff(_first_half_kicker)
+
+
 func _physics_process(dt: float) -> void:
+	if phase == Phase.INTRO:
+		# Presentación: sólo se mueven los jugadores (la pelota quieta).
+		intro.tick(dt)
+		for p in all_players():
+			p.tick(dt, false)
+		return
 	_update_phase(dt)
 	_update_forecast()
 

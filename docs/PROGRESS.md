@@ -40,8 +40,15 @@ Pendiente para la Fase 4: segunda amarilla y roja (expulsión), que van con los 
 | Jugadores más "cuadrados" (WE2002) | Sombreado facetado (caras planas), pecho y hombros más anchos y botines más grandes. |
 | Césped como la referencia | Franjas de corte con más contraste. |
 
-### Ronda 3: presentación (después)
-Menú previo con el estadio de fondo, salida por el túnel, calentamiento, formación inicial, saludo protocolar.
+### Ronda 3: presentación (hecha)
+Al entrar a un partido desde el menú principal (`MatchIntro`; X / Start saltea cada etapa):
+1. **Menú previo** con el estadio de fondo (la cámara recorre el estadio por dentro, los jugadores calientan): "Comenzar el partido", "Saltear la presentación", "Salir al menú" y el resumen del clima. Barras violáceas al estilo WE.
+2. **Calentamiento**: toma abierta y un corte cerca de un jugador.
+3. **Salida por el túnel**: dos filas salen de la boca del túnel (nueva, con marco y el interior oscuro, bajo la tribuna de la cámara) y caminan hacia el centro.
+4. **Formación protocolar** frente a la tribuna principal, con paneo a lo largo de las filas.
+5. **Saludo**: la fila visitante pasa frente a la local.
+6. **Formaciones**: pantalla con los dos equipos en la cancha (números y nombres).
+Después, saque del medio. En los tests y la prueba de rendimiento no hay presentación.
 
 ## Visual 2 — Look con más profundidad y condiciones del partido
 

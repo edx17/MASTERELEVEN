@@ -112,4 +112,5 @@ func _cycle_duration() -> void:
 
 func _start(mode: int) -> void:
 	GameSettings.set_mode(mode)
+	GameSettings.play_intro = true
 	get_tree().change_scene_to_file(MATCH_SCENE)

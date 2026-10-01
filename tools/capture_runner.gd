@@ -106,6 +106,16 @@ func _ready() -> void:
 			GameSettings.weather_choice = int(v[1])
 			GameSettings.wind_choice = int(v[2]) if v.size() > 2 else 0
 			GameSettings.pitch_choice = int(v[3]) if v.size() > 3 else -1
+	# `--intro`: la presentación previa (menú, calentamiento, túnel, saludo...).
+	if "--intro" in OS.get_cmdline_user_args():
+		GameSettings.play_intro = true
+		_script = [[5, "freeze"], [30, "shot:intro_menu.png"],
+			[35, "intro:1"], [36, "simulate:4"], [50, "shot:intro_warmup.png"],
+			[55, "intro:2"], [56, "simulate:2.5"], [62, "shot:intro_tunnel_mouth.png"],
+			[63, "simulate:6"], [70, "shot:intro_tunnel.png"],
+			[75, "intro:3"], [76, "simulate:2"], [90, "shot:intro_lineup.png"],
+			[95, "intro:4"], [96, "simulate:3.5"], [110, "shot:intro_handshake.png"],
+			[115, "intro:5"], [116, "simulate:0.3"], [125, "shot:intro_formation.png"], [130, "quit"]]
 	GameSettings.set_mode(GameSettings.Mode.VS_CPU)
 	GameSettings.camera_preset = 0
 	_match = load("res://scenes/match/match.tscn").instantiate()
@@ -220,6 +230,8 @@ func _run(action: String) -> void:
 		_match.ball.last_toucher = scorer
 		_match._show_goal(0)
 		_camera._focus = scorer.flat_pos()
+	elif action.begins_with("intro:"):
+		_match.intro._enter(int(action.trim_prefix("intro:")))
 	elif action == "keeper_hold":
 		var t1 := _match.teams[1]
 		var gk := t1.keeper()
