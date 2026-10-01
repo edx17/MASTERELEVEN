@@ -16,6 +16,10 @@ var _info: Label
 
 
 func _ready() -> void:
+	# Se puede llegar desde un partido o la prueba de rendimiento con el juego
+	# pausado (Start también abre la pausa): el menú siempre arranca andando.
+	get_tree().paused = false
+	Engine.time_scale = 1.0
 	var bg := ColorRect.new()
 	bg.color = Color(0.06, 0.2, 0.1)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

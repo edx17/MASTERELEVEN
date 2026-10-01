@@ -46,6 +46,10 @@ func _run() -> void:
 	# Hoja de físicos ("build" en el nombre): normal, gordo, flaco, alto, bajo,
 	# fornido y musculoso; de frente arriba y de costado abajo.
 	var builds := out.contains("build")
+	# Hoja del lateral ("throw" en el nombre): esperando con la pelota.
+	var throw := out.contains("throw")
+	if throw:
+		stances = [1, 1]
 	if builds:
 		stances = []
 		for k in 14:
@@ -64,6 +68,8 @@ func _run() -> void:
 		var look := {"shirt": Color(0.35, 0.65, 0.95), "shorts": Color(0.95, 0.95, 0.95), "number": 10}
 		if hair:
 			look["hair_style"] = i % HairBuilder.Style.size()
+		if throw:
+			v.throw_hold = true
 		if builds:
 			look["build"] = i % 7
 			look["hair_style"] = HairBuilder.Style.FADE

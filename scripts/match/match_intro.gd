@@ -52,6 +52,8 @@ func setup(m: MatchController, cam: MatchCamera) -> void:
 	_match = m
 	_cam = cam
 	_rng.seed = 1234
+	for p in _match.all_players():
+		p.set_presenting(true)
 	_build_ui()
 	_enter(Step.MENU)
 
@@ -132,6 +134,7 @@ func _enter(s: int) -> void:
 		Step.DONE:
 			_ui.visible = false
 			for p in _match.all_players():
+				p.set_presenting(false)
 				p.desired_move = Vector3.ZERO
 				p.speed_override = 0.0
 				if p.visual is ModelVisual:

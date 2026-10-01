@@ -132,13 +132,17 @@ void fragment() {
 	// Nieve: cubre el césped (menos donde se juega más: el centro y las áreas).
 	// Más nieve hacia las bandas y los fondos; en el medio, donde se juega, el
 	// pasto se ve (como una cancha nevada que se fue pisando).
-	// Capa pareja con variaciones suaves (sin manchas recortadas): el pasto
-	// asoma un poco donde se juega más (el medio y las áreas chicas).
+	// `snow` = nieve acumulada (0..1). Con poca, sólo manchas (primero en las
+	// bandas, los fondos y donde no se pisa); a medida que cae va tapando el
+	// verde hasta cubrir casi todo. Bordes suaves, sin recortes.
 	vec2 edge = abs(p) / vec2(half_length, 34.0);
 	float outer = smoothstep(0.2, 1.0, max(edge.x, edge.y));
 	float soft = fbm(p * 0.05) * 0.65 + fbm(p * 0.35) * 0.35;
-	float trodden = (1.0 - outer) * 0.35 + wear_mask(p) * 0.5;
-	float snow_mask = snow * clamp(1.15 - trodden - (1.0 - soft) * 0.35, 0.0, 1.0);
+	float trodden = (1.0 - outer) * 0.3 + wear_mask(p) * 0.5;
+	float ground = soft * 0.7 + outer * 0.3 - trodden * 0.45;
+	float threshold = 0.95 - snow * 1.35;
+	float cover = smoothstep(threshold, threshold + 0.22, ground);
+	float snow_mask = (snow > 0.0) ? cover * (0.6 + 0.4 * snow) : 0.0;
 	// Surco limpio de ~0,5 m al lado de cada línea (se va tapando).
 	float groove = 1.0 - smoothstep(0.12, 0.55, line_dist(p));
 	snow_mask *= 1.0 - groove * groove_clear;

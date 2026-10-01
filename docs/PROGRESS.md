@@ -17,6 +17,33 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Ronda WE2002 (8): nieve que se acumula, lateral, arquero que reacciona y menú
+
+Resultados de tu prueba de rendimiento con la ronda 7: todos los casos en "OK".
+
+| Caso | Promedio | 1 % más lentos | Antes (promedio / 1 %) |
+|---|---|---|---|
+| Coliseo, mañana | 143 FPS | 114 FPS | — |
+| Northbridge, tarde | 141 FPS | 101 FPS | 76 / 41 |
+| Torri con lluvia | 96 FPS | 70 FPS | 50 / 32 (despejado) |
+| Torri con nieve | 90 FPS | 64 FPS | 69 / 29 |
+
+| Pedido | Cambio |
+|---|---|
+| Mucha nieve: tiene que ser acumulativa | La nieve acumulada va de poca (30 %, en manchas, primero en bandas, fondos y donde no se pisa) a casi todo blanco al final del partido; va tapando el verde a medida que cae. En el entretiempo sólo se limpian los surcos de las líneas: la nieve del resto queda. |
+| Lateral: la pelota en las manos, atrás de la nuca | El que saca espera con los brazos arriba, los codos doblados y la pelota entre las manos atrás de la cabeza. Al sacar, la pelota sale desde las manos con el gesto del lanzamiento. |
+| El arquero vuela apenas le rematan | Al remate se queda plantado durante su tiempo de reacción (0,25-0,4 s según el atributo). Después se acomoda hacia el punto de atajada y se tira recién cuando la pelota está por llegar (~0,45 s antes). A quemarropa se tira apenas reacciona. Quién ataja lo sigue decidiendo el modelo de atajada (que ya contaba la reacción): en 40 remates simulados, las 9 atajadas previstas se concretaron. |
+| Números arriba de los jugadores en la presentación | Durante la presentación no se ve ninguna marca (nombre, número, flecha, aro); vuelven al empezar el partido. |
+| El menú no deja cambiar opciones después de la prueba de rendimiento | Start/Esc para salir de la prueba también abría la pausa del partido de la prueba, y el menú cargaba con el juego pausado. El menú principal ahora siempre arranca despausado (y con velocidad normal). |
+
+**Pendiente (después de tu modelo en Blender):** pulir la distancia jugador-pelota de los controles, los deslizamientos que quedan y las animaciones.
+
+**Tests:** 194 en verde. Se agregaron:
+- la nieve se acumula y en el entretiempo sólo se limpian las líneas;
+- el lateral con la pelota en las manos;
+- el arquero reacciona y se tira tarde;
+- sin marcas en la presentación.
+
 ## Ronda WE2002 (7): correcciones de tu prueba (animación, césped, clima, luz y rendimiento)
 
 | Reclamo | Causa | Cambio |

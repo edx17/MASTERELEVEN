@@ -71,13 +71,19 @@ static func predict_crossing(state: BallState, goal_x: float, t: Tuning, max_tim
 ## Evalúa la atajada de un arquero ubicado en `keeper_pos`.
 ## - reaction / goalkeeping: atributos 1..99.
 ## - extra_reaction: segundos de más (tiro desviado, visión tapada).
+## Tiempo de reacción del arquero ante un remate (s): se queda plantado y
+## recién después se mueve.
+static func reaction_time(reaction: int, extra_reaction: float = 0.0) -> float:
+	return lerpf(0.40, 0.25, PlayerData.unit(reaction)) + extra_reaction
+
+
 static func evaluate(plan: Plan, keeper_pos: Vector3, reaction: int, goalkeeping: int, extra_reaction: float = 0.0) -> Plan:
 	if not plan.on_target:
 		plan.chance = 0.0
 		return plan
 	# Informe técnico: reacción del arquero 0,3-0,4 s ante un tiro repentino;
 	# desplazamiento ~6-7 m/s en distancias cortas (la estirada lateral, algo menos).
-	var react_time := lerpf(0.40, 0.25, PlayerData.unit(reaction)) + extra_reaction
+	var react_time := reaction_time(reaction, extra_reaction)
 	var dive_speed := lerpf(4.5, 6.5, PlayerData.unit(goalkeeping))
 	var reach := lerpf(0.8, 1.4, PlayerData.unit(goalkeeping))
 	var goal_x := plan.point.x

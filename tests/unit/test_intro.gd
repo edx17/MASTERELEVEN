@@ -53,3 +53,19 @@ func test_intro_finishes_by_itself() -> void:
 		if m.phase != MatchController.Phase.INTRO:
 			break
 	assert_eq(m.phase, MatchController.Phase.RESTART)
+
+
+func test_no_marks_over_players_during_the_presentation() -> void:
+	GameSettings.set_mode(GameSettings.Mode.VS_CPU)
+	GameSettings.play_intro = true
+	var label := GameSettings.player_label
+	GameSettings.player_label = 1 # números
+	var m: MatchController = load("res://scenes/match/match.tscn").instantiate()
+	add_child_autofree(m)
+	m.set_physics_process(false)
+	for p in m.all_players():
+		assert_false(p._label.visible, "sin número en la presentación")
+		assert_false(p._arrow.visible)
+	m.intro._enter(MatchIntro.Step.DONE)
+	assert_true(m.all_players()[3]._label.visible, "en el partido, sí")
+	GameSettings.player_label = label
