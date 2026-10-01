@@ -469,6 +469,10 @@ func _build_visuals() -> void:
 	var colors := {"shirt": shirt, "shorts": team.secondary_color, "socks": shirt, "number": number}
 	if is_keeper():
 		colors["gloves"] = Color(0.95, 0.95, 0.9)
+	if data != null:
+		colors["build"] = int(data.visual_build())
+		if data.hair >= 0:
+			colors["hair_style"] = data.hair
 	visual.setup(colors, team.index * 100 + number)
 
 	var label := Label3D.new()

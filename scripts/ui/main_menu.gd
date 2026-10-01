@@ -6,6 +6,7 @@ const MATCH_SCENE := "res://scenes/match/match.tscn"
 
 var _duration_btn: Button
 var _difficulty_btn: Button
+var _stadium_btn: Button
 var _time_btn: Button
 var _weather_btn: Button
 var _wind_btn: Button
@@ -46,6 +47,7 @@ func _ready() -> void:
 	_duration_btn = _button(box, "", _cycle_duration)
 	_difficulty_btn = _button(box, "", _cycle_difficulty)
 	# Condiciones del partido (cada una con "al azar").
+	_stadium_btn = _button(box, "", _cycle.bind("stadium_choice", StadiumStyles.STYLES.size()))
 	_time_btn = _button(box, "", _cycle.bind("time_choice", MatchConditions.TIME_NAMES.size()))
 	_weather_btn = _button(box, "", _cycle.bind("weather_choice", MatchConditions.WEATHER_NAMES.size()))
 	_wind_btn = _button(box, "", _cycle.bind("wind_choice", GameSettings.WIND_NAMES.size()))
@@ -77,6 +79,7 @@ func _button(parent: Control, text: String, cb: Callable) -> Button:
 func _refresh() -> void:
 	_duration_btn.text = "Duración: %d min" % GameSettings.match_minutes
 	_difficulty_btn.text = "Dificultad: %s" % Difficulty.NAMES[GameSettings.difficulty]
+	_stadium_btn.text = "Estadio: %s" % _choice_name(GameSettings.stadium_choice, StadiumStyles.names())
 	_time_btn.text = "Horario: %s" % _choice_name(GameSettings.time_choice, MatchConditions.TIME_NAMES)
 	_weather_btn.text = "Clima: %s" % _choice_name(GameSettings.weather_choice, MatchConditions.WEATHER_NAMES)
 	_wind_btn.text = "Viento: %s" % _choice_name(GameSettings.wind_choice, GameSettings.WIND_NAMES)

@@ -40,13 +40,38 @@ func _run() -> void:
 	root.add_child(env)
 	# -1 = choque de manos (en el punto más alto).
 	var stances := [1, 2, 3, 4, -1, 1, 2, 3, 4, -1]
+	# Hoja de peinados ("hair" en el nombre): primer plano de cada peinado, de
+	# frente (3/4) arriba y de costado abajo.
+	var hair := out.contains("hair")
+	# Hoja de físicos ("build" en el nombre): normal, gordo, flaco, alto, bajo,
+	# fornido y musculoso; de frente arriba y de costado abajo.
+	var builds := out.contains("build")
+	if builds:
+		stances = []
+		for k in 14:
+			stances.append(1)
+	if hair:
+		stances = []
+		for k in HairBuilder.Style.size() * 2:
+			stances.append(1)
+		cam.position = Vector3(0.0, 1.62, 1.05)
+		cam.look_at(Vector3(0, 1.6, 0))
+		cam.fov = 32
 	var sheet := Image.create(W * stances.size(), H, false, Image.FORMAT_RGB8)
 	for i in stances.size():
 		var v := ModelVisual.new()
 		root.add_child(v)
-		v.setup({"shirt": Color(0.35, 0.65, 0.95), "shorts": Color(0.95, 0.95, 0.95), "number": 10}, 3)
+		var look := {"shirt": Color(0.35, 0.65, 0.95), "shorts": Color(0.95, 0.95, 0.95), "number": 10}
+		if hair:
+			look["hair_style"] = i % HairBuilder.Style.size()
+		if builds:
+			look["build"] = i % 7
+			look["hair_style"] = HairBuilder.Style.FADE
+		v.setup(look, 3 + i)
 		# Primero de frente, después de costado (girado 90°).
 		v.rotation.y = 0.0 if i < stances.size() / 2 else PI * 0.5
+		if hair:
+			v.rotation.y = 0.5 if i < stances.size() / 2 else PI * 0.85
 		v.stance = maxi(stances[i], 1)
 		if stances[i] < 0:
 			v.update(1.0 / 60.0, 0.0, 8.4, PlayerVisual.Pose.NORMAL, 0.0)

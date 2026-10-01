@@ -32,6 +32,8 @@ var weather_choice: int = MatchConditions.Weather.CLEAR
 var wind_choice: int = 0
 ## Césped: 0 seco, 1 húmedo, 2 mojado, -1 según el clima.
 var pitch_choice: int = -1
+## Estadio (StadiumStyles.STYLES); -1 = al azar.
+var stadium_choice: int = 0
 const WIND_NAMES := ["Sin viento", "Viento leve", "Viento fuerte"]
 const PITCH_NAMES := ["Césped seco", "Césped húmedo", "Césped mojado"]
 const PITCH_WETNESS := [0.0, 0.4, 0.85]
