@@ -17,6 +17,27 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Visual 2 — Look con más profundidad y condiciones del partido (en curso)
+
+### Pedido
+"Debería tener mejores texturas, iluminación y sombras; está bastante plano,
+parece un juego de navegador; un poco más oscuro. Y el clima: noche / día /
+mañana / tarde, viento, lluvia, nieve, seco, húmedo."
+
+### Hecho
+| Tema | Cambio |
+|---|---|
+| Condiciones (`MatchConditions`) | Horario (mañana, tarde, atardecer, noche), clima (despejado, nublado, lluvia, nieve), viento (sin, leve 4 m/s, fuerte 9 m/s, con dirección) y césped (seco, húmedo, mojado). En el menú principal, cada una con "Aleatorio". Al empezar se muestra el resumen ("Noche · Lluvia · viento 9 m/s · césped mojado"). |
+| Efectos en el juego | Cada partido usa una **copia** del ajuste base modificada por el clima. Mojado: la pelota corre ~25 % más y patina en los piques, la conducción se va un poco más larga, las barridas resbalan más lejos y derriban más. Nieve: la pelota frena (~25 % menos de recorrido) y pica menos, jugadores algo más lentos. Viento: empuja la pelota **en el aire** (un pelotazo con 9 m/s de costado se desvía ~3 m); rodando no la afecta. |
+| Luz por horario (`Atmosphere`) | Mañana: sol bajo y frío. Tarde: sol alto. Atardecer: sol naranja rasante y luces del estadio a media potencia. Noche: cielo negro, cuatro torres de luz (reflectores que se cruzan; sombras de dos torres por costo). Nublado / lluvia / nieve: luz difusa y sombras blandas. |
+| Lluvia, nieve y viento visibles | Gotas (inclinadas por el viento) con algo de bruma; césped mojado más oscuro y con brillo. Copos que caen despacio y césped nevado en manchones (más en las bandas; el medio pisado se ve verde). Banderines del córner que flamean con el viento. Indicador de viento (flecha + m/s) bajo el marcador. |
+| Menos plano, más oscuro | Exposición 1,0 y más contraste; oclusión ambiental más marcada; bruma de distancia. Césped con detalle en varias escalas, relieve fino (normal procedural que se suaviza a lo lejos) y desgaste en las áreas chicas y el círculo central. Hormigón con manchas y relieve. **Público** en las tribunas (≈60 % de ocupación, con los colores del local y la cabecera visitante con los suyos) que salta en los goles. |
+| Texturas fotográficas | `GrassTextures`: si se ponen texturas CC0 de césped en `assets/textures/grass/`, se usan en lugar del detalle procedural (instrucciones en `assets/CREDITS.md`). |
+
+### Pendiente
+- [ ] **Tu prueba**: el look nuevo (¿sigue plano? ¿muy oscuro?), cada clima y la prueba de rendimiento con el público y la noche (si baja de 60 FPS, agrego un ajuste de calidad).
+- [ ] Si querés más realismo: bajar las texturas de césped de `assets/CREDITS.md`.
+
 ## Visual 1 — Que se vea como la referencia (antes de la Fase 4, a pedido tuyo)
 
 ### Hecho (parte 1)

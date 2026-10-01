@@ -37,3 +37,22 @@ en el juego, poné en esa carpeta (FBX, "Without Skin" o "With Skin"):
 `Goalkeeper Miss`, `Goalkeeper Sidestep`, `Goalkeeper Placing Ball`,
 `Goalkeeper Overhand Throw`, `Goalkeeper Pass`, `Goalkeeper Diving Save`
 (con espacios o guiones bajos; las variantes numeradas pueden llamarse `Goalkeeper Catch 1` o `Goalkeeper Catch (1)`, como las numera Windows). Si falta alguna, ese gesto se hace por código.
+
+## Texturas del césped (opcionales, CC0)
+
+El césped se ve bien con el detalle procedural, pero con una textura
+fotográfica gana realismo. Desde el entorno de desarrollo no se pueden
+descargar, así que se ponen a mano (son CC0: se pueden subir al repo):
+
+1. Bajar de ambientCG (https://ambientcg.com) el material **Grass004**, versión
+   **1K-JPG** (o 2K-JPG).
+2. Copiar a `assets/textures/grass/` y renombrar:
+   - `Grass004_1K-JPG_Color.jpg` → `grass_albedo.jpg`
+   - `Grass004_1K-JPG_NormalGL.jpg` → `grass_normal.jpg` (la versión **GL**, no DX)
+   - `Grass004_1K-JPG_Roughness.jpg` → `grass_roughness.jpg`
+3. Abrir el editor una vez para que las importe. Si están, `GrassTextures` las
+   usa automáticamente; si no, sigue el detalle procedural.
+
+Sirve cualquier césped corto CC0 con esos tres mapas (por ejemplo Grass001 o
+Grass005 de ambientCG). Las franjas de corte y el desgaste los sigue poniendo
+el shader.

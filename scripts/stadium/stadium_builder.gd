@@ -25,7 +25,13 @@ static func seat_tone(c: Color) -> Color:
 
 
 ## `home` define los colores de las butacas y el nombre en la tribuna.
-static func build(home: TeamData) -> Node3D:
+## Material compartido del público (MatchController lo hace saltar en los goles).
+static var crowd_material: ShaderMaterial
+## Proporción de butacas ocupadas.
+const CROWD_DENSITY := 0.62
+
+
+static func build(home: TeamData, away: TeamData = null) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Stadium"
 	var seat_color := seat_tone(home.color) if home != null else Color(0.8, 0.15, 0.15)
@@ -33,14 +39,21 @@ static func build(home: TeamData) -> Node3D:
 	if text_color.get_luminance() < 0.25:
 		text_color = Color(0.95, 0.95, 0.95)
 	var name := home.team_name.to_upper() if home != null else "MASTER ELEVEN"
+	crowd_material = ShaderMaterial.new()
+	crowd_material.shader = preload("res://scripts/stadium/crowd.gdshader")
+	var fans := {
+		"home": home.color if home != null else Color(0.8, 0.15, 0.15),
+		"home2": home.secondary_color if home != null else Color.WHITE,
+		"away": away.color if away != null else Color(0.2, 0.3, 0.8),
+	}
 
 	# Tribuna principal (frente a la cámara): dos bandejas y el nombre del club.
-	_stand(root, "North", Vector3(0, 0, -1), Pitch.HALF_LENGTH * 2.0 + 20.0, [26, 20], seat_color, text_color, name)
-	# Cabeceras.
-	_stand(root, "West", Vector3(-1, 0, 0), Pitch.HALF_WIDTH * 2.0 + 14.0, [22, 16], seat_color, text_color, "")
-	_stand(root, "East", Vector3(1, 0, 0), Pitch.HALF_WIDTH * 2.0 + 14.0, [22, 16], seat_color, text_color, "")
+	_stand(root, "North", Vector3(0, 0, -1), Pitch.HALF_LENGTH * 2.0 + 20.0, [26, 20], seat_color, text_color, name, fans)
+	# Cabeceras (la visitante, en la del este).
+	_stand(root, "West", Vector3(-1, 0, 0), Pitch.HALF_WIDTH * 2.0 + 14.0, [22, 16], seat_color, text_color, "", fans)
+	_stand(root, "East", Vector3(1, 0, 0), Pitch.HALF_WIDTH * 2.0 + 14.0, [22, 16], seat_color, text_color, "", fans, true)
 	# Tribuna detrás de la cámara (casi no se ve; da sombra y cierre).
-	_stand(root, "South", Vector3(0, 0, 1), Pitch.HALF_LENGTH * 2.0 + 20.0, [18], seat_color, text_color, "")
+	_stand(root, "South", Vector3(0, 0, 1), Pitch.HALF_LENGTH * 2.0 + 20.0, [18], seat_color, text_color, "", fans)
 	_perimeter(root)
 	_technical_area(root)
 	return root
@@ -53,10 +66,45 @@ static func _mat(c: Color, rough: float = 0.85) -> StandardMaterial3D:
 	return m
 
 
+## Hormigón con manchas y poros (textura de ruido generada, sin archivos).
+static var _concrete: StandardMaterial3D
+static func _concrete_mat() -> StandardMaterial3D:
+	if _concrete != null:
+		return _concrete
+	var noise := FastNoiseLite.new()
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	noise.frequency = 0.02
+	noise.fractal_octaves = 5
+	var tex := NoiseTexture2D.new()
+	tex.width = 256
+	tex.height = 256
+	tex.seamless = true
+	tex.noise = noise
+	var ramp := Gradient.new()
+	ramp.set_color(0, CONCRETE.darkened(0.25))
+	ramp.set_color(1, CONCRETE.lightened(0.15))
+	tex.color_ramp = ramp
+	var bump := NoiseTexture2D.new()
+	bump.width = 256
+	bump.height = 256
+	bump.seamless = true
+	bump.as_normal_map = true
+	bump.bump_strength = 4.0
+	bump.noise = noise
+	_concrete = StandardMaterial3D.new()
+	_concrete.albedo_texture = tex
+	_concrete.normal_enabled = true
+	_concrete.normal_texture = bump
+	_concrete.roughness = 0.9
+	_concrete.uv1_triplanar = true
+	_concrete.uv1_scale = Vector3(0.25, 0.25, 0.25)
+	return _concrete
+
+
 ## Una tribuna mirando hacia el centro. `outward` apunta desde la cancha hacia
 ## la tribuna. Cada elemento de `tiers` es la cantidad de filas de una bandeja.
 static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: float, tiers: Array,
-		seat_color: Color, text_color: Color, text: String) -> void:
+		seat_color: Color, text_color: Color, text: String, fans: Dictionary = {}, away_end: bool = false) -> void:
 	var stand := Node3D.new()
 	stand.name = "Stand" + stand_name
 	root.add_child(stand)
@@ -82,6 +130,12 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 	fascia.begin(Mesh.PRIMITIVE_TRIANGLES)
 
 	var letters := PixelFont.layout(text, seats_per_row, tiers[0] if tiers.size() > 0 else 0)
+	# Público: personas en una parte de las butacas (no en las escaleras ni
+	# sobre las letras del nombre del club).
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(stand_name)
+	var people: Array[Transform3D] = []
+	var people_custom: Array[Color] = []
 	var idx := 0
 	var row_global := 0
 	var y := 0.0
@@ -111,13 +165,18 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 				mm.set_instance_transform(idx, Transform3D(Basis.IDENTITY, Vector3(x, y, z + ROW_DEPTH * 0.5)))
 				mm.set_instance_color(idx, c)
 				idx += 1
+				if c == seat_color and not fans.is_empty() and rng.randf() < CROWD_DENSITY:
+					var scale := rng.randf_range(0.92, 1.08)
+					var tf := Transform3D(Basis.IDENTITY.scaled(Vector3(scale, scale, scale)), Vector3(x + rng.randf_range(-0.05, 0.05), y, z + ROW_DEPTH * 0.5))
+					people.append(tf)
+					people_custom.append(_fan_color(rng, fans, away_end))
 			y += ROW_RISE
 			z += ROW_DEPTH
 			row_global += 1
 	steps.generate_normals()
 	var steps_mi := MeshInstance3D.new()
 	steps_mi.mesh = steps.commit()
-	steps_mi.material_override = _mat(CONCRETE)
+	steps_mi.material_override = _concrete_mat()
 	stand.add_child(steps_mi)
 
 	if tiers.size() > 1:
@@ -126,6 +185,22 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 		fascia_mi.mesh = fascia.commit()
 		fascia_mi.material_override = _mat(Color(0.07, 0.07, 0.08), 0.5)
 		stand.add_child(fascia_mi)
+
+	if not people.is_empty():
+		var crowd_mm := MultiMesh.new()
+		crowd_mm.transform_format = MultiMesh.TRANSFORM_3D
+		crowd_mm.use_custom_data = true
+		crowd_mm.mesh = _person_mesh()
+		crowd_mm.instance_count = people.size()
+		for i in people.size():
+			crowd_mm.set_instance_transform(i, people[i])
+			crowd_mm.set_instance_custom_data(i, people_custom[i])
+		var crowd := MultiMeshInstance3D.new()
+		crowd.name = "Crowd"
+		crowd.multimesh = crowd_mm
+		crowd.material_override = crowd_material
+		crowd.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		stand.add_child(crowd)
 
 	var seats := MultiMeshInstance3D.new()
 	seats.multimesh = mm
@@ -164,6 +239,39 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 
 
 ## Butaca: asiento y respaldo (una sola malla, instanciada por MultiMesh).
+## Ropa de un hincha (rgb) y tono de piel (a): la mayoría con los colores del
+## local; en la cabecera visitante, con los del visitante.
+static func _fan_color(rng: RandomNumberGenerator, fans: Dictionary, away_end: bool) -> Color:
+	var r := rng.randf()
+	var c: Color
+	if away_end:
+		c = fans["away"] if r < 0.7 else (Color(0.12, 0.12, 0.14) if r < 0.85 else Color(0.85, 0.85, 0.85))
+	elif r < 0.5:
+		c = fans["home"]
+	elif r < 0.62:
+		c = fans["home2"]
+	elif r < 0.7:
+		c = fans["away"]
+	else:
+		var neutral := [Color(0.1, 0.1, 0.12), Color(0.85, 0.85, 0.87), Color(0.2, 0.25, 0.4), Color(0.45, 0.45, 0.47), Color(0.55, 0.15, 0.12)]
+		c = neutral[rng.randi() % neutral.size()]
+	c = c.darkened(rng.randf_range(0.0, 0.25))
+	return Color(c.r, c.g, c.b, rng.randf())
+
+
+## Un hincha sentado, muy simple (se ve a 40-60 m): torso y cabeza. El color
+## de vértice rojo marca la cabeza (lo usa crowd.gdshader).
+static func _person_mesh() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_color(Color(0, 0, 0))
+	_box(st, Vector3(-0.17, 0.42, -0.08), Vector3(0.17, 0.95, 0.12))
+	st.set_color(Color(1, 0, 0))
+	_box(st, Vector3(-0.09, 0.98, -0.07), Vector3(0.09, 1.2, 0.1))
+	st.generate_normals()
+	return st.commit()
+
+
 static func _seat_mesh() -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)

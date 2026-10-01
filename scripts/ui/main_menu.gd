@@ -6,6 +6,10 @@ const MATCH_SCENE := "res://scenes/match/match.tscn"
 
 var _duration_btn: Button
 var _difficulty_btn: Button
+var _time_btn: Button
+var _weather_btn: Button
+var _wind_btn: Button
+var _pitch_btn: Button
 var _two_players_btn: Button
 var _info: Label
 
@@ -20,13 +24,13 @@ func _ready() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
+	box.add_theme_constant_override("separation", 6)
 	center.add_child(box)
 
 	var title := Label.new()
 	title.text = "MASTER ELEVEN"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 64)
+	title.add_theme_font_size_override("font_size", 52)
 	title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.25))
 	box.add_child(title)
 	var sub := Label.new()
@@ -41,6 +45,11 @@ func _ready() -> void:
 	_button(box, "CPU vs CPU (demo)", _start.bind(GameSettings.Mode.CPU_VS_CPU))
 	_duration_btn = _button(box, "", _cycle_duration)
 	_difficulty_btn = _button(box, "", _cycle_difficulty)
+	# Condiciones del partido (cada una con "al azar").
+	_time_btn = _button(box, "", _cycle.bind("time_choice", MatchConditions.TIME_NAMES.size()))
+	_weather_btn = _button(box, "", _cycle.bind("weather_choice", MatchConditions.WEATHER_NAMES.size()))
+	_wind_btn = _button(box, "", _cycle.bind("wind_choice", GameSettings.WIND_NAMES.size()))
+	_pitch_btn = _button(box, "", _cycle.bind("pitch_choice", GameSettings.PITCH_NAMES.size()))
 	_button(box, "Prueba de rendimiento (30 s)", GameSettings.start_benchmark)
 	_button(box, "Salir", get_tree().quit)
 
@@ -58,8 +67,8 @@ func _ready() -> void:
 func _button(parent: Control, text: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(360, 52)
-	b.add_theme_font_size_override("font_size", 24)
+	b.custom_minimum_size = Vector2(380, 40)
+	b.add_theme_font_size_override("font_size", 20)
 	b.pressed.connect(cb)
 	parent.add_child(b)
 	return b
@@ -68,10 +77,25 @@ func _button(parent: Control, text: String, cb: Callable) -> Button:
 func _refresh() -> void:
 	_duration_btn.text = "Duración: %d min" % GameSettings.match_minutes
 	_difficulty_btn.text = "Dificultad: %s" % Difficulty.NAMES[GameSettings.difficulty]
+	_time_btn.text = "Horario: %s" % _choice_name(GameSettings.time_choice, MatchConditions.TIME_NAMES)
+	_weather_btn.text = "Clima: %s" % _choice_name(GameSettings.weather_choice, MatchConditions.WEATHER_NAMES)
+	_wind_btn.text = "Viento: %s" % _choice_name(GameSettings.wind_choice, GameSettings.WIND_NAMES)
+	_pitch_btn.text = "Césped: %s" % ("según el clima" if GameSettings.pitch_choice < 0 else GameSettings.PITCH_NAMES[GameSettings.pitch_choice])
 	var pads := Input.get_connected_joypads().size()
 	_two_players_btn.disabled = not InputRouter.can_play_two_players()
 	var pad_text := "Sin mandos conectados (se juega con teclado)" if pads == 0 else "Mandos conectados: %d" % pads
 	_info.text = pad_text + "\nMover: WASD / stick o cruceta   Pase: J / X   Remate: K / Cuadrado   Centro: L / Círculo   Profundidad: I / Triángulo\nCorrer: Shift / R1   L1 (Q): cambio de jugador / gambeta y combinaciones   Cámara: C / Select   Pausa: Esc / Start"
+
+
+static func _choice_name(i: int, names: Array) -> String:
+	return "Aleatorio" if i < 0 else String(names[i])
+
+
+## Recorre las opciones -1 (al azar), 0 .. count-1.
+func _cycle(setting: String, count: int) -> void:
+	var v: int = GameSettings.get(setting) + 1
+	GameSettings.set(setting, -1 if v >= count else v)
+	_refresh()
 
 
 func _cycle_difficulty() -> void:

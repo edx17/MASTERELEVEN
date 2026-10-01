@@ -7,10 +7,11 @@ extends RefCounted
 const LINE_Y := 0.012
 
 
-static func build() -> Node3D:
+## `grass`: parámetros del césped según el clima (wetness, snow).
+static func build(grass: Dictionary = {}) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Pitch"
-	_build_grass(root)
+	_build_grass(root, grass)
 	_build_lines(root)
 	for side: int in [-1, 1]:
 		_build_goal(root, side)
@@ -27,7 +28,7 @@ static func _flat_material(color: Color, unshaded: bool = false) -> StandardMate
 	return m
 
 
-static func _build_grass(root: Node3D) -> void:
+static func _build_grass(root: Node3D, params: Dictionary = {}) -> void:
 	# Un solo plano con shader: franjas de corte + variación natural.
 	var grass := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
@@ -35,6 +36,9 @@ static func _build_grass(root: Node3D) -> void:
 	grass.mesh = plane
 	var mat := ShaderMaterial.new()
 	mat.shader = preload("res://scripts/stadium/grass.gdshader")
+	for k in params:
+		mat.set_shader_parameter(k, params[k])
+	GrassTextures.apply(mat)
 	grass.material_override = mat
 	root.add_child(grass)
 
@@ -208,10 +212,15 @@ static func _build_corner_flags(root: Node3D) -> void:
 			pole.material_override = pole_mat
 			pole.position = Vector3(xs * Pitch.HALF_LENGTH, 0.75, zs * Pitch.HALF_WIDTH)
 			root.add_child(pole)
+			# El banderín gira alrededor del palo (lo mueve el viento: Atmosphere).
+			var pivot := Node3D.new()
+			pivot.name = "CornerFlag%d%d" % [xs + 1, zs + 1]
+			pivot.position = pole.position + Vector3(0.0, 0.6, 0.0)
+			root.add_child(pivot)
 			var flag := MeshInstance3D.new()
 			var q := QuadMesh.new()
 			q.size = Vector2(0.4, 0.3)
 			flag.mesh = q
 			flag.material_override = flag_mat
-			flag.position = pole.position + Vector3(0.2, 0.6, 0.0)
-			root.add_child(flag)
+			flag.position = Vector3(0.2, 0.0, 0.0)
+			pivot.add_child(flag)
