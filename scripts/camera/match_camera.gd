@@ -50,7 +50,9 @@ func setup(p_match: MatchController) -> void:
 func set_preset(index: int, announce: bool = true) -> void:
 	preset_index = posmod(index, presets.size())
 	config = presets[preset_index]
-	GameSettings.camera_preset = preset_index
+	if GameSettings.camera_preset != preset_index:
+		GameSettings.camera_preset = preset_index
+		GameSettings.save_settings()
 	_update_occlusion()
 	if announce:
 		mode_changed.emit(config.display_name)

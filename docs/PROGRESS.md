@@ -17,6 +17,23 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Ronda WE2002 (6): configuración guardada y vista previa de estadios
+
+> **Nota:** la ronda 5 (estadios, túnel, pelo y físicos) había quedado fuera de `main`. El PR #15 se mergeó antes de que se subiera ese commit. Va en el mismo PR que esta ronda.
+
+| Pedido | Cambio |
+|---|---|
+| Guardar la configuración | `GameSettings` guarda las opciones en `user://settings.cfg` cada vez que cambian (menú principal, pausa, cámara) y las lee al abrir el juego. Las opciones guardadas son: duración, dificultad, estadio, horario, clima, viento, césped, velocidad, marca del jugador, arquero a los 6 s, rumbos del stick, cámara y ayuda de pase. Un valor inválido o de otro tipo se ignora o se ajusta al rango. Los tests y las herramientas no leen ni pisan tu configuración. |
+| Vista previa de estadios | El botón "Estadio" del menú muestra el nombre y una miniatura aérea que cambian juntos. Para "Aleatorio" se ve un recuadro neutro. Las miniaturas (`assets/ui/stadiums/<n>.png`, CC0 propias) se generan con `-- --stadium-thumbs=res://assets/ui/stadiums`. |
+
+**Herramienta:** `-- --menu-shot=archivo.png` saca una captura del menú principal.
+
+**Tests:** 188 en verde. Se agregaron:
+- guardar y cargar la configuración;
+- valores inválidos;
+- que los tests no tocan tu configuración;
+- miniaturas de todos los estadios.
+
 ## Ronda WE2002 (5): estadios, túnel, pelo y físicos
 
 | Pedido | Cambio |

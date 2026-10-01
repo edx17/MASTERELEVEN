@@ -25,7 +25,7 @@ func _ready() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
+	box.add_theme_constant_override("separation", 4)
 	center.add_child(box)
 
 	var title := Label.new()
@@ -47,7 +47,11 @@ func _ready() -> void:
 	_duration_btn = _button(box, "", _cycle_duration)
 	_difficulty_btn = _button(box, "", _cycle_difficulty)
 	# Condiciones del partido (cada una con "al azar").
+	# Estadio: el nombre y una miniatura (assets/ui/stadiums) que cambian juntos.
 	_stadium_btn = _button(box, "", _cycle.bind("stadium_choice", StadiumStyles.STYLES.size()))
+	_stadium_btn.custom_minimum_size.y = 56
+	_stadium_btn.expand_icon = true
+	_stadium_btn.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_time_btn = _button(box, "", _cycle.bind("time_choice", MatchConditions.TIME_NAMES.size()))
 	_weather_btn = _button(box, "", _cycle.bind("weather_choice", MatchConditions.WEATHER_NAMES.size()))
 	_wind_btn = _button(box, "", _cycle.bind("wind_choice", GameSettings.WIND_NAMES.size()))
@@ -77,9 +81,11 @@ func _button(parent: Control, text: String, cb: Callable) -> Button:
 
 
 func _refresh() -> void:
+	GameSettings.save_settings()
 	_duration_btn.text = "Duración: %d min" % GameSettings.match_minutes
 	_difficulty_btn.text = "Dificultad: %s" % Difficulty.NAMES[GameSettings.difficulty]
 	_stadium_btn.text = "Estadio: %s" % _choice_name(GameSettings.stadium_choice, StadiumStyles.names())
+	_stadium_btn.icon = stadium_thumbnail(GameSettings.stadium_choice)
 	_time_btn.text = "Horario: %s" % _choice_name(GameSettings.time_choice, MatchConditions.TIME_NAMES)
 	_weather_btn.text = "Clima: %s" % _choice_name(GameSettings.weather_choice, MatchConditions.WEATHER_NAMES)
 	_wind_btn.text = "Viento: %s" % _choice_name(GameSettings.wind_choice, GameSettings.WIND_NAMES)
@@ -88,6 +94,16 @@ func _refresh() -> void:
 	_two_players_btn.disabled = not InputRouter.can_play_two_players()
 	var pad_text := "Sin mandos conectados (se juega con teclado)" if pads == 0 else "Mandos conectados: %d" % pads
 	_info.text = pad_text + "\nMover: WASD / stick o cruceta   Pase: J / X   Remate: K / Cuadrado   Centro: L / Círculo   Profundidad: I / Triángulo\nCorrer: Shift / R1   L1 (Q): cambio de jugador / gambeta y combinaciones   Cámara: C / Select   Pausa: Esc / Start"
+
+
+## Miniatura del estadio `i` (-1 = al azar: un recuadro neutro).
+static func stadium_thumbnail(i: int) -> Texture2D:
+	var path := "res://assets/ui/stadiums/%d.png" % i
+	if i >= 0 and ResourceLoader.exists(path):
+		return load(path)
+	var img := Image.create(16, 9, false, Image.FORMAT_RGB8)
+	img.fill(Color(0.18, 0.2, 0.24))
+	return ImageTexture.create_from_image(img)
 
 
 static func _choice_name(i: int, names: Array) -> String:
