@@ -14,6 +14,9 @@ uniform float wetness : hint_range(0.0, 1.0) = 0.0;
 uniform float snow : hint_range(0.0, 1.0) = 0.0;
 uniform float half_length = 52.5;
 uniform float bump = 0.22;
+// Nieve: surcos limpios al costado de las líneas (1 = recién limpiadas; baja
+// a medida que nieva durante el tiempo; en el entretiempo se vuelven a limpiar).
+uniform float groove_clear : hint_range(0.0, 1.0) = 1.0;
 
 uniform bool use_textures = false;
 uniform bool use_normal_tex = false;
@@ -50,6 +53,33 @@ float fbm(vec2 p) {
 		a *= 0.5;
 	}
 	return v;
+}
+
+// Distancia a las líneas de la cancha (medidas FIFA), para los surcos.
+float seg_dist(vec2 p, vec2 a, vec2 b) {
+	vec2 pa = p - a;
+	vec2 ba = b - a;
+	float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+	return length(pa - ba * h);
+}
+
+float line_dist(vec2 p) {
+	float hl = half_length;
+	float hw = 34.0;
+	vec2 q = vec2(abs(p.x), p.y);
+	float d = abs(abs(p.y) - hw);
+	if (abs(p.x) > hl) d = 1e3;
+	d = min(d, seg_dist(q, vec2(hl, -hw), vec2(hl, hw)));
+	d = min(d, seg_dist(p, vec2(0.0, -hw), vec2(0.0, hw)));
+	d = min(d, abs(length(p) - 9.15));
+	// Área grande y chica.
+	d = min(d, seg_dist(q, vec2(hl - 16.5, -20.16), vec2(hl - 16.5, 20.16)));
+	d = min(d, seg_dist(vec2(q.x, abs(q.y)), vec2(hl - 16.5, 20.16), vec2(hl, 20.16)));
+	d = min(d, seg_dist(q, vec2(hl - 5.5, -9.16), vec2(hl - 5.5, 9.16)));
+	d = min(d, seg_dist(vec2(q.x, abs(q.y)), vec2(hl - 5.5, 9.16), vec2(hl, 9.16)));
+	// Medialuna (fuera del área).
+	if (q.x < hl - 16.5) d = min(d, abs(length(q - vec2(hl - 11.0, 0.0)) - 9.15));
+	return d;
 }
 
 // Desgaste: áreas chicas (donde se para el arquero) y círculo central.
@@ -104,6 +134,9 @@ void fragment() {
 	float outer = smoothstep(0.35, 1.0, max(edge.x, edge.y));
 	float patches = smoothstep(0.42, 0.7, fbm(p * 0.22) + 0.15 * outer);
 	float snow_mask = snow * clamp(patches * (0.55 + 0.6 * outer), 0.0, 1.0) * (1.0 - 0.8 * wear_mask(p));
+	// Surco limpio de ~0,5 m al lado de cada línea (se va tapando).
+	float groove = 1.0 - smoothstep(0.12, 0.55, line_dist(p));
+	snow_mask *= 1.0 - groove * groove_clear;
 	c = mix(c, vec3(0.97, 0.98, 1.0), snow_mask);
 	roughness = mix(roughness, 0.6, snow_mask);
 	ALBEDO = c;

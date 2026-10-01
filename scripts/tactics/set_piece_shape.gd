@@ -21,7 +21,25 @@ static func targets(team: Team, restart_type: int, taker_team: int, spot: Vector
 			return _goal_kick(team, spot, field, own)
 		MatchRules.Restart.THROW_IN:
 			return _throw_in(team, spot, field, own)
+		MatchRules.Restart.FREE_KICK:
+			# Atacando: la forma de ataque; defendiendo: replegados (la barrera
+			# la ubica el partido).
+			return _shape_targets(team, TeamShape.State.ATTACKING if own else TeamShape.State.DEFENDING, spot, field)
+		MatchRules.Restart.PENALTY:
+			return _penalty(team, spot, field)
 	return {}
+
+
+## Penal: todos en la medialuna y a lo ancho del borde del área, fuera de ella.
+static func _penalty(team: Team, spot: Vector3, field: Array[Footballer]) -> Dictionary:
+	var out := {}
+	var side := signf(spot.x)
+	var edge_x := side * (Pitch.HALF_LENGTH - Pitch.PENALTY_AREA_DEPTH - 1.5)
+	var n := field.size()
+	for i in n:
+		var z := lerpf(-16.0, 16.0, float(i) / maxf(n - 1, 1)) + (0.8 if team.index == 1 else -0.8)
+		out[field[i]] = Vector3(edge_x - side * (2.0 if absf(z) < 6.0 else 0.0), 0.0, z)
+	return out
 
 
 static func _outfield(team: Team, taker: Footballer) -> Array[Footballer]:

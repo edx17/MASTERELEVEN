@@ -95,7 +95,9 @@ func _ready() -> void:
 	if "--quick" in OS.get_cmdline_user_args():
 		_script = [[20, "freeze"], [40, "shot:capture_tv.png"], [95, "attack"],
 			[140, "shot:capture_tv_attack.png"], [145, "corner"], [146, "simulate:1.5"],
-			[190, "shot:capture_corner.png"], [200, "quit"]]
+			[190, "shot:capture_corner.png"], [195, "preset:Cercana"], [196, "keeper_hold"],
+			[197, "simulate:0.6"], [215, "shot:capture_keeper_hold.png"],
+			[220, "slide_scene"], [221, "simulate:1.2"], [235, "shot:capture_slide_mark.png"], [240, "quit"]]
 	# `--cond=horario,clima,viento,césped` (índices; -1 = al azar).
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--cond="):
@@ -218,6 +220,15 @@ func _run(action: String) -> void:
 		_match.ball.last_toucher = scorer
 		_match._show_goal(0)
 		_camera._focus = scorer.flat_pos()
+	elif action == "keeper_hold":
+		var t1 := _match.teams[1]
+		var gk := t1.keeper()
+		gk.teleport(t1.own_goal() + Vector3(-t1.own_side() * 6.0, 0, 2.0), Vector3(-t1.own_side(), 0, 0))
+		_match.phase = MatchController.Phase.PLAYING
+		_match.restart_taker = null
+		_match.ball.frozen = false
+		_match.ball.give_to(gk, false, true)
+		_camera._focus = gk.flat_pos()
 	elif action.begins_with("skill:"):
 		var sp: Footballer = _match.teams[0].players[9]
 		_place(Vector3(10, 0, 4), Vector3(10.5, 0.11, 4), sp)

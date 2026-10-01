@@ -507,6 +507,12 @@ func _receive(p: Footballer, ball: Ball) -> void:
 
 ## Juego detenido: pelotas paradas o forma.
 func _stopped(p: Footballer, ball: Ball) -> void:
+	# En la barrera: quieto en su lugar, mirando la pelota.
+	if _match.wall_targets.has(p):
+		p.debug_state = "barrera"
+		go_to(p, _match.wall_targets[p], false)
+		p.look_at_point(ball.flat_pos())
+		return
 	var r := _match.upcoming_restart()
 	if r.is_empty():
 		p.debug_state = "posición"
@@ -684,6 +690,17 @@ func _restart_taker(p: Footballer) -> void:
 					return
 			_match.perform_kick(p, KickActions.Kind.LONG_PASS, team.target_goal() - p.flat_pos(), randf_range(0.3, 0.7))
 			return
+		MatchRules.Restart.PENALTY:
+			# Al palo: a un costado y a media altura, con algo de azar.
+			var aim := Vector3(0.0, 0.0, 1.0 if randf() < 0.5 else -1.0)
+			_match.perform_kick(p, KickActions.Kind.SHOT, aim, randf_range(0.55, 0.8))
+			return
+		MatchRules.Restart.FREE_KICK:
+			var goal := team.target_goal()
+			if p.flat_pos().distance_to(goal) < 28.0 and absf(p.flat_pos().z) < 18.0 and randf() < 0.6:
+				var aim2 := Vector3(0.0, 0.0, signf(randf() - 0.5))
+				_match.perform_kick(p, KickActions.Kind.SHOT, aim2, randf_range(0.6, 0.85))
+				return
 		MatchRules.Restart.GOAL_KICK:
 			var best := _evaluate_passes(p)
 			if best.has("mate") and best["score"] > 0.0 and opponents_near_own_box() < 3:

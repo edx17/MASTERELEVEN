@@ -14,6 +14,9 @@ enum Skill { NONE, FEINT, ROULETTE, STEPOVER, BURST }
 const STRAFE_MAX_SPEED := 4.5
 const SLOT_COLORS: Array[Color] = [Color(1.0, 0.85, 0.1), Color(0.2, 0.9, 1.0)]
 
+## Empezó una barrida (lo usa la presentación: marcas en el césped mojado).
+signal slide_started
+
 var team: Team
 ## Datos y atributos del jugador (recurso editable).
 var data: PlayerData
@@ -79,11 +82,16 @@ var skill_timer: float = 0.0
 ## Conducción cerrada (L1 mantenido con la pelota): pelota pegada, giros más
 ## cortos, algo más lento. Lo fija el controlador cada tick.
 var close_control: bool = false
+## Tarjetas amarillas en el partido.
+var yellow_cards: int = 0
+## Arquero con la pelota en las manos (lo fija el partido; para la pose).
+var ball_in_hands: bool = false
 
 var _tuning: Tuning
 var _arrow: MeshInstance3D
 var _pass_marker: MeshInstance3D
 var _control_ring: MeshInstance3D
+var _label: Label3D
 ## Capa de presentación (modelo y animaciones); no afecta la simulación.
 var visual: PlayerVisual
 var _prev_speed: float = 0.0
@@ -172,6 +180,7 @@ func start_slide(direction: Vector3) -> void:
 	state = State.SLIDING
 	state_timer = _tuning.slide_duration
 	velocity = facing * _tuning.slide_speed
+	slide_started.emit()
 
 
 ## Desbalance breve (entrada fallida): no puede tocar la pelota ni acelerar.
@@ -287,6 +296,7 @@ func _update_visual(dt: float) -> void:
 		mv.recover_left = state_timer if state == State.RECOVERING else 0.0
 		# Desplazamiento de costado (eje X del modelo = su izquierda).
 		mv.side_speed = velocity.dot(global_basis.x)
+		mv.holding = ball_in_hands
 	visual.update(dt, spd, _tuning.sprint_speed, pose, accel)
 
 
@@ -378,6 +388,7 @@ func look_at_point(point: Vector3) -> void:
 
 func set_human_slot(slot: int) -> void:
 	human_slot = slot
+	refresh_label()
 	if _arrow == null:
 		return
 	_arrow.visible = slot >= 0
@@ -386,6 +397,27 @@ func set_human_slot(slot: int) -> void:
 		var c := SLOT_COLORS[slot % SLOT_COLORS.size()]
 		(_arrow.material_override as StandardMaterial3D).albedo_color = c
 		(_control_ring.material_override as StandardMaterial3D).albedo_color = Color(c, 0.9)
+
+
+## Marca sobre la cabeza (GameSettings.player_label): el nombre del que
+## maneja el humano arriba de la flecha (como en el WE), los números de todos,
+## o nada.
+func refresh_label() -> void:
+	if _label == null:
+		return
+	match GameSettings.player_label:
+		0:
+			_label.visible = human_slot >= 0
+			_label.text = display_name
+			_label.font_size = 110
+			_label.position.y = 3.25
+		1:
+			_label.visible = true
+			_label.text = str(number)
+			_label.font_size = 72
+			_label.position.y = 2.15
+		_:
+			_label.visible = false
 
 
 ## Marca en el piso del compañero que va a recibir el pase que se está
@@ -440,6 +472,7 @@ func _build_visuals() -> void:
 	visual.setup(colors, team.index * 100 + number)
 
 	var label := Label3D.new()
+	_label = label
 	label.text = str(number)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.font_size = 72
@@ -450,6 +483,7 @@ func _build_visuals() -> void:
 	label.position.y = 2.15
 	label.no_depth_test = true
 	add_child(label)
+	refresh_label()
 
 	# Flecha (cono invertido) bien visible sobre la cabeza del jugador
 	# controlado, como en WE; legible también con las cámaras lejanas.

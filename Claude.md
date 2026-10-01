@@ -113,8 +113,10 @@ La potencia de tiro y pase se gradúa manteniendo el botón (barra de potencia).
 Pase de primera: apretar el pase mientras la pelota viene; el stick sólo
 apunta el próximo pase. La orden espera hasta que llega la pelota, hasta que
 el rival la anticipa o hasta el super cancel.
-Arquero: con la pelota lo maneja el humano. En las manos: X / Triángulo =
-saque con la mano (rodando), Círculo / Cuadrado = pelotazo. Pase atrás de un
+Arquero: con la pelota lo maneja el humano. En las manos: X = saque con la
+mano (rodando), Círculo / Cuadrado = pelotazo, Triángulo = la suelta para
+jugarla con los pies. Tiene 6 s con la pelota en las manos (después la juega
+solo: pelotazo o la suelta, según la opción de la pausa). Pase atrás de un
 compañero: la juega con los pies, como un jugador más.
 Menús: X acepta, Círculo vuelve; Start pausa.
 Todo definido en el Input Map de Godot, nunca hardcodeado.

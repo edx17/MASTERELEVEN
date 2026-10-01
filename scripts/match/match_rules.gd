@@ -3,7 +3,7 @@ extends RefCounted
 ## Reglas mínimas (puras, testeables): detecta gol, saque de arco, córner y lateral
 ## a partir de la posición de la pelota y el último equipo que la tocó.
 
-enum Restart { NONE, GOAL, GOAL_KICK, CORNER, THROW_IN, KICKOFF }
+enum Restart { NONE, GOAL, GOAL_KICK, CORNER, THROW_IN, KICKOFF, FREE_KICK, PENALTY }
 
 
 ## Resultado de una salida de la pelota.

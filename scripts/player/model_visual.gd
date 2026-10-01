@@ -56,6 +56,8 @@ var carrying := false
 ## Lo fija el Footballer: derribado por una barrida, cuánto le falta para
 ## volver a jugar y velocidad de costado (+ = hacia el +X del modelo).
 var tripped := false
+## Arquero con la pelota en las manos: brazos que la sostienen contra el pecho.
+var holding := false
 var recover_left := 0.0
 var side_speed := 0.0
 var _trip_played := false
@@ -373,6 +375,15 @@ func _apply_gestures() -> void:
 		return # la animación de Mixamo manda
 	# Inclinación del torso al acelerar / correr (esfuerzo en el sprint).
 	_rotate_bone("spine_01", Vector3.RIGHT, _lean)
+	if holding and _event < 0:
+		# Pelota contra el pecho: brazos adelante, hacia el centro, y los
+		# antebrazos doblados hacia arriba.
+		_rotate_bone("upperarm_l", Vector3.RIGHT, -0.95)
+		_rotate_bone("upperarm_r", Vector3.RIGHT, -0.95)
+		_rotate_bone("upperarm_l", Vector3.UP, -0.45)
+		_rotate_bone("upperarm_r", Vector3.UP, 0.45)
+		_rotate_bone("lowerarm_l", Vector3.RIGHT, -0.7)
+		_rotate_bone("lowerarm_r", Vector3.RIGHT, -0.7)
 	if _pose == Pose.SLIDING:
 		_rotate_bone("thigh_r", Vector3.RIGHT, -1.2)
 		_rotate_bone("thigh_l", Vector3.RIGHT, -0.3)
