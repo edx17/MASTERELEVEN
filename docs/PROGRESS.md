@@ -17,6 +17,17 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## La falta como en el WE (árbitro, tarjeta, repetición, tiro libre)
+
+| Tema | Cambio |
+|---|---|
+| Árbitro | Nuevo `Referee` (sólo presentación, de negro): sigue la jugada a distancia, atrás y en diagonal del lado del centro. Sale en las repeticiones. |
+| Secuencia de la falta | 1) El derribado queda en el piso (falta fuerte, 3,4 s). 2) Si hay tarjeta, el árbitro corre hasta el infractor, se para enfrente y levanta la amarilla o la roja, con una toma de costado cerca (2 s). Al expulsado se lo ve recibir la roja y después se va. 3) Repetición de la falta (ahora todas las faltas tienen repetición). 4) Tiro libre. |
+| Cámara del tiro libre | En campo rival (y en los penales): cámara atrás del pateador, como en el WE, con la barrera y el arco a la vista; el pateador se para en diagonal atrás de la pelota. Sin nombres ni marcas flotando en esa toma. Al patear sigue la pelota 1,2 s y vuelve la cámara del partido. En campo propio, la cámara con la que se está jugando. |
+| Arquero se levanta | Después de tirarse sobre la pelota se levanta (Stand_Up) con la pelota en la mano izquierda contra el pecho, mientras se apoya con la otra. Si va ganando sobre el final, la duerme hasta 5,4 s. |
+
+**Tests:** 280 en verde. Nuevo `test_foul_sequence.gd`. Captura: `--foul` en `tools/capture_runner.gd`.
+
 ## Festejos, animaciones nuevas y jugadores retro (beta)
 
 | Tema | Cambio |

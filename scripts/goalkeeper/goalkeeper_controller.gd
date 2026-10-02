@@ -16,7 +16,7 @@ const RUSH_MAX_PROGRESS := 0.5
 ## Lo más que se adelanta como líbero (m desde la línea).
 const SWEEPER_MAX := 9.0
 ## Con la pelota en las manos haciendo tiempo (s; el límite es 6).
-const WASTE_HOLD_TIME := 4.6
+const WASTE_HOLD_TIME := 5.4
 
 var team: Team
 var _match: MatchController
