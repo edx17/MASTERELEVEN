@@ -14,12 +14,15 @@ var _crowd: AudioStreamPlayer
 var _pool: Array[AudioStreamPlayer] = []
 var _next := 0
 var _excite := 0.0
+var _training := false
 
 
 func setup(m: MatchController) -> void:
 	_match = m
 	_crowd = AudioStreamPlayer.new()
-	_crowd.stream = sound("crowd")
+	# En el Club House no hay público: redoblantes y bombo de fondo.
+	_training = GameSettings.training
+	_crowd.stream = sound("drums" if _training else "crowd")
 	_crowd.bus = &"Master"
 	add_child(_crowd)
 	for i in 8:
@@ -44,6 +47,9 @@ func setup(m: MatchController) -> void:
 func _process(dt: float) -> void:
 	if _match == null or _crowd == null:
 		return
+	if _training:
+		_crowd.volume_db = linear_to_db(maxf(0.0001, GameSettings.crowd_volume / 10.0 * 0.45))
+		return
 	# El murmullo sube cuando la pelota se acerca a un arco.
 	var x := absf(_match.ball.global_position.x) / Pitch.HALF_LENGTH
 	var target := clampf((x - 0.55) * 2.2, 0.0, 1.0)
@@ -66,6 +72,8 @@ func _on_phase(phase: int) -> void:
 
 ## Grito del público: "goal" (gol) u "ooh" (se fue cerca / palo).
 func cheer(kind: String) -> void:
+	if _training:
+		return # sin público
 	play("cheer" if kind == "goal" else "ooh", 1.0, 1.0, true)
 
 
@@ -97,6 +105,9 @@ static func sound(name: String) -> AudioStreamWAV:
 		"whistle_end": s = _whistle([[0.0, 0.35], [0.5, 0.85], [1.0, 2.2]])
 		"crowd":
 			s = _crowd_loop(6.0)
+			loop = true
+		"drums":
+			s = _drums_loop()
 			loop = true
 		"cheer": s = _cheer(4.5, 1.0)
 		"ooh": s = _cheer(1.6, 0.6)
@@ -249,4 +260,54 @@ static func _cheer(seconds: float, strength: float) -> PackedFloat32Array:
 		bp += hp * 0.06
 		var vowel := 0.8 + 0.2 * sin(TAU * 3.0 * t + sin(TAU * 0.7 * t))
 		out[i] = (lp * 0.8 + hp * 0.6) * env * vowel * strength
+	return out
+
+
+## Percusión del Club House: marcha de redoblante (golpes y redobles) sobre
+## un bombo, a 100 pulsos por minuto, dos compases en loop.
+static func _drums_loop() -> PackedFloat32Array:
+	var bpm := 100.0
+	var beat := 60.0 / bpm
+	var bars := 2
+	var n := int(RATE * beat * 4.0 * bars)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2002
+	# Golpes en semicorcheas: [paso (0..31), instrumento, fuerza]. 0 = bombo,
+	# 1 = redoblante.
+	var hits := []
+	for b in bars:
+		var o := b * 16
+		hits.append([o + 0, 0, 1.0])
+		hits.append([o + 8, 0, 0.9])
+		hits.append([o + 4, 1, 1.0])
+		hits.append([o + 12, 1, 1.0])
+		hits.append([o + 6, 1, 0.45])
+		hits.append([o + 14, 1, 0.45])
+		hits.append([o + 15, 1, 0.55])
+	# Redoble al final del segundo compás.
+	for k in 4:
+		hits.append([28 + k, 1, 0.5 + k * 0.12])
+	var step := beat / 4.0
+	for h in hits:
+		var start := int(float(h[0]) * step * RATE)
+		var strength: float = h[2]
+		if h[1] == 0:
+			var ph := 0.0
+			for i in int(RATE * 0.35):
+				if start + i >= n:
+					break
+				var t := float(i) / RATE
+				ph += TAU * lerpf(90.0, 48.0, minf(t / 0.12, 1.0)) / RATE
+				out[start + i] += sin(ph) * exp(-t * 11.0) * 0.8 * strength
+		else:
+			var lp := 0.0
+			for i in int(RATE * 0.18):
+				if start + i >= n:
+					break
+				var t := float(i) / RATE
+				lp += (rng.randf_range(-1.0, 1.0) - lp) * 0.6
+				var tone := sin(TAU * 190.0 * t) * exp(-t * 40.0) * 0.4
+				out[start + i] += (lp * exp(-t * 24.0) * 0.55 + tone) * strength
 	return out

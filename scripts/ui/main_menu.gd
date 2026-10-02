@@ -30,6 +30,7 @@ func _ready() -> void:
 	_help = WEStyle.help_box(self)
 	_build_home()
 	_build_modes()
+	_build_training()
 	_build_options()
 	_build_controls()
 	_teams = TeamSelect.new()
@@ -75,7 +76,7 @@ func show_page(page: String, remember := true) -> void:
 	for k in _pages:
 		(_pages[k] as Control).visible = k == page
 	# Las pantallas de equipos y partido traen su propia ayuda.
-	_help.get_parent().visible = page in ["home", "modes", "options", "controls"]
+	_help.get_parent().visible = page in ["home", "modes", "training", "options", "controls"]
 	match page:
 		"teams":
 			_teams.open()
@@ -159,7 +160,7 @@ func _build_home() -> void:
 	_item(col, "COPA", "Eliminación directa: cuartos, semis y final (con penales si empatan). Se guarda entre partidos.",
 		_open_competition.bind(Competition.Kind.CUP))
 	_item(col, "LIGA MASTER", "Próximamente (Fase 6): armá tu equipo, con mercado de pases, y llevalo a la cima.", Callable(), false)
-	_item(col, "ENTRENAMIENTO", "Próximamente: práctica libre, tiros libres y penales.", Callable(), false)
+	_item(col, "ENTRENAMIENTO", "Club House: práctica libre, pelota parada y desafíos con récord.", show_page.bind("training"))
 	_item(col, "EDITOR", "Próximamente: crear y editar jugadores y equipos.", Callable(), false)
 	_item(col, "OPCIONES", "Controles, velocidad del juego, ayudas y prueba de rendimiento.", show_page.bind("options"))
 	_item(col, "SALIR", "Cerrar el juego.", get_tree().quit)
@@ -193,6 +194,7 @@ func _refresh_modes() -> void:
 
 
 func _choose_mode(mode: int) -> void:
+	GameSettings.training = false
 	GameSettings.set_mode(mode)
 	GameSettings.human_side = 0
 	GameSettings.competition_match = false
@@ -230,6 +232,7 @@ func _on_competition_match(home: String, away: String, side: int) -> void:
 	GameSettings.away_team_path = away
 	GameSettings.human_side = side
 	GameSettings.set_mode(GameSettings.Mode.VS_CPU)
+	GameSettings.training = false
 	GameSettings.competition_match = true
 	show_page("setup")
 
@@ -243,7 +246,39 @@ func _on_teams_chosen(home: String, away: String) -> void:
 		return
 	GameSettings.home_team_path = home
 	GameSettings.away_team_path = away
+	if GameSettings.training:
+		# Al Club House directo (sin configuración del partido ni presentación).
+		GameSettings.save_settings()
+		GameSettings.play_intro = false
+		get_tree().change_scene_to_file(MATCH_SCENE)
+		return
 	show_page("setup")
+
+
+# --- Entrenamiento -----------------------------------------------------------------
+
+func _build_training() -> void:
+	var p := _page("training")
+	var title := WEStyle.label("ENTRENAMIENTO  ·  CLUB HOUSE", 30, Color(1.0, 0.9, 0.35))
+	title.position = Vector2(80, 40)
+	p.add_child(title)
+	var col := _column(p, Vector2(80, 100))
+	for k in TrainingSession.KIND_NAMES.size():
+		_item(col, String(TrainingSession.KIND_NAMES[k]).to_upper(), TrainingSession.KIND_HELP[k],
+			_choose_training.bind(k), true, 520.0)
+	_item(col, "VOLVER", "Volver al menú principal.", go_back, true, 520.0)
+
+
+## Elegís qué practicar; después, tu equipo y el rival.
+func _choose_training(kind: int) -> void:
+	GameSettings.training = true
+	GameSettings.training_kind = kind
+	GameSettings.set_mode(GameSettings.Mode.VS_CPU)
+	GameSettings.human_side = 0
+	GameSettings.competition_match = false
+	_new_competition = -1
+	_teams.single = false
+	show_page("teams")
 
 
 func _start() -> void:

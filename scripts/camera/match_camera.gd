@@ -59,7 +59,8 @@ func set_preset(index: int, announce: bool = true) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed(&"camera_cycle"):
+	# En el entrenamiento SELECT reinicia la jugada (la cámara, desde el menú).
+	if event.is_action_pressed(&"camera_cycle") and not GameSettings.training:
 		set_preset(preset_index + 1)
 
 

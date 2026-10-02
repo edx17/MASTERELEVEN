@@ -359,8 +359,12 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 	if _clip != "":
 		_clip_left -= dt
 		if _clip_left <= 0.0:
+			var was := _clip
 			_clip = ""
 			_current = "" # vuelve a la locomoción con mezcla
+			# Tirado sobre la pelota: se levanta con ella en una mano.
+			if was == "gk_smother" and holding:
+				_play_clip("gk_stand_up")
 	if _clip == "":
 		_play_locomotion(speed)
 		_place_model()
@@ -472,12 +476,30 @@ func play(event: int, side: float = 1.0) -> void:
 		_event = -1 # la animación reemplaza al gesto armado por código
 
 
+## Brazo que lleva la pelota contra el pecho mientras el otro se apoya
+## (la pose del final de la atajada parado, sólo de ese lado).
+func _tuck_arm(side: String) -> void:
+	var anim := _mx.get_animation("gk_catch") if _mx.has_animation("gk_catch") else null
+	if anim == null:
+		return
+	var t: float = MixamoLibrary.marks.get("gk_catch", {}).get("end", anim.length)
+	for bn in ["upperarm_", "lowerarm_", "hand_"]:
+		var bone := String(bn) + side
+		var b := _skel.find_bone(bone)
+		var tr := anim.find_track(NodePath("Armature/Skeleton3D:" + bone), Animation.TYPE_ROTATION_3D)
+		if b >= 0 and tr >= 0:
+			_skel.set_bone_pose_rotation(b, anim.rotation_track_interpolate(tr, t))
+
+
 ## Punto medio entre las manos (sigue a la atajada, la estirada y la caída).
 func hold_point() -> Vector3:
 	var l := _skel.find_bone("hand_l")
 	var r := _skel.find_bone("hand_r")
 	if l < 0 or r < 0:
 		return super.hold_point()
+	if _clip == "gk_stand_up":
+		# Se levanta con la pelota en la mano izquierda (contra el pecho).
+		return _skel.global_transform * _skel.get_bone_global_pose(l).origin + global_basis.z * 0.1
 	if _current == "mx/gk_directing" and _clip == "":
 		# Ordenando con una mano: la pelota va en la otra (la más pegada al
 		# cuerpo al empezar; no cambia de mano en el medio).
@@ -633,6 +655,8 @@ func _apply_gestures() -> void:
 	for b in _build_scales:
 		_skel.set_bone_pose_scale(b, _build_scales[b])
 	if _clip != "":
+		if _clip == "gk_stand_up" and holding:
+			_tuck_arm("l")
 		return # la animación de Mixamo manda
 	# Inclinación del torso al acelerar / correr (esfuerzo en el sprint).
 	_rotate_bone("spine_01", Vector3.RIGHT, _lean)
@@ -735,6 +759,11 @@ func _apply_gestures() -> void:
 		Event.CELEBRATE:
 			_rotate_bone("upperarm_l", Vector3.RIGHT, -2.9 * minf(k * 5.0, 1.0))
 			_rotate_bone("upperarm_r", Vector3.RIGHT, -2.9 * minf(k * 5.0, 1.0))
+		Event.CARD:
+			# El árbitro levanta la tarjeta: brazo derecho estirado hacia arriba.
+			var up := minf(k * 6.0, 1.0) * minf((1.0 - k) * 6.0, 1.0)
+			_rotate_bone("upperarm_r", Vector3.RIGHT, -2.85 * up)
+			_rotate_bone("upperarm_r", Vector3.FORWARD, 0.15 * up)
 		Event.CHEER:
 			# Brazos arriba festejando desde donde está (los puños suben y bajan).
 			var up := minf(k * 6.0, 1.0) * minf((1.0 - k) * 6.0, 1.0)
