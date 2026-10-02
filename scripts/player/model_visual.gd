@@ -176,7 +176,7 @@ func setup(colors: Dictionary, seed: int) -> void:
 func set_build(b: int) -> void:
 	body_build = b if BUILDS.has(b) else PlayerData.Build.NORMAL
 	var d: Array = BUILDS[body_build]
-	_height = d[6]
+	_height = PlayerData.BUILD_HEIGHT.get(body_build, d[6])
 	_build_scales.clear()
 	var arm := Vector3(d[3], 1.0, d[3])
 	var low := Vector3(lerpf(1.0, d[3], 0.7), 1.0, lerpf(1.0, d[3], 0.7))

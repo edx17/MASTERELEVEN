@@ -350,6 +350,9 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 	# "corte": frena en seco y sale para el otro lado (no da una vuelta ancha).
 	var cur_speed := Vector3(velocity.x, 0.0, velocity.z).length()
 	var turn := lerpf(_tuning.turn_rate, _tuning.turn_rate_sprint, clampf(cur_speed / _tuning.sprint_speed, 0.0, 1.0))
+	# Físico: los bajos y livianos giran más cerrado.
+	if data != null:
+		turn *= data.agility()
 	if has_ball:
 		turn *= _tuning.turn_rate_ball_factor
 		if close_control:

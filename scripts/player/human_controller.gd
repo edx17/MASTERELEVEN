@@ -49,6 +49,8 @@ var _charge_l1: bool = false
 ## Remate / centro soltado esperando un posible segundo toque:
 ## {kind, power, aim, target, time}. Vacío = nada pendiente.
 var _tap := {}
+## R2 apretado mientras se cargaba el remate: sale colocado.
+var _charge_placed := false
 var _l1_taps: Array[float] = []
 var _spin_acc: float = 0.0
 var _spin_prev: float = INF
@@ -246,20 +248,36 @@ func tick(dt: float) -> void:
 		p.start_slide(move if move.length_squared() > 0.04 else ball.flat_pos() - p.flat_pos())
 		return
 
-	# Doble toque: el remate / centro soltado espera un instante un segundo
-	# toque (rasante / raso); si no llega, sale normal.
+	# Toques repetidos: el remate / centro soltado espera un instante otro
+	# toque. Remate: doble = rasante. Centro (como en WE): 1 = alto al segundo
+	# palo, 2 = a media altura, 3 = rasante al primer palo. R2 en ese
+	# instante = remate colocado.
 	if not _tap.is_empty():
 		var action: StringName = _tap["action"]
-		if input.just_pressed(action):
-			var t := _tap
+		if _tap["kind"] == KickActions.Kind.SHOT and input.just_pressed(&"brake"):
+			var tp := _tap
 			_tap = {}
-			_try_kick(t["kind"], t["power"], t["aim"], t["target"], KickActions.Variant.LOW)
+			_try_kick(tp["kind"], tp["power"], tp["aim"], tp["target"], KickActions.Variant.PLACED)
 			return
+		if input.just_pressed(action):
+			_tap["count"] += 1
+			_tap["time"] = 0.0
+			if _tap["count"] >= _max_taps(_tap["kind"], p):
+				var t := _tap
+				_tap = {}
+				_try_kick(t["kind"], t["power"], t["aim"], t["target"], tap_variant(t["kind"], t["count"], KickActions.is_cross_position(p, ball.flat_pos())))
+				return
 		_tap["time"] += dt
 		if _tap["time"] >= DOUBLE_TAP:
 			var t2 := _tap
 			_tap = {}
-			_try_kick(t2["kind"], t2["power"], t2["aim"], t2["target"])
+			_try_kick(t2["kind"], t2["power"], t2["aim"], t2["target"], tap_variant(t2["kind"], t2["count"], KickActions.is_cross_position(p, ball.flat_pos())))
+
+	# R2 conduciendo (sin cargar nada): pisa la pelota y frena en seco (el
+	# cambio de ritmo del WE para dejar pasar al defensor).
+	if has_ball and not is_charging() and _tap.is_empty() and input.just_pressed(&"brake") and not ball.in_hands:
+		_match.stop_with_ball(p)
+		return
 
 	# Arquero con la pelota en las manos: Triángulo la suelta para jugarla con
 	# los pies (no en un saque de arco: ahí ya está en el piso).
@@ -274,9 +292,13 @@ func tick(dt: float) -> void:
 				charging_action = action
 				power = 0.0
 				_charge_l1 = l1
+				_charge_placed = false
 				break
 	if is_charging():
 		power = minf(1.0, power + dt / _match.tuning.power_charge_time)
+		# R2 mientras se carga el remate: sale colocado.
+		if input.just_pressed(&"brake"):
+			_charge_placed = true
 		var kind: int = KICK_BUTTONS[charging_action]
 		var aim := aim_direction(aim_move)
 		# Amague (Cuadrado + X / Círculo + X): no patea, engancha.
@@ -303,7 +325,10 @@ func tick(dt: float) -> void:
 					_:
 						_try_kick(kind, power, aim, target)
 			elif kind == KickActions.Kind.SHOT or kind == KickActions.Kind.LONG_PASS:
-				_tap = {"action": released, "kind": kind, "power": power, "aim": aim, "target": target, "time": 0.0}
+				if kind == KickActions.Kind.SHOT and _charge_placed:
+					_try_kick(kind, power, aim, target, KickActions.Variant.PLACED)
+				else:
+					_tap = {"action": released, "kind": kind, "power": power, "aim": aim, "target": target, "time": 0.0, "count": 1}
 			else:
 				_try_kick(kind, power, aim, target)
 	elif _buffered_kind < 0:
@@ -320,6 +345,23 @@ func tick(dt: float) -> void:
 			_buffered_kind = -1
 			_set_preview(null)
 			_do_kick(k, _buffered_power, _buffered_dir, _buffered_receiver, _buffered_variant, _buffered_one_two)
+
+
+## Cuántos toques seguidos se esperan: 3 en un centro, 2 si no.
+func _max_taps(kind: int, p: Footballer) -> int:
+	if kind == KickActions.Kind.LONG_PASS and KickActions.is_cross_position(p, _match.ball.flat_pos()):
+		return 3
+	return 2
+
+
+## Variante según los toques: remate doble = rasante; centro 2 = media
+## altura, 3 = rasante al primer palo; pase largo doble = raso.
+static func tap_variant(kind: int, count: int, cross: bool) -> int:
+	if count <= 1:
+		return KickActions.Variant.NORMAL
+	if kind == KickActions.Kind.LONG_PASS and cross:
+		return KickActions.Variant.MID if count == 2 else KickActions.Variant.LOW
+	return KickActions.Variant.LOW
 
 
 ## Giro completo del stick derecho (marsellesa) en menos de SPIN_WINDOW.

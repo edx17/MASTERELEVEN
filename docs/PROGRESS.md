@@ -17,6 +17,27 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Ronda WE2002 (11): mecánicas del WE (centros, colocado, freno, achique y físico)
+
+Tu análisis del WE está en `docs/REFERENCIA_WE.md`, cruzado con el estado de cada mecánica en el juego. De ahí, esta tanda:
+
+| Mecánica | Cambio |
+|---|---|
+| Centros por toques | 1 Círculo = alto al segundo palo; 2 = a media altura, tenso, al punto penal; 3 = rasante al primer palo. Afuera de la zona de centro, el doble sigue siendo pase raso. |
+| Tiro colocado | R2 (o E) mientras se carga el remate, o justo al soltarlo: abre el pie y va al palo que marca el stick (sin stick, al más lejano). Lleva un 22 % menos de velocidad y un 55 % menos de error. |
+| Frenar en seco | R2 (o E) conduciendo: pisa la pelota, que queda junto al pie, y el jugador se planta. |
+| Achique | El arquero que viene corriendo a achicar (Triángulo) reacciona hasta 0,2 s más tarde al remate: la vaselina entra más. Si se frena antes (soltando Triángulo), recupera la reacción. |
+| El físico importa | Los altos alcanzan la pelota más arriba y un poco más lejos, y entre dos que llegan parejo gana el más alto. Los bajos y flacos giran más cerrado; los altos y pesados, más abierto. |
+
+Nueva acción `brake` (R2 / E); está en la ayuda de controles del menú.
+
+**Tests:** 200 en verde. Se agregaron:
+- centros de 1, 2 y 3 toques;
+- tiro colocado;
+- freno con la pelota;
+- el alto que alcanza el cabezazo y el bajo que gira más;
+- el arquero en carrera que reacciona más tarde.
+
 ## Ronda WE2002 (10): nieve difuminada, barrida, saludo, pelota en las manos y "riel" del receptor
 
 | Reclamo | Causa | Cambio |

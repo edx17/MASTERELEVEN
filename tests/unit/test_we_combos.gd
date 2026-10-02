@@ -99,13 +99,31 @@ func test_cross_variants() -> void:
 	inp.release(&"special")
 	_wait_kick(k)
 	var high := m.ball.state.vel.y
+	# Un toque: centro normal (alto, al segundo palo).
+	_carrier(spot)
+	k = m.kick_count
+	_press([&"pass_long"], 10)
+	_wait_kick(k)
+	var single := m.ball.state.vel.y
+	# Doble toque: a media altura (más tenso, más bajo que el normal).
 	_carrier(spot)
 	k = m.kick_count
 	_press([&"pass_long"], 10)
 	_press([&"pass_long"], 2)
 	_wait_kick(k)
+	var mid := m.ball.state.vel.y
+	# Triple toque: rasante al primer palo.
+	_carrier(spot)
+	k = m.kick_count
+	_press([&"pass_long"], 10)
+	_press([&"pass_long"], 2)
+	_press([&"pass_long"], 2)
+	_wait_kick(k)
+	var low := m.ball.state.vel.y
 	assert_gt(high, 8.0, "L1 + Círculo: centro alto")
-	assert_lt(absf(m.ball.state.vel.y), 1.0, "doble Círculo: centro raso por el piso")
+	assert_gt(single, mid + 0.5, "doble Círculo: más bajo que el de un toque")
+	assert_gt(mid, 1.0, "doble Círculo: va por el aire, a media altura")
+	assert_lt(absf(low), 1.0, "triple Círculo: centro rasante por el piso")
 	assert_true(p != null)
 
 
@@ -244,3 +262,57 @@ func test_menus_accept_with_x() -> void:
 		if e is InputEventJoypadButton and (e as InputEventJoypadButton).button_index == JOY_BUTTON_A:
 			found = true
 	assert_true(found, "X (abajo) acepta en los menús")
+
+
+func test_r2_while_charging_gives_a_placed_shot() -> void:
+	var t := m.teams[0]
+	var spot := Vector3(t.attack_dir * 36.0, 0, 3.0)
+	_carrier(spot)
+	m.kicks.randomize_error = false
+	var k := m.kick_count
+	_press([&"shoot"], 12)
+	_wait_kick(k)
+	var normal := Vector2(m.ball.state.vel.x, m.ball.state.vel.z).length()
+	_carrier(spot)
+	k = m.kick_count
+	inp.hold(&"shoot")
+	_step(6)
+	inp.hold(&"brake")
+	_step(6)
+	inp.release(&"shoot")
+	inp.release(&"brake")
+	_step(1)
+	_wait_kick(k)
+	var placed := Vector2(m.ball.state.vel.x, m.ball.state.vel.z).length()
+	assert_lt(placed, normal * 0.9, "colocado: menos potencia")
+	assert_gt(absf(m.ball.state.vel.z), 0.5, "busca un palo")
+
+
+func test_r2_while_dribbling_stops_dead() -> void:
+	var p := _carrier()
+	p.velocity = p.facing * 7.0
+	inp.hold(&"brake")
+	_step(1)
+	inp.release(&"brake")
+	assert_lt(Vector3(p.velocity.x, 0, p.velocity.z).length(), 2.0, "frena en seco")
+	assert_eq(m.ball.owner_player, p, "con la pelota pisada")
+
+
+func test_tall_player_wins_the_header_duel() -> void:
+	var t0 := m.teams[0]
+	var t1 := m.teams[1]
+	var tall: Footballer = t0.players[9]
+	var small: Footballer = t1.players[3]
+	tall.data = tall.data.duplicate()
+	small.data = small.data.duplicate()
+	tall.data.build = PlayerData.Build.TALL
+	small.data.build = PlayerData.Build.SHORT
+	assert_gt(tall.data.body_height(), small.data.body_height())
+	assert_gt(small.data.agility(), tall.data.agility(), "el bajo gira más cerrado")
+	# Pelota alta entre los dos: el alto llega, el bajo no.
+	var mid := Vector3(0, 0, 0)
+	tall.teleport(mid + Vector3(0.5, 0, 0), Vector3.LEFT)
+	small.teleport(mid - Vector3(0.5, 0, 0), Vector3.RIGHT)
+	m.ball.place(Vector3(0, m.tuning.header_max_height * 1.04, 0))
+	assert_true(m.in_header_reach(tall), "el alto la alcanza")
+	assert_false(m.in_header_reach(small), "el bajo no llega")

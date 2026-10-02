@@ -97,7 +97,7 @@ func _refresh() -> void:
 	var pads := Input.get_connected_joypads().size()
 	_two_players_btn.disabled = not InputRouter.can_play_two_players()
 	var pad_text := "Sin mandos conectados (se juega con teclado)" if pads == 0 else "Mandos conectados: %d" % pads
-	_info.text = pad_text + "\nMover: WASD / stick o cruceta   Pase: J / X   Remate: K / Cuadrado   Centro: L / Círculo   Profundidad: I / Triángulo\nCorrer: Shift / R1   L1 (Q): cambio de jugador / gambeta y combinaciones   Cámara: C / Select   Pausa: Esc / Start"
+	_info.text = pad_text + "\nMover: WASD / stick o cruceta   Pase: J / X   Remate: K / Cuadrado   Centro: L / Círculo   Profundidad: I / Triángulo\nCorrer: Shift / R1   Frenar / tiro colocado: E / R2   L1 (Q): cambio de jugador / gambeta y combinaciones   Cámara: C / Select   Pausa: Esc / Start"
 
 
 ## Miniatura del estadio `i` (-1 = al azar: un recuadro neutro).

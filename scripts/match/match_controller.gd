@@ -471,6 +471,10 @@ func _plan_save_for(defenders: Team, extra_reaction: float) -> void:
 	var bonus := ais[defenders.index].difficulty.keeper_bonus if defenders.index < ais.size() else 0
 	var reaction := (gk.data.reaction if gk.data else 60) + bonus
 	var gk_skill := (gk.data.goalkeeping if gk.data else 60) + bonus
+	# Arquero que sale corriendo a achicar (Triángulo): reacciona peor al
+	# remate (la picada pasa más fácil). Si se frena antes, la recupera.
+	var gk_speed := Vector3(gk.velocity.x, 0.0, gk.velocity.z).length()
+	extra_reaction += RUSH_REACTION * clampf((gk_speed - 2.5) / 3.0, 0.0, 1.0)
 	SaveModel.evaluate(plan, gk.flat_pos(), reaction, gk_skill, extra_reaction)
 	var will_save := randf() < plan.chance
 	# Embolsa si le llega cómoda y no tan fuerte; si no, da rebote.
@@ -481,6 +485,23 @@ func _plan_save_for(defenders: Team, extra_reaction: float) -> void:
 	save_plan = {"keeper": gk, "will_save": will_save, "parry": parry, "point": plan.point,
 		"save_point": plan.save_point, "time_left": plan.time + 0.3, "chance": plan.chance,
 		"elapsed": 0.0, "react": react, "dive_at": maxf(react, plan.save_time - DIVE_LEAD), "dove": false}
+
+
+## Freno con la pelota (R2): pisa la pelota, que queda junto al pie, y el
+## jugador se planta (un instante sin poder acelerar del todo).
+func stop_with_ball(p: Footballer) -> void:
+	if ball.owner_player != p or ball.in_hands:
+		return
+	p.velocity *= 0.1
+	p.kick_brake = 0.25
+	var foot := p.flat_pos() + p.facing * 0.35
+	ball.state.pos = Vector3(foot.x, tuning.ball_radius, foot.z)
+	ball.state.vel = Vector3(p.velocity.x, 0.0, p.velocity.z)
+	ball.state.spin = Vector3.ZERO
+
+
+## Reacción extra (s) del arquero que remata en plena carrera de achique.
+const RUSH_REACTION := 0.2
 
 
 ## Lo que dura la estirada del arquero hasta el contacto (s).
@@ -621,11 +642,15 @@ func can_kick(player: Footballer) -> bool:
 ## La pelota está donde el jugador la puede cabecear (saltando).
 func in_header_reach(p: Footballer) -> bool:
 	var h := ball.state.pos.y
-	if h < HEADER_MIN_HEIGHT or h > tuning.header_max_height or not p.can_touch_ball():
+	if h < HEADER_MIN_HEIGHT or h > tuning.header_max_height * 1.1 or not p.can_touch_ball():
 		return false
 	if p.state != Footballer.State.NORMAL:
 		return false
-	return ball.flat_pos().distance_to(p.flat_pos()) < tuning.header_reach
+	# Los altos llegan más arriba y un poco más lejos.
+	var tall := p.data.body_height() if p.data else 1.0
+	if h > tuning.header_max_height * tall:
+		return false
+	return ball.flat_pos().distance_to(p.flat_pos()) < tuning.header_reach * lerpf(1.0, tall, 2.0)
 
 
 # --- Posesión -----------------------------------------------------------------
@@ -966,7 +991,8 @@ func _try_header() -> bool:
 	for p in all_players():
 		if not in_header_reach(p) or not _wants_header(p, h):
 			continue
-		var d := p.flat_pos().distance_to(ball.flat_pos())
+		# Duelo aéreo: gana el que llega, y entre parejos el más alto.
+		var d := p.flat_pos().distance_to(ball.flat_pos()) - ((p.data.body_height() if p.data else 1.0) - 1.0) * 6.0
 		if d < best_d:
 			best = p
 			best_d = d

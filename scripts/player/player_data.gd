@@ -45,6 +45,22 @@ static func unit(value: int) -> float:
 	return clampf((value - 1) / 98.0, 0.0, 1.0)
 
 
+## Altura relativa de cada físico (1 = normal, ~1,80 m) y agilidad para girar
+## (los bajos y flacos giran más cerrado; los altos y pesados, más abierto).
+const BUILD_HEIGHT := {Build.NORMAL: 1.0, Build.HEAVY: 0.99, Build.SLIM: 1.02, Build.TALL: 1.08,
+	Build.SHORT: 0.91, Build.STOCKY: 0.95, Build.MUSCULAR: 1.0}
+const BUILD_AGILITY := {Build.NORMAL: 1.0, Build.HEAVY: 0.9, Build.SLIM: 1.08, Build.TALL: 0.92,
+	Build.SHORT: 1.15, Build.STOCKY: 0.95, Build.MUSCULAR: 1.0}
+
+
+func body_height() -> float:
+	return BUILD_HEIGHT.get(visual_build(), 1.0)
+
+
+func agility() -> float:
+	return BUILD_AGILITY.get(visual_build(), 1.0)
+
+
 ## Físico a mostrar: el elegido, o uno coherente con los atributos (con algo
 ## de azar estable por jugador, para que haya de todo en cada equipo).
 func visual_build() -> Build:
