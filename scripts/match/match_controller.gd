@@ -10,7 +10,7 @@ signal phase_changed(phase: int)
 ## Se mostró una tarjeta amarilla.
 signal card_shown(player: Footballer)
 
-enum Phase { PLAYING, STOPPED, RESTART, GOAL, HALFTIME, FULLTIME, INTRO }
+enum Phase { PLAYING, STOPPED, RESTART, GOAL, HALFTIME, FULLTIME, INTRO, REPLAY }
 
 const FORECAST_STEP := 0.1
 const FORECAST_POINTS := 30
@@ -66,6 +66,11 @@ var stadium: Node3D
 var toast_text: String = ""
 var _toast_timer: float = 0.0
 ## Estadísticas simples del partido, por equipo.
+## Repetición de los goles y último goleador (ball.last_toucher del gol).
+var replay: Replay
+var audio: MatchAudio
+var goal_scorer: Footballer
+
 var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won": [0, 0],
 	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0], "subs": [0, 0], "injuries": [0, 0], "contacts": [0, 0]}
 ## Atajada planificada para el último remate (ver SaveModel):
@@ -250,6 +255,14 @@ func _build_world() -> void:
 	atmosphere.attach(_camera, self)
 	show_toast(conditions.describe(), 4.0)
 
+	replay = Replay.new()
+	add_child(replay)
+	replay.setup(self)
+	audio = MatchAudio.new()
+	add_child(audio)
+	audio.setup(self)
+	replay.finished.connect(_on_replay_finished)
+
 	var pause := PauseMenu.new()
 	add_child(pause)
 
@@ -279,6 +292,9 @@ func _on_intro_finished() -> void:
 
 
 func _physics_process(dt: float) -> void:
+	if phase == Phase.REPLAY:
+		replay.tick(dt)
+		return
 	if phase == Phase.INTRO:
 		# Presentación: sólo se mueven los jugadores (la pelota quieta).
 		intro.tick(dt)
@@ -323,6 +339,9 @@ func _physics_process(dt: float) -> void:
 
 	clock.running = phase in [Phase.PLAYING, Phase.STOPPED] or (phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF)
 	# El reloj va en tiempo real aunque el juego corra más lento (velocidad).
+	# Grabación para la repetición (el juego y el primer instante del gol).
+	if phase == Phase.PLAYING or (phase == Phase.GOAL and _phase_timer > GOAL_DELAY - 0.8):
+		replay.record()
 	var real_dt := dt / maxf(Engine.time_scale, 0.01)
 	clock.advance(real_dt)
 	# Cansancio acumulado: corre con el reloj del partido.
@@ -372,7 +391,12 @@ func _update_phase(dt: float) -> void:
 				_setup_restart(_pending)
 		Phase.GOAL:
 			if _phase_timer <= 0.0:
-				_setup_kickoff(1 - _pending.team)
+				if GameSettings.show_replays and replay.has_frames():
+					banner_text = ""
+					_set_phase(Phase.REPLAY)
+					replay.start(_pending.team, goal_scorer)
+				else:
+					_setup_kickoff(1 - _pending.team)
 		Phase.HALFTIME:
 			if _phase_timer <= 0.0:
 				for t in teams:
@@ -1725,6 +1749,7 @@ func _check_rules() -> void:
 	ball.owner_player = null
 	ball.intended_receiver = null
 	if outcome.type == MatchRules.Restart.GOAL:
+		goal_scorer = ball.last_toucher
 		_show_goal(outcome.team)
 		teams[outcome.team].score += 1
 		banner_text = "¡GOL!"
@@ -1732,6 +1757,10 @@ func _check_rules() -> void:
 		_set_phase(Phase.GOAL)
 		goal_scored.emit(outcome.team)
 		return
+	# Un remate que se va cerca: "uhh" del público.
+	if outcome.type in [MatchRules.Restart.GOAL_KICK, MatchRules.Restart.CORNER] \
+			and last_kick.get("kind") == KickActions.Kind.SHOT and absf(ball.state.pos.z) < 8.0:
+		audio.cheer("ooh")
 	var names := {
 		MatchRules.Restart.GOAL_KICK: "SAQUE DE ARCO",
 		MatchRules.Restart.CORNER: "CÓRNER",
@@ -1760,6 +1789,18 @@ func _show_goal(scoring_team: int) -> void:
 		keeper.visual.play(PlayerVisual.Event.DEJECTED)
 
 
+## Terminó la repetición: vuelve la cámara del partido y se saca del medio.
+func _on_replay_finished() -> void:
+	if _camera != null:
+		_camera.end_cinematic()
+	if phase == Phase.REPLAY:
+		_setup_kickoff(1 - _pending.team)
+
+
+func camera() -> MatchCamera:
+	return _camera
+
+
 func _end_half() -> void:
 	if clock.half == 1:
 		banner_text = "ENTRETIEMPO"
@@ -1772,6 +1813,8 @@ func _end_half() -> void:
 
 
 func _begin_restart(type: int, taker: Footballer) -> void:
+	# La repetición empieza en la jugada (no antes de la pelota parada).
+	replay.clear()
 	restart_type = type
 	restart_taker = taker
 	_restart_elapsed = 0.0

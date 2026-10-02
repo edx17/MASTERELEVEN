@@ -18,6 +18,8 @@ enum Build { AUTO = -1, NORMAL, HEAVY, SLIM, TALL, SHORT, STOCKY, MUSCULAR }
 @export var build: Build = Build.AUTO
 ## Peinado (HairBuilder.Style); -1 = al azar.
 @export var hair: int = -1
+## Edad (0 = se calcula de forma estable a partir del nombre).
+@export var age: int = 0
 
 @export_group("Atributos")
 @export_range(1, 99) var speed: int = 60
@@ -183,3 +185,7 @@ func suggested_abilities() -> PackedStringArray:
 	if defense >= 78:
 		out.append("marcador")
 	return out
+
+
+func get_age() -> int:
+	return age if age > 0 else 18 + absi(int(hash(player_name + "edad"))) % 17

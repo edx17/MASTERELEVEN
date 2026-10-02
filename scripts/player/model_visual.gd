@@ -334,6 +334,7 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 
 ## Gestos: con animación de Mixamo si está disponible; si no, por código.
 func play(event: int, side: float = 1.0) -> void:
+	played.emit(event, side)
 	if _clip.begins_with("gk_dive") and event != Event.DIVE_LEFT and event != Event.DIVE_RIGHT:
 		return # ya está volando: la estirada termina (atrapa o rechaza en el aire)
 	if _clip in UNINTERRUPTIBLE:

@@ -76,13 +76,18 @@ const SETTINGS_PATH := "user://settings.cfg"
 const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", "wind_choice",
 	"pitch_choice", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
 	"stick_directions", "camera_preset", "show_pass_target", "offside", "home_team_path", "away_team_path",
-	"home_kit", "away_kit"]
+	"home_kit", "away_kit", "show_replays", "sfx_volume", "crowd_volume"]
 ## Falso en los tests y las herramientas: no leen ni pisan la configuración
 ## del jugador (así los resultados no dependen de lo que eligió).
 var persist := true
 ## Condición al azar de los jugadores en cada partido (flechas). En los
 ## tests y herramientas todos llegan normales (resultados repetibles).
 var random_conditions := true
+## Repetición después de cada gol (apagada en tests y herramientas).
+var show_replays := true
+## Volumen de efectos (silbato, pelota) y del público, 0..10.
+var sfx_volume: int = 8
+var crowd_volume: int = 7
 
 
 func _ready() -> void:
@@ -93,6 +98,7 @@ func _ready() -> void:
 	stick_directions = tuning.stick_directions
 	persist = not _is_tool_run()
 	random_conditions = persist
+	show_replays = persist
 	if persist:
 		load_settings()
 	InputRouter.setup_for_mode(mode)
@@ -152,6 +158,8 @@ func load_settings(path: String = SETTINGS_PATH) -> void:
 		home_team_path = DEFAULT_HOME
 	if not ResourceLoader.exists(away_team_path):
 		away_team_path = DEFAULT_AWAY
+	sfx_volume = clampi(sfx_volume, 0, 10)
+	crowd_volume = clampi(crowd_volume, 0, 10)
 	home_kit = clampi(home_kit, 0, 1)
 	away_kit = clampi(away_kit, 0, 1)
 

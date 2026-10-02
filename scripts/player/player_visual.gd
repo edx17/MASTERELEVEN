@@ -14,6 +14,9 @@ extends Node3D
 enum Event { KICK, PASS, HEADER, THROW, DIVE_LEFT, DIVE_RIGHT, CATCH, TACKLE,
 		RECEIVE, CHEST, CATCH_HIGH, CATCH_LOW, BLOCK, CELEBRATE, DEJECTED, ROLL,
 		FEINT, ROULETTE, STEPOVER, HIGH_FIVE, HANDSHAKE }
+## Cada gesto pedido (lo escucha la repetición para volver a mostrarlo).
+signal played(event: int, side: float)
+
 ## Estado continuo (lo decide el Footballer a partir de su State).
 enum Pose { NORMAL, SLIDING, FALLEN }
 
@@ -140,6 +143,7 @@ func contact_point(event: int) -> Vector3:
 
 
 func play(event: int, side: float = 1.0) -> void:
+	played.emit(event, side)
 	match event:
 		Event.CATCH_HIGH, Event.CATCH_LOW, Event.BLOCK:
 			event = Event.CATCH

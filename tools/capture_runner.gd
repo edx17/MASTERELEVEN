@@ -125,6 +125,11 @@ func _ready() -> void:
 		_script = [[20, "freeze"], [25, "late"], [26, "sheet"], [45, "shot:capture_sheet_position.png"],
 			[46, "sheet_col"], [60, "shot:capture_sheet_energy.png"], [61, "sheet_col"], [62, "sheet_mark"],
 			[80, "shot:capture_sheet_condition.png"], [85, "quit"]]
+	# `--replay`: un gol y su repetición con la ficha del goleador.
+	if "--replay" in OS.get_cmdline_user_args():
+		GameSettings.show_replays = true
+		_script = [[20, "freeze"], [22, "replay_goal"], [23, "simulate:4.2"], [40, "shot:capture_replay.png"],
+			[41, "simulate:3.0"], [58, "shot:capture_replay_card.png"], [62, "quit"]]
 	# `--stadium=N`: estadio (StadiumStyles).
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--stadium="):
@@ -262,6 +267,32 @@ func _run(action: String) -> void:
 		_match.clock.game_seconds = MatchClock.HALF_GAME_SECONDS * 0.6
 	elif action.begins_with("intro:"):
 		_match.intro._enter(int(action.trim_prefix("intro:")))
+	elif action == "replay_goal":
+		var t0 := _match.teams[0]
+		var shooter: Footballer = t0.players[9]
+		var goal := t0.target_goal()
+		_match.teams[1].keeper().teleport(goal - Vector3(t0.attack_dir * 12.0, 0, 18.0))
+		_place(goal - Vector3(t0.attack_dir * 20.0, 0, 6.0), goal - Vector3(t0.attack_dir * 19.5, -0.11, 6.0), shooter)
+		_camera._focus = shooter.flat_pos()
+		# Corre hacia el arco y remata (se graba para la repetición).
+		GameSettings.offside = false
+		for i in 50:
+			shooter.desired_move = Vector3(t0.attack_dir, 0, 0.3).normalized()
+			shooter.wants_sprint = true
+			_match._physics_process(1.0 / 60.0)
+		# Si la simulación cortó el juego (falta, offside), se reanuda para el remate.
+		_match.phase = MatchController.Phase.PLAYING
+		_match.restart_taker = null
+		_match.ball.frozen = false
+		shooter.state = Footballer.State.NORMAL
+		_match.ball.place(shooter.flat_pos() + Vector3(t0.attack_dir * 0.5, 0.11, 0))
+		_match.ball.give_to(shooter)
+		_match.kicks.randomize_error = false
+		_match.perform_kick(shooter, KickActions.Kind.SHOT, (goal - shooter.flat_pos()).normalized(), 0.8)
+		for i in 90:
+			_match._physics_process(1.0 / 60.0)
+			if _match.phase == MatchController.Phase.GOAL:
+				break
 	elif action == "sheet":
 		var t0 := _match.teams[0]
 		for p in _match.all_players():

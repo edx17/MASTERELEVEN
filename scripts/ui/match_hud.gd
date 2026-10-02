@@ -101,6 +101,9 @@ func _process(_dt: float) -> void:
 	var t1 := _match.teams[1]
 	_score.text = "%d - %d" % [t0.score, t1.score]
 	_clock.text = "%s %s" % ["1st" if _match.clock.half == 1 else "2nd", _match.clock.display()]
+	# En la repetición sólo quedan el marcador y el reloj (como en el WE).
+	var replaying := _match.phase == MatchController.Phase.REPLAY
+	_radar.visible = not replaying
 	var lines := []
 	for t in _match.teams:
 		if t.strategy != Strategy.Kind.NONE:
@@ -122,6 +125,8 @@ func _process(_dt: float) -> void:
 		var charging := h != null and h.is_charging()
 		_panels[side].show_player(p, h.power if charging else -1.0,
 			Footballer.SLOT_COLORS[h.slot] if h != null else Color(0.8, 0.8, 0.8))
+		if replaying:
+			_panels[side].visible = false
 
 
 func _human_for_team(index: int) -> HumanController:
