@@ -231,7 +231,7 @@ func _update_shape() -> void:
 
 ## Objetivo de forma de un jugador (mundo).
 func shape_target(p: Footballer) -> Vector3:
-	var i := team.players.find(p)
+	var i := team.slot_of(p)
 	if i < 0 or i >= shape.size():
 		return p.flat_pos()
 	return team.to_world(shape[i])

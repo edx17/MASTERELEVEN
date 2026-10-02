@@ -371,7 +371,7 @@ func test_wet_pitch_slips_on_sharp_cuts() -> void:
 	MatchConditions.create(1, 2, 0.0, 0.0, 0.9).apply_to(wet)
 	assert_gt(wet.slip_chance, 0.2, "mojado: puede resbalar")
 	var p: Footballer = m.teams[0].players[4]
-	m.tuning.slip_chance = 1.0
+	m.tuning.slip_chance = 2.0 # seguro, aunque tenga buen equilibrio
 	p.teleport(Vector3(-10, 0, 10), Vector3.RIGHT)
 	p.velocity = Vector3(7.5, 0, 0)
 	var slipped := [false]

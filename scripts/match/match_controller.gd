@@ -67,7 +67,7 @@ var toast_text: String = ""
 var _toast_timer: float = 0.0
 ## Estadísticas simples del partido, por equipo.
 var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won": [0, 0],
-	"fouls": [0, 0], "yellows": [0, 0]}
+	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0]}
 ## Atajada planificada para el último remate (ver SaveModel):
 ## {keeper, will_save, parry, point, time_left, chance}. Vacío si no hay.
 var save_plan := {}
@@ -229,6 +229,7 @@ func _build_world() -> void:
 			p.setup(team, starters[n], formation.roles[n], formation.slots[n], tuning)
 			p.tactical_role = formation.tactical_role(n)
 			team.players.append(p)
+			team.roster.append(p)
 
 	_camera = MatchCamera.new()
 	add_child(_camera)
@@ -612,8 +613,8 @@ func apply_difficulty(level: int) -> void:
 func set_formation(team_index: int, formation: FormationData) -> void:
 	var t := teams[team_index]
 	t.formation = formation
-	for n in mini(t.players.size(), formation.slots.size()):
-		var p := t.players[n]
+	for n in mini(t.roster.size(), formation.slots.size()):
+		var p := t.roster[n]
 		p.base_spot = formation.slots[n]
 		p.role = formation.roles[n] as Footballer.Role
 		p.tactical_role = formation.tactical_role(n)
@@ -797,12 +798,23 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 		spot = penalty_spot(offender.team)
 	else:
 		spot = Pitch.clamp_to_field(spot, 1.0)
-	# Tarjeta: de atrás y barriendo, casi seguro; si no, a veces.
+	# Tarjeta (como en el WE): barrida de atrás = roja directa casi siempre;
+	# si no, amarilla a veces, y la segunda amarilla es roja. Al arquero, a lo
+	# sumo amarilla (no queda el arco vacío).
+	var red := slide and from_behind and not offender.is_keeper() and randf() < RED_FROM_BEHIND
 	var yellow_p := (0.6 if from_behind else 0.2) if slide else (0.3 if from_behind else 0.05)
-	if randf() < yellow_p:
+	if red:
+		text += "   -   ROJA: %s" % offender.display_name
+		send_off(offender)
+		card_shown.emit(offender)
+	elif randf() < yellow_p:
 		offender.yellow_cards += 1
 		stats["yellows"][offender.team.index] += 1
-		text += "   -   AMARILLA: %s" % offender.display_name
+		if offender.yellow_cards >= 2 and not offender.is_keeper():
+			text += "   -   SEGUNDA AMARILLA, ROJA: %s" % offender.display_name
+			send_off(offender)
+		else:
+			text += "   -   AMARILLA: %s" % offender.display_name
 		card_shown.emit(offender)
 	_pending = MatchRules.Outcome.new(type, awarded, Vector3(spot.x, tuning.ball_radius, spot.z))
 	ball.owner_player = null
@@ -812,6 +824,36 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 	banner_text = text
 	_phase_timer = FOUL_DELAY
 	_set_phase(Phase.STOPPED)
+
+
+## Probabilidad de roja directa en una barrida que es falta de atrás.
+const RED_FROM_BEHIND := 0.85
+
+
+## Expulsión: el jugador sale de la cancha (va al banco, no se dibuja) y el
+## equipo sigue con uno menos; ya no cuenta para la IA, los controles, la
+## posesión ni las reglas.
+func send_off(p: Footballer) -> void:
+	var t := p.team
+	if not t.players.has(p):
+		return
+	t.players.erase(p)
+	t.sent_off.append(p)
+	p.sent_off = true
+	stats["reds"][t.index] += 1
+	if ball.owner_player == p:
+		ball.owner_player = null
+	if ball.intended_receiver == p:
+		ball.intended_receiver = null
+	p.desired_move = Vector3.ZERO
+	p.velocity = Vector3.ZERO
+	p.teleport(Vector3(-8.0 + t.index * 16.0, 0.0, Pitch.HALF_WIDTH + 3.5), Vector3.FORWARD)
+	p.visible = false
+	for h in humans:
+		if h.controlled == p:
+			p.set_human_slot(-1)
+			h.controlled = null
+			h.select(h.nearest_to_ball())
 
 
 ## Punto penal frente al arco de `team`.
@@ -1301,8 +1343,9 @@ func _setup_kickoff(kicking_team: int) -> void:
 			var spot := Formation.kickoff_spot(p.base_spot, t.index == kicking_team)
 			p.teleport(t.to_world(spot), Vector3(t.attack_dir, 0.0, 0.0))
 	var kt := teams[kicking_team]
-	var taker := kt.players[9]
-	var partner := kt.players[10]
+	# Los dos de arriba (con expulsados, los dos últimos que quedan).
+	var taker := kt.players[mini(9, kt.players.size() - 2)]
+	var partner := kt.players[mini(10, kt.players.size() - 1)]
 	taker.teleport(Vector3(-kt.attack_dir * 0.5, 0.0, 0.0), Vector3(kt.attack_dir, 0.0, 0.0))
 	partner.teleport(Vector3(-kt.attack_dir * 0.8, 0.0, 2.5), Vector3(kt.attack_dir, 0.0, 0.0))
 	ball.place(Vector3(0.0, tuning.ball_radius, 0.0))

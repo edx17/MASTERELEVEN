@@ -196,3 +196,54 @@ func test_throw_in_holds_the_ball_behind_the_head() -> void:
 	m.perform_kick(thrower, KickActions.Kind.SHORT_PASS, mate.flat_pos() - thrower.flat_pos(), 0.4, mate)
 	_step(1)
 	assert_false(thrower.visual.throw_hold, "ya la sacó")
+
+
+func test_slide_from_behind_is_usually_a_straight_red() -> void:
+	var t0 := m.teams[0]
+	var t1 := m.teams[1]
+	var reds := 0
+	for i in 20:
+		var off: Footballer = t1.players[t1.players.size() - 1]
+		var vic: Footballer = t0.players[9]
+		vic.teleport(Vector3(0, 0, 0), Vector3(1, 0, 0))
+		off.teleport(Vector3(-1.0, 0, 0), Vector3(1, 0, 0)) # detrás de la víctima
+		var before := t1.players.size()
+		m.phase = MatchController.Phase.PLAYING
+		m.call_foul(off, vic, true)
+		if t1.players.size() < before:
+			reds += 1
+			assert_true(off.sent_off)
+			assert_false(off.visible, "sale de la cancha")
+			assert_false(m.all_players().has(off), "ya no juega")
+		if t1.players.size() <= 8:
+			break
+	assert_gt(reds, 0, "de atrás: roja directa")
+
+
+func test_second_yellow_is_a_red() -> void:
+	var t0 := m.teams[0]
+	var t1 := m.teams[1]
+	var off: Footballer = t1.players[5]
+	off.yellow_cards = 1
+	var vic: Footballer = t0.players[9]
+	vic.teleport(Vector3(0, 0, 0), Vector3(1, 0, 0))
+	off.teleport(Vector3(0, 0, 1.0), Vector3(0, 0, -1))
+	for i in 60:
+		if off.sent_off:
+			break
+		m.phase = MatchController.Phase.PLAYING
+		m.call_foul(off, vic, false)
+	assert_true(off.sent_off, "con la segunda amarilla, afuera")
+	assert_eq(off.yellow_cards, 2)
+
+
+func test_team_with_ten_keeps_formation_slots_and_kicks_off() -> void:
+	var t1 := m.teams[1]
+	var striker: Footballer = t1.players[9]
+	var slot_before := t1.slot_of(striker)
+	m.send_off(t1.players[4])
+	assert_eq(t1.players.size(), 10)
+	assert_eq(t1.slot_of(striker), slot_before, "cada uno sigue en su puesto")
+	m._setup_kickoff(1)
+	_step(30)
+	assert_eq(m.phase, MatchController.Phase.RESTART, "el saque del medio anda con 10")

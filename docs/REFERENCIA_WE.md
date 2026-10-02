@@ -59,7 +59,7 @@ Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **F
 | Cuadrado mantenido: un compañero presiona (2 contra 1) | Hecho | |
 | X mantenido: presión "teledirigida" (desarma la línea) | Hecho | |
 | Anticipo: pararse en la línea de pase | Hecho | Intercepción por cercanía a la trayectoria. |
-| Barrida de atrás = roja directa; de frente tocando la pelota primero = limpia | Parcial | Faltas por ángulo y amarillas. Fase 4: rojas y expulsión. |
+| Barrida de atrás = roja directa; de frente tocando la pelota primero = limpia | Hecho | De atrás: falta casi siempre y roja directa (85 %). Segunda amarilla = roja. El expulsado sale y el equipo juega con 10. Falta: la barrida que toca primero la pelota nunca es falta. |
 | Riel del receptor y super cancel | Hecho | Ronda 10. |
 
 ## 6. Físico y habilidades

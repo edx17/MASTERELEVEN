@@ -91,6 +91,8 @@ var skill_timer: float = 0.0
 var close_control: bool = false
 ## Tarjetas amarillas en el partido.
 var yellow_cards: int = 0
+## Expulsado: fuera de la cancha (ver MatchController.send_off).
+var sent_off := false
 ## Arquero con la pelota en las manos (lo fija el partido; para la pose).
 var ball_in_hands: bool = false
 

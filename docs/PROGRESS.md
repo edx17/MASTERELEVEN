@@ -17,6 +17,24 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Ronda WE2002 (13): expulsiones (primera parte de la Fase 4)
+
+| Regla | Cambio |
+|---|---|
+| Roja directa | Barrida que es falta de atrás: roja el 85 % de las veces (como en el WE). |
+| Segunda amarilla | Es roja. |
+| Expulsión | El jugador sale de la cancha y el equipo sigue con 10. Ya no cuenta para la IA, los controles (si lo manejabas, pasás al más cercano a la pelota), la posesión ni las reglas. Cada uno conserva su puesto en la formación (`Team.roster` guarda el plantel y `Team.players` los que están en cancha). El saque del medio funciona con menos jugadores. |
+| Arquero | A lo sumo amarilla (no queda el arco vacío). |
+
+Rojas en las estadísticas del partido (`stats["reds"]`).
+
+**Tests:** 208 en verde. Se agregaron:
+- roja directa de atrás;
+- segunda amarilla;
+- jugar con 10 (puestos y saque del medio).
+
+El test de los resbalones ahora es determinista.
+
 ## Ronda WE2002 (12): más mecánicas del WE
 
 | Mecánica | Cambio |
