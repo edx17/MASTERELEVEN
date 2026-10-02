@@ -95,7 +95,9 @@ func apply_to(t: Tuning) -> void:
 		t.slide_duration *= 1.0 + 0.25 * w
 		t.slide_trip_chance = minf(0.85, t.slide_trip_chance + 0.25 * w)
 		t.acceleration *= 1.0 - 0.05 * w
+		t.slip_chance = 0.3 * w
 	if is_snow():
+		t.slip_chance = maxf(t.slip_chance, 0.2)
 		t.rolling_decel *= 1.7
 		t.ground_restitution *= 0.6
 		t.bounce_friction *= 0.85

@@ -196,3 +196,107 @@ func test_throw_in_holds_the_ball_behind_the_head() -> void:
 	m.perform_kick(thrower, KickActions.Kind.SHORT_PASS, mate.flat_pos() - thrower.flat_pos(), 0.4, mate)
 	_step(1)
 	assert_false(thrower.visual.throw_hold, "ya la sacó")
+
+
+func test_slide_from_behind_is_usually_a_straight_red() -> void:
+	var t0 := m.teams[0]
+	var t1 := m.teams[1]
+	var reds := 0
+	for i in 20:
+		var off: Footballer = t1.players[t1.players.size() - 1]
+		var vic: Footballer = t0.players[9]
+		vic.teleport(Vector3(0, 0, 0), Vector3(1, 0, 0))
+		off.teleport(Vector3(-1.0, 0, 0), Vector3(1, 0, 0)) # detrás de la víctima
+		var before := t1.players.size()
+		m.phase = MatchController.Phase.PLAYING
+		m.call_foul(off, vic, true)
+		if t1.players.size() < before:
+			reds += 1
+			assert_true(off.sent_off)
+			assert_false(off.visible, "sale de la cancha")
+			assert_false(m.all_players().has(off), "ya no juega")
+		if t1.players.size() <= 8:
+			break
+	assert_gt(reds, 0, "de atrás: roja directa")
+
+
+func test_second_yellow_is_a_red() -> void:
+	var t0 := m.teams[0]
+	var t1 := m.teams[1]
+	var off: Footballer = t1.players[5]
+	off.yellow_cards = 1
+	var vic: Footballer = t0.players[9]
+	vic.teleport(Vector3(0, 0, 0), Vector3(1, 0, 0))
+	off.teleport(Vector3(0, 0, 1.0), Vector3(0, 0, -1))
+	for i in 60:
+		if off.sent_off:
+			break
+		m.phase = MatchController.Phase.PLAYING
+		m.call_foul(off, vic, false)
+	assert_true(off.sent_off, "con la segunda amarilla, afuera")
+	assert_eq(off.yellow_cards, 2)
+
+
+func test_team_with_ten_keeps_formation_slots_and_kicks_off() -> void:
+	var t1 := m.teams[1]
+	var striker: Footballer = t1.players[9]
+	var slot_before := t1.slot_of(striker)
+	m.send_off(t1.players[4])
+	assert_eq(t1.players.size(), 10)
+	assert_eq(t1.slot_of(striker), slot_before, "cada uno sigue en su puesto")
+	m._setup_kickoff(1)
+	_step(30)
+	assert_eq(m.phase, MatchController.Phase.RESTART, "el saque del medio anda con 10")
+
+
+## Arma una jugada: pasador en `from`, un compañero en `mate_x` (a lo ancho
+## en z=0) y la defensa rival con su penúltimo en `line_x` (en el sentido de
+## ataque del equipo 0).
+func _offside_setup(mate_x: float, line_x: float) -> Array:
+	var t0 := m.teams[0]
+	var t1 := m.teams[1]
+	var dir := float(t0.attack_dir)
+	var passer: Footballer = t0.players[6]
+	var mate: Footballer = t0.players[9]
+	passer.teleport(Vector3(dir * 5.0, 0, 10), Vector3(dir, 0, 0))
+	mate.teleport(Vector3(dir * mate_x, 0, 0), Vector3(dir, 0, 0))
+	for p in t0.players:
+		if p != passer and p != mate:
+			p.teleport(Vector3(-dir * 10.0, 0, p.flat_pos().z), Vector3(dir, 0, 0))
+	for p in t1.players:
+		if p.is_keeper():
+			p.teleport(Vector3(dir * 50.0, 0, 0), Vector3(-dir, 0, 0))
+		else:
+			# Bien abiertos: que ninguno corte el pase (z de 10 a 0).
+			p.teleport(Vector3(dir * line_x, 0, -18.0 - absf(p.flat_pos().z) * 0.3), Vector3(-dir, 0, 0))
+	m.ball.place(passer.flat_pos() + Vector3(dir * 0.5, 0.11, 0))
+	m.ball.give_to(passer)
+	return [passer, mate]
+
+
+func test_offside_is_called_when_the_forward_player_receives() -> void:
+	var pm := _offside_setup(30.0, 20.0)
+	assert_eq(m.offside_positions(pm[0], m.ball.flat_pos()), [pm[1]] as Array[Footballer])
+	m.perform_kick(pm[0], KickActions.Kind.SHORT_PASS, pm[1].flat_pos() - pm[0].flat_pos(), 0.6, pm[1])
+	for i in 240:
+		_step(1)
+		if m.phase != MatchController.Phase.PLAYING:
+			break
+	assert_eq(m.phase, MatchController.Phase.STOPPED, "se cobra")
+	assert_eq(m.stats["offsides"][0], 1)
+	assert_true(m.banner_text.begins_with("FUERA DE JUEGO"))
+
+
+func test_onside_player_plays_on() -> void:
+	var pm := _offside_setup(18.0, 20.0)
+	assert_true(m.offside_positions(pm[0], m.ball.flat_pos()).is_empty(), "habilitado")
+
+
+func test_no_offside_from_a_throw_in_or_when_disabled() -> void:
+	var pm := _offside_setup(30.0, 20.0)
+	m._snapshot_offside(pm[0], MatchRules.Restart.THROW_IN)
+	assert_true(m._offside.is_empty(), "lateral: no hay offside")
+	GameSettings.offside = false
+	m._snapshot_offside(pm[0], -1)
+	assert_true(m._offside.is_empty(), "opción apagada")
+	GameSettings.offside = true

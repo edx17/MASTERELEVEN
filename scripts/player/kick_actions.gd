@@ -12,7 +12,10 @@ enum Kind { SHORT_PASS, THROUGH_PASS, LONG_PASS, SHOT, CLEAR }
 ## Variante de la patada (combinaciones del WE):
 ## SHOT: LOW = remate rasante (doble Cuadrado), HIGH = globo / picada (L1 + Cuadrado).
 ## LONG_PASS: LOW = centro raso (doble Círculo), HIGH = centro alto (L1 + Círculo).
-enum Variant { NORMAL, LOW, HIGH }
+## Variantes (WE): LOW = rasante (doble toque; centro: triple toque al primer
+## palo), HIGH = con L1 (globo, centro bombeado), MID = centro a media altura
+## (doble Círculo), PLACED = tiro colocado (R2 tras cargar el remate).
+enum Variant { NORMAL, LOW, HIGH, MID, PLACED }
 
 ## Altura desde la que se hace un lateral (manos).
 const THROW_IN_HEIGHT := 1.8
@@ -66,14 +69,14 @@ func execute(kind: int, player: Footballer, dir: Vector3, power: float) -> Footb
 		Kind.SHORT_PASS:
 			return short_pass(player, dir, power, forced)
 		Kind.THROUGH_PASS:
-			return through_pass(player, dir, power, forced)
+			return through_pass(player, dir, power, forced, v)
 		Kind.LONG_PASS:
 			return long_pass(player, dir, power, forced, v)
 		Kind.SHOT:
 			if v == Variant.HIGH:
 				chip(player, dir, power)
 			else:
-				shoot(player, dir, power, v == Variant.LOW)
+				shoot(player, dir, power, v == Variant.LOW, v == Variant.PLACED)
 		Kind.CLEAR:
 			clearance(player, dir, power)
 	return null
@@ -182,7 +185,8 @@ func short_pass(player: Footballer, dir: Vector3, power: float, forced: Football
 
 
 ## Pase al hueco: rasante al espacio delante del receptor.
-func through_pass(player: Footballer, dir: Vector3, power: float, forced: Footballer = null) -> Footballer:
+func through_pass(player: Footballer, dir: Vector3, power: float, forced: Footballer = null,
+		v: int = Variant.NORMAL) -> Footballer:
 	var d := _dir_or_facing(player, dir)
 	var receiver := forced if forced != null else _pick(player, d, 4.0, 45.0, false)
 	var lead := lerpf(tuning.through_lead_min, tuning.through_lead_max, power)
@@ -200,7 +204,12 @@ func through_pass(player: Footballer, dir: Vector3, power: float, forced: Footba
 		if (target.x - line) * dir_x < 4.0 and (line * dir_x) < Pitch.HALF_LENGTH - 8.0:
 			target.x = line + dir_x * 4.0
 	target = Pitch.clamp_to_field(target, 1.5)
-	_ground_pass_to(player, target, 3.5, dir, power)
+	if v == Variant.HIGH:
+		# Filtrado por elevación (L1 + Triángulo): picada por arriba de la
+		# línea, cae a espaldas de los centrales.
+		_lob_to(player, target, lerpf(24.0, 32.0, power), dir, power)
+	else:
+		_ground_pass_to(player, target, 3.5, dir, power)
 	_assign_receiver(receiver, target)
 	return receiver
 
@@ -246,13 +255,21 @@ func long_pass(player: Footballer, dir: Vector3, power: float, forced: Footballe
 		target.z += clampf(d.z, -1.0, 1.0) * 4.0 * (1.0 if receiver == null else 0.4)
 		angle = lerpf(14.0, 30.0, power)
 		if v == Variant.LOW:
-			# Centro raso: tenso y por el piso al área.
+			# Centro rasante (triple Círculo): tenso y por el piso al primer
+			# palo, para empujarla.
+			if forced == null:
+				target = Vector3(side * (Pitch.HALF_LENGTH - 5.0), 0.0, signf(ball.state.pos.z) * 2.0)
+				receiver = _closest_mate_to(player, target)
 			target = Pitch.clamp_to_field(target, 0.5)
 			_ground_pass_to(player, target, 9.0, dir, power)
 			_assign_receiver(receiver, target)
 			return receiver
 		if v == Variant.HIGH:
 			angle += 14.0 # centro alto, bombeado
+		elif v == Variant.MID:
+			# Centro a media altura (doble Círculo): tenso, al punto penal,
+			# para anticipar de palomita.
+			angle = lerpf(8.0, 12.0, power)
 		# Centro con comba hacia el arco (~40 rad/s).
 		spin = Vector3(0.0, -signf(ball.state.pos.z) * side * 40.0, 0.0)
 	else:
@@ -300,13 +317,20 @@ func _best_in_box(player: Footballer) -> Footballer:
 ## define velocidad y altura (a potencia máxima puede irse por arriba). Con la
 ## pelota en el aire sale de cabeza o de volea. La precisión depende de
 ## shooting/technique/balance, la presión, la orientación y la distancia.
-func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false) -> void:
+func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, placed: bool = false) -> void:
 	var side := player.team.attack_dir
 	var aim_z := 0.0
 	if absf(dir.z) > 0.2:
 		aim_z = signf(dir.z) * lerpf(1.8, 3.1, absf(dir.z))
 	else:
 		aim_z = randf_range(-1.2, 1.2) if randomize_error else 0.0
+	if placed:
+		# Colocado (R2): abre el pie y busca el palo (el que marca el stick o,
+		# sin stick, el más lejano), sacrificando potencia por precisión.
+		var post_side := signf(dir.z) if absf(dir.z) > 0.2 else -signf(ball.state.pos.z)
+		if post_side == 0.0:
+			post_side = 1.0
+		aim_z = post_side * 3.0
 	var goal := Vector3(side * Pitch.HALF_LENGTH, 0.0, aim_z)
 	var to := goal - ball.flat_pos()
 	var flat := Vector3(to.x, 0.0, to.z).normalized()
@@ -321,6 +345,12 @@ func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false) ->
 		pressure, rad_to_deg(player.facing.angle_to(flat)), to.length(), power)
 	if volley:
 		err *= 1.5
+	if placed:
+		err *= PLACED_ERROR
+	# Pierna mala: con la pelota del lado de la pierna menos hábil sale mordido.
+	var weak := not header and uses_weak_foot(player, ball.flat_pos())
+	if weak:
+		err *= WEAK_FOOT_ERROR
 	err += KickAccuracy.fatigue_penalty(player.stamina_fraction())
 	last_error = err
 	if randomize_error:
@@ -328,6 +358,10 @@ func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false) ->
 	var speed := lerpf(tuning.shot_speed_min, tuning.shot_speed_max, power)
 	if header:
 		speed *= 0.6
+	elif placed:
+		speed *= PLACED_SPEED
+	if weak:
+		speed *= WEAK_FOOT_SPEED
 	# La potencia define a qué altura llega al arco: floja = rasante, fuerte =
 	# a media altura / arriba; a fondo (>95 %) se puede ir por arriba.
 	var aim_height := lerpf(tuning.shot_height_min, tuning.shot_height_max, power)
@@ -335,6 +369,8 @@ func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false) ->
 		aim_height += 0.9
 	if header:
 		aim_height = lerpf(0.3, 1.6, power)
+	elif placed:
+		aim_height = lerpf(0.3, 1.3, power)
 	elif low:
 		# Remate rasante (doble Cuadrado): por el piso, algo más preciso.
 		aim_height = 0.12
@@ -353,6 +389,39 @@ func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false) ->
 	var curl := Vector3(0.0, signf(aim_z) * side * randf_range(0.0, 30.0), 0.0) if randomize_error else Vector3.ZERO
 	ball.intended_receiver = null
 	ball.kick(vel, curl, player)
+
+
+## Pierna mala: más error y algo menos de potencia.
+const WEAK_FOOT_ERROR := 1.4
+const WEAK_FOOT_SPEED := 0.9
+
+
+## Patea con la pierna menos hábil: la pelota está claramente del otro lado
+## del cuerpo (con la pelota al medio usa la buena).
+static func uses_weak_foot(player: Footballer, ball_pos: Vector3) -> bool:
+	if player.data == null:
+		return false
+	var off := player.ball_offset_side(ball_pos)
+	if absf(off) < 0.12:
+		return false
+	var left := off > 0.0
+	return left == (player.data.foot == PlayerData.Foot.RIGHT)
+
+
+## Tiro colocado: menos error y menos velocidad que el remate normal.
+const PLACED_ERROR := 0.45
+const PLACED_SPEED := 0.78
+
+
+func _closest_mate_to(player: Footballer, point: Vector3) -> Footballer:
+	var best: Footballer = null
+	var best_d := INF
+	for m in _mates(player):
+		var d := m.flat_pos().distance_to(point)
+		if d < best_d:
+			best_d = d
+			best = m
+	return best
 
 
 ## Globo / picada (L1 + Cuadrado): por arriba del arquero, cae justo detrás

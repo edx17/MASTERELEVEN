@@ -7,6 +7,7 @@ const MATCH_SCENE := "res://scenes/match/match.tscn"
 var _duration_btn: Button
 var _difficulty_btn: Button
 var _stadium_btn: Button
+var _offside_btn: Button
 var _time_btn: Button
 var _weather_btn: Button
 var _wind_btn: Button
@@ -60,6 +61,9 @@ func _ready() -> void:
 	_weather_btn = _button(box, "", _cycle.bind("weather_choice", MatchConditions.WEATHER_NAMES.size()))
 	_wind_btn = _button(box, "", _cycle.bind("wind_choice", GameSettings.WIND_NAMES.size()))
 	_pitch_btn = _button(box, "", _cycle.bind("pitch_choice", GameSettings.PITCH_NAMES.size()))
+	_offside_btn = _button(box, "", func() -> void:
+		GameSettings.offside = not GameSettings.offside
+		_refresh())
 	_button(box, "Prueba de rendimiento (30 s)", GameSettings.start_benchmark)
 	_button(box, "Salir", get_tree().quit)
 
@@ -93,11 +97,12 @@ func _refresh() -> void:
 	_time_btn.text = "Horario: %s" % _choice_name(GameSettings.time_choice, MatchConditions.TIME_NAMES)
 	_weather_btn.text = "Clima: %s" % _choice_name(GameSettings.weather_choice, MatchConditions.WEATHER_NAMES)
 	_wind_btn.text = "Viento: %s" % _choice_name(GameSettings.wind_choice, GameSettings.WIND_NAMES)
+	_offside_btn.text = "Offside: %s" % ("sí" if GameSettings.offside else "no")
 	_pitch_btn.text = "Césped: %s" % ("según el clima" if GameSettings.pitch_choice < 0 else GameSettings.PITCH_NAMES[GameSettings.pitch_choice])
 	var pads := Input.get_connected_joypads().size()
 	_two_players_btn.disabled = not InputRouter.can_play_two_players()
 	var pad_text := "Sin mandos conectados (se juega con teclado)" if pads == 0 else "Mandos conectados: %d" % pads
-	_info.text = pad_text + "\nMover: WASD / stick o cruceta   Pase: J / X   Remate: K / Cuadrado   Centro: L / Círculo   Profundidad: I / Triángulo\nCorrer: Shift / R1   L1 (Q): cambio de jugador / gambeta y combinaciones   Cámara: C / Select   Pausa: Esc / Start"
+	_info.text = pad_text + "\nMover: WASD / stick o cruceta   Pase: J / X   Remate: K / Cuadrado   Centro: L / Círculo   Profundidad: I / Triángulo\nCorrer: Shift / R1   Frenar / tiro colocado: E / R2   L1 (Q): cambio de jugador / gambeta y combinaciones   Cámara: C / Select   Pausa: Esc / Start"
 
 
 ## Miniatura del estadio `i` (-1 = al azar: un recuadro neutro).

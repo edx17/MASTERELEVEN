@@ -145,3 +145,28 @@ func test_keeper_reacts_then_dives_late() -> void:
 			dove_at = t
 			break
 	assert_gt(dove_at, 0.0, "se tira antes de que llegue")
+
+
+func test_rushing_keeper_reacts_slower() -> void:
+	# Sale a achicar a toda velocidad: al remate reacciona peor (la picada
+	# pasa más fácil). Plantado, reacciona normal.
+	var t1 := m.teams[1]
+	var gk := t1.keeper()
+	var reacts := []
+	for speed in [0.0, 6.0]:
+		var shooter: Footballer = m.teams[0].players[9]
+		var goal := t1.own_goal()
+		shooter.teleport(goal + Vector3(-t1.own_side() * 14.0, 0, 0), Vector3(t1.own_side(), 0, 0))
+		gk.teleport(goal + Vector3(-t1.own_side() * 4.0, 0, 0), Vector3(-t1.own_side(), 0, 0))
+		gk.velocity = Vector3(-t1.own_side() * speed, 0, 0)
+		m.ball.place(shooter.flat_pos() + Vector3(t1.own_side() * 0.5, 0.11, 0))
+		m.ball.give_to(shooter)
+		m.kicks.randomize_error = false
+		m.perform_kick(shooter, KickActions.Kind.SHOT, Vector3(0, 0, 1), 0.6)
+		if m.save_plan.is_empty():
+			pass_test("el remate no fue al arco")
+			return
+		reacts.append(float(m.save_plan["react"]))
+		m.save_plan = {}
+		m.phase = MatchController.Phase.PLAYING
+	assert_gt(reacts[1], reacts[0] + 0.15, "corriendo reacciona más tarde")

@@ -9,13 +9,115 @@ Ver `Claude.md` para visión, criterios y fases.
 | 2 — Prototipo 0.1: sensación de juego | ✅ Hecha (PR #2) |
 | 3 — IA de partido (TeamAI, formaciones, zonas, arquero) | 🟡 Implementada, **pendiente de tu prueba** |
 | Visual 1 — Se ve como la referencia (jugadores animados, cámara, cancha) | 🟡 Implementada, **pendiente de tu prueba** |
-| 4 — Reglas, atributos y plantel | ⬜ |
+| 4 — Reglas, atributos y plantel | 🟡 En curso: tarjetas, offside, cambios y cansancio hechos |
 | 5 — Presentación moderna (estadio, modelos, animaciones, audio) | ⬜ |
 | 6 — Liga Master | ⬜ |
 | 7 — Torneos | ⬜ |
 | 8 — Pulido | ⬜ |
 
 ---
+
+## Fase 4 (1): cambios, cansancio acumulado y arquero expulsado
+
+| Tema | Cambio |
+|---|---|
+| Arquero expulsado | Al arquero también lo echan (roja directa o segunda amarilla). Si quedan cambios y hay arquero en el banco, entra él y sale un jugador de campo (el delantero más cansado): el equipo queda con 10. Si no hay cambios, va al arco el defensor más cercano, con la ropa y los guantes de arquero pero **con su propio número**. |
+| Banco | 5 suplentes por equipo (los jugadores 12 a 16 del plantel, con un arquero). Se crean recién cuando entran. |
+| Cambios | Hasta 3 por partido. El que entra ocupa el puesto del que sale, en su mismo lugar de la cancha; el que sale no vuelve. |
+| Cambios del humano | Pausa → **Cambios (N restantes)**: a la izquierda los de la cancha (**Sale**), con puesto y energía; a la derecha el banco (**Entra**); **Confirmar**. Con la pelota parada se hace en el momento; con la pelota en juego, en la próxima pelota parada. |
+| Cambios de la CPU | Desde el minuto 55, en cada pelota parada cambia al más cansado (si su energía no pasa de 80) por un suplente del mismo puesto. |
+| Cansancio acumulado | Además de la energía que se gasta y se recupera en el momento, cada minuto de juego baja el **tope** de energía: más en sprint, menos parado, y menos con buen atributo de resistencia. En el entretiempo se recupera el 30 % del desgaste. Con el tope bajo, la velocidad máxima baja hasta un 6 % y la puntería empeora (ya dependía de la energía). En el HUD, la parte oscura a la derecha de la barra de energía es el tope perdido. |
+
+En simulaciones CPU vs CPU: desgaste promedio de 28 al final del partido (el tope queda cerca de 72) y 2 cambios por equipo.
+
+**Tests:** 220 en verde. Se agregaron (`tests/unit/test_substitutions.gd`):
+- banco y cambio en el mismo puesto;
+- máximo de 3 cambios;
+- cambio pedido que espera la pelota parada;
+- arquero expulsado con arquero suplente;
+- arquero expulsado sin cambios: un defensor va al arco con la ropa de arquero y su número;
+- segunda amarilla al arquero;
+- desgaste, entretiempo y velocidad;
+- el desgaste corre con el reloj;
+- cambio de la CPU desde el minuto 55.
+
+Se arregló además el test del offside: la línea defensiva del test quedaba sobre la trayectoria del pase y un defensor lo cortaba.
+
+Próximo: menú previo al partido (como el de tu imagen) con **Jugar partido · Dirección del equipo** (formación, titulares y suplentes, quién patea) **· Ajustes · Controles**.
+
+## Ronda WE2002 (14): offside
+
+| Regla | Cambio |
+|---|---|
+| Posición adelantada | Al patear, se anotan los compañeros que están en campo rival, delante de la pelota y del penúltimo rival (con 30 cm de tolerancia: "en línea" está habilitado). |
+| Cuándo se cobra | Si uno de esos la toca primero (recibe, cabecea o la desvía) antes que un rival u otro compañero. Tiro libre para el que defiende donde estaba el adelantado. |
+| Excepciones | No hay offside en laterales, saques de arco ni córners. |
+| Opción | "Offside: sí/no" en el menú principal (se guarda). |
+
+En simulaciones CPU vs CPU da 2 a 3 offsides por partido (en el fútbol real son unos 4): no corta el juego a cada rato. Offsides en las estadísticas (`stats["offsides"]`).
+
+**Tests:** 211 en verde. Se agregaron:
+- se cobra al recibir el adelantado;
+- habilitado no se cobra;
+- lateral y opción apagada.
+
+## Ronda WE2002 (13): expulsiones (primera parte de la Fase 4)
+
+| Regla | Cambio |
+|---|---|
+| Roja directa | Barrida que es falta de atrás: roja el 85 % de las veces (como en el WE). |
+| Segunda amarilla | Es roja. |
+| Expulsión | El jugador sale de la cancha y el equipo sigue con 10. Ya no cuenta para la IA, los controles (si lo manejabas, pasás al más cercano a la pelota), la posesión ni las reglas. Cada uno conserva su puesto en la formación (`Team.roster` guarda el plantel y `Team.players` los que están en cancha). El saque del medio funciona con menos jugadores. |
+| Arquero | ~~A lo sumo amarilla.~~ Desde la Fase 4 (1) también lo pueden echar (ver arriba). |
+
+Rojas en las estadísticas del partido (`stats["reds"]`).
+
+**Tests:** 208 en verde. Se agregaron:
+- roja directa de atrás;
+- segunda amarilla;
+- jugar con 10 (puestos y saque del medio).
+
+El test de los resbalones ahora es determinista.
+
+## Ronda WE2002 (12): más mecánicas del WE
+
+| Mecánica | Cambio |
+|---|---|
+| L1 + Triángulo | Filtrado por elevación: la picada pasa por arriba de la línea y cae a espaldas de los centrales. |
+| Comba en la pelota parada | En tiros libres y córners, el stick derecho al patear (como la cruceta del WE): de costado curva hacia ese lado; adelante cae de golpe; atrás sale más alto y flota. |
+| Pierna mala | Con la pelota claramente del lado de la pierna menos hábil, el remate sale mordido: +40 % de error y −10 % de potencia. Con la pelota al medio usa la buena. |
+| La pared "invisible" | Durante 2 s la marca rival sigue a la pelota y pierde al que pica en la pared. |
+| Resbalones | Con césped mojado (hasta 30 % según cuánto) o nevado (20 %), un corte seco a más de 5,5 m/s puede hacer resbalar al jugador. El equilibrio reduce la chance. |
+
+`docs/REFERENCIA_WE.md` actualizado con estos estados.
+
+**Tests:** 205 en verde. Se agregaron:
+- filtrado por elevación;
+- comba y caída en pelota parada;
+- marca que pierde al de la pared;
+- pierna mala;
+- resbalones en mojado (en seco, nunca).
+
+## Ronda WE2002 (11): mecánicas del WE (centros, colocado, freno, achique y físico)
+
+Tu análisis del WE está en `docs/REFERENCIA_WE.md`, cruzado con el estado de cada mecánica en el juego. De ahí, esta tanda:
+
+| Mecánica | Cambio |
+|---|---|
+| Centros por toques | 1 Círculo = alto al segundo palo; 2 = a media altura, tenso, al punto penal; 3 = rasante al primer palo. Afuera de la zona de centro, el doble sigue siendo pase raso. |
+| Tiro colocado | R2 (o E) mientras se carga el remate, o justo al soltarlo: abre el pie y va al palo que marca el stick (sin stick, al más lejano). Lleva un 22 % menos de velocidad y un 55 % menos de error. |
+| Frenar en seco | R2 (o E) conduciendo: pisa la pelota, que queda junto al pie, y el jugador se planta. |
+| Achique | El arquero que viene corriendo a achicar (Triángulo) reacciona hasta 0,2 s más tarde al remate: la vaselina entra más. Si se frena antes (soltando Triángulo), recupera la reacción. |
+| El físico importa | Los altos alcanzan la pelota más arriba y un poco más lejos, y entre dos que llegan parejo gana el más alto. Los bajos y flacos giran más cerrado; los altos y pesados, más abierto. |
+
+Nueva acción `brake` (R2 / E); está en la ayuda de controles del menú.
+
+**Tests:** 200 en verde. Se agregaron:
+- centros de 1, 2 y 3 toques;
+- tiro colocado;
+- freno con la pelota;
+- el alto que alcanza el cabezazo y el bajo que gira más;
+- el arquero en carrera que reacciona más tarde.
 
 ## Ronda WE2002 (10): nieve difuminada, barrida, saludo, pelota en las manos y "riel" del receptor
 

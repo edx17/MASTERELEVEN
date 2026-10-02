@@ -159,6 +159,7 @@ class PlayerPanel:
 	var _pos: Label
 	var _name: Label
 	var _stamina: ColorRect
+	var _worn: ColorRect
 	var _power_bg: ColorRect
 	var _power: ColorRect
 
@@ -189,6 +190,12 @@ class PlayerPanel:
 		_stamina.position = stamina_bg.position
 		_stamina.size = stamina_bg.size
 		add_child(_stamina)
+		# Lo que se perdió por el cansancio acumulado (ya no se recupera).
+		_worn = ColorRect.new()
+		_worn.color = Color(0.45, 0.12, 0.15)
+		_worn.position = stamina_bg.position
+		_worn.size = Vector2(0, 5)
+		add_child(_worn)
 		_power_bg = ColorRect.new()
 		_power_bg.color = Color(0, 0, 0, 0.6)
 		_power_bg.position = Vector2(0, -12)
@@ -210,8 +217,10 @@ class PlayerPanel:
 		_pos_bg.color = MatchHud.POS_COLORS[role].darkened(0.2)
 		_name.text = "%d  %s" % [p.number, p.display_name]
 		_name.add_theme_color_override("font_color", accent)
-		# Energía: sin fatiga todavía (Fase 4), barra llena.
+		# Energía; a la derecha, en oscuro, el tope perdido por el desgaste.
 		_stamina.size.x = 180.0 * p.stamina_fraction()
+		_worn.size.x = 180.0 * clampf(p.wear / 100.0, 0.0, 1.0)
+		_worn.position.x = 58.0 + 180.0 - _worn.size.x
 		_power_bg.visible = power >= 0.0
 		_power.visible = power >= 0.0
 		_power.size.x = _power_bg.size.x * clampf(power, 0.0, 1.0)

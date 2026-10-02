@@ -99,13 +99,31 @@ func test_cross_variants() -> void:
 	inp.release(&"special")
 	_wait_kick(k)
 	var high := m.ball.state.vel.y
+	# Un toque: centro normal (alto, al segundo palo).
+	_carrier(spot)
+	k = m.kick_count
+	_press([&"pass_long"], 10)
+	_wait_kick(k)
+	var single := m.ball.state.vel.y
+	# Doble toque: a media altura (más tenso, más bajo que el normal).
 	_carrier(spot)
 	k = m.kick_count
 	_press([&"pass_long"], 10)
 	_press([&"pass_long"], 2)
 	_wait_kick(k)
+	var mid := m.ball.state.vel.y
+	# Triple toque: rasante al primer palo.
+	_carrier(spot)
+	k = m.kick_count
+	_press([&"pass_long"], 10)
+	_press([&"pass_long"], 2)
+	_press([&"pass_long"], 2)
+	_wait_kick(k)
+	var low := m.ball.state.vel.y
 	assert_gt(high, 8.0, "L1 + Círculo: centro alto")
-	assert_lt(absf(m.ball.state.vel.y), 1.0, "doble Círculo: centro raso por el piso")
+	assert_gt(single, mid + 0.5, "doble Círculo: más bajo que el de un toque")
+	assert_gt(mid, 1.0, "doble Círculo: va por el aire, a media altura")
+	assert_lt(absf(low), 1.0, "triple Círculo: centro rasante por el piso")
 	assert_true(p != null)
 
 
@@ -244,3 +262,122 @@ func test_menus_accept_with_x() -> void:
 		if e is InputEventJoypadButton and (e as InputEventJoypadButton).button_index == JOY_BUTTON_A:
 			found = true
 	assert_true(found, "X (abajo) acepta en los menús")
+
+
+func test_r2_while_charging_gives_a_placed_shot() -> void:
+	var t := m.teams[0]
+	var spot := Vector3(t.attack_dir * 36.0, 0, 3.0)
+	_carrier(spot)
+	m.kicks.randomize_error = false
+	var k := m.kick_count
+	_press([&"shoot"], 12)
+	_wait_kick(k)
+	var normal := Vector2(m.ball.state.vel.x, m.ball.state.vel.z).length()
+	_carrier(spot)
+	k = m.kick_count
+	inp.hold(&"shoot")
+	_step(6)
+	inp.hold(&"brake")
+	_step(6)
+	inp.release(&"shoot")
+	inp.release(&"brake")
+	_step(1)
+	_wait_kick(k)
+	var placed := Vector2(m.ball.state.vel.x, m.ball.state.vel.z).length()
+	assert_lt(placed, normal * 0.9, "colocado: menos potencia")
+	assert_gt(absf(m.ball.state.vel.z), 0.5, "busca un palo")
+
+
+func test_r2_while_dribbling_stops_dead() -> void:
+	var p := _carrier()
+	p.velocity = p.facing * 7.0
+	inp.hold(&"brake")
+	_step(1)
+	inp.release(&"brake")
+	assert_lt(Vector3(p.velocity.x, 0, p.velocity.z).length(), 2.0, "frena en seco")
+	assert_eq(m.ball.owner_player, p, "con la pelota pisada")
+
+
+func test_tall_player_wins_the_header_duel() -> void:
+	var t0 := m.teams[0]
+	var t1 := m.teams[1]
+	var tall: Footballer = t0.players[9]
+	var small: Footballer = t1.players[3]
+	tall.data = tall.data.duplicate()
+	small.data = small.data.duplicate()
+	tall.data.build = PlayerData.Build.TALL
+	small.data.build = PlayerData.Build.SHORT
+	assert_gt(tall.data.body_height(), small.data.body_height())
+	assert_gt(small.data.agility(), tall.data.agility(), "el bajo gira más cerrado")
+	# Pelota alta entre los dos: el alto llega, el bajo no.
+	var mid := Vector3(0, 0, 0)
+	tall.teleport(mid + Vector3(0.5, 0, 0), Vector3.LEFT)
+	small.teleport(mid - Vector3(0.5, 0, 0), Vector3.RIGHT)
+	m.ball.place(Vector3(0, m.tuning.header_max_height * 1.04, 0))
+	assert_true(m.in_header_reach(tall), "el alto la alcanza")
+	assert_false(m.in_header_reach(small), "el bajo no llega")
+
+
+func test_l1_triangle_is_a_lofted_through_ball() -> void:
+	var p := _carrier(Vector3(m.teams[0].attack_dir * 5.0, 0, 0))
+	var runner: Footballer = m.teams[0].players[10]
+	runner.teleport(p.flat_pos() + Vector3(m.teams[0].attack_dir * 15.0, 0, 3.0), Vector3.RIGHT)
+	var k := m.kick_count
+	inp.hold(&"special")
+	_press([&"pass_through"], 10)
+	inp.release(&"special")
+	_wait_kick(k)
+	assert_gt(m.ball.state.vel.y, 4.0, "por elevación, por arriba de la línea")
+
+
+func test_set_piece_curl_from_the_right_stick() -> void:
+	m.ball.state.vel = Vector3(20, 4, 0)
+	var perp := Vector3(0, 0, -1) # a la "derecha" de la trayectoria en +X
+	m.apply_set_piece_curl(perp)
+	var force := m.ball.state.spin.cross(m.ball.state.vel)
+	assert_lt(force.z, 0.0, "curva hacia el lado del stick")
+	m.ball.state.vel = Vector3(20, 4, 0)
+	m.apply_set_piece_curl(Vector3(1, 0, 0))
+	force = m.ball.state.spin.cross(m.ball.state.vel)
+	assert_lt(force.y, 0.0, "stick adelante: cae de golpe")
+
+
+func test_one_two_runner_is_ghost_for_the_marking() -> void:
+	var passer: Footballer = m.teams[0].players[9]
+	var mate: Footballer = m.teams[0].players[10]
+	m.start_one_two(passer, mate)
+	assert_true(m.is_ghost_runner(passer), "la marca lo pierde")
+	assert_false(m.is_ghost_runner(mate))
+	m.one_two["time"] = MatchController.GHOST_TIME + 0.1
+	assert_false(m.is_ghost_runner(passer), "después lo vuelven a tomar")
+
+
+func test_weak_foot_shot_is_worse() -> void:
+	var p := _carrier()
+	p.data = p.data.duplicate()
+	p.data.foot = PlayerData.Foot.RIGHT
+	# Pelota a la izquierda del cuerpo (+X del modelo = su izquierda).
+	var left := p.flat_pos() + p.facing * 0.4 + p.facing.cross(Vector3.UP) * -0.4
+	var right := p.flat_pos() + p.facing * 0.4 + p.facing.cross(Vector3.UP) * 0.4
+	assert_true(KickActions.uses_weak_foot(p, left) != KickActions.uses_weak_foot(p, right), "un lado es el de la pierna mala")
+	assert_false(KickActions.uses_weak_foot(p, p.flat_pos() + p.facing * 0.5), "al medio, la buena")
+
+
+func test_wet_pitch_slips_on_sharp_cuts() -> void:
+	var dry := Tuning.new()
+	MatchConditions.create(1, 0, 0.0, 0.0, 0.0).apply_to(dry)
+	assert_eq(dry.slip_chance, 0.0, "seco: no se resbala")
+	var wet := Tuning.new()
+	MatchConditions.create(1, 2, 0.0, 0.0, 0.9).apply_to(wet)
+	assert_gt(wet.slip_chance, 0.2, "mojado: puede resbalar")
+	var p: Footballer = m.teams[0].players[4]
+	m.tuning.slip_chance = 2.0 # seguro, aunque tenga buen equilibrio
+	p.teleport(Vector3(-10, 0, 10), Vector3.RIGHT)
+	p.velocity = Vector3(7.5, 0, 0)
+	var slipped := [false]
+	p.slipped.connect(func() -> void: slipped[0] = true)
+	p.desired_move = Vector3(-1, 0, 0)
+	p.wants_sprint = true
+	p.tick(dt, false)
+	assert_true(slipped[0], "corte seco a toda velocidad: se resbala")
+	m.tuning.slip_chance = 0.0

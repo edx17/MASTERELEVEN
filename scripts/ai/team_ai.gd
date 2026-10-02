@@ -138,7 +138,7 @@ func tick(dt: float) -> void:
 			p.debug_state = "cubre"
 			go_to(p, owner.flat_pos() + (team.own_goal() - owner.flat_pos()).normalized() * 6.0, true)
 			continue
-		if _markers.has(p):
+		if _markers.has(p) and not _match.is_ghost_runner(_markers[p]):
 			p.debug_state = "marca"
 			_mark(p, _markers[p])
 			continue
@@ -231,7 +231,7 @@ func _update_shape() -> void:
 
 ## Objetivo de forma de un jugador (mundo).
 func shape_target(p: Footballer) -> Vector3:
-	var i := team.players.find(p)
+	var i := team.slot_of(p)
 	if i < 0 or i >= shape.size():
 		return p.flat_pos()
 	return team.to_world(shape[i])

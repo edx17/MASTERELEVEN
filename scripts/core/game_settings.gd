@@ -32,6 +32,8 @@ var weather_choice: int = MatchConditions.Weather.CLEAR
 var wind_choice: int = 0
 ## Césped: 0 seco, 1 húmedo, 2 mojado, -1 según el clima.
 var pitch_choice: int = -1
+## Offside (como la opción del WE).
+var offside: bool = true
 ## Estadio (StadiumStyles.STYLES); -1 = al azar.
 var stadium_choice: int = 0
 const WIND_NAMES := ["Sin viento", "Viento leve", "Viento fuerte"]
@@ -70,7 +72,7 @@ var stick_directions: int = 8
 const SETTINGS_PATH := "user://settings.cfg"
 const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", "wind_choice",
 	"pitch_choice", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
-	"stick_directions", "camera_preset", "show_pass_target"]
+	"stick_directions", "camera_preset", "show_pass_target", "offside"]
 ## Falso en los tests y las herramientas: no leen ni pisan la configuración
 ## del jugador (así los resultados no dependen de lo que eligió).
 var persist := true

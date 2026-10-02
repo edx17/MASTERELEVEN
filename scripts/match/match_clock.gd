@@ -16,6 +16,11 @@ func _init(real_minutes: float = 5.0) -> void:
 	_scale = (HALF_GAME_SECONDS * 2.0) / maxf(real_minutes * 60.0, 1.0)
 
 
+## Segundos de juego por segundo real.
+func rate() -> float:
+	return _scale
+
+
 func advance(real_dt: float) -> void:
 	if running:
 		game_seconds = minf(game_seconds + real_dt * _scale, HALF_GAME_SECONDS)
