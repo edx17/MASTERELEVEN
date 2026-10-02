@@ -44,7 +44,7 @@ func test_foul_gives_a_free_kick_with_a_wall() -> void:
 	assert_eq(m.phase, MatchController.Phase.STOPPED)
 	assert_eq(m._pending.type, MatchRules.Restart.FREE_KICK)
 	assert_eq(m._pending.team, 0)
-	_step(int(MatchController.FOUL_DELAY / dt) + 2)
+	_step(int(m._phase_timer / dt) + 2) # una falta fuerte demora más (queda en el piso)
 	assert_eq(m.phase, MatchController.Phase.RESTART)
 	assert_eq(m.restart_type, MatchRules.Restart.FREE_KICK)
 	assert_between(m.wall_targets.size(), 3, 4, "barrera a 22 m")
@@ -62,7 +62,7 @@ func test_foul_in_the_box_is_a_penalty() -> void:
 	m.call_foul(offender, victim, true)
 	assert_eq(m._pending.type, MatchRules.Restart.PENALTY)
 	assert_almost_eq(absf(m._pending.spot.x), Pitch.HALF_LENGTH - Pitch.PENALTY_SPOT_DISTANCE, 0.01)
-	_step(int(MatchController.FOUL_DELAY / dt) + 2)
+	_step(int(m._phase_timer / dt) + 2) # una falta fuerte demora más (queda en el piso)
 	assert_eq(m.restart_type, MatchRules.Restart.PENALTY)
 	var kicks := m.kick_count
 	_step(120)

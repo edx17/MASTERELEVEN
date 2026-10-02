@@ -39,6 +39,8 @@ enum Build { AUTO = -1, NORMAL, HEAVY, SLIM, TALL, SHORT, STOCKY, MUSCULAR }
 @export_group("Habilidades especiales")
 ## Ids de ABILITY_NAMES (como las estrellitas del WE).
 @export var abilities: PackedStringArray = []
+## Festejo de gol preferido (índice de Celebrations.LIST; -1 = al azar).
+@export var celebration: int = -1
 
 
 ## Atributo normalizado a -1..1 alrededor del promedio (50).

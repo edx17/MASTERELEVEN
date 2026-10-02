@@ -15,6 +15,8 @@ extends RefCounted
 const RUSH_MAX_PROGRESS := 0.5
 ## Lo más que se adelanta como líbero (m desde la línea).
 const SWEEPER_MAX := 9.0
+## Con la pelota en las manos haciendo tiempo (s; el límite es 6).
+const WASTE_HOLD_TIME := 4.6
 
 var team: Team
 var _match: MatchController
@@ -160,6 +162,10 @@ func _distribute(p: Footballer, ai: TeamAI, dt: float) -> void:
 	var wait := _match.tuning.keeper_hold_time
 	if ai.state == TeamShape.State.COUNTER_ATTACK:
 		wait *= 0.4
+	elif _match.ball.in_hands and _match.wasting_time(team):
+		# Va ganando sobre el final: la duerme (ordenando a la defensa) casi
+		# hasta los 6 segundos.
+		wait = WASTE_HOLD_TIME
 	if not _match.ball.in_hands:
 		wait = minf(wait, 0.5) # con los pies (pase atrás) no se la puede dormir
 	if _hold < wait:

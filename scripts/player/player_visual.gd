@@ -13,9 +13,12 @@ extends Node3D
 ## un clip propio en ModelVisual; acá se dibujan con el gesto más parecido.
 enum Event { KICK, PASS, HEADER, THROW, DIVE_LEFT, DIVE_RIGHT, CATCH, TACKLE,
 		RECEIVE, CHEST, CATCH_HIGH, CATCH_LOW, BLOCK, CELEBRATE, DEJECTED, ROLL,
-		FEINT, ROULETTE, STEPOVER, HIGH_FIVE, HANDSHAKE, CHEER }
+		FEINT, ROULETTE, STEPOVER, HIGH_FIVE, HANDSHAKE, CHEER,
+		SPRINT_START, SPRINT_TURN, CHILENA, SMOTHER }
 ## Cada gesto pedido (lo escucha la repetición para volver a mostrarlo).
-## En HEADER y en las atajadas `side` lleva la altura de la pelota.
+## En HEADER y en las atajadas `side` lleva la altura de la pelota; en
+## CELEBRATE, el festejo (Celebrations); en SPRINT_TURN, hacia dónde gira
+## (+ = a su izquierda).
 signal played(event: int, side: float)
 
 ## Estado continuo (lo decide el Footballer a partir de su State).
@@ -143,14 +146,21 @@ func contact_point(event: int) -> Vector3:
 	return global_transform * Vector3(-0.12, 0.11, 0.45)
 
 
+## Lo pone una subclase que ya avisó el gesto (no se avisa dos veces).
+var _quiet := false
+
+
 func play(event: int, side: float = 1.0) -> void:
-	played.emit(event, side)
+	if not _quiet:
+		played.emit(event, side)
 	match event:
-		Event.CATCH_HIGH, Event.CATCH_LOW, Event.BLOCK:
+		Event.CATCH_HIGH, Event.CATCH_LOW, Event.BLOCK, Event.SMOTHER:
 			event = Event.CATCH
 		Event.ROLL:
 			event = Event.THROW
-		Event.RECEIVE, Event.DEJECTED:
+		Event.CHILENA:
+			event = Event.KICK
+		Event.RECEIVE, Event.DEJECTED, Event.SPRINT_START, Event.SPRINT_TURN:
 			return # sin gesto propio en el humanoide armado por piezas
 	_event = event
 	_event_t = 0.0

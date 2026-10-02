@@ -16,6 +16,20 @@ const FORECAST_STEP := 0.1
 const FORECAST_POINTS := 30
 const STOP_DELAY := 1.1
 const FOUL_DELAY := 2.0
+## Falta fuerte (barrida o de atrás): el derribado queda en el piso este rato.
+const HARD_FOUL_DOWN := 3.4
+## Distancia de la pelota desde la que el arquero ordena a la defensa.
+const KEEPER_DIRECTING_DIST := 52.0
+## Chilena: altura de la pelota y de espaldas al arco (coseno entre el frente
+## y la dirección al arco por debajo de este valor), hasta esta distancia.
+const CHILENA_MIN_HEIGHT := 0.95
+const CHILENA_MAX_HEIGHT := 2.05
+const CHILENA_BACK_DOT := -0.25
+const CHILENA_MAX_DIST := 24.0
+## Tiempo en el piso después de la chilena (s).
+const CHILENA_DOWN := 2.0
+## Rival a esta distancia: el arquero se tira sobre la pelota dividida.
+const SMOTHER_RIVAL_DIST := 3.0
 const GOAL_DELAY := 3.0
 const HALFTIME_DELAY := 3.0
 const RESTART_AI_DELAY := 1.0
@@ -76,7 +90,8 @@ var replay_request := {}
 var _post_hit := false
 
 var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won": [0, 0],
-	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0], "subs": [0, 0], "injuries": [0, 0], "contacts": [0, 0]}
+	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0], "subs": [0, 0], "injuries": [0, 0], "contacts": [0, 0],
+	"chilenas": [0, 0]}
 ## Atajada planificada para el último remate (ver SaveModel):
 ## {keeper, will_save, parry, point, time_left, chance}. Vacío si no hay.
 var save_plan := {}
@@ -114,6 +129,9 @@ var _camera: MatchCamera
 var _hud: MatchHud
 ## true mientras se ejecuta perform_kick (para distinguir desvíos).
 var _in_kick: bool = false
+## Tipo de la patada en curso (-1 fuera de perform_kick) y si es de chilena.
+var _kick_kind := -1
+var _chilena := false
 
 
 func _ready() -> void:
@@ -337,6 +355,10 @@ func _physics_process(dt: float) -> void:
 		var gk := t.keeper()
 		if gk != null:
 			gk.ball_in_hands = ball.in_hands and ball.owner_player == gk
+			# Ordena a la defensa con la pelota en sus manos (mientras corren
+			# los 6 s) o lejos, en el otro campo.
+			gk.directing = phase == Phase.PLAYING and (gk.ball_in_hands \
+				or ball.flat_pos().distance_to(gk.flat_pos()) > KEEPER_DIRECTING_DIST)
 
 	# Primero las reglas (una pelota que ya cruzó la línea no se puede atajar).
 	if phase == Phase.PLAYING:
@@ -489,9 +511,16 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 	kicks.forced_receiver = receiver_hint
 	kicks.variant = variant
 	_snapshot_offside(player, from_restart)
+	_chilena = is_chilena(player, kind)
 	_in_kick = true
+	_kick_kind = kind
 	var receiver := kicks.execute(kind, player, dir, clampf(power, 0.0, 1.0))
 	_in_kick = false
+	_kick_kind = -1
+	if _chilena:
+		# Después de la chilena queda en el piso y se levanta.
+		_chilena = false
+		player.stagger(CHILENA_DOWN)
 	kicks.throw_in_mode = false
 	kick_count += 1
 	save_plan = {}
@@ -605,11 +634,30 @@ func _update_throw_in_hold() -> void:
 		ball.visual_offset = off if off.length() < 3.0 else Vector3.ZERO
 
 
+## Remate de chilena: pelota a media altura, de espaldas al arco rival y
+## cerca (la patea igual que un remate; después queda en el piso).
+func is_chilena(p: Footballer, kind: int) -> bool:
+	if kind != KickActions.Kind.SHOT or p.is_keeper():
+		return false
+	var h := ball.state.pos.y
+	if h < CHILENA_MIN_HEIGHT or h > CHILENA_MAX_HEIGHT:
+		return false
+	var to_goal := p.team.target_goal() - p.flat_pos()
+	to_goal.y = 0.0
+	if to_goal.length() > CHILENA_MAX_DIST:
+		return false
+	return p.facing.dot(to_goal.normalized()) < CHILENA_BACK_DOT
+
+
 ## Animación de quien la tocó (sólo presentación).
 func _show_kick(kicker: Footballer) -> void:
 	if kicker == null or kicker.visual == null:
 		return
 	var ev := PlayerVisual.Event.KICK
+	if _in_kick and _chilena:
+		kicker.visual.play(PlayerVisual.Event.CHILENA)
+		stats["chilenas"][kicker.team.index] += 1
+		return
 	if kicks.throw_in_mode:
 		ev = PlayerVisual.Event.THROW
 	elif _in_kick and kicks.hand_throw:
@@ -837,7 +885,11 @@ func _try_take_loose_ball() -> void:
 		receiver.clear_pass_target()
 	save_plan = {}
 	if best.visual != null:
-		if hands:
+		if hands and _smother_catch(best, h):
+			# Se tira encima de la pelota: va ganando y hace tiempo, o un rival
+			# llegaba a la pelota dividida.
+			best.visual.play(PlayerVisual.Event.SMOTHER, h)
+		elif hands:
 			best.visual.play(catch_event(h), h)
 		elif best == receiver or ball.speed() > 6.0:
 			_show_receive(best, h)
@@ -871,8 +923,11 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 		return
 	var from_behind := victim.facing.dot((offender.flat_pos() - victim.flat_pos()).normalized()) < -0.3
 	stats["fouls"][offender.team.index] += 1
-	victim.trip(tuning.trip_duration * 0.8)
+	# Falta fuerte (barrida o de atrás) o lesión: queda un rato en el piso.
+	var hard := slide or from_behind
 	_maybe_injure(victim, slide, from_behind)
+	var down := HARD_FOUL_DOWN if hard or victim.injury != Footballer.Injury.NONE else tuning.trip_duration * 0.8
+	victim.trip(down, from_behind)
 	var spot := victim.flat_pos()
 	var awarded := victim.team.index
 	var type := MatchRules.Restart.FREE_KICK
@@ -919,7 +974,7 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 	ball.state.vel = Vector3.ZERO
 	save_plan = {}
 	banner_text = text
-	_phase_timer = FOUL_DELAY
+	_phase_timer = maxf(FOUL_DELAY, down - 0.4)
 	_set_phase(Phase.STOPPED)
 
 
@@ -1436,6 +1491,25 @@ func _update_one_two(dt: float) -> void:
 		perform_kick(receiver, KickActions.Kind.THROUGH_PASS, to_run, 0.45, passer)
 
 
+## El arquero que la agarra se tira encima (salta, la abraza y cae sobre
+## ella): pelota dividida con un rival encima, o va ganando y hace tiempo
+## (siempre desde el 75', a veces antes).
+func _smother_catch(gk: Footballer, height: float) -> bool:
+	if not gk.is_keeper() or height > 1.7:
+		return false
+	var opp := _nearest_opponent(gk)
+	if height < 0.6 and opp != null and opp.flat_pos().distance_to(gk.flat_pos()) < SMOTHER_RIVAL_DIST:
+		return true
+	if gk.team.score <= opponents_of(gk.team).score:
+		return false
+	return wasting_time(gk.team) or randf() < 0.4
+
+
+## El equipo va ganando sobre el final (desde el 75'): hace tiempo.
+func wasting_time(t: Team) -> bool:
+	return t.score > opponents_of(t).score and clock.total_game_seconds() / 60.0 >= 75.0
+
+
 ## Gesto del arquero al embolsarla según la altura de la pelota.
 static func catch_event(height: float) -> int:
 	if height > 1.7:
@@ -1833,8 +1907,7 @@ func _show_goal(scoring_team: int) -> void:
 # --- Festejo del gol --------------------------------------------------------
 
 ## Tope del festejo (s) y cuánto dura el festejo en el córner.
-const CELEBRATION_MAX := 9.0
-const CELEBRATE_TIME := 2.6
+const CELEBRATION_MAX := 10.0
 ## El goleador frena estos metros antes del banderín (en cada eje).
 const CORNER_INSET := 3.5
 ## {"scorer", "target", "mates": [[jugador, destino]], "arrived": s desde que llegó (-1 = no)}
@@ -1869,7 +1942,10 @@ func _start_celebration(team_index: int) -> void:
 		# Alrededor del goleador, del lado de la cancha.
 		var side := to_field.rotated(Vector3.UP, lerpf(-1.1, 1.1, float(i) / maxf(n - 1, 1)))
 		mates.append([others[i], target + side * 2.2])
-	celebration = {"scorer": scorer, "target": target, "mates": mates, "arrived": -1.0}
+	# El festejo del goleador: su preferido o uno al azar.
+	var which := Celebrations.pick(scorer.base_data)
+	celebration = {"scorer": scorer, "target": target, "mates": mates, "arrived": -1.0,
+		"which": which, "time": Celebrations.duration(which)}
 	for i in range(n, others.size()):
 		if others[i].visual != null:
 			others[i].visual.play(PlayerVisual.Event.CHEER)
@@ -1888,16 +1964,16 @@ func _drive_celebration(dt: float) -> void:
 	var target: Vector3 = celebration["target"]
 	if celebration["arrived"] < 0.0:
 		var to := target - scorer.flat_pos()
-		if to.length() < 1.2 or _phase_timer < CELEBRATE_TIME + 0.3:
+		if to.length() < 1.2 or _phase_timer < celebration["time"] + 0.3:
 			celebration["arrived"] = 0.0
 			scorer.look_at_point(Vector3.ZERO)
-			scorer.celebrate(CELEBRATE_TIME)
+			scorer.celebrate(celebration["time"], celebration["which"])
 		else:
 			scorer.desired_move = to.normalized()
 			scorer.wants_sprint = true
 	else:
 		celebration["arrived"] += dt
-		if celebration["arrived"] > CELEBRATE_TIME + 0.4:
+		if celebration["arrived"] > celebration["time"] + 0.4:
 			_phase_timer = 0.0
 	for m in celebration["mates"]:
 		var p: Footballer = m[0]
