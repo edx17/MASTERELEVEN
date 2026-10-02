@@ -50,7 +50,7 @@ func test_goal_is_followed_by_a_replay_and_a_kickoff() -> void:
 	var shooter := _score_goal()
 	assert_eq(m.phase, MatchController.Phase.GOAL)
 	assert_eq(m.goal_scorer, shooter)
-	for i in int((MatchController.GOAL_DELAY + 0.2) / dt):
+	for i in int((MatchController.CELEBRATION_MAX + 0.5) / dt):
 		m._physics_process(dt)
 		if m.phase == MatchController.Phase.REPLAY:
 			break
@@ -82,7 +82,7 @@ func test_scorer_line_has_position_number_height_and_age() -> void:
 func test_no_replay_when_disabled() -> void:
 	GameSettings.show_replays = false
 	_score_goal()
-	for i in int((MatchController.GOAL_DELAY + 0.2) / dt):
+	for i in int((MatchController.CELEBRATION_MAX + 0.5) / dt):
 		m._physics_process(dt)
 	assert_ne(m.phase, MatchController.Phase.REPLAY)
 
@@ -138,7 +138,7 @@ func test_foul_with_card_is_replayed() -> void:
 
 func test_hud_shows_only_the_score_during_the_replay() -> void:
 	_score_goal()
-	assert_true(_run_until(MatchController.Phase.REPLAY, MatchController.GOAL_DELAY + 0.5))
+	assert_true(_run_until(MatchController.Phase.REPLAY, MatchController.CELEBRATION_MAX + 0.5))
 	var hud: MatchHud = null
 	for c in m.get_children():
 		if c is MatchHud:

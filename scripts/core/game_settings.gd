@@ -76,7 +76,7 @@ const SETTINGS_PATH := "user://settings.cfg"
 const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", "wind_choice",
 	"pitch_choice", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
 	"stick_directions", "camera_preset", "show_pass_target", "offside", "home_team_path", "away_team_path",
-	"home_kit", "away_kit", "show_replays", "replay_chances", "sfx_volume", "crowd_volume"]
+	"home_kit", "away_kit", "show_replays", "replay_chances", "player_style", "sfx_volume", "crowd_volume"]
 ## Falso en los tests y las herramientas: no leen ni pisan la configuración
 ## del jugador (así los resultados no dependen de lo que eligió).
 var persist := true
@@ -85,6 +85,9 @@ var persist := true
 var random_conditions := true
 ## Repetición después de cada gol (apagada en tests y herramientas).
 var show_replays := true
+## Estilo de los jugadores: 0 = actual, 1 = retro estilo PS1 (beta, si está
+## el modelo base en la copia local).
+var player_style: int = 0
 ## Repetición también de las jugadas peligrosas (remates cerca, atajadas al
 ## córner, faltas importantes).
 var replay_chances := true
@@ -106,6 +109,8 @@ func _ready() -> void:
 	stick_directions = tuning.stick_directions
 	persist = not _is_tool_run()
 	random_conditions = persist
+	if "--retro" in OS.get_cmdline_user_args():
+		player_style = 1
 	show_replays = persist
 	replay_chances = persist
 	if persist:

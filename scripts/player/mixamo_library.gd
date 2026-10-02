@@ -34,9 +34,16 @@ const BONE_MAP := {
 ##   range: [inicio, golpe, fin] en segundos (si no, se buscan en el clip).
 const CLIPS := {
 	"kick": {"file": "Kick_Soccerball"},
-	"shot": {"file": "Soccer_Penalty_Kick"},
+	"shot": {"file": "Soccer_Penalty_Kick", "new": [{"file": "remate"}]},
 	"pass": {"file": "Soccer_Pass"},
 	"header": {"file": "Soccer_Header"},
+	# Tanda nueva: cabezazo sin salto (pelota a la altura de la cabeza) y con
+	# un saltito; amague X + Cuadrado; control de pecho; lateral.
+	"header_stand": {"file": "No_jump_Header"},
+	"header_jump": {"file": "Soccer_Header_little_jump"},
+	"feint": {"file": "XCuadrado_Chip", "face": true},
+	"chest": {"file": "Receive_pecho", "face": true},
+	"throw_in": {"file": "Throw_In", "face": true},
 	"slide": {"file": "Soccer_Tackle"},
 	"dribble": {"file": "Dribble", "loop": true},
 	# Entrada de pie (X): sólo la estocada con la pierna, sin la caída.
@@ -46,21 +53,30 @@ const CLIPS := {
 	# Caída tras una barrida y cómo se levanta.
 	"trip": {"file": "Soccer_Trip", "face": true, "range": [0.15, 0.4, 1.6]},
 	"get_up": {"file": "Standing_Up", "face": true},
-	"celebrate": {"file": "Cartwheel", "face": true, "range": [0.2, 0.5, 2.8]},
+	# Festejos (se elige uno al azar).
+	"celebrate": {"file": "Cartwheel", "face": true, "range": [0.2, 0.5, 2.8],
+		"new": [{"file": "Festejo1_Catwheel"}]},
+	"celebrate2": {"file": "Festejo2_Golf_Putt", "face": true},
 	# Marsellesa: el giro de 360° lo pone el clip (el rumbo del jugador no gira).
 	"spin": {"file": "Soccer_Spin", "range": [0.0, 0.6, 1.27]},
 	"gk_idle": {"file": "Goalkeeper_Idle", "loop": true},
-	"gk_catch": {"file": "Goalkeeper_Catch"},
-	"gk_catch_high": {"file": "Goalkeeper_Catch_1", "face": true, "range": [0.9, 1.55, 2.2]},
-	"gk_catch_low": {"file": "Goalkeeper_Catch_2", "face": true, "range": [0.3, 0.8, 1.6]},
+	"gk_catch": {"file": "Goalkeeper_Catch", "new": [{"file": "Goalkeeper_Catch_stay"}]},
+	"gk_catch_high": {"file": "Goalkeeper_Catch_1", "face": true, "range": [0.9, 1.55, 2.2],
+		"new": [{"file": "Goalkeeper_Catch_jump"}]},
+	"gk_catch_low": {"file": "Goalkeeper_Catch_2", "face": true, "range": [0.3, 0.8, 1.6],
+		"new": [{"file": "Goalkeeper_Scoop"}]},
+	"gk_catch_cross": {"file": "Goalkeeper_Catch_corta_centro", "face": true},
 	"gk_block": {"file": "Goalkeeper_Body_Block", "face": true, "range": [0.2, 0.75, 1.9]},
 	"gk_miss": {"file": "Goalkeeper_Miss", "face": true},
-	"gk_throw": {"file": "Goalkeeper_Overhand_Throw"},
+	"gk_throw": {"file": "Goalkeeper_Overhand_Throw", "new": [{"file": "Goalkeeper_sque_rapido"}]},
 	# Saque con la mano rodando: el gesto de bochas del final del clip.
-	"gk_roll": {"file": "Goalkeeper_Placing_Ball", "face": true, "range": [1.4, 2.0, 2.6]},
-	"gk_kick": {"file": "Goalkeeper_Pass"},
-	"gk_side_a": {"file": "Goalkeeper_Sidestep", "loop": true, "face": true},
-	"gk_side_b": {"file": "Goalkeeper_Sidestep", "loop": true, "face": true, "mirror": true},
+	"gk_roll": {"file": "Goalkeeper_Placing_Ball", "face": true, "range": [1.4, 2.0, 2.6],
+		"new": [{"file": "Goalkeeper_hand_short_Pass"}]},
+	"gk_kick": {"file": "Goalkeeper_Pass", "new": [{"file": "Goalkeeper_Drop_Kick"}]},
+	"gk_side_a": {"file": "Goalkeeper_Sidestep", "loop": true, "face": true,
+		"new": [{"file": "Goalkeeper_Sidestep_achique"}]},
+	"gk_side_b": {"file": "Goalkeeper_Sidestep", "loop": true, "face": true, "mirror": true,
+		"new": [{"file": "Goalkeeper_Sidestep_achique"}]},
 	# La estirada de Mixamo va hacia +X del modelo (su izquierda); hacia -X es
 	# la misma, espejada.
 	"gk_dive_px": {"file": "Goalkeeper_Diving_Save", "lateral": 0.6},
@@ -95,7 +111,7 @@ static func library(body_scene: PackedScene) -> AnimationLibrary:
 	var target := body.find_child("Skeleton3D", true, false) as Skeleton3D
 	var lib := AnimationLibrary.new()
 	for clip_name in CLIPS:
-		var spec: Dictionary = CLIPS[clip_name]
+		var spec: Dictionary = resolve(CLIPS[clip_name])
 		var path := file_path(spec["file"])
 		if path == "":
 			continue
@@ -121,6 +137,21 @@ static func library(body_scene: PackedScene) -> AnimationLibrary:
 ## ("Goalkeeper_Catch_1"), con espacios ("Goalkeeper Catch 1") o como lo
 ## numera Windows al bajar varias versiones ("Goalkeeper Catch (1)").
 ## Vacío si no está.
+## La versión a usar de un clip: la primera de "new" cuyo archivo esté (la
+## tanda nueva de animaciones), si no la de siempre. Las opciones de "new"
+## pisan a las de base; el tramo ("range") de base no se hereda: se calcula
+## del clip nuevo.
+static func resolve(spec: Dictionary) -> Dictionary:
+	for alt in spec.get("new", []):
+		if file_path(alt["file"]) != "":
+			var out := spec.duplicate()
+			out.erase("range")
+			out.erase("new")
+			out.merge(alt, true)
+			return out
+	return spec
+
+
 static func file_path(file: String) -> String:
 	for candidate in file_candidates(file):
 		var path: String = DIR + candidate + ".fbx"

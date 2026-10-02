@@ -56,6 +56,9 @@ var _slide_played := false
 var keeper := false
 ## Material del cuerpo (colores de la ropa) y número de la espalda.
 var _body_mat: ShaderMaterial
+## Cuerpo del modo retro (o null) y su piel / pelo.
+var _retro: MeshInstance3D
+var _retro_colors := {}
 var _number_label: Label3D
 var carrying := false
 ## Lo fija el Footballer: derribado por una barrida, cuánto le falta para
@@ -152,6 +155,20 @@ func setup(colors: Dictionary, seed: int) -> void:
 		mat.set_shader_parameter("trim", _trim_for(shirt, colors.get("shorts", Color.WHITE)))
 		body.material_override = mat
 		_body_mat = mat
+	# Modo retro (beta): el modelo de pocos polígonos sobre el mismo esqueleto.
+	if GameSettings.player_style == 1 and RetroBody.available() and body != null:
+		_retro_colors = {"skin": SKIN_TONES[rng.randi() % SKIN_TONES.size()], "hair": HAIR_TONES[rng.randi() % HAIR_TONES.size()]}
+		var rc := colors.duplicate()
+		rc.merge(_retro_colors)
+		_retro = RetroBody.build(_skel, rc)
+		if _retro != null:
+			body.visible = false
+			if hair_node != null:
+				hair_node.visible = false
+			for extra in ["Eyebrows", "Eyes"]:
+				var em := _skel.find_child(extra, false, false) as Node3D
+				if em != null:
+					em.visible = false
 	if colors.has("number"):
 		_add_back_number(int(colors["number"]), colors.get("shirt", Color.WHITE))
 	var dark := _mat(Color(0.05, 0.04, 0.04))
@@ -182,6 +199,10 @@ static func _trim_for(shirt: Color, shorts: Color) -> Color:
 ## Cambia la ropa (un jugador de campo que va al arco: camiseta y guantes de
 ## arquero, con su número).
 func recolor(colors: Dictionary) -> void:
+	if _retro != null:
+		var rc := colors.duplicate()
+		rc.merge(_retro_colors)
+		RetroBody.recolor(_retro, rc)
 	if _body_mat != null:
 		var shirt: Color = colors.get("shirt", Color.WHITE)
 		_body_mat.set_shader_parameter("shirt", shirt)
@@ -349,7 +370,7 @@ func play(event: int, side: float = 1.0) -> void:
 		Event.HEADER:
 			clip = "header"
 		Event.THROW:
-			clip = "gk_throw" if keeper else ""
+			clip = "gk_throw" if keeper else "throw_in"
 		Event.CATCH:
 			clip = "gk_catch"
 		Event.CATCH_HIGH:
@@ -365,7 +386,14 @@ func play(event: int, side: float = 1.0) -> void:
 		Event.RECEIVE:
 			clip = "receive"
 		Event.CELEBRATE:
-			clip = "celebrate"
+			# Uno de los festejos disponibles, al azar.
+			var options := []
+			for c in ["celebrate", "celebrate2"]:
+				if _mx != null and _mx.has_animation(c):
+					options.append(c)
+			clip = options[randi() % options.size()] if not options.is_empty() else "celebrate"
+		Event.CHEST:
+			clip = "chest"
 		Event.DEJECTED:
 			clip = "gk_miss" if keeper else ""
 		Event.ROULETTE:
@@ -375,7 +403,11 @@ func play(event: int, side: float = 1.0) -> void:
 					_event = -1
 			return
 		Event.FEINT:
-			# La carga de la patada, cortada antes del golpe.
+			# Amague (X + Cuadrado): el clip propio si está.
+			if _mx != null and _mx.has_animation("feint") and _play_clip("feint"):
+				_event = -1
+				return
+			# Si no, la carga de la patada, cortada antes del golpe.
 			if _mx != null and _mx.has_animation("kick"):
 				var mk: Dictionary = MixamoLibrary.marks["kick"]
 				var c: float = mk["contact"]
@@ -635,6 +667,14 @@ func _apply_gestures() -> void:
 		Event.CELEBRATE:
 			_rotate_bone("upperarm_l", Vector3.RIGHT, -2.9 * minf(k * 5.0, 1.0))
 			_rotate_bone("upperarm_r", Vector3.RIGHT, -2.9 * minf(k * 5.0, 1.0))
+		Event.CHEER:
+			# Brazos arriba festejando desde donde está (los puños suben y bajan).
+			var up := minf(k * 6.0, 1.0) * minf((1.0 - k) * 6.0, 1.0)
+			var pump := 0.15 * sin(k * 18.0)
+			_rotate_bone("upperarm_l", Vector3.RIGHT, (-2.7 + pump) * up)
+			_rotate_bone("upperarm_r", Vector3.RIGHT, (-2.7 - pump) * up)
+			_rotate_bone("lowerarm_l", Vector3.RIGHT, -0.4 * up)
+			_rotate_bone("lowerarm_r", Vector3.RIGHT, -0.4 * up)
 		Event.CATCH:
 			_rotate_bone("upperarm_l", Vector3.RIGHT, -1.4 * strike)
 			_rotate_bone("upperarm_r", Vector3.RIGHT, -1.4 * strike)

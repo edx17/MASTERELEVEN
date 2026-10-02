@@ -318,6 +318,8 @@ func _physics_process(dt: float) -> void:
 		h.tick(dt)
 	for a in ais:
 		a.tick(dt)
+	if phase == Phase.GOAL:
+		_drive_celebration(dt)
 	var goal_kick := goal_kick_in_progress()
 	if goal_kick:
 		_drive_goal_kick()
@@ -346,7 +348,7 @@ func _physics_process(dt: float) -> void:
 	clock.running = phase in [Phase.PLAYING, Phase.STOPPED] or (phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF)
 	# El reloj va en tiempo real aunque el juego corra más lento (velocidad).
 	# Grabación para la repetición (el juego y el primer instante del gol).
-	if phase == Phase.PLAYING or (phase == Phase.GOAL and _phase_timer > GOAL_DELAY - 0.8):
+	if phase == Phase.PLAYING or (phase == Phase.GOAL and _goal_elapsed < 0.8):
 		replay.record()
 	var real_dt := dt / maxf(Engine.time_scale, 0.01)
 	clock.advance(real_dt)
@@ -1783,7 +1785,9 @@ func _check_rules() -> void:
 		_show_goal(outcome.team)
 		teams[outcome.team].score += 1
 		banner_text = "¡GOL!"
-		_phase_timer = GOAL_DELAY
+		_phase_timer = CELEBRATION_MAX
+		_goal_elapsed = 0.0
+		_start_celebration(outcome.team)
 		_set_phase(Phase.GOAL)
 		goal_scored.emit(outcome.team)
 		return
@@ -1820,12 +1824,94 @@ func _show_goal(scoring_team: int) -> void:
 		var tw := create_tween()
 		tw.tween_interval(GOAL_DELAY)
 		tw.tween_method(func(v: float) -> void: StadiumBuilder.crowd_material.set_shader_parameter("cheer", v), 1.0, 0.0, 1.5)
-	var scorer := ball.last_toucher
-	if scorer != null and scorer.team.index == scoring_team:
-		scorer.celebrate(GOAL_DELAY)
 	var keeper := teams[1 - scoring_team].keeper()
 	if keeper != null and keeper.visual != null:
 		keeper.visual.play(PlayerVisual.Event.DEJECTED)
+
+
+# --- Festejo del gol --------------------------------------------------------
+
+## Tope del festejo (s) y cuánto dura el festejo en el córner.
+const CELEBRATION_MAX := 9.0
+const CELEBRATE_TIME := 2.6
+## El goleador frena estos metros antes del banderín (en cada eje).
+const CORNER_INSET := 3.5
+## {"scorer", "target", "mates": [[jugador, destino]], "arrived": s desde que llegó (-1 = no)}
+var celebration := {}
+var _goal_elapsed := 0.0
+
+
+## El goleador corre al córner más cercano del arco donde hizo el gol (unos
+## metros antes del banderín) y ahí festeja; lo acompañan 2 o 3 compañeros
+## de los más cercanos; los demás del equipo levantan los brazos donde están.
+func _start_celebration(team_index: int) -> void:
+	var t := teams[team_index]
+	var scorer := goal_scorer if goal_scorer != null and goal_scorer.team == t and not goal_scorer.is_keeper() else null
+	if scorer == null:
+		scorer = _nearest_outfield(t, ball.flat_pos())
+	if scorer == null:
+		celebration = {}
+		return
+	var gx := signf(t.target_goal().x)
+	var gz := signf(scorer.global_position.z) if absf(scorer.global_position.z) > 0.5 else 1.0
+	var target := Vector3(gx * (Pitch.HALF_LENGTH - CORNER_INSET), 0.0, gz * (Pitch.HALF_WIDTH - CORNER_INSET))
+	var others: Array[Footballer] = []
+	for p in t.players:
+		if p != scorer and not p.is_keeper():
+			others.append(p)
+	others.sort_custom(func(a: Footballer, b: Footballer) -> bool:
+		return a.flat_pos().distance_to(scorer.flat_pos()) < b.flat_pos().distance_to(scorer.flat_pos()))
+	var n := mini(2 + randi() % 2, others.size())
+	var mates := []
+	var to_field := (Vector3(0, 0, 0) - target).normalized()
+	for i in n:
+		# Alrededor del goleador, del lado de la cancha.
+		var side := to_field.rotated(Vector3.UP, lerpf(-1.1, 1.1, float(i) / maxf(n - 1, 1)))
+		mates.append([others[i], target + side * 2.2])
+	celebration = {"scorer": scorer, "target": target, "mates": mates, "arrived": -1.0}
+	for i in range(n, others.size()):
+		if others[i].visual != null:
+			others[i].visual.play(PlayerVisual.Event.CHEER)
+
+
+## Mueve a los que festejan (después de la IA y los controles, que en el gol
+## no mandan) y termina el festejo cuando el goleador ya festejó.
+func _drive_celebration(dt: float) -> void:
+	_goal_elapsed += dt
+	for p in all_players():
+		p.desired_move = Vector3.ZERO
+		p.wants_sprint = false
+	if celebration.is_empty():
+		return
+	var scorer: Footballer = celebration["scorer"]
+	var target: Vector3 = celebration["target"]
+	if celebration["arrived"] < 0.0:
+		var to := target - scorer.flat_pos()
+		if to.length() < 1.2 or _phase_timer < CELEBRATE_TIME + 0.3:
+			celebration["arrived"] = 0.0
+			scorer.look_at_point(Vector3.ZERO)
+			scorer.celebrate(CELEBRATE_TIME)
+		else:
+			scorer.desired_move = to.normalized()
+			scorer.wants_sprint = true
+	else:
+		celebration["arrived"] += dt
+		if celebration["arrived"] > CELEBRATE_TIME + 0.4:
+			_phase_timer = 0.0
+	for m in celebration["mates"]:
+		var p: Footballer = m[0]
+		var to: Vector3 = (m[1] as Vector3) - p.flat_pos()
+		if to.length() > 0.8:
+			p.desired_move = to.normalized()
+			p.wants_sprint = true
+		elif not m.has(true):
+			m.append(true)
+			p.look_at_point(scorer.flat_pos())
+			if p.visual != null:
+				p.visual.play(PlayerVisual.Event.CHEER)
+	# X / Start saltea el festejo.
+	if _goal_elapsed > 1.0 and not humans.is_empty() and (Input.is_action_just_pressed(&"ui_accept")):
+		_phase_timer = 0.0
 
 
 ## Terminó la repetición: vuelve la cámara del partido y se saca del medio.

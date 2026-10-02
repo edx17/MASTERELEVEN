@@ -128,9 +128,12 @@ func _ready() -> void:
 	# `--replay`: un gol y su repetición con la ficha del goleador.
 	if "--replay" in OS.get_cmdline_user_args():
 		GameSettings.show_replays = true
-		_script = [[20, "freeze"], [22, "replay_goal"], [23, "simulate:3.25"], [30, "shot:capture_replay_wipe.png"],
+		_script = [[20, "freeze"], [22, "replay_goal"], [23, "until_replay"], [30, "shot:capture_replay_wipe.png"],
 			[31, "simulate:1.2"], [40, "shot:capture_replay.png"],
 			[41, "simulate:3.0"], [58, "shot:capture_replay_card.png"], [62, "quit"]]
+	# `--retro`: jugadores con el modelo retro (estilo PS1).
+	if "--retro" in OS.get_cmdline_user_args():
+		GameSettings.player_style = 1
 	# `--stadium=N`: estadio (StadiumStyles).
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--stadium="):
@@ -268,6 +271,14 @@ func _run(action: String) -> void:
 		_match.clock.game_seconds = MatchClock.HALF_GAME_SECONDS * 0.6
 	elif action.begins_with("intro:"):
 		_match.intro._enter(int(action.trim_prefix("intro:")))
+	elif action == "until_replay":
+		# Pasa el festejo hasta que arranca la cortina de la repetición.
+		for i in 900:
+			if _match.phase == MatchController.Phase.REPLAY:
+				break
+			_match._physics_process(1.0 / 60.0)
+		for i in 10:
+			_match._physics_process(1.0 / 60.0)
 	elif action == "replay_goal":
 		var t0 := _match.teams[0]
 		var shooter: Footballer = t0.players[9]

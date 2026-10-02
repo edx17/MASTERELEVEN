@@ -47,6 +47,12 @@ func _ready() -> void:
 	_add(list, "Uniforme visitante", func() -> String: return "titular" if GameSettings.away_kit == 0 else "alternativo",
 		func(_d: int) -> void: GameSettings.away_kit = 1 - GameSettings.away_kit,
 		"Camiseta del visitante (si se confunde con la del local, usa la otra).")
+	_add(list, "Jugadores", func() -> String:
+			if GameSettings.player_style == 1:
+				return "retro PS1 (beta)" if RetroBody.available() else "retro (falta el modelo)"
+			return "actuales",
+		func(_d: int) -> void: GameSettings.player_style = 1 - GameSettings.player_style,
+		"Modelo de los jugadores. Retro (beta): el modelo de pocos polígonos estilo PlayStation 1, mientras se termina el definitivo.")
 	var go := WEStyle.bar("Jugar", func() -> void: play.emit(), 560.0, 22)
 	go.focus_entered.connect(func() -> void: _help.text = "Arranca la previa del partido (con la Dirección del equipo).")
 	list.add_child(go)

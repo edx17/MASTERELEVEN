@@ -12,3 +12,7 @@ export_presets.cfg.bak
 # Texturas de césped (CC0) muy pesadas para GitHub: se usan si están en tu
 # copia local (scripts/stadium/grass_textures.gd); si no, detalle procedural.
 /assets/textures/grass/
+
+# Modelo base retro (estilo PS1) que pasaste: fuera del repo hasta confirmar
+# su licencia; el juego lo usa si está en tu copia local.
+/assets/models/players/retro/

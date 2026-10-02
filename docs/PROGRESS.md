@@ -17,6 +17,16 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Festejos, animaciones nuevas y jugadores retro (beta)
+
+| Tema | Cambio |
+|---|---|
+| Festejo del gol | El goleador corre al córner más cercano del arco donde hizo el gol y frena unos metros antes del banderín; ahí festeja con un festejo al azar (Festejo1 Catwheel o Festejo2 Golf Putt si están; si no, la rueda de antes). Lo acompañan 2 o 3 de los compañeros más cercanos, que se ubican alrededor y levantan los brazos. Los demás del equipo levantan los brazos desde donde están. Dura lo que tarde en llegar más el festejo (tope 9 s); X lo saltea. Después, la repetición. |
+| Animaciones nuevas | El juego ya las busca por nombre en `assets/animations/mixamo/` (si están, reemplazan a las anteriores; si no, sigue con las de antes): remate, XCuadrado Chip (amague X + Cuadrado), Receive pecho (control de pecho), Throw In (lateral), No jump Header y Soccer Header little jump, festejos, y las del arquero (Catch stay / jump / corta centro, Scoop, sque rapido, hand short Pass, Drop Kick, Sidestep achique). La carrera (Sprint, Jog, Idle To Sprint, Sprint Turn) y la chilena quedan para cuando estén los archivos para ajustarlas. |
+| Jugadores retro (beta) | Opción "Jugadores: actuales / retro PS1 (beta)" en la configuración del partido. Usa el modelo base que pasaste (fuera del repo hasta confirmar la licencia, en `assets/models/players/retro/`) vestido sobre el esqueleto del juego: se escala, los brazos pasan de la pose A a la T, cada vértice va pegado al hueso más cercano (como en PS1) y cada cara se pinta de un color plano por zona (camiseta, short, rodillas, medias, botines, piel, pelo y guantes del arquero). Toma todas las animaciones y los físicos. |
+
+**Tests:** 265 en verde. Se agregó `test_celebration.gd` (córner, compañeros y brazos arriba).
+
 ## Repeticiones limpias y sombras que no quedan negras (tu feedback)
 
 | Tema | Cambio |
