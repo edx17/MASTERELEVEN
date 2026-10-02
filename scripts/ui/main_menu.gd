@@ -280,9 +280,17 @@ func _build_options() -> void:
 		["Volumen del público", func() -> String: return str(GameSettings.crowd_volume),
 			func(d: int) -> void: GameSettings.crowd_volume = clampi(GameSettings.crowd_volume + d, 0, 10),
 			"El murmullo de la tribuna, los gritos de gol y los \"uhh\"."],
-		["Repeticiones de gol", func() -> String: return "sí" if GameSettings.show_replays else "no",
-			func(_d: int) -> void: GameSettings.show_replays = not GameSettings.show_replays,
-			"Después de cada gol, la jugada otra vez con la ficha del goleador (X / Start la saltea)."],
+		["Repeticiones", func() -> String:
+				if not GameSettings.show_replays:
+					return "no"
+				return "goles y jugadas" if GameSettings.replay_chances else "sólo goles",
+			func(d: int) -> void:
+				# Goles y jugadas -> sólo goles -> no -> ...
+				var v := (2 if GameSettings.replay_chances else 1) if GameSettings.show_replays else 0
+				v = posmod(v - d, 3)
+				GameSettings.show_replays = v > 0
+				GameSettings.replay_chances = v == 2,
+			"Repetición de los goles y de las jugadas peligrosas (remates cerca, atajadas, faltas). X / Start la saltea."],
 		["Arquero a los 6 s", func() -> String: return GameSettings.KEEPER_AUTO_NAMES[GameSettings.keeper_auto_action],
 			func(_d: int) -> void: GameSettings.keeper_auto_action = 1 - GameSettings.keeper_auto_action,
 			"Qué hace tu arquero si no la soltaste a tiempo."],

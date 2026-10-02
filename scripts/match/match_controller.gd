@@ -70,6 +70,10 @@ var _toast_timer: float = 0.0
 var replay: Replay
 var audio: MatchAudio
 var goal_scorer: Footballer
+## Jugada peligrosa para repetir antes del próximo saque ({} = ninguna).
+var replay_request := {}
+## La pelota pegó en el palo desde el último remate.
+var _post_hit := false
 
 var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won": [0, 0],
 	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0], "subs": [0, 0], "injuries": [0, 0], "contacts": [0, 0]}
@@ -262,6 +266,7 @@ func _build_world() -> void:
 	add_child(audio)
 	audio.setup(self)
 	replay.finished.connect(_on_replay_finished)
+	ball.hit_post.connect(func() -> void: _post_hit = true)
 
 	var pause := PauseMenu.new()
 	add_child(pause)
@@ -389,13 +394,25 @@ func _update_phase(dt: float) -> void:
 				banner_text = ""
 		Phase.STOPPED:
 			if _phase_timer <= 0.0:
-				_setup_restart(_pending)
+				# Jugada peligrosa: primero la repetición, después el saque.
+				if not replay_request.is_empty() and GameSettings.replay_chances and replay.has_frames():
+					var req := replay_request
+					replay_request = {}
+					banner_text = ""
+					_set_phase(Phase.REPLAY)
+					replay.start(req["kind"], req["team"], req["caption"])
+				else:
+					replay_request = {}
+					_setup_restart(_pending)
 		Phase.GOAL:
 			if _phase_timer <= 0.0:
 				if GameSettings.show_replays and replay.has_frames():
 					banner_text = ""
 					_set_phase(Phase.REPLAY)
-					replay.start(_pending.team, goal_scorer)
+					var caption := "GOL"
+					if goal_scorer != null:
+						caption = "GOL   " + Replay.scorer_line(goal_scorer, goal_scorer.team.index != _pending.team)
+					replay.start(Replay.Kind.GOAL, _pending.team, caption)
 				else:
 					_setup_kickoff(1 - _pending.team)
 		Phase.HALFTIME:
@@ -881,6 +898,18 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 		else:
 			text += "   -   AMARILLA: %s" % offender.display_name
 		card_shown.emit(offender)
+	# Repetición de las faltas importantes: penal, tarjeta o tiro libre
+	# cerca del área.
+	var carded := text.contains("AMARILLA") or text.contains("ROJA")
+	if type == MatchRules.Restart.PENALTY or carded or spot.distance_to(teams[awarded].target_goal()) < 32.0:
+		var caption := "Falta de %s" % offender.display_name
+		if text.contains("ROJA"):
+			caption += "   ·   ROJA"
+		elif carded:
+			caption += "   ·   AMARILLA"
+		if type == MatchRules.Restart.PENALTY:
+			caption += "   ·   PENAL"
+		request_replay(Replay.Kind.FOUL, awarded, caption)
 	_pending = MatchRules.Outcome.new(type, awarded, Vector3(spot.x, tuning.ball_radius, spot.z))
 	ball.owner_player = null
 	ball.intended_receiver = null
@@ -1758,10 +1787,19 @@ func _check_rules() -> void:
 		_set_phase(Phase.GOAL)
 		goal_scored.emit(outcome.team)
 		return
-	# Un remate que se va cerca: "uhh" del público.
+	# Un remate que se va cerca o que el arquero manda al córner: "uhh" del
+	# público y repetición.
+	var shooter: Footballer = last_kick.get("player")
 	if outcome.type in [MatchRules.Restart.GOAL_KICK, MatchRules.Restart.CORNER] \
-			and last_kick.get("kind") == KickActions.Kind.SHOT and absf(ball.state.pos.z) < 8.0:
-		audio.cheer("ooh")
+			and last_kick.get("kind") == KickActions.Kind.SHOT and shooter != null:
+		var keeper_save := outcome.type == MatchRules.Restart.CORNER and ball.last_toucher != null \
+				and ball.last_toucher.is_keeper() and ball.last_toucher.team != shooter.team
+		if keeper_save:
+			request_replay(Replay.Kind.CHANCE, shooter.team.index, "¡Atajada de %s!   Remate de %s" % [ball.last_toucher.display_name, shooter.display_name])
+		elif absf(ball.state.pos.z) < 8.0 or _post_hit:
+			audio.cheer("ooh")
+			request_replay(Replay.Kind.CHANCE, shooter.team.index, ("¡Al palo!   " if _post_hit else "¡Cerca!   ") + "Remate de %s" % shooter.display_name)
+	_post_hit = false
 	var names := {
 		MatchRules.Restart.GOAL_KICK: "SAQUE DE ARCO",
 		MatchRules.Restart.CORNER: "CÓRNER",
@@ -1794,8 +1832,21 @@ func _show_goal(scoring_team: int) -> void:
 func _on_replay_finished() -> void:
 	if _camera != null:
 		_camera.end_cinematic()
-	if phase == Phase.REPLAY:
+	# Los expulsados y reemplazados aparecieron en la repetición: se van otra vez.
+	for t in teams:
+		for p in t.sent_off + t.subbed_off:
+			p.visible = false
+	if phase != Phase.REPLAY:
+		return
+	if _pending.type == MatchRules.Restart.GOAL:
 		_setup_kickoff(1 - _pending.team)
+	else:
+		_setup_restart(_pending)
+
+
+## Pide la repetición de una jugada peligrosa (se ve antes del saque).
+func request_replay(kind: int, team: int, caption: String) -> void:
+	replay_request = {"kind": kind, "team": team, "caption": caption}
 
 
 func camera() -> MatchCamera:
@@ -1816,6 +1867,8 @@ func _end_half() -> void:
 func _begin_restart(type: int, taker: Footballer) -> void:
 	# La repetición empieza en la jugada (no antes de la pelota parada).
 	replay.clear()
+	replay_request = {}
+	_post_hit = false
 	restart_type = type
 	restart_taker = taker
 	_restart_elapsed = 0.0

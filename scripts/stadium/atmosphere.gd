@@ -131,18 +131,25 @@ func _build_environment() -> void:
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	environment.ambient_light_energy = ambient
+	# Relleno parejo: la parte que no viene del cielo no depende de cuánto
+	# cielo "ve" cada punto, así lo que queda bajo un techo o en la sombra de
+	# una tribuna no se va al negro (de día rebota mucha luz del césped y de
+	# las tribunas).
+	environment.ambient_light_sky_contribution = 0.6 if conditions.time_of_day != MatchConditions.TimeOfDay.NIGHT else 0.85
+	environment.ambient_light_color = horizon.lerp(Color(0.62, 0.66, 0.6), 0.5)
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
 	environment.tonemap_exposure = exposure
 	environment.tonemap_white = 6.0
 	# Oclusión ambiental: asienta a los jugadores y da volumen a las tribunas.
 	environment.ssao_enabled = true
-	environment.ssao_radius = 1.2
-	environment.ssao_intensity = 1.4
+	environment.ssao_radius = 1.0
+	environment.ssao_intensity = 0.9
 	environment.ssao_detail = 0.6
 	# Iluminación global (Forward+): la luz rebota en el césped y las tribunas.
 	environment.sdfgi_enabled = true
 	environment.sdfgi_use_occlusion = true
-	environment.sdfgi_energy = 0.9
+	environment.sdfgi_energy = 1.25
+	environment.sdfgi_bounce_feedback = 0.7
 	environment.glow_enabled = true
 	environment.glow_intensity = 0.35 if conditions.time_of_day == MatchConditions.TimeOfDay.NIGHT else 0.2
 	environment.glow_bloom = 0.04
@@ -174,6 +181,9 @@ func _build_sun() -> void:
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 	sun.directional_shadow_blend_splits = true
 	sun.shadow_blur = 1.2
+	# La sombra deja pasar parte de la luz (la que rebota en el cielo, el
+	# césped y las tribunas): sombra marcada pero nunca negra.
+	sun.shadow_opacity = 0.72
 	# Tamaño aparente del sol: la sombra de un techo alto tiene el borde
 	# difuso (penumbra) y la de un jugador queda nítida.
 	sun.light_angular_distance = 1.6

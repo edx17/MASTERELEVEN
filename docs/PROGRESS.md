@@ -17,6 +17,17 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Repeticiones limpias y sombras que no quedan negras (tu feedback)
+
+| Tema | Cambio |
+|---|---|
+| Repetición | En pantalla sólo queda el marcador, la marca **REPETICIÓN** (con un punto rojo que late) arriba a la derecha y un cartel simple abajo con quién hizo la jugada. Nada del HUD de jugadores ni el radar. Entra y sale con una **cortina** (una franja con el nombre del juego que cruza la pantalla). X / Start la saltea. |
+| Jugadas peligrosas | También se repiten (antes del saque): remates que se van cerca del palo o pegan en él ("¡Cerca! / ¡Al palo! Remate de ..."), atajadas que el arquero manda al córner ("¡Atajada de ...!") y faltas importantes (penal, tarjeta o tiro libre cerca del área: "Falta de ... · AMARILLA"). Las de jugadas duran 4 s; la del gol, 6. |
+| Opción | "Repeticiones: goles y jugadas / sólo goles / no" en Opciones. |
+| Sombras de día | La sombra del sol deja pasar parte de la luz (como la que rebota en el cielo, el césped y las tribunas): queda marcada pero nunca negra. Se sumó un relleno de luz parejo que no depende de cuánto cielo "ve" cada lugar, menos oclusión ambiental y más rebote de la iluminación global. El arco, el área y los jugadores bajo la sombra del techo ahora se ven. |
+| Túnel | Ya no es un hueco negro: pasillo con paredes pintadas, piso de goma, paneles de luz en el techo y lámparas. |
+| Estructuras | El muro perimetral y el frente de las bandejas pasaron de casi negro a hormigón pintado; el banco de suplentes dejó de ser una caja oscura: ahora tiene pared de fondo, laterales, asientos y techo traslúcido. |
+
 ## Mientras armás el modelo: repetición, sonido, Liga y Copa
 
 | Tema | Cambio |

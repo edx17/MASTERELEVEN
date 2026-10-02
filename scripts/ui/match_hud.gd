@@ -15,6 +15,9 @@ const PANEL_SIZE := Vector2(250, 44)
 var _match: MatchController
 var _score: Label
 var _clock: Label
+## Marcador (lo único que queda en la repetición).
+var _top: Control
+var _was_replaying := false
 ## Estrategia activa de cada equipo (debajo del reloj).
 var _strategy: Label
 var _banner: Label
@@ -30,6 +33,7 @@ func setup(p_match: MatchController) -> void:
 
 	# Marcador.
 	var top := HBoxContainer.new()
+	_top = top
 	top.position = Vector2(24, 18)
 	top.add_theme_constant_override("separation", 8)
 	add_child(top)
@@ -100,10 +104,20 @@ func _process(_dt: float) -> void:
 	var t0 := _match.teams[0]
 	var t1 := _match.teams[1]
 	_score.text = "%d - %d" % [t0.score, t1.score]
+	# En la repetición sólo queda el marcador (la marca y el cartel los pone
+	# la repetición).
+	if _match.phase == MatchController.Phase.REPLAY:
+		for c in get_children():
+			if c is CanvasItem:
+				(c as CanvasItem).visible = c == _top
+		_was_replaying = true
+		return
+	if _was_replaying:
+		_was_replaying = false
+		for c in get_children():
+			if c is CanvasItem:
+				(c as CanvasItem).visible = true
 	_clock.text = "%s %s" % ["1st" if _match.clock.half == 1 else "2nd", _match.clock.display()]
-	# En la repetición sólo quedan el marcador y el reloj (como en el WE).
-	var replaying := _match.phase == MatchController.Phase.REPLAY
-	_radar.visible = not replaying
 	var lines := []
 	for t in _match.teams:
 		if t.strategy != Strategy.Kind.NONE:
@@ -125,8 +139,6 @@ func _process(_dt: float) -> void:
 		var charging := h != null and h.is_charging()
 		_panels[side].show_player(p, h.power if charging else -1.0,
 			Footballer.SLOT_COLORS[h.slot] if h != null else Color(0.8, 0.8, 0.8))
-		if replaying:
-			_panels[side].visible = false
 
 
 func _human_for_team(index: int) -> HumanController:

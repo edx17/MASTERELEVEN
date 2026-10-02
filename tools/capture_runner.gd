@@ -128,7 +128,8 @@ func _ready() -> void:
 	# `--replay`: un gol y su repetición con la ficha del goleador.
 	if "--replay" in OS.get_cmdline_user_args():
 		GameSettings.show_replays = true
-		_script = [[20, "freeze"], [22, "replay_goal"], [23, "simulate:4.2"], [40, "shot:capture_replay.png"],
+		_script = [[20, "freeze"], [22, "replay_goal"], [23, "simulate:3.25"], [30, "shot:capture_replay_wipe.png"],
+			[31, "simulate:1.2"], [40, "shot:capture_replay.png"],
 			[41, "simulate:3.0"], [58, "shot:capture_replay_card.png"], [62, "quit"]]
 	# `--stadium=N`: estadio (StadiumStyles).
 	for arg in OS.get_cmdline_user_args():

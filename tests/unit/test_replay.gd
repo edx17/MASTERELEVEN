@@ -9,6 +9,7 @@ var dt := 1.0 / 60.0
 func before_each() -> void:
 	GameSettings.set_mode(GameSettings.Mode.CPU_VS_CPU)
 	GameSettings.show_replays = true
+	GameSettings.replay_chances = true
 	m = load("res://scenes/match/match.tscn").instantiate()
 	add_child_autofree(m)
 	m.set_physics_process(false)
@@ -21,6 +22,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	GameSettings.show_replays = false
+	GameSettings.replay_chances = false
 
 
 func _score_goal() -> Footballer:
@@ -83,3 +85,69 @@ func test_no_replay_when_disabled() -> void:
 	for i in int((MatchController.GOAL_DELAY + 0.2) / dt):
 		m._physics_process(dt)
 	assert_ne(m.phase, MatchController.Phase.REPLAY)
+
+
+func _run_until(target: int, seconds: float) -> bool:
+	for i in int(seconds / dt):
+		m._physics_process(dt)
+		if m.phase == target:
+			return true
+	return false
+
+
+func test_near_miss_is_replayed_before_the_goal_kick() -> void:
+	var t := m.teams[0]
+	var shooter: Footballer = t.players[9]
+	for i in 120:
+		m.replay.record()
+	var goal := t.target_goal()
+	shooter.teleport(goal - Vector3(t.attack_dir * 16.0, 0, 0), Vector3(t.attack_dir, 0, 0))
+	m.teams[1].keeper().teleport(goal - Vector3(t.attack_dir * 10.0, 0, 15.0))
+	m.last_kick = {"kind": KickActions.Kind.SHOT, "team": 0, "pos": shooter.flat_pos(), "keeper": false, "player": shooter}
+	# Afuera, pegado al palo.
+	m.ball.place(goal + Vector3(t.attack_dir * 0.3, 0.5, 4.6))
+	m.ball.state.vel = Vector3(t.attack_dir * 10.0, 0, 0)
+	m.ball.last_toucher = shooter
+	m.ball.last_touch_team = 0
+	assert_true(_run_until(MatchController.Phase.STOPPED, 1.0), "se va afuera")
+	assert_false(m.replay_request.is_empty(), "pide la repetición")
+	assert_true(_run_until(MatchController.Phase.REPLAY, 3.0), "repetición de la jugada")
+	assert_string_contains(m.replay._caption, shooter.display_name)
+	assert_true(_run_until(MatchController.Phase.RESTART, 20.0))
+	assert_eq(m.restart_type, MatchRules.Restart.GOAL_KICK, "y después el saque de arco")
+
+
+func test_foul_with_card_is_replayed() -> void:
+	for i in 120:
+		m.replay.record()
+	var vic: Footballer = m.teams[0].players[9]
+	var off: Footballer = m.teams[1].players[3]
+	vic.teleport(Vector3(10, 0, 0), Vector3(1, 0, 0))
+	off.teleport(Vector3(9, 0, 0), Vector3(1, 0, 0))
+	off.yellow_cards = 0
+	var asked := false
+	for i in 40:
+		m.phase = MatchController.Phase.PLAYING
+		m.replay_request = {}
+		m.call_foul(off, vic, true)
+		if not m.replay_request.is_empty():
+			asked = true
+			break
+	assert_true(asked, "una falta con tarjeta o cerca del área se repite")
+
+
+func test_hud_shows_only_the_score_during_the_replay() -> void:
+	_score_goal()
+	assert_true(_run_until(MatchController.Phase.REPLAY, MatchController.GOAL_DELAY + 0.5))
+	var hud: MatchHud = null
+	for c in m.get_children():
+		if c is MatchHud:
+			hud = c
+	assert_not_null(hud)
+	hud._process(dt)
+	var shown := 0
+	for c in hud.get_children():
+		if c is CanvasItem and (c as CanvasItem).visible:
+			shown += 1
+	assert_eq(shown, 1, "sólo el marcador")
+	assert_true(hud._top.visible)
