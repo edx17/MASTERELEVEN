@@ -14,8 +14,23 @@ Ver `Claude.md` para visión, criterios y fases.
 | 6 — Liga Master | ⬜ |
 | 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) |
 | 8 — Pulido | ⬜ |
+| Entrenamiento (Club House) | 🟡 Implementado, **pendiente de tu prueba** |
 
 ---
+
+## Entrenamiento (Club House)
+
+Modo nuevo desde el menú principal (ENTRENAMIENTO). Detalle de la arquitectura en `docs/ENTRENAMIENTO.md`.
+
+| Tema | Cambio |
+|---|---|
+| Club House | Cancha de práctica sin tribunas ni público: pasto, alambrado bajo, árboles, el edificio del club con su cartel, bancos y mástiles de luz. Sonido: redoblante y bombo en lugar de la hinchada. |
+| Práctica libre | Ataque contra defensa con la cantidad que quieras de cada lado (1–10 / 0–10) y arquero rival opcional. Sin reloj, tarjetas ni offside; gol, afuera, atajada o falta: se rearma sola. SELECT reinicia al instante. |
+| Pelota parada | Tiros libres (distancia, ángulo, barrera sí/no), córners (de cada lado) y penales, con el pateador que elijas. |
+| Desafíos con récord | Slalom (tiempo), precisión de pase (pases en 60 s), rondo (pases seguidos contra 2 marcas) y puntería (10 tiros libres a los ángulos). |
+| Menú de práctica | START: práctica, jugadores de cada lado, arquero rival, tiro libre, barrera, córner, pateador, reinicio, Dirección del equipo, cámara y salir. |
+
+**Tests:** 292 en verde. Nuevo `test_training.gd`. Captura: `--training`.
 
 ## La falta como en el WE (árbitro, tarjeta, repetición, tiro libre)
 

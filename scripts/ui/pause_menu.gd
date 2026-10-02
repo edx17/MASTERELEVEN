@@ -14,6 +14,12 @@ var _label_btn: Button
 var _subs_btn: Button
 ## Dirección del equipo (cambios, pateadores, capitán, formación).
 var _sheet: TeamSheet
+## Lista del partido y, en el entrenamiento, el menú de práctica (se arma al
+## abrir la pausa por primera vez).
+var _box: VBoxContainer
+var _train_box: VBoxContainer
+var _train_rows: Array[WEStyle.OptionRow] = []
+var _train_first: Control
 
 
 func _ready() -> void:
@@ -37,6 +43,7 @@ func _ready() -> void:
 	box.position = Vector2(0, 136)
 	box.add_theme_constant_override("separation", 5)
 	_panel.add_child(box)
+	_box = box
 	_help = WEStyle.help_box(_panel)
 	_resume = _button(box, "Continuar", _toggle, "Volver al partido.")
 	_subs_btn = _button(box, "", _open_subs, "Cambios, posiciones, pateadores, capitán, formación y estrategias.")
@@ -86,6 +93,10 @@ func _toggle() -> void:
 	get_tree().paused = paused
 	_panel.visible = paused
 	if paused:
+		var m := get_parent() as MatchController
+		if m != null and m.training != null:
+			_open_training(m.training)
+			return
 		_refresh()
 		_resume.grab_focus()
 
@@ -188,3 +199,106 @@ func _exit() -> void:
 	else:
 		get_tree().paused = false
 		get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")
+
+
+
+# --- Menú de práctica (entrenamiento) -----------------------------------------------
+
+func _open_training(t: TrainingSession) -> void:
+	if _train_box == null:
+		_build_training(t)
+	_box.visible = false
+	_train_box.visible = true
+	_refresh_training()
+	_train_first.grab_focus()
+
+
+## Práctica, jugadores de cada lado, pelota parada (dónde, barrera, quién
+## patea), reinicio, táctica, cámara y salida.
+func _build_training(t: TrainingSession) -> void:
+	_train_box = VBoxContainer.new()
+	_train_box.position = Vector2(0, 132)
+	_train_box.add_theme_constant_override("separation", 3)
+	_panel.add_child(_train_box)
+	_train_first = _row(t, "Práctica", func() -> String: return TrainingSession.KIND_NAMES[t.kind],
+		func(d: int) -> void: t.start(posmod(t.kind + d, TrainingSession.KIND_NAMES.size())),
+		"Libre, tiros libres, córners, penales o un desafío con récord.")
+	_row(t, "Atacantes", func() -> String: return str(t.attackers),
+		func(d: int) -> void:
+			t.attackers = clampi(t.attackers + d, 1, 10)
+			t.start(),
+		"Jugadores de campo de tu equipo (práctica libre y pelota parada).")
+	_row(t, "Defensores", func() -> String: return str(t.defenders),
+		func(d: int) -> void:
+			t.defenders = clampi(t.defenders + d, 0, 10)
+			t.start(),
+		"Jugadores de campo del rival.")
+	_row(t, "Arquero rival", func() -> String: return "sí" if t.rival_keeper else "no",
+		func(_d: int) -> void:
+			t.rival_keeper = not t.rival_keeper
+			t.start(),
+		"Con o sin arquero en el arco rival (práctica libre).")
+	_row(t, "Distancia del tiro libre", func() -> String: return "%d m" % int(round(t.fk_distance)),
+		func(d: int) -> void:
+			t.fk_distance = clampf(t.fk_distance + d, 16.0, 36.0)
+			t.reset_play(),
+		"Desde dónde se patea el tiro libre.")
+	_row(t, "Ángulo del tiro libre", func() -> String: return "%+d°" % int(t.fk_angle),
+		func(d: int) -> void:
+			t.fk_angle = clampf(t.fk_angle + d * 5.0, -50.0, 50.0)
+			t.reset_play(),
+		"0° = de frente al arco; negativo, del lado izquierdo.")
+	_row(t, "Barrera", func() -> String: return "sí" if t.wall else "no",
+		func(_d: int) -> void:
+			t.wall = not t.wall
+			t.reset_play(),
+		"Tiro libre con o sin barrera.")
+	_row(t, "Córner desde", func() -> String: return "la derecha" if t.corner_side > 0 else "la izquierda",
+		func(_d: int) -> void:
+			t.corner_side = -t.corner_side
+			t.reset_play(),
+		"De qué lado se patean los córners.")
+	_row(t, "Pateador", func() -> String:
+			var p := t.taker()
+			return p.display_name if p != null else "-",
+		func(d: int) -> void:
+			var n := t.outfield(t.my_team()).size()
+			t.taker_index = posmod(t.taker_index + d, maxi(n, 1))
+			t.reset_play(),
+		"Quién patea los tiros libres, córners y penales.")
+	_train_box.add_child(_bar("Reiniciar la jugada", func() -> void:
+		t.reset_play()
+		_toggle(), "Vuelve a armar la jugada desde el principio (también con SELECT)."))
+	_train_box.add_child(_bar("Dirección del equipo", _open_subs, "Formación, estrategias y posiciones de tu equipo."))
+	_train_box.add_child(_bar("Cambiar de cámara", func() -> void:
+		var m := get_parent() as MatchController
+		if m != null and m.camera() != null:
+			m.camera().set_preset(m.camera().preset_index + 1), "Recorre las cámaras (en la práctica SELECT reinicia)."))
+	_train_box.add_child(_bar("Salir del entrenamiento", _exit, "Volver al menú principal."))
+	_sheet.closed.connect(func() -> void:
+		if _train_box != null and _train_box.visible:
+			_train_first.grab_focus())
+
+
+func _row(t: TrainingSession, caption: String, getter: Callable, stepper: Callable, help: String) -> WEStyle.OptionRow:
+	var row := WEStyle.OptionRow.new(caption, getter, func(d: int) -> void:
+		stepper.call(d)
+		_refresh_training(), help, 470.0)
+	row.custom_minimum_size.y = 33
+	row.add_theme_font_size_override("font_size", 19)
+	row.focus_entered.connect(func() -> void: _help.text = help)
+	_train_box.add_child(row)
+	_train_rows.append(row)
+	return row
+
+
+func _bar(text: String, cb: Callable, help: String) -> Button:
+	var b := WEStyle.bar(text, cb, 470.0, 19)
+	b.custom_minimum_size.y = 33
+	b.focus_entered.connect(func() -> void: _help.text = help)
+	return b
+
+
+func _refresh_training() -> void:
+	for r in _train_rows:
+		r.refresh()

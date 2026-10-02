@@ -139,6 +139,18 @@ func _ready() -> void:
 			[31, "until_card"], [40, "shot:foul_card.png"], [41, "until_replay"], [42, "simulate:2.0"],
 			[50, "shot:foul_replay.png"], [51, "until_restart"], [52, "simulate:0.4"],
 			[60, "shot:foul_freekick.png"], [65, "quit"]]
+	# `--training`: el Club House y cada práctica, más el menú de práctica.
+	if "--training" in OS.get_cmdline_user_args():
+		GameSettings.training = true
+		GameSettings.training_kind = 0
+		_script = [[20, "freeze"], [22, "train:0"], [23, "simulate:0.8"], [30, "shot:train_free.png"],
+			[31, "train_overview"], [38, "shot:train_overview.png"], [39, "end_cinematic"],
+			[40, "train:1"], [41, "simulate:0.4"], [48, "shot:train_freekick.png"],
+			[50, "train:4"], [51, "simulate:1.2"], [58, "shot:train_slalom.png"],
+			[60, "train:5"], [61, "simulate:0.6"], [68, "shot:train_passing.png"],
+			[70, "train:6"], [71, "simulate:1.0"], [78, "shot:train_rondo.png"],
+			[80, "train:7"], [81, "simulate:0.4"], [88, "shot:train_targets.png"],
+			[90, "train_pause"], [98, "shot:train_pause.png"], [100, "quit"]]
 	# `--retro`: jugadores con el modelo retro (estilo PS1).
 	if "--retro" in OS.get_cmdline_user_args():
 		GameSettings.player_style = 1
@@ -319,6 +331,19 @@ func _run(action: String) -> void:
 			_step_all()
 		for i in 40:
 			_step_all()
+	elif action.begins_with("train:"):
+		_match.training.start(int(action.trim_prefix("train:")))
+		_camera._focus = _match.ball.flat_pos()
+	elif action == "train_overview":
+		# Vista general: la cancha, los árboles y el edificio del club.
+		_camera.set_shot(Vector3(-30.0, 22.0, 60.0), Vector3(0.0, 2.0, -25.0), 55.0)
+	elif action == "end_cinematic":
+		_camera.end_cinematic()
+	elif action == "train_pause":
+		process_mode = Node.PROCESS_MODE_ALWAYS
+		for c in _match.get_children():
+			if c is PauseMenu:
+				(c as PauseMenu)._toggle()
 	elif action == "until_restart":
 		for i in 1200:
 			if _match.phase == MatchController.Phase.RESTART:

@@ -139,6 +139,8 @@ var _first_half_kicker: int = 0
 var _camera: MatchCamera
 ## Árbitro (sólo presentación).
 var referee: Referee
+## Entrenamiento en el Club House (null en un partido).
+var training: TrainingSession
 ## Amonestación en curso: el árbitro va hasta el infractor y le muestra la
 ## tarjeta. {"offender", "red", "pos", "facing", "stage" (0 va, 1 muestra), "t"}
 var card_scene := {}
@@ -173,7 +175,15 @@ func _ready() -> void:
 	add_child(dbg)
 	dbg.setup(self)
 	_first_half_kicker = randi() % 2
-	if GameSettings.play_intro:
+	if GameSettings.training:
+		# Entrenamiento: sin presentación ni árbitro; la práctica arma la jugada.
+		GameSettings.play_intro = false
+		referee.visible = false
+		training = TrainingSession.new()
+		add_child(training)
+		training.setup(self)
+		training.start()
+	elif GameSettings.play_intro:
 		# Desde el menú: presentación previa (menú con el estadio de fondo,
 		# calentamiento, túnel, saludo, formaciones) y después el saque.
 		GameSettings.play_intro = false
@@ -241,13 +251,16 @@ func _build_world() -> void:
 	var st_i := GameSettings.stadium_choice
 	if st_i < 0:
 		st_i = randi() % StadiumStyles.STYLES.size()
-	StadiumStyles.current = StadiumStyles.get_style(st_i)
+	StadiumStyles.current = ClubHouseBuilder.STYLE if GameSettings.training else StadiumStyles.get_style(st_i)
 	atmosphere = Atmosphere.new()
 	atmosphere.name = "Atmosphere"
 	add_child(atmosphere)
 	atmosphere.setup(conditions)
 	add_child(PitchBuilder.build(atmosphere.grass_params()))
-	stadium = StadiumBuilder.build(GameSettings.home_team(), GameSettings.away_team())
+	if GameSettings.training:
+		stadium = ClubHouseBuilder.build(GameSettings.home_team())
+	else:
+		stadium = StadiumBuilder.build(GameSettings.home_team(), GameSettings.away_team())
 	add_child(stadium)
 	if conditions.time_of_day == MatchConditions.TimeOfDay.NIGHT:
 		StadiumBuilder.disable_shadows(stadium)
@@ -360,6 +373,8 @@ func _physics_process(dt: float) -> void:
 		h.tick(dt)
 	for a in ais:
 		a.tick(dt)
+	if training != null:
+		training.after_ai(dt)
 	if phase == Phase.GOAL:
 		_drive_celebration(dt)
 	var goal_kick := goal_kick_in_progress()
@@ -395,7 +410,7 @@ func _physics_process(dt: float) -> void:
 		_update_possession(dt)
 		_check_offside()
 
-	clock.running = phase in [Phase.PLAYING, Phase.STOPPED] or (phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF)
+	clock.running = training == null and (phase in [Phase.PLAYING, Phase.STOPPED] or (phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF))
 	# El reloj va en tiempo real aunque el juego corra más lento (velocidad).
 	# Grabación para la repetición (el juego y el primer instante del gol).
 	if phase == Phase.PLAYING or (phase == Phase.GOAL and _goal_elapsed < 0.8):
@@ -407,8 +422,10 @@ func _physics_process(dt: float) -> void:
 		var game_dt := real_dt * clock.rate()
 		for p in all_players():
 			p.accumulate_wear(game_dt)
-	if clock.is_half_over() and phase == Phase.PLAYING:
+	if clock.is_half_over() and phase == Phase.PLAYING and training == null:
 		_end_half()
+	if training != null:
+		training.tick(dt)
 
 
 func show_toast(text: String, seconds: float = 1.5) -> void:
@@ -445,7 +462,12 @@ func _update_phase(dt: float) -> void:
 			if _restart_elapsed > 0.8:
 				banner_text = ""
 		Phase.STOPPED:
-			if not card_scene.is_empty():
+			if training != null:
+				# Entrenamiento: sin repetición ni saque; se rearma la jugada.
+				if _phase_timer <= 0.0:
+					_phase_timer = INF
+					training.on_stopped()
+			elif not card_scene.is_empty():
 				_drive_card_scene(dt)
 			elif _phase_timer <= 0.0:
 				# Jugada peligrosa: primero la repetición, después el saque.
@@ -973,8 +995,10 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 	# también lo pueden echar (ver _replace_keeper).
 	var offender_pos := offender.flat_pos()
 	var offender_facing := offender.facing
-	var red := slide and from_behind and randf() < RED_FROM_BEHIND
+	var red := training == null and slide and from_behind and randf() < RED_FROM_BEHIND
 	var yellow_p := (0.6 if from_behind else 0.2) if slide else (0.3 if from_behind else 0.05)
+	if training != null:
+		yellow_p = 0.0 # en la práctica no hay tarjetas
 	if red:
 		text += "   -   ROJA: %s" % offender.display_name
 		send_off(offender)
@@ -1025,7 +1049,7 @@ var _offside := {}
 ## saques de arco ni córners.
 func _snapshot_offside(kicker: Footballer, from_restart: int) -> void:
 	_offside = {}
-	if not GameSettings.offside:
+	if not GameSettings.offside or training != null:
 		return
 	if from_restart in [MatchRules.Restart.THROW_IN, MatchRules.Restart.GOAL_KICK, MatchRules.Restart.CORNER]:
 		return
@@ -1890,6 +1914,9 @@ func _check_rules() -> void:
 	# Con el juego detenido nadie conserva la pelota en el pie.
 	ball.owner_player = null
 	ball.intended_receiver = null
+	if training != null:
+		training.on_outcome(outcome)
+		return
 	if outcome.type == MatchRules.Restart.GOAL:
 		goal_scorer = ball.last_toucher
 		_show_goal(outcome.team)
@@ -2394,6 +2421,7 @@ func _exit_tree() -> void:
 
 
 func exit_to_menu() -> void:
+	GameSettings.training = false
 	# Partido de Liga / Copa: cuenta sólo si se jugó hasta el final.
 	GameSettings.last_result = [teams[0].score, teams[1].score] if phase == Phase.FULLTIME else []
 	get_tree().paused = false
