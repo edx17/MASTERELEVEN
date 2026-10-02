@@ -52,7 +52,15 @@ func test_wet_slide_leaves_a_mark() -> void:
 	p.locked = false
 	m.phase = MatchController.Phase.PLAYING
 	p.start_slide(Vector3.RIGHT)
+	assert_eq(m.atmosphere._marks.size(), 0, "todavía no tocó el piso: sin marca")
+	var lengths := []
+	for i in 30:
+		m._physics_process(1.0 / 60.0)
+		m.atmosphere._process(1.0 / 60.0)
+		if not m.atmosphere._marks.is_empty():
+			lengths.append((m.atmosphere._marks[0] as Decal).size.z)
 	assert_eq(m.atmosphere._marks.size(), 1, "marca de barro")
+	assert_gt(lengths[-1], lengths[0] + 0.5, "la marca se alarga mientras se desliza")
 
 
 func test_name_over_the_controlled_player() -> void:

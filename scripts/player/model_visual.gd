@@ -533,6 +533,17 @@ func _apply_gestures() -> void:
 	var k := clampf(_event_t / _event_len, 0.0, 1.0)
 	var strike := sin(k * PI)
 	match _event:
+		Event.HANDSHAKE:
+			# Apretón de manos del saludo: el que espera estira la derecha hacia
+			# adelante (side > 0); el que pasa caminando, hacia su derecha.
+			var reach := smoothstep(0.0, 0.3, k) * (1.0 - smoothstep(0.75, 1.0, k))
+			if _event_side > 0.0:
+				_rotate_bone("upperarm_r", Vector3.RIGHT, -0.95 * reach)
+				_rotate_bone("lowerarm_r", Vector3.RIGHT, -0.35 * reach)
+			else:
+				_rotate_bone("upperarm_r", Vector3.FORWARD, 0.6 * reach)
+				_rotate_bone("upperarm_r", Vector3.RIGHT, -0.45 * reach)
+				_rotate_bone("lowerarm_r", Vector3.RIGHT, -0.3 * reach)
 		Event.HIGH_FIVE:
 			# Choque de manos: la derecha sube adelante, a la altura de la
 			# cabeza, y vuelve (sobre los brazos al costado de la postura o

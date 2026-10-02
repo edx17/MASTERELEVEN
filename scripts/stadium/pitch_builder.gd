@@ -32,6 +32,25 @@ static func _flat_material(color: Color, unshaded: bool = false) -> StandardMate
 	return m
 
 
+## Ruido suave (simplex, sin costuras) para las manchas de nieve: bordes
+## redondeados y difuminados (el ruido de valor del shader armaba contornos
+## con rectas y triángulos).
+static var _snow_tex: Texture2D
+static func _snow_noise() -> Texture2D:
+	if _snow_tex != null:
+		return _snow_tex
+	var n := FastNoiseLite.new()
+	n.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	n.frequency = 0.012
+	n.fractal_octaves = 4
+	n.seed = 11
+	var img := n.get_seamless_image(512, 512)
+	img.convert(Image.FORMAT_L8)
+	img.generate_mipmaps()
+	_snow_tex = ImageTexture.create_from_image(img)
+	return _snow_tex
+
+
 static func _build_grass(root: Node3D, params: Dictionary = {}) -> void:
 	# Un solo plano con shader: franjas de corte + variación natural.
 	var grass := MeshInstance3D.new()
@@ -43,6 +62,8 @@ static func _build_grass(root: Node3D, params: Dictionary = {}) -> void:
 	for k in params:
 		mat.set_shader_parameter(k, params[k])
 	GrassTextures.apply(mat)
+	if float(params.get("snow", 0.0)) > 0.0:
+		mat.set_shader_parameter("snow_noise", _snow_noise())
 	grass_material = mat
 	grass.material_override = mat
 	root.add_child(grass)
