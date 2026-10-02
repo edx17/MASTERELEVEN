@@ -10,12 +10,27 @@ Ver `Claude.md` para visión, criterios y fases.
 | 3 — IA de partido (TeamAI, formaciones, zonas, arquero) | 🟡 Implementada, **pendiente de tu prueba** |
 | Visual 1 — Se ve como la referencia (jugadores animados, cámara, cancha) | 🟡 Implementada, **pendiente de tu prueba** |
 | 4 — Reglas, atributos y plantel | 🟡 Implementada, **pendiente de tu prueba** |
-| 5 — Presentación moderna (estadio, modelos, animaciones, audio) | ⬜ |
+| 5 — Presentación moderna (estadio, modelos, animaciones, audio) | 🟡 En curso: repetición del gol y sonido hechos; falta tu modelo |
 | 6 — Liga Master | ⬜ |
-| 7 — Torneos | ⬜ |
+| 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) |
 | 8 — Pulido | ⬜ |
 
 ---
+
+## Mientras armás el modelo: repetición, sonido, Liga y Copa
+
+| Tema | Cambio |
+|---|---|
+| Repetición del gol | Después del festejo se ve la jugada otra vez (los últimos 6 s), con una cámara baja que sigue la pelota y cámara lenta al final. Arriba dice "REPETICIÓN"; abajo, la ficha del goleador como en tu captura: puesto, número, nombre, altura y edad (y "en contra" si fue gol en contra). Se ven también los gestos (patada, cabezazo, estirada). X / Start la saltea. Opción "Repeticiones de gol" en Opciones. |
+| Sonido | Generado por código, sin archivos de terceros: silbato (corto en faltas y saques del medio, doble en el entretiempo, triple al final), patada (más grave cuanto más fuerte), pique, palo, red, murmullo del público que sube cuando la pelota se acerca a un arco, grito de gol y "uhh" cuando un remate se va cerca o pega en el palo. Volúmenes de efectos y del público en Opciones. Es una base: cuando tengamos sonidos grabados (CC0) o tu referencia de video, se reemplazan uno por uno. |
+| Liga | Todos contra todos con los 8 equipos (7 fechas). Elegís tu equipo; cada fecha jugás tu partido (pasando por la configuración del partido, de local o de visitante) o lo simulás; el resto se simula según los puntajes de los equipos. Tabla con PJ, G, E, P, GF, GC, DG y puntos. Al final, el campeón. |
+| Copa | Eliminación directa por sorteo: cuartos, semis y final. Si tu partido termina empatado se define por penales (por ahora simulados). |
+| Guardado | La Liga o la Copa en curso se guarda entre partidos y sesiones; "Abandonar" la borra (pide confirmación). Un partido que se abandona a mitad no cuenta. |
+
+**Tests:** 260 en verde. Se agregaron:
+- `test_replay.gd`: gol, repetición con ficha y saque del medio; ficha; sin repetición si está apagada;
+- `test_audio.gd`: todos los sonidos, pitazo final y el partido los dispara;
+- `test_competition.gd`: fixture, tabla, resultado del lado correcto, copa con penales y campeón, simulación con 2 a 3 goles por partido, guardado y jugar de visitante.
 
 ## Menús estilo WE (según tus capturas)
 
@@ -43,13 +58,13 @@ Los equipos y uniformes elegidos se guardan para el próximo partido.
 
 | Pantalla | Cuándo |
 |---|---|
-| Gol (repetición y cartel con puesto, número, nombre, altura y edad del goleador) | Fase 5 (presentación) |
+| Gol: repetición con la ficha del goleador | ✅ Hecho |
 | Presentación de jugadores en la previa con primeros planos | Fase 5, con tu modelo final |
 | Configurar controles (cambiar los botones, por mando) | Fase 8 (pulido) |
 | Liga Master, con **mercado de pases** (lista con puntos y costo, y ficha con barras) | Fase 6 |
-| Liga y Copa (formato, cantidad de equipos, grupos, duración, nivel) | Fase 7 |
+| Liga y Copa: más equipos, fase de grupos, penales jugados, dos ruedas desde el menú | Fase 7 |
 | Editor y creación de jugadores (pelo, cara, altura, físico, edad, pie) y de equipos | Más adelante, junto al creador de estadios |
-| Sonido y audio (público, relato, pelota, silbato). Referencia que pasaste: https://www.youtube.com/watch?v=GQMqctHarjo | Fase 5 |
+| Sonido grabado y relato (hoy: sonido generado por código). Referencia que pasaste: https://www.youtube.com/watch?v=GQMqctHarjo | Fase 5 |
 
 ## Fase 4 (3): cuerpo a cuerpo, lesiones, habilidades especiales y estrategias
 

@@ -270,7 +270,8 @@ func _build_world() -> void:
 func _setup_controllers() -> void:
 	match GameSettings.mode:
 		GameSettings.Mode.VS_CPU:
-			humans.append(HumanController.new(0, teams[0], self))
+			# En la Liga / Copa el humano también puede jugar de visitante.
+			humans.append(HumanController.new(0, teams[clampi(GameSettings.human_side, 0, 1)], self))
 		GameSettings.Mode.TWO_PLAYERS:
 			humans.append(HumanController.new(0, teams[0], self))
 			humans.append(HumanController.new(1, teams[1], self))
@@ -2044,5 +2045,7 @@ func _exit_tree() -> void:
 
 
 func exit_to_menu() -> void:
+	# Partido de Liga / Copa: cuenta sólo si se jugó hasta el final.
+	GameSettings.last_result = [teams[0].score, teams[1].score] if phase == Phase.FULLTIME else []
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")

@@ -21,6 +21,10 @@ var _kits: Array[WEStyle.KitIcon] = []
 var _bars: WEStyle.RatingBars
 var _help: Label
 var _side_labels: Array[Label] = []
+var _side_panels: Array[Control] = []
+var _title: Label
+## Elegir un solo equipo (el tuyo, para la Liga o la Copa).
+var single := false
 
 
 func _ready() -> void:
@@ -29,9 +33,9 @@ func _ready() -> void:
 	for p in paths:
 		teams.append(load(p) as TeamData)
 	picks = [maxi(paths.find(GameSettings.home_team_path), 0), maxi(paths.find(GameSettings.away_team_path), 0)]
-	var title := WEStyle.label("ELEGÍ LOS EQUIPOS", 30, Color(1.0, 0.9, 0.35))
-	title.position = Vector2(70, 40)
-	add_child(title)
+	_title = WEStyle.label("ELEGÍ LOS EQUIPOS", 30, Color(1.0, 0.9, 0.35))
+	_title.position = Vector2(70, 40)
+	add_child(_title)
 	# Arriba: local | barras | visitante.
 	var top := HBoxContainer.new()
 	top.position = Vector2(70, 90)
@@ -63,6 +67,7 @@ func _ready() -> void:
 		row.add_child(kit)
 		_kits.append(kit)
 		top.add_child(pc)
+		_side_panels.append(pc)
 		if i == 0:
 			var mid := WEStyle.panel(Vector2(400, 250))
 			_bars = WEStyle.RatingBars.new()
@@ -103,6 +108,9 @@ func _ready() -> void:
 func open() -> void:
 	side = 0
 	visible = true
+	_title.text = "ELEGÍ TU EQUIPO" if single else "ELEGÍ LOS EQUIPOS"
+	_side_panels[1].visible = not single
+	_bars.get_parent().visible = not single
 	_refresh()
 	(_grid.get_child(picks[0]) as Control).grab_focus()
 
@@ -114,6 +122,9 @@ func _on_focus(i: int) -> void:
 
 func _on_pick(i: int) -> void:
 	picks[side] = i
+	if single:
+		chosen.emit(paths[i], "")
+		return
 	if side == 0:
 		side = 1
 		_refresh()
@@ -159,5 +170,5 @@ func _refresh() -> void:
 	_bars.home = teams[picks[0]].ratings()
 	_bars.away = teams[picks[1]].ratings()
 	_bars.queue_redraw()
-	_help.text = ("Elegí el equipo LOCAL." if side == 0 else "Elegí el equipo VISITANTE.") + \
+	_help.text = ("Elegí tu equipo." if single else ("Elegí el equipo LOCAL." if side == 0 else "Elegí el equipo VISITANTE.")) + \
 		"   X: elegir   Cuadrado (Z): al azar   Círculo (Esc): volver"

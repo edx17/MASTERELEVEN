@@ -20,6 +20,14 @@ func _run() -> void:
 			if page == "setup":
 				GameSettings.home_team_path = "res://data/teams/bahia.tres"
 				GameSettings.away_team_path = "res://data/teams/pampa.tres"
+			# Liga / Copa de ejemplo con algunas fechas jugadas.
+			if page in ["league", "cup"]:
+				var c := Competition.create_league(GameSettings.team_paths(), 0, false, 3) if page == "league" \
+					else Competition.create_cup(GameSettings.team_paths(), 0, 3)
+				for i in (3 if page == "league" else 1):
+					c.complete_round([2, 1], 10 + i)
+				c.save()
+				page = "hub"
 			if page == "teams":
 				menu.call("show_page", "modes")
 			menu.call("show_page", page)

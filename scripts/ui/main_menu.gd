@@ -14,6 +14,9 @@ var _help: Label
 var _mode_two: Button
 var _teams: TeamSelect
 var _setup: MatchSetup
+var _hub: CompetitionHub
+## Eligiendo el equipo para una Liga / Copa nueva (Competition.Kind) o -1.
+var _new_competition := -1
 var _history: Array[String] = []
 var _focus_memory := {}
 
@@ -39,8 +42,25 @@ func _ready() -> void:
 	_setup.play.connect(_start)
 	_setup.back.connect(go_back)
 	_pages["setup"] = _setup
+	_hub = CompetitionHub.new()
+	add_child(_hub)
+	_hub.play_match.connect(_on_competition_match)
+	_hub.back.connect(func() -> void:
+		_history.clear()
+		show_page("home", false))
+	_pages["hub"] = _hub
 	Input.joy_connection_changed.connect(func(_d: int, _c: bool) -> void: _refresh_modes())
 	show_page("home")
+	# Volviendo de un partido de Liga / Copa: se anota el resultado.
+	if GameSettings.competition_match:
+		GameSettings.competition_match = false
+		var c := Competition.load_saved()
+		if c != null:
+			if not GameSettings.last_result.is_empty():
+				c.complete_round(GameSettings.last_result)
+				c.save()
+			GameSettings.last_result = []
+			show_page("hub")
 
 
 # --- Navegación -------------------------------------------------------------------
@@ -61,6 +81,8 @@ func show_page(page: String, remember := true) -> void:
 			_teams.open()
 		"setup":
 			_setup.open()
+		"hub":
+			_hub.open(Competition.load_saved())
 		_:
 			var back_focus: Control = _focus_memory.get(page)
 			if not remember and back_focus != null and is_instance_valid(back_focus):
@@ -132,8 +154,10 @@ func _build_home() -> void:
 	var p := _page("home")
 	var col := _column(p, Vector2(80, 80))
 	_item(col, "PARTIDO", "Jugá un partido amistoso: contra la CPU, de a dos o mirá CPU contra CPU.", show_page.bind("modes"))
-	_item(col, "LIGA", "Próximamente (Fase 7): un campeonato todos contra todos.", Callable(), false)
-	_item(col, "COPA", "Próximamente (Fase 7): copas por grupos y eliminación.", Callable(), false)
+	_item(col, "LIGA", "Campeonato todos contra todos con los 8 equipos. Se guarda entre partidos.",
+		_open_competition.bind(Competition.Kind.LEAGUE))
+	_item(col, "COPA", "Eliminación directa: cuartos, semis y final (con penales si empatan). Se guarda entre partidos.",
+		_open_competition.bind(Competition.Kind.CUP))
 	_item(col, "LIGA MASTER", "Próximamente (Fase 6): armá tu equipo, con mercado de pases, y llevalo a la cima.", Callable(), false)
 	_item(col, "ENTRENAMIENTO", "Próximamente: práctica libre, tiros libres y penales.", Callable(), false)
 	_item(col, "EDITOR", "Próximamente: crear y editar jugadores y equipos.", Callable(), false)
@@ -170,10 +194,53 @@ func _refresh_modes() -> void:
 
 func _choose_mode(mode: int) -> void:
 	GameSettings.set_mode(mode)
+	GameSettings.human_side = 0
+	GameSettings.competition_match = false
+	_new_competition = -1
+	_teams.single = false
 	show_page("teams")
 
 
+# --- Liga / Copa -----------------------------------------------------------------
+
+## Sigue la competición guardada de ese tipo; si no hay, elegís tu equipo.
+func _open_competition(kind: int) -> void:
+	var saved := Competition.load_saved()
+	if saved != null and saved.kind == kind and not saved.finished():
+		show_page("hub")
+		return
+	_new_competition = kind
+	_teams.single = true
+	show_page("teams")
+
+
+func _start_competition(kind: int, my_team: String) -> void:
+	var paths := GameSettings.team_paths()
+	var me := maxi(paths.find(my_team), 0)
+	var c := Competition.create_league(paths, me, false) if kind == Competition.Kind.LEAGUE else Competition.create_cup(paths, me)
+	c.save()
+	_history.clear()
+	_history.append("home")
+	show_page("hub", false)
+
+
+## Jugar el partido de la fecha: pasa por la configuración del partido.
+func _on_competition_match(home: String, away: String, side: int) -> void:
+	GameSettings.home_team_path = home
+	GameSettings.away_team_path = away
+	GameSettings.human_side = side
+	GameSettings.set_mode(GameSettings.Mode.VS_CPU)
+	GameSettings.competition_match = true
+	show_page("setup")
+
+
 func _on_teams_chosen(home: String, away: String) -> void:
+	if _new_competition >= 0:
+		var kind := _new_competition
+		_new_competition = -1
+		_teams.single = false
+		_start_competition(kind, home)
+		return
 	GameSettings.home_team_path = home
 	GameSettings.away_team_path = away
 	show_page("setup")

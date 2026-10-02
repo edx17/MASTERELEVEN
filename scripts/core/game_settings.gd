@@ -85,6 +85,11 @@ var persist := true
 var random_conditions := true
 ## Repetición después de cada gol (apagada en tests y herramientas).
 var show_replays := true
+## Partido de Liga / Copa en curso: de qué lado juega el humano y el
+## resultado al terminar (lo lee el menú al volver). No se guardan.
+var competition_match := false
+var human_side: int = 0
+var last_result: Array = []
 ## Volumen de efectos (silbato, pelota) y del público, 0..10.
 var sfx_volume: int = 8
 var crowd_volume: int = 7
