@@ -68,6 +68,8 @@ var debug_target: Vector3 = Vector3.ZERO
 var debug_state: String = ""
 ## Energía 0..100 (ver update_stamina).
 var stamina: float = 100.0
+## Cansancio acumulado en el partido (puntos que se le restan al tope de 100).
+var wear: float = 0.0
 ## Tiempo de reacción pendiente (IA): mientras corre, mantiene la orden anterior.
 var reaction_timer: float = 0.0
 ## Posición del rival más cercano (la fija el partido; sirve para cubrir la pelota).
@@ -136,19 +138,66 @@ func update_stamina(dt: float) -> void:
 		stamina += _tuning.stamina_regen_jog * dt
 	else:
 		stamina += _tuning.stamina_regen_rest * dt
-	stamina = clampf(stamina, 0.0, 100.0)
+	stamina = clampf(stamina, 0.0, stamina_cap())
 
 
-## Multiplicador de velocidad por cansancio: debajo del umbral cae hasta el mínimo.
+## Tope de energía: baja con el desgaste acumulado del partido.
+func stamina_cap() -> float:
+	return 100.0 - wear
+
+
+## Desgaste por `game_dt` segundos de juego (reloj del partido, no tiempo
+## real): más en sprint, menos parado; el atributo stamina lo reduce.
+func accumulate_wear(game_dt: float) -> void:
+	if _tuning == null or game_dt <= 0.0:
+		return
+	var endurance := PlayerData.unit(data.stamina) if data else 0.6
+	var moving := Vector3(velocity.x, 0.0, velocity.z).length()
+	var k := 1.0
+	if is_sprinting() and moving > _tuning.run_speed * 0.8:
+		k = _tuning.wear_sprint_factor
+	elif moving < 1.5:
+		k = _tuning.wear_rest_factor
+	wear = minf(wear + _tuning.wear_per_game_minute * k * (1.3 - 0.6 * endurance) * game_dt / 60.0, _tuning.wear_max)
+	stamina = minf(stamina, stamina_cap())
+
+
+## Entretiempo: recupera parte del desgaste y llena la energía hasta el tope.
+func rest_at_halftime() -> void:
+	wear *= 1.0 - _tuning.wear_halftime_recovery
+	stamina = stamina_cap()
+
+
+## Multiplicador de velocidad por cansancio: debajo del umbral cae hasta el
+## mínimo; el desgaste acumulado baja además la velocidad tope.
 func fatigue_speed_factor() -> float:
+	var worn := lerpf(1.0, _tuning.wear_min_speed_factor, clampf(wear / _tuning.wear_max, 0.0, 1.0))
 	var th := _tuning.stamina_tired_threshold
 	if stamina >= th:
-		return 1.0
-	return lerpf(_tuning.stamina_min_speed_factor, 1.0, stamina / th)
+		return worn
+	return worn * lerpf(_tuning.stamina_min_speed_factor, 1.0, stamina / th)
 
 
 func is_keeper() -> bool:
 	return role == Role.GK
+
+
+## Ropa según el puesto: el arquero con la camiseta y guantes de arquero
+## (siempre con su propio número).
+func kit_colors() -> Dictionary:
+	var shirt := team.keeper_color if is_keeper() else team.color
+	var colors := {"shirt": shirt, "shorts": team.secondary_color, "socks": shirt, "number": number}
+	if is_keeper():
+		colors["gloves"] = Color(0.95, 0.95, 0.9)
+	return colors
+
+
+## Un jugador de campo va al arco (expulsaron al arquero y no hay cambio):
+## pasa a ser arquero y se pone la ropa de arquero, con su número.
+func make_keeper() -> void:
+	role = Role.GK
+	if visual != null:
+		visual.recolor(kit_colors())
 
 
 func is_human() -> bool:
@@ -512,10 +561,7 @@ func _build_visuals() -> void:
 	# está importado (assets/), si no el humanoide armado por piezas.
 	visual = ModelVisual.new() if ModelVisual.available() else PlayerVisual.new()
 	add_child(visual)
-	var shirt := team.keeper_color if is_keeper() else team.color
-	var colors := {"shirt": shirt, "shorts": team.secondary_color, "socks": shirt, "number": number}
-	if is_keeper():
-		colors["gloves"] = Color(0.95, 0.95, 0.9)
+	var colors := kit_colors()
 	if data != null:
 		colors["build"] = int(data.visual_build())
 		if data.hair >= 0:

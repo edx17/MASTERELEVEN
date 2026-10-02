@@ -54,6 +54,9 @@ var _clip_left := 0.0
 var _slide_played := false
 ## Lo fija el Footballer: es arquero / lleva la pelota (elige la locomoción).
 var keeper := false
+## Material del cuerpo (colores de la ropa) y número de la espalda.
+var _body_mat: ShaderMaterial
+var _number_label: Label3D
 var carrying := false
 ## Lo fija el Footballer: derribado por una barrida, cuánto le falta para
 ## volver a jugar y velocidad de costado (+ = hacia el +X del modelo).
@@ -146,11 +149,9 @@ func setup(colors: Dictionary, seed: int) -> void:
 		mat.set_shader_parameter("hair", scalp)
 		_add_hair(hair_style, hair_color, colors.get("shirt", Color.WHITE))
 		mat.set_shader_parameter("hands", colors.get("gloves", skin))
-		var trim: Color = colors.get("shorts", Color.WHITE)
-		if trim.is_equal_approx(shirt) or absf(trim.get_luminance() - shirt.get_luminance()) < 0.08:
-			trim = shirt.darkened(0.35)
-		mat.set_shader_parameter("trim", trim)
+		mat.set_shader_parameter("trim", _trim_for(shirt, colors.get("shorts", Color.WHITE)))
 		body.material_override = mat
+		_body_mat = mat
 	if colors.has("number"):
 		_add_back_number(int(colors["number"]), colors.get("shirt", Color.WHITE))
 	var dark := _mat(Color(0.05, 0.04, 0.04))
@@ -168,6 +169,32 @@ func setup(colors: Dictionary, seed: int) -> void:
 		_anim.add_animation_library(&"mx", _mx)
 	_anim.mixer_applied.connect(_apply_gestures)
 	_play_locomotion(0.0)
+
+
+## Vivos de la camiseta: el color del short, o la camiseta más oscura si se
+## confunden.
+static func _trim_for(shirt: Color, shorts: Color) -> Color:
+	if shorts.is_equal_approx(shirt) or absf(shorts.get_luminance() - shirt.get_luminance()) < 0.08:
+		return shirt.darkened(0.35)
+	return shorts
+
+
+## Cambia la ropa (un jugador de campo que va al arco: camiseta y guantes de
+## arquero, con su número).
+func recolor(colors: Dictionary) -> void:
+	if _body_mat != null:
+		var shirt: Color = colors.get("shirt", Color.WHITE)
+		_body_mat.set_shader_parameter("shirt", shirt)
+		_body_mat.set_shader_parameter("socks", colors.get("socks", shirt))
+		if colors.has("shorts"):
+			_body_mat.set_shader_parameter("shorts", colors["shorts"])
+		if colors.has("gloves"):
+			_body_mat.set_shader_parameter("hands", colors["gloves"])
+		_body_mat.set_shader_parameter("trim", _trim_for(shirt, colors.get("shorts", Color.WHITE)))
+	if _number_label != null:
+		_color_number(_number_label, colors.get("shirt", Color.WHITE))
+		if colors.has("number"):
+			_number_label.text = str(colors["number"])
 
 
 ## Fija el físico: calcula la escala de cada hueso. Escalar un hueso escala a
@@ -244,9 +271,8 @@ func _add_back_number(number: int, shirt: Color) -> void:
 	label.font_size = 128
 	label.pixel_size = 0.0022
 	label.outline_size = 10
-	var light_shirt := shirt.get_luminance() > 0.55
-	label.modulate = Color(0.08, 0.08, 0.1) if light_shirt else Color(0.97, 0.97, 0.97)
-	label.outline_modulate = Color(0.97, 0.97, 0.97, 0.6) if light_shirt else Color(0.05, 0.05, 0.08, 0.6)
+	_color_number(label, shirt)
+	_number_label = label
 	label.double_sided = false
 	label.shaded = true
 	attach.add_child(label)
@@ -255,6 +281,13 @@ func _add_back_number(number: int, shirt: Color) -> void:
 	var rest := _skel.get_bone_global_rest(bone)
 	var desired := Transform3D(Basis(Vector3.UP, PI), Vector3(0.0, rest.origin.y + 0.02, -0.16))
 	label.transform = rest.affine_inverse() * desired
+
+
+## Número oscuro sobre camiseta clara y claro sobre oscura.
+static func _color_number(label: Label3D, shirt: Color) -> void:
+	var light_shirt := shirt.get_luminance() > 0.55
+	label.modulate = Color(0.08, 0.08, 0.1) if light_shirt else Color(0.97, 0.97, 0.97)
+	label.outline_modulate = Color(0.97, 0.97, 0.97, 0.6) if light_shirt else Color(0.05, 0.05, 0.08, 0.6)
 
 
 func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: float) -> void:

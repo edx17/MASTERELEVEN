@@ -9,13 +9,41 @@ Ver `Claude.md` para visión, criterios y fases.
 | 2 — Prototipo 0.1: sensación de juego | ✅ Hecha (PR #2) |
 | 3 — IA de partido (TeamAI, formaciones, zonas, arquero) | 🟡 Implementada, **pendiente de tu prueba** |
 | Visual 1 — Se ve como la referencia (jugadores animados, cámara, cancha) | 🟡 Implementada, **pendiente de tu prueba** |
-| 4 — Reglas, atributos y plantel | ⬜ |
+| 4 — Reglas, atributos y plantel | 🟡 En curso: tarjetas, offside, cambios y cansancio hechos |
 | 5 — Presentación moderna (estadio, modelos, animaciones, audio) | ⬜ |
 | 6 — Liga Master | ⬜ |
 | 7 — Torneos | ⬜ |
 | 8 — Pulido | ⬜ |
 
 ---
+
+## Fase 4 (1): cambios, cansancio acumulado y arquero expulsado
+
+| Tema | Cambio |
+|---|---|
+| Arquero expulsado | Al arquero también lo echan (roja directa o segunda amarilla). Si quedan cambios y hay arquero en el banco, entra él y sale un jugador de campo (el delantero más cansado): el equipo queda con 10. Si no hay cambios, va al arco el defensor más cercano, con la ropa y los guantes de arquero pero **con su propio número**. |
+| Banco | 5 suplentes por equipo (los jugadores 12 a 16 del plantel, con un arquero). Se crean recién cuando entran. |
+| Cambios | Hasta 3 por partido. El que entra ocupa el puesto del que sale, en su mismo lugar de la cancha; el que sale no vuelve. |
+| Cambios del humano | Pausa → **Cambios (N restantes)**: a la izquierda los de la cancha (**Sale**), con puesto y energía; a la derecha el banco (**Entra**); **Confirmar**. Con la pelota parada se hace en el momento; con la pelota en juego, en la próxima pelota parada. |
+| Cambios de la CPU | Desde el minuto 55, en cada pelota parada cambia al más cansado (si su energía no pasa de 80) por un suplente del mismo puesto. |
+| Cansancio acumulado | Además de la energía que se gasta y se recupera en el momento, cada minuto de juego baja el **tope** de energía: más en sprint, menos parado, y menos con buen atributo de resistencia. En el entretiempo se recupera el 30 % del desgaste. Con el tope bajo, la velocidad máxima baja hasta un 6 % y la puntería empeora (ya dependía de la energía). En el HUD, la parte oscura a la derecha de la barra de energía es el tope perdido. |
+
+En simulaciones CPU vs CPU: desgaste promedio de 28 al final del partido (el tope queda cerca de 72) y 2 cambios por equipo.
+
+**Tests:** 220 en verde. Se agregaron (`tests/unit/test_substitutions.gd`):
+- banco y cambio en el mismo puesto;
+- máximo de 3 cambios;
+- cambio pedido que espera la pelota parada;
+- arquero expulsado con arquero suplente;
+- arquero expulsado sin cambios: un defensor va al arco con la ropa de arquero y su número;
+- segunda amarilla al arquero;
+- desgaste, entretiempo y velocidad;
+- el desgaste corre con el reloj;
+- cambio de la CPU desde el minuto 55.
+
+Se arregló además el test del offside: la línea defensiva del test quedaba sobre la trayectoria del pase y un defensor lo cortaba.
+
+Próximo: menú previo al partido (como el de tu imagen) con **Jugar partido · Dirección del equipo** (formación, titulares y suplentes, quién patea) **· Ajustes · Controles**.
 
 ## Ronda WE2002 (14): offside
 
@@ -40,7 +68,7 @@ En simulaciones CPU vs CPU da 2 a 3 offsides por partido (en el fútbol real son
 | Roja directa | Barrida que es falta de atrás: roja el 85 % de las veces (como en el WE). |
 | Segunda amarilla | Es roja. |
 | Expulsión | El jugador sale de la cancha y el equipo sigue con 10. Ya no cuenta para la IA, los controles (si lo manejabas, pasás al más cercano a la pelota), la posesión ni las reglas. Cada uno conserva su puesto en la formación (`Team.roster` guarda el plantel y `Team.players` los que están en cancha). El saque del medio funciona con menos jugadores. |
-| Arquero | A lo sumo amarilla (no queda el arco vacío). |
+| Arquero | ~~A lo sumo amarilla.~~ Desde la Fase 4 (1) también lo pueden echar (ver arriba). |
 
 Rojas en las estadísticas del partido (`stats["reds"]`).
 

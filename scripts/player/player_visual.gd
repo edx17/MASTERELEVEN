@@ -34,6 +34,8 @@ var _leg: Array[Node3D] = [] # [izq, der] pivote en la cadera
 var _knee: Array[Node3D] = []
 var _arm: Array[Node3D] = [] # pivote en el hombro
 var _elbow: Array[Node3D] = []
+## Materiales de la ropa (para recolor).
+var _kit := {}
 var _phase: float = 0.0
 var _event: int = -1
 var _event_t: float = 0.0
@@ -56,6 +58,7 @@ func setup(colors: Dictionary, seed: int) -> void:
 	var shirt := _mat(colors.get("shirt", Color.WHITE))
 	var shorts := _mat(colors.get("shorts", Color.BLACK))
 	var socks := _mat(colors.get("socks", colors.get("shirt", Color.WHITE)))
+	_kit = {"shirt": shirt, "shorts": shorts, "socks": socks}
 	var boots := _mat(colors.get("boots", Color(0.08, 0.08, 0.08)))
 
 	_hips = Node3D.new()
@@ -100,6 +103,13 @@ func setup(colors: Dictionary, seed: int) -> void:
 		_capsule(elbow, 0.045, FOREARM, Vector3(0, -FOREARM * 0.5, 0), skin)
 		_arm.append(arm)
 		_elbow.append(elbow)
+
+
+## Cambia la ropa (por ejemplo, un jugador de campo que va al arco).
+func recolor(colors: Dictionary) -> void:
+	for k in _kit:
+		if colors.has(k):
+			(_kit[k] as StandardMaterial3D).albedo_color = colors[k]
 
 
 ## Avanza la animación. speed: m/s del jugador.

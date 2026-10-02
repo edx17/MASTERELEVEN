@@ -20,6 +20,14 @@ var players: Array[Footballer] = []
 ## cada uno no cambia aunque haya expulsados).
 var roster: Array[Footballer] = []
 var sent_off: Array[Footballer] = []
+## Cambios: hasta MAX_SUBS por partido, de los suplentes del banco.
+const MAX_SUBS := 3
+var bench: Array[PlayerData] = []
+## Los que salieron reemplazados (no vuelven a entrar).
+var subbed_off: Array[Footballer] = []
+var subs_used: int = 0
+## Cambios pedidos que se hacen en la próxima pelota parada: [{out, in}].
+var pending_subs: Array[Dictionary] = []
 var score: int = 0
 
 
@@ -35,6 +43,18 @@ func _init(p_index: int, p_name: String, p_short: String, p_color: Color, p_seco
 ## Puesto del jugador en la formación (índice del plantel).
 func slot_of(p: Footballer) -> int:
 	return roster.find(p)
+
+
+func subs_left() -> int:
+	return MAX_SUBS - subs_used - pending_subs.size()
+
+
+## Suplente arquero en el banco (o null).
+func bench_keeper() -> PlayerData:
+	for d in bench:
+		if d.position == PlayerData.Position.GK:
+			return d
+	return null
 
 
 func keeper() -> Footballer:

@@ -78,7 +78,9 @@ Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **F
 
 | Mecánica del WE | Estado | En MASTER ELEVEN |
 |---|---|---|
-| Barra de energía; R1 la vacía; fundido llega tarde y patea mordido | Hecho | Energía de corto plazo y penalización de precisión. Fase 4: fatiga acumulada. |
+| Barra de energía; R1 la vacía; fundido llega tarde y patea mordido | Hecho | Energía de corto plazo y penalización de precisión, más cansancio acumulado: el tope de energía baja con los minutos y el sprint (en el HUD, la parte oscura de la barra). El entretiempo recupera el 30 %. |
+| Cambios: 3 por partido desde el banco | Hecho | Pausa → Cambios (Sale / Entra / Confirmar). La CPU cambia a los cansados desde el minuto 55. |
+| Arquero expulsado | Hecho | Entra el arquero suplente por un jugador de campo; sin cambios, va al arco un defensor con ropa de arquero y su número. |
 | Flechas de condición (roja a gris) | Fase 4/6 | |
 | Táctica libre en la pizarra y flechas de actitud por jugador | Pendiente | Hoy hay 5 formaciones; editor libre más adelante. |
 | Master Liga | Fase 6 | |

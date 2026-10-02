@@ -67,7 +67,7 @@ var toast_text: String = ""
 var _toast_timer: float = 0.0
 ## Estadísticas simples del partido, por equipo.
 var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won": [0, 0],
-	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0]}
+	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0], "subs": [0, 0]}
 ## Atajada planificada para el último remate (ver SaveModel):
 ## {keeper, will_save, parry, point, time_left, chance}. Vacío si no hay.
 var save_plan := {}
@@ -230,6 +230,9 @@ func _build_world() -> void:
 			p.tactical_role = formation.tactical_role(n)
 			team.players.append(p)
 			team.roster.append(p)
+		# Suplentes: los que siguen en la lista (se crean al entrar).
+		for n in range(starters.size(), d.players.size()):
+			team.bench.append(d.players[n])
 
 	_camera = MatchCamera.new()
 	add_child(_camera)
@@ -310,7 +313,13 @@ func _physics_process(dt: float) -> void:
 
 	clock.running = phase in [Phase.PLAYING, Phase.STOPPED] or (phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF)
 	# El reloj va en tiempo real aunque el juego corra más lento (velocidad).
-	clock.advance(dt / maxf(Engine.time_scale, 0.01))
+	var real_dt := dt / maxf(Engine.time_scale, 0.01)
+	clock.advance(real_dt)
+	# Cansancio acumulado: corre con el reloj del partido.
+	if clock.running:
+		var game_dt := real_dt * clock.rate()
+		for p in all_players():
+			p.accumulate_wear(game_dt)
 	if clock.is_half_over() and phase == Phase.PLAYING:
 		_end_half()
 
@@ -358,6 +367,8 @@ func _update_phase(dt: float) -> void:
 			if _phase_timer <= 0.0:
 				for t in teams:
 					t.attack_dir = -t.attack_dir
+				for p in all_players():
+					p.rest_at_halftime()
 				clock.start_second_half()
 				_setup_kickoff(1 - _first_half_kicker)
 		Phase.FULLTIME:
@@ -810,9 +821,9 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 	else:
 		spot = Pitch.clamp_to_field(spot, 1.0)
 	# Tarjeta (como en el WE): barrida de atrás = roja directa casi siempre;
-	# si no, amarilla a veces, y la segunda amarilla es roja. Al arquero, a lo
-	# sumo amarilla (no queda el arco vacío).
-	var red := slide and from_behind and not offender.is_keeper() and randf() < RED_FROM_BEHIND
+	# si no, amarilla a veces, y la segunda amarilla es roja. Al arquero
+	# también lo pueden echar (ver _replace_keeper).
+	var red := slide and from_behind and randf() < RED_FROM_BEHIND
 	var yellow_p := (0.6 if from_behind else 0.2) if slide else (0.3 if from_behind else 0.05)
 	if red:
 		text += "   -   ROJA: %s" % offender.display_name
@@ -821,7 +832,7 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 	elif randf() < yellow_p:
 		offender.yellow_cards += 1
 		stats["yellows"][offender.team.index] += 1
-		if offender.yellow_cards >= 2 and not offender.is_keeper():
+		if offender.yellow_cards >= 2:
 			text += "   -   SEGUNDA AMARILLA, ROJA: %s" % offender.display_name
 			send_off(offender)
 		else:
@@ -922,10 +933,23 @@ func send_off(p: Footballer) -> void:
 	var t := p.team
 	if not t.players.has(p):
 		return
+	var was_keeper := p.is_keeper()
+	var slot := t.slot_of(p)
 	t.players.erase(p)
 	t.sent_off.append(p)
 	p.sent_off = true
 	stats["reds"][t.index] += 1
+	for s in t.pending_subs.duplicate():
+		if s["out"] == p:
+			t.pending_subs.erase(s)
+	_leave_pitch(p)
+	if was_keeper:
+		_replace_keeper(t, slot)
+
+
+## Saca de la cancha a un expulsado o reemplazado (queda oculto en el banco).
+func _leave_pitch(p: Footballer) -> void:
+	var t := p.team
 	if ball.owner_player == p:
 		ball.owner_player = null
 	if ball.intended_receiver == p:
@@ -939,6 +963,151 @@ func send_off(p: Footballer) -> void:
 			p.set_human_slot(-1)
 			h.controlled = null
 			h.select(h.nearest_to_ball())
+
+
+# --- Cambios ------------------------------------------------------------------
+
+## Minuto desde el que la CPU cambia a los cansados.
+const CPU_SUB_MINUTE := 55.0
+## Energía (tope o actual) debajo de la cual la CPU considera cambiarlo.
+const CPU_SUB_STAMINA := 80.0
+
+
+## Pide un cambio: se hace ya si la pelota está parada; si no, en la próxima
+## pelota parada. Devuelve false si no se puede (sin cambios, ya salió...).
+func request_sub(out: Footballer, in_data: PlayerData) -> bool:
+	var t := out.team
+	if t.subs_left() <= 0 or not t.players.has(out) or not t.bench.has(in_data):
+		return false
+	for s in t.pending_subs:
+		if s["out"] == out or s["in"] == in_data:
+			return false
+	t.pending_subs.append({"out": out, "in": in_data})
+	var stopped := phase in [Phase.STOPPED, Phase.HALFTIME, Phase.GOAL]
+	# Con un saque esperando también se puede, salvo que salga el que saca.
+	if phase == Phase.RESTART and out != restart_taker and ball.owner_player != out:
+		stopped = true
+	if stopped:
+		t.pending_subs.erase(t.pending_subs.back())
+		substitute(out, in_data)
+	else:
+		show_toast("%s: cambio en la próxima pelota parada" % t.short_name)
+	return true
+
+
+## Hace los cambios pedidos (y los de la CPU) con la pelota parada.
+func _make_pending_subs() -> void:
+	for t in teams:
+		if not _has_human(t):
+			_cpu_subs(t)
+		for s in t.pending_subs.duplicate():
+			t.pending_subs.erase(s)
+			substitute(s["out"], s["in"])
+
+
+## Cambio: `in_data` (del banco) entra en el puesto de `out`, en su lugar de
+## la cancha. Devuelve el que entró (o null si no se pudo).
+func substitute(out: Footballer, in_data: PlayerData, as_keeper := false) -> Footballer:
+	var t := out.team
+	if t.subs_used >= Team.MAX_SUBS or not t.players.has(out) or not t.bench.has(in_data):
+		return null
+	var p := Footballer.new()
+	add_child(p)
+	var role: int = Footballer.Role.GK if as_keeper else out.role
+	p.setup(t, in_data, role, out.base_spot, tuning)
+	p.tactical_role = out.tactical_role
+	p.teleport(out.flat_pos(), out.facing)
+	t.players[t.players.find(out)] = p
+	var slot := t.slot_of(out)
+	if slot >= 0:
+		t.roster[slot] = p
+	t.bench.erase(in_data)
+	t.subbed_off.append(out)
+	t.subs_used += 1
+	stats["subs"][t.index] += 1
+	_leave_pitch(out)
+	show_toast("CAMBIO %s:  sale %s  -  entra %s" % [t.short_name, out.display_name, p.display_name], 2.5)
+	return p
+
+
+## Expulsaron al arquero: si quedan cambios y hay arquero suplente, entra él
+## por un jugador de campo (un delantero, el más cansado); si no, va al arco
+## el defensor más cerca del arco propio, con ropa de arquero y su número.
+func _replace_keeper(t: Team, slot: int) -> void:
+	var outfield: Array[Footballer] = []
+	for p in t.players:
+		if not p.is_keeper():
+			outfield.append(p)
+	if outfield.is_empty():
+		return
+	var sub_gk := t.bench_keeper()
+	if sub_gk != null and t.subs_left() > 0:
+		var out: Footballer = null
+		for pref in [Footballer.Role.FW, Footballer.Role.MF, Footballer.Role.DF]:
+			for p in outfield:
+				if p.role == pref and (out == null or p.stamina < out.stamina):
+					out = p
+			if out != null:
+				break
+		var gk_spot := t.to_world(t.formation.slots[0]) if t.formation and slot >= 0 else t.own_goal()
+		var gk := substitute(out, sub_gk, true)
+		if gk != null:
+			# El arquero va al arco; el delantero que salió deja su puesto vacío.
+			var out_slot := t.roster.find(gk)
+			if slot >= 0 and out_slot >= 0:
+				t.roster[out_slot] = out
+				t.roster[slot] = gk
+				gk.base_spot = t.formation.slots[slot] if t.formation else gk.base_spot
+				gk.tactical_role = t.formation.tactical_role(slot) if t.formation else gk.tactical_role
+			gk.teleport(gk_spot, Vector3(t.attack_dir, 0.0, 0.0))
+			return
+	# Sin cambio: el defensor más cercano al arco propio se pone los guantes.
+	var goal := t.own_goal()
+	var best: Footballer = null
+	for p in outfield:
+		var d := p.flat_pos().distance_to(goal) - (8.0 if p.role == Footballer.Role.DF else 0.0)
+		if best == null or d < best.flat_pos().distance_to(goal) - (8.0 if best.role == Footballer.Role.DF else 0.0):
+			best = p
+	var own_slot := t.slot_of(best)
+	if slot >= 0 and own_slot >= 0:
+		t.roster[own_slot] = t.roster[slot]
+		t.roster[slot] = best
+		if t.formation:
+			best.base_spot = t.formation.slots[slot]
+			best.tactical_role = t.formation.tactical_role(slot)
+	best.make_keeper()
+	show_toast("%s: %s va al arco" % [t.short_name, best.display_name], 2.5)
+
+
+## La CPU cambia (de a uno por pelota parada) al más cansado desde el minuto
+## 55, por un suplente del mismo puesto si hay.
+func _cpu_subs(t: Team) -> void:
+	if t.subs_left() <= 0 or clock.total_game_seconds() < CPU_SUB_MINUTE * 60.0:
+		return
+	var tired: Footballer = null
+	for p in t.players:
+		if p.is_keeper():
+			continue
+		var e := minf(p.stamina_cap(), p.stamina + 25.0)
+		if e < CPU_SUB_STAMINA and (tired == null or e < minf(tired.stamina_cap(), tired.stamina + 25.0)):
+			tired = p
+	if tired == null:
+		return
+	var pick: PlayerData = null
+	for d in t.bench:
+		if d.position == PlayerData.Position.GK:
+			continue
+		if pick == null or (d.position == tired.data.position and pick.position != tired.data.position):
+			pick = d
+	if pick != null:
+		t.pending_subs.append({"out": tired, "in": pick})
+
+
+func _has_human(t: Team) -> bool:
+	for h in humans:
+		if h.team == t:
+			return true
+	return false
 
 
 ## Punto penal frente al arco de `team`.
@@ -1423,6 +1592,7 @@ func _begin_restart(type: int, taker: Footballer) -> void:
 
 
 func _setup_kickoff(kicking_team: int) -> void:
+	_make_pending_subs()
 	for t in teams:
 		for p in t.players:
 			var spot := Formation.kickoff_spot(p.base_spot, t.index == kicking_team)
@@ -1439,6 +1609,7 @@ func _setup_kickoff(kicking_team: int) -> void:
 
 
 func _setup_restart(outcome: MatchRules.Outcome) -> void:
+	_make_pending_subs()
 	var team := teams[outcome.team]
 	var spot := outcome.spot
 	var taker: Footballer

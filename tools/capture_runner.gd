@@ -114,6 +114,11 @@ func _ready() -> void:
 	# `--late`: con el reloj en el segundo tiempo (minuto ~72).
 	if "--late" in OS.get_cmdline_user_args():
 		_script.insert(1, [21, "late"])
+	# `--subs`: pantalla de cambios de la pausa y un jugador de campo en el arco.
+	if "--subs" in OS.get_cmdline_user_args():
+		_script = [[20, "freeze"], [25, "late"], [30, "subs_menu"], [50, "shot:capture_subs.png"],
+			[55, "subs_close"], [56, "preset:Cercana"], [57, "keeper_red"], [58, "simulate:0.5"],
+			[80, "shot:capture_field_keeper.png"], [85, "quit"]]
 	# `--stadium=N`: estadio (StadiumStyles).
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--stadium="):
@@ -251,6 +256,27 @@ func _run(action: String) -> void:
 		_match.clock.game_seconds = MatchClock.HALF_GAME_SECONDS * 0.6
 	elif action.begins_with("intro:"):
 		_match.intro._enter(int(action.trim_prefix("intro:")))
+	elif action == "subs_menu":
+		var pm := _pause_menu()
+		var t0 := _match.teams[0]
+		t0.players[9].wear = 31.0
+		pm._open_subs()
+		pm._pick_out(t0.players[9])
+		pm._pick_in(t0.bench[3])
+	elif action == "subs_close":
+		_pause_menu()._subs_panel.visible = false
+	elif action == "keeper_red":
+		# Sin cambios: el defensor más cercano va al arco con ropa de arquero.
+		var t1 := _match.teams[1]
+		t1.subs_used = Team.MAX_SUBS
+		_match.send_off(t1.keeper())
+		var gk := t1.keeper()
+		gk.teleport(t1.own_goal() + Vector3(-t1.own_side() * 6.0, 0, 2.0), Vector3(-t1.own_side(), 0, 0))
+		_match.phase = MatchController.Phase.PLAYING
+		_match.restart_taker = null
+		_match.ball.frozen = false
+		_match.ball.give_to(gk, false, true)
+		_camera._focus = gk.flat_pos()
 	elif action == "keeper_hold":
 		var t1 := _match.teams[1]
 		var gk := t1.keeper()
@@ -288,6 +314,13 @@ func _run(action: String) -> void:
 		_save(action.trim_prefix("shot:"))
 	elif action == "quit":
 		get_tree().quit()
+
+
+func _pause_menu() -> PauseMenu:
+	for c in _match.get_children():
+		if c is PauseMenu:
+			return c
+	return null
 
 
 func _place(player_pos: Vector3, ball_pos: Vector3, who: Footballer = null) -> void:

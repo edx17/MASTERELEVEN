@@ -49,6 +49,17 @@ func test_full_match_reaches_final_whistle() -> void:
 	_simulate(3.0 * 60.0 + 45.0)
 	assert_eq(_match.phase, MatchController.Phase.FULLTIME)
 	gut.p("Resultado: %d - %d, patadas: %d" % [_match.teams[0].score, _match.teams[1].score, _match.kick_count])
+	# Cansancio acumulado y cambios de la CPU.
+	var worst := 0.0
+	var total := 0.0
+	for p in _match.all_players():
+		worst = maxf(worst, p.wear)
+		total += p.wear
+	gut.p("Desgaste: promedio %.1f, máximo %.1f; cambios %d - %d" % [total / _match.all_players().size(), worst,
+			_match.stats["subs"][0], _match.stats["subs"][1]])
+	for t in _match.teams:
+		assert_eq(t.players.size() + t.sent_off.size(), 11, "los cambios no cambian la cantidad")
+		assert_lte(t.subs_used, Team.MAX_SUBS)
 
 
 func test_debug_overlay_runs() -> void:

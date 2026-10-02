@@ -75,6 +75,17 @@ extends Resource
 ## Debajo de esta energía la velocidad baja hasta stamina_min_speed_factor.
 @export var stamina_tired_threshold: float = 35.0
 @export var stamina_min_speed_factor: float = 0.85
+## Cansancio acumulado: puntos del tope de energía que se pierden por minuto
+## de juego trotando (parado gasta menos, en sprint más). Un promedio llega
+## al final del partido con el tope cerca de 70.
+@export var wear_per_game_minute: float = 0.36
+@export var wear_sprint_factor: float = 2.4
+@export var wear_rest_factor: float = 0.35
+@export var wear_max: float = 45.0
+## En el entretiempo se recupera esta fracción del desgaste.
+@export var wear_halftime_recovery: float = 0.3
+## Con el desgaste máximo, la velocidad tope baja a este factor.
+@export var wear_min_speed_factor: float = 0.94
 ## Tiempo de reacción de la IA ante una patada (informe: 0,15-0,25 s),
 ## según el atributo reaction (99 -> mínimo, 1 -> máximo).
 @export var ai_reaction_min: float = 0.15

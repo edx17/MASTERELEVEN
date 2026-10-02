@@ -267,7 +267,8 @@ func _offside_setup(mate_x: float, line_x: float) -> Array:
 		if p.is_keeper():
 			p.teleport(Vector3(dir * 50.0, 0, 0), Vector3(-dir, 0, 0))
 		else:
-			p.teleport(Vector3(dir * line_x, 0, p.flat_pos().z * 0.5 - 15.0), Vector3(-dir, 0, 0))
+			# Bien abiertos: que ninguno corte el pase (z de 10 a 0).
+			p.teleport(Vector3(dir * line_x, 0, -18.0 - absf(p.flat_pos().z) * 0.3), Vector3(-dir, 0, 0))
 	m.ball.place(passer.flat_pos() + Vector3(dir * 0.5, 0.11, 0))
 	m.ball.give_to(passer)
 	return [passer, mate]
