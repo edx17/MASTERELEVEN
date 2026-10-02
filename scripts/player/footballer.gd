@@ -16,6 +16,9 @@ const SLOT_COLORS: Array[Color] = [Color(1.0, 0.85, 0.1), Color(0.2, 0.9, 1.0)]
 
 ## Empezó una barrida (lo usa la presentación: marcas en el césped mojado).
 signal slide_started
+## Se resbaló en un giro (césped mojado o nevado).
+signal slipped
+const SLIP_MIN_SPEED := 5.5
 
 var team: Team
 ## Datos y atributos del jugador (recurso editable).
@@ -185,6 +188,13 @@ func start_slide(direction: Vector3) -> void:
 	state_timer = _tuning.slide_duration
 	velocity = facing * _tuning.slide_speed
 	slide_started.emit()
+
+
+## De qué lado del cuerpo está la pelota (m): > 0 a su izquierda, < 0 a su
+## derecha (en espacio del jugador: +X del modelo es su izquierda).
+func ball_offset_side(ball_pos: Vector3) -> float:
+	var off := Vector3(ball_pos.x, 0.0, ball_pos.z) - flat_pos()
+	return facing.cross(off).y
 
 
 ## Desbalance breve (entrada fallida): no puede tocar la pelota ni acelerar.
@@ -368,6 +378,14 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 		var off := absf(facing.signed_angle_to(move.normalized(), Vector3.UP))
 		cut = off > deg_to_rad(_tuning.cut_angle) and cur_speed > 1.5
 		facing = _rotate_towards(facing, move.normalized(), (turn * 2.0 if cut else turn) * dt)
+		# Césped mojado o nevado: un corte seco a toda velocidad puede hacerlo
+		# resbalar (el equilibrio ayuda a no caerse).
+		if cut and cur_speed > SLIP_MIN_SPEED and _tuning.slip_chance > 0.0:
+			var steady := PlayerData.unit(data.balance) if data else 0.5
+			if randf() < _tuning.slip_chance * lerpf(1.4, 0.5, steady):
+				stagger(0.35)
+				slipped.emit()
+				return
 
 	# Se acelera hacia donde pide el stick; la inercia la da la aceleración
 	# (sin arcos de "auto": el jugador no se desliza de costado porque el

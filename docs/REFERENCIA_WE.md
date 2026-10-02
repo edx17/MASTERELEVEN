@@ -13,7 +13,7 @@ Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **F
 | Inercia en sprint: no se gira 180° en una baldosa | Hecho | Aceleración/desaceleración y giro más abierto en sprint. |
 | R2 = pisar la pelota y frenar en seco | Hecho | E / R2 conduciendo. |
 | Soltar R1 a tiempo como cambio de ritmo | Parcial | La desaceleración existe; falta afinar cuántos pasos da de más. |
-| Lluvia: pases rasantes más rápidos, pelotazos largos, resbalones en giros bruscos | Parcial | La pelota corre más con el pasto mojado; faltan los resbalones al girar. |
+| Lluvia: pases rasantes más rápidos, pelotazos largos, resbalones en giros bruscos | Hecho | La pelota corre más con el pasto mojado. Un corte seco a toda velocidad puede hacer resbalar (más con poco equilibrio; también con nieve). |
 | Rebotes impredecibles (la pelota pega en un jugador y entra) | Hecho | Desvíos en el cuerpo con física. |
 
 ## 2. Pases, centros y paredes
@@ -22,9 +22,9 @@ Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **F
 |---|---|---|
 | X: pase al pie rápido | Hecho | |
 | Triángulo: pase al hueco según la velocidad del que pica | Hecho | |
-| L1 + Triángulo: filtrado por elevación | Pendiente | Hoy L1 + Triángulo no tiene variante. |
+| L1 + Triángulo: filtrado por elevación | Hecho | Picada por arriba de la línea, cae a espaldas de los centrales. |
 | L1 + X: pared, el que pasa pica al vacío | Hecho | |
-| La IA rival sigue la pelota y pierde al que pica en la pared | Parcial | Falta un "ciego" breve de la marca sobre el que pica. |
+| La IA rival sigue la pelota y pierde al que pica en la pared | Hecho | Durante 2 s la marca no lo sigue. |
 | Centros: 1 toque alto al segundo palo, 2 a media altura, 3 rasante al primer palo | Hecho | Esta ronda. L1 + Círculo: centro bien bombeado. |
 | Playmaker: el pase al hueco de un enganche pasa justo entre los centrales | Pendiente | Habilidad especial (Fase 4: atributos). |
 
@@ -36,10 +36,10 @@ Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **F
 | Doble Cuadrado: rasante | Hecho | |
 | L1 + Cuadrado: globo / vaselina | Hecho | |
 | R2 después de cargar: colocado al palo (menos potencia, más precisión) | Hecho | Esta ronda. |
-| Postura y pierna mala: perfilado sale misil, mordido se va | Parcial | Influye el ángulo entre el cuerpo y el tiro; falta la pierna hábil. |
+| Postura y pierna mala: perfilado sale misil, mordido se va | Hecho | Influye el ángulo entre el cuerpo y el tiro. Con la pelota del lado de la pierna mala: +40 % de error y −10 % de potencia. |
 | Fuerza de tiro y precisión del jugador se notan mucho | Parcial | Afectan error y velocidad; se puede marcar más la diferencia. |
-| Amague de tiro (Cuadrado → X) que deja tirado al defensor/arquero | Parcial | El amague existe; falta que la IA "muerda" el amague (barrida/bloqueo que no se cancela). |
-| Comba en tiros libres y córners con la cruceta | Pendiente | |
+| Amague de tiro (Cuadrado → X) que deja tirado al defensor/arquero | Hecho | Los defensores cerca quedan "comprados" medio segundo (no reaccionan). |
+| Comba en tiros libres y córners con la cruceta | Hecho | Con el stick derecho al patear: de costado curva; adelante cae de golpe; atrás flota. |
 
 ## 4. Arquero
 

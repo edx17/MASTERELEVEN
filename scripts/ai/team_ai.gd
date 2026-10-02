@@ -138,7 +138,7 @@ func tick(dt: float) -> void:
 			p.debug_state = "cubre"
 			go_to(p, owner.flat_pos() + (team.own_goal() - owner.flat_pos()).normalized() * 6.0, true)
 			continue
-		if _markers.has(p):
+		if _markers.has(p) and not _match.is_ghost_runner(_markers[p]):
 			p.debug_state = "marca"
 			_mark(p, _markers[p])
 			continue

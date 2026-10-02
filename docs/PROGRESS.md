@@ -17,6 +17,25 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Ronda WE2002 (12): más mecánicas del WE
+
+| Mecánica | Cambio |
+|---|---|
+| L1 + Triángulo | Filtrado por elevación: la picada pasa por arriba de la línea y cae a espaldas de los centrales. |
+| Comba en la pelota parada | En tiros libres y córners, el stick derecho al patear (como la cruceta del WE): de costado curva hacia ese lado; adelante cae de golpe; atrás sale más alto y flota. |
+| Pierna mala | Con la pelota claramente del lado de la pierna menos hábil, el remate sale mordido: +40 % de error y −10 % de potencia. Con la pelota al medio usa la buena. |
+| La pared "invisible" | Durante 2 s la marca rival sigue a la pelota y pierde al que pica en la pared. |
+| Resbalones | Con césped mojado (hasta 30 % según cuánto) o nevado (20 %), un corte seco a más de 5,5 m/s puede hacer resbalar al jugador. El equilibrio reduce la chance. |
+
+`docs/REFERENCIA_WE.md` actualizado con estos estados.
+
+**Tests:** 205 en verde. Se agregaron:
+- filtrado por elevación;
+- comba y caída en pelota parada;
+- marca que pierde al de la pared;
+- pierna mala;
+- resbalones en mojado (en seco, nunca).
+
 ## Ronda WE2002 (11): mecánicas del WE (centros, colocado, freno, achique y físico)
 
 Tu análisis del WE está en `docs/REFERENCIA_WE.md`, cruzado con el estado de cada mecánica en el juego. De ahí, esta tanda:

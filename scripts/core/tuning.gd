@@ -52,6 +52,9 @@ extends Resource
 ## Velocidad de giro (rad/s) quieto/lento y a velocidad de sprint: a mayor
 ## velocidad, giro algo más amplio (nunca 180° instantáneo).
 @export var turn_rate: float = 24.0
+## Probabilidad de resbalarse en un corte seco a toda velocidad (la ponen las
+## condiciones: césped mojado o nevado; seco = 0).
+@export var slip_chance: float = 0.0
 @export var turn_rate_sprint: float = 10.0
 ## Multiplicador del giro con la pelota en el pie.
 @export var turn_rate_ball_factor: float = 0.95

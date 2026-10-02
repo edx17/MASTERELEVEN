@@ -322,6 +322,9 @@ func tick(dt: float) -> void:
 						_try_kick(kind, power, aim, target, KickActions.Variant.HIGH)
 					KickActions.Kind.SHORT_PASS:
 						_try_kick(kind, power, aim, target, KickActions.Variant.NORMAL, true)
+					KickActions.Kind.THROUGH_PASS:
+						# L1 + Triángulo: filtrado por elevación.
+						_try_kick(kind, power, aim, target, KickActions.Variant.HIGH)
 					_:
 						_try_kick(kind, power, aim, target)
 			elif kind == KickActions.Kind.SHOT or kind == KickActions.Kind.LONG_PASS:
@@ -455,7 +458,12 @@ func _do_kick(kind: int, pwr: float, move: Vector3, target: Footballer = null,
 		variant: int = KickActions.Variant.NORMAL, one_two: bool = false) -> void:
 	kind = aerial_kind(kind, controlled, _match.ball)
 	var passer := controlled
+	var set_piece := _match.phase == MatchController.Phase.RESTART and \
+			_match.restart_type in [MatchRules.Restart.FREE_KICK, MatchRules.Restart.CORNER]
+	var kicks_before := _match.kick_count
 	var receiver := _match.perform_kick(controlled, kind, move, pwr, target, variant)
+	if set_piece and _match.kick_count != kicks_before:
+		_match.apply_set_piece_curl(_match.screen_to_world(input.right_vector()))
 	_auto_off = false
 	if one_two and receiver != null and receiver.team == team and not receiver.is_keeper():
 		# Pared: el control se queda en el que la tocó, que pica al espacio.

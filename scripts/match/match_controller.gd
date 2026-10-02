@@ -940,6 +940,32 @@ func cancel_one_two() -> void:
 	one_two = {}
 
 
+## Como en el WE: la marca rival sigue a la pelota y pierde por un rato al que
+## pica en la pared (los primeros GHOST_TIME segundos).
+const GHOST_TIME := 2.0
+
+func is_ghost_runner(p: Footballer) -> bool:
+	return not one_two.is_empty() and one_two["passer"] == p and float(one_two["time"]) < GHOST_TIME
+
+
+## Comba en la pelota parada (stick derecho al patear un tiro libre o un
+## córner, como la cruceta del WE): de costado curva hacia ese lado; adelante
+## cae de golpe (topspin); atrás sale más alta y flota.
+const SET_PIECE_CURL := 55.0
+const SET_PIECE_DIP := 35.0
+
+func apply_set_piece_curl(stick_world: Vector3) -> void:
+	var v := Vector3(ball.state.vel.x, 0.0, ball.state.vel.z)
+	if v.length() < 1.0 or stick_world.length() < 0.3:
+		return
+	var along := v.normalized()
+	var perp := Vector3(along.z, 0.0, -along.x)
+	var side := clampf(stick_world.dot(perp), -1.0, 1.0)
+	var fwd := clampf(stick_world.dot(along), -1.0, 1.0)
+	var axis := along.cross(Vector3.UP).normalized()
+	ball.state.spin = Vector3(0.0, side * SET_PIECE_CURL, 0.0) - axis * fwd * SET_PIECE_DIP
+
+
 func _update_one_two(dt: float) -> void:
 	if one_two.is_empty():
 		return
