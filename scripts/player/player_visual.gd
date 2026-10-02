@@ -15,6 +15,7 @@ enum Event { KICK, PASS, HEADER, THROW, DIVE_LEFT, DIVE_RIGHT, CATCH, TACKLE,
 		RECEIVE, CHEST, CATCH_HIGH, CATCH_LOW, BLOCK, CELEBRATE, DEJECTED, ROLL,
 		FEINT, ROULETTE, STEPOVER, HIGH_FIVE, HANDSHAKE, CHEER }
 ## Cada gesto pedido (lo escucha la repetición para volver a mostrarlo).
+## En HEADER y en las atajadas `side` lleva la altura de la pelota.
 signal played(event: int, side: float)
 
 ## Estado continuo (lo decide el Footballer a partir de su State).

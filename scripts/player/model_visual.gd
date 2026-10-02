@@ -28,7 +28,7 @@ const BLEND := 0.18
 ## terminar justo cuando la simulación le devuelve el control).
 const GETUP_TIME := 0.9
 ## Clips que no se cortan por otro gesto (en el piso, festejando).
-const UNINTERRUPTIBLE := ["trip", "get_up", "celebrate"]
+const UNINTERRUPTIBLE := ["trip", "get_up", "celebrate", "celebrate2"]
 
 static var _body_scene: PackedScene
 static var _anim_lib: AnimationLibrary
@@ -93,6 +93,8 @@ var hair_style: int = -1
 var hair_node: MeshInstance3D
 var recover_left := 0.0
 var side_speed := 0.0
+## Velocidad hacia adelante (negativa = retrocede); la fija el Footballer.
+var forward_speed := 0.0
 var _trip_played := false
 var _getup_played := false
 
@@ -364,17 +366,26 @@ func play(event: int, side: float = 1.0) -> void:
 	var clip := ""
 	match event:
 		Event.KICK:
-			clip = "gk_kick" if keeper else "kick"
+			# Remate (la patada vieja queda de respaldo).
+			clip = "gk_kick" if keeper else ("shot" if _mx != null and _mx.has_animation("shot") else "kick")
 		Event.PASS:
 			clip = "gk_kick" if keeper else "pass"
 		Event.HEADER:
+			# `side` trae la altura de la pelota: sin salto, normal o con saltito.
 			clip = "header"
+			if side < 1.85 and _mx != null and _mx.has_animation("header_stand"):
+				clip = "header_stand"
+			elif side > 2.15 and _mx != null and _mx.has_animation("header_jump"):
+				clip = "header_jump"
 		Event.THROW:
 			clip = "gk_throw" if keeper else "throw_in"
 		Event.CATCH:
 			clip = "gk_catch"
 		Event.CATCH_HIGH:
+			# `side` trae la altura: muy alta es cortar un centro.
 			clip = "gk_catch_high"
+			if side > 2.3 and _mx != null and _mx.has_animation("gk_catch_cross"):
+				clip = "gk_catch_cross"
 		Event.CATCH_LOW:
 			clip = "gk_catch_low"
 		Event.BLOCK:
@@ -503,6 +514,13 @@ func _play_locomotion(speed: float) -> void:
 			pick = ["mx/gk_idle", 0.0, 0.0]
 		elif carrying and anim_name == "Jog_Fwd" and _mx.has_animation("dribble"):
 			pick = ["mx/dribble", 2.4, 2.8]
+		elif not keeper and forward_speed < -1.0 and speed > 1.0 and _mx.has_animation("jog_back"):
+			# Retrocede mirando la jugada: trote hacia atrás.
+			pick = ["mx/jog_back", 1.0, MixamoLibrary.nominal.get("jog_back", 2.0)]
+		elif anim_name == "Jog_Fwd" and _mx.has_animation("jog"):
+			pick = ["mx/jog", 2.4, MixamoLibrary.nominal.get("jog", 3.5)]
+		elif anim_name == "Sprint" and _mx.has_animation("sprint"):
+			pick = ["mx/sprint", 6.6, MixamoLibrary.nominal.get("sprint", 7.0)]
 		elif keeper and absf(side_speed) > 0.6 and absf(side_speed) > speed * 0.7 and speed < 4.5 \
 				and _mx.has_animation("gk_side_a"):
 			# Arquero que se acomoda de costado mirando la pelota: paso lateral.

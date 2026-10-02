@@ -34,53 +34,52 @@ const BONE_MAP := {
 ##   range: [inicio, golpe, fin] en segundos (si no, se buscan en el clip).
 const CLIPS := {
 	"kick": {"file": "Kick_Soccerball"},
-	"shot": {"file": "Soccer_Penalty_Kick", "new": [{"file": "remate"}]},
-	"pass": {"file": "Soccer_Pass"},
-	"header": {"file": "Soccer_Header"},
-	# Tanda nueva: cabezazo sin salto (pelota a la altura de la cabeza) y con
-	# un saltito; amague X + Cuadrado; control de pecho; lateral.
-	"header_stand": {"file": "No_jump_Header"},
-	"header_jump": {"file": "Soccer_Header_little_jump"},
-	"feint": {"file": "XCuadrado_Chip", "face": true},
-	"chest": {"file": "Receive_pecho", "face": true},
-	"throw_in": {"file": "Throw_In", "face": true},
-	"slide": {"file": "Soccer_Tackle"},
+	"shot": {"file": "remate"},
+	"pass": {"file": "Soccer Pass"},
+	"header": {"file": "Soccer Header"},
+	# Carrera: trote, sprint y trote hacia atrás. La velocidad natural de cada
+	# uno sale de cuánto avanza la cadera en un ciclo.
+	"jog": {"file": "Jog Forward", "loop": true},
+	"sprint": {"file": "Sprint", "loop": true},
+	"jog_back": {"file": "Jog Backward", "loop": true},
+	"chilena": {"file": "Scissor chilena Kick", "face": true},
+	# Cabezazo sin salto (pelota a la altura de la cabeza) y con un saltito;
+	# amague X + Cuadrado; control de pecho; lateral.
+	"header_stand": {"file": "No jump Header"},
+	"header_jump": {"file": "Soccer Header little jump"},
+	"feint": {"file": "XCuadrado Chip", "face": true},
+	"chest": {"file": "Receive pecho", "face": true},
+	"throw_in": {"file": "Throw In", "face": true},
+	"slide": {"file": "Soccer Tackle"},
 	"dribble": {"file": "Dribble", "loop": true},
 	# Entrada de pie (X): sólo la estocada con la pierna, sin la caída.
 	"tackle": {"file": "Soccer_Tackle_1", "face": true, "range": [0.45, 0.72, 0.9]},
 	# Control con la suela al recibir un pase.
 	"receive": {"file": "Receive_Soccerball", "face": true, "range": [0.75, 1.0, 1.6]},
 	# Caída tras una barrida y cómo se levanta.
-	"trip": {"file": "Soccer_Trip", "face": true, "range": [0.15, 0.4, 1.6]},
-	"get_up": {"file": "Standing_Up", "face": true},
+	"trip": {"file": "foul", "face": true, "range": [0.0, 0.5, 1.6]},
+	"get_up": {"file": "Standing Up", "face": true},
 	# Festejos (se elige uno al azar).
-	"celebrate": {"file": "Cartwheel", "face": true, "range": [0.2, 0.5, 2.8],
-		"new": [{"file": "Festejo1_Catwheel"}]},
-	"celebrate2": {"file": "Festejo2_Golf_Putt", "face": true},
+	"celebrate": {"file": "Festejo1 Catwheel", "face": true},
+	"celebrate2": {"file": "Festejo2 Golf Putt", "face": true},
 	# Marsellesa: el giro de 360° lo pone el clip (el rumbo del jugador no gira).
-	"spin": {"file": "Soccer_Spin", "range": [0.0, 0.6, 1.27]},
-	"gk_idle": {"file": "Goalkeeper_Idle", "loop": true},
-	"gk_catch": {"file": "Goalkeeper_Catch", "new": [{"file": "Goalkeeper_Catch_stay"}]},
-	"gk_catch_high": {"file": "Goalkeeper_Catch_1", "face": true, "range": [0.9, 1.55, 2.2],
-		"new": [{"file": "Goalkeeper_Catch_jump"}]},
-	"gk_catch_low": {"file": "Goalkeeper_Catch_2", "face": true, "range": [0.3, 0.8, 1.6],
-		"new": [{"file": "Goalkeeper_Scoop"}]},
-	"gk_catch_cross": {"file": "Goalkeeper_Catch_corta_centro", "face": true},
+	"spin": {"file": "Soccer Spin", "range": [0.0, 0.6, 1.27]},
+	"gk_idle": {"file": "Goalkeeper Idle", "loop": true},
+	"gk_catch": {"file": "Goalkeeper Catch stay"},
+	"gk_catch_high": {"file": "Goalkeeper Catch jump"},
+	"gk_catch_low": {"file": "Goalkeeper Scoop"},
+	"gk_catch_cross": {"file": "Goalkeeper Catch corta centro", "face": true},
 	"gk_block": {"file": "Goalkeeper_Body_Block", "face": true, "range": [0.2, 0.75, 1.9]},
-	"gk_miss": {"file": "Goalkeeper_Miss", "face": true},
-	"gk_throw": {"file": "Goalkeeper_Overhand_Throw", "new": [{"file": "Goalkeeper_sque_rapido"}]},
-	# Saque con la mano rodando: el gesto de bochas del final del clip.
-	"gk_roll": {"file": "Goalkeeper_Placing_Ball", "face": true, "range": [1.4, 2.0, 2.6],
-		"new": [{"file": "Goalkeeper_hand_short_Pass"}]},
-	"gk_kick": {"file": "Goalkeeper_Pass", "new": [{"file": "Goalkeeper_Drop_Kick"}]},
-	"gk_side_a": {"file": "Goalkeeper_Sidestep", "loop": true, "face": true,
-		"new": [{"file": "Goalkeeper_Sidestep_achique"}]},
-	"gk_side_b": {"file": "Goalkeeper_Sidestep", "loop": true, "face": true, "mirror": true,
-		"new": [{"file": "Goalkeeper_Sidestep_achique"}]},
-	# La estirada de Mixamo va hacia +X del modelo (su izquierda); hacia -X es
-	# la misma, espejada.
-	"gk_dive_px": {"file": "Goalkeeper_Diving_Save", "lateral": 0.6},
-	"gk_dive_nx": {"file": "Goalkeeper_Diving_Save", "mirror": true, "lateral": 0.6},
+	"gk_miss": {"file": "Goalkeeper Miss", "face": true},
+	"gk_throw": {"file": "Goalkeeper sque rapido"},
+	"gk_roll": {"file": "Goalkeeper hand short Pass"},
+	"gk_kick": {"file": "Goalkeeper Drop Kick"},
+	"gk_side_a": {"file": "Goalkeeper Sidestep achique", "loop": true, "face": true},
+	"gk_side_b": {"file": "Goalkeeper Sidestep achique", "loop": true, "face": true, "mirror": true},
+	# La estirada va hacia -X del modelo (su derecha); hacia +X es la misma,
+	# espejada.
+	"gk_dive_px": {"file": "Goalkeeper Diving Save", "mirror": true, "lateral": 0.6},
+	"gk_dive_nx": {"file": "Goalkeeper Diving Save", "lateral": 0.6},
 }
 
 static var _lib: AnimationLibrary
@@ -94,6 +93,8 @@ static var _dive_contact := 1.0
 static var side_sign := 1.0
 ## Velocidad de costado (m/s) a la que ese paso se ve natural.
 static var side_nominal := 1.5
+## Clips en bucle: velocidad (m/s) a la que se ven naturales.
+static var nominal := {}
 ## Desplazamiento de la cadera de Mixamo en el último clip adaptado.
 static var _last_travel := Vector3.ZERO
 static var _last_height_ratio := 1.0
@@ -111,13 +112,16 @@ static func library(body_scene: PackedScene) -> AnimationLibrary:
 	var target := body.find_child("Skeleton3D", true, false) as Skeleton3D
 	var lib := AnimationLibrary.new()
 	for clip_name in CLIPS:
-		var spec: Dictionary = resolve(CLIPS[clip_name])
+		var spec: Dictionary = CLIPS[clip_name]
 		var path := file_path(spec["file"])
 		if path == "":
 			continue
 		var anim := _retarget(path, target, spec)
 		if anim != null:
 			lib.add_animation(clip_name, anim)
+			if spec.get("loop", false):
+				# Velocidad a la que el clip se ve natural (m/s del jugador).
+				nominal[clip_name] = clampf(Vector2(_last_travel.x, _last_travel.z).length() * _last_height_ratio / maxf(anim.length, 0.01), 0.5, 9.0)
 			if clip_name == "gk_side_a":
 				side_sign = 1.0 if _last_travel.x >= 0.0 else -1.0
 				side_nominal = clampf(absf(_last_travel.x) * _last_height_ratio / anim.length, 0.8, 3.0)
@@ -137,21 +141,6 @@ static func library(body_scene: PackedScene) -> AnimationLibrary:
 ## ("Goalkeeper_Catch_1"), con espacios ("Goalkeeper Catch 1") o como lo
 ## numera Windows al bajar varias versiones ("Goalkeeper Catch (1)").
 ## Vacío si no está.
-## La versión a usar de un clip: la primera de "new" cuyo archivo esté (la
-## tanda nueva de animaciones), si no la de siempre. Las opciones de "new"
-## pisan a las de base; el tramo ("range") de base no se hereda: se calcula
-## del clip nuevo.
-static func resolve(spec: Dictionary) -> Dictionary:
-	for alt in spec.get("new", []):
-		if file_path(alt["file"]) != "":
-			var out := spec.duplicate()
-			out.erase("range")
-			out.erase("new")
-			out.merge(alt, true)
-			return out
-	return spec
-
-
 static func file_path(file: String) -> String:
 	for candidate in file_candidates(file):
 		var path: String = DIR + candidate + ".fbx"
@@ -278,7 +267,7 @@ static func _retarget(path: String, target: Skeleton3D, spec: Dictionary) -> Ani
 		if hips_pos_track >= 0:
 			var hp: Vector3 = src_anim.position_track_interpolate(hips_pos_track, time)
 			y = hp.y * height_ratio
-			x += (hp.x - base_x) * lateral * (-1.0 if mirror else 1.0)
+			x += (hp.x - base_x) * height_ratio * lateral * (-1.0 if mirror else 1.0)
 		var world := Vector3(x, y, pelvis_rest_g.z)
 		out.position_track_insert_key(pos_tr, time, parent_rest.affine_inverse() * world)
 	src_scene.free()

@@ -25,9 +25,10 @@ func test_locomotion_follows_speed() -> void:
 	_step(v, 0.0, 5)
 	assert_eq(v._current, "Stand_%d" % ModelVisual.Stance.RELAXED, "parado derecho (no en guardia), con los brazos al costado")
 	_step(v, 4.5, 5)
-	assert_eq(v._current, "Jog_Fwd")
+	# Con la tanda nueva de Mixamo (si está) usa su trote y su sprint.
+	assert_has(["Jog_Fwd", "mx/jog"], v._current)
 	_step(v, 8.0, 5)
-	assert_eq(v._current, "Sprint")
+	assert_has(["Sprint", "mx/sprint"], v._current)
 
 
 func test_gestures_do_not_accumulate() -> void:
@@ -89,7 +90,7 @@ func test_mixamo_clips_when_present() -> void:
 	var v := _visual()
 	_step(v, 0.0, 5)
 	v.play(PlayerVisual.Event.KICK)
-	assert_eq(v._clip, "kick", "la patada usa la animación de Mixamo")
+	assert_has(["shot", "kick"], v._clip, "la patada usa la animación de Mixamo (el remate si está)")
 	var foot := v._skel.find_bone("foot_r")
 	var max_z := -INF
 	for i in 20:
@@ -152,9 +153,10 @@ func test_new_gestures_use_their_clips() -> void:
 		assert_eq(v._clip, ev[1])
 		_step(v, 0.0, 150)
 	v.play(PlayerVisual.Event.CELEBRATE)
-	assert_eq(v._clip, "celebrate")
+	var party := v._clip
+	assert_has(["celebrate", "celebrate2"], party, "uno de los festejos al azar")
 	v.play(PlayerVisual.Event.KICK)
-	assert_eq(v._clip, "celebrate", "el festejo no se corta")
+	assert_eq(v._clip, party, "el festejo no se corta")
 
 
 func test_keeper_side_steps_when_moving_sideways() -> void:

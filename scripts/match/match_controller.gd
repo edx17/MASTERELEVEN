@@ -621,7 +621,8 @@ func _show_kick(kicker: Footballer) -> void:
 		ev = PlayerVisual.Event.KICK
 	elif _in_kick and ball.speed() < 16.0:
 		ev = PlayerVisual.Event.PASS
-	kicker.visual.play(ev)
+	# Cabezazo: la altura de la pelota elige con o sin salto.
+	kicker.visual.play(ev, ball.state.pos.y if ev == PlayerVisual.Event.HEADER else 1.0)
 	# Patada o pase a propósito: frena un instante mientras hace el gesto.
 	if _in_kick and ev in [PlayerVisual.Event.KICK, PlayerVisual.Event.PASS] and not kicker.is_keeper():
 		kicker.kick_brake = 0.3
@@ -638,7 +639,7 @@ func _show_dive(gk: Footballer, point: Vector3) -> void:
 	var rel := point - gk.flat_pos()
 	rel.y = 0.0
 	if rel.length() < 1.2:
-		gk.visual.play(catch_event(point.y))
+		gk.visual.play(catch_event(point.y), point.y)
 		return
 	var right := gk.global_basis.x
 	gk.visual.play(PlayerVisual.Event.DIVE_RIGHT if right.dot(rel) > 0.0 else PlayerVisual.Event.DIVE_LEFT)
@@ -837,7 +838,7 @@ func _try_take_loose_ball() -> void:
 	save_plan = {}
 	if best.visual != null:
 		if hands:
-			best.visual.play(catch_event(h))
+			best.visual.play(catch_event(h), h)
 		elif best == receiver or ball.speed() > 6.0:
 			_show_receive(best, h)
 	ball.give_to(best, true, hands)

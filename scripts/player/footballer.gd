@@ -373,6 +373,7 @@ func _update_visual(dt: float) -> void:
 		mv.recover_left = state_timer if state == State.RECOVERING else 0.0
 		# Desplazamiento de costado (eje X del modelo = su izquierda).
 		mv.side_speed = velocity.dot(global_basis.x)
+		mv.forward_speed = velocity.dot(global_basis.z)
 		mv.holding = ball_in_hands
 	visual.update(dt, spd, _tuning.sprint_speed, pose, accel)
 
