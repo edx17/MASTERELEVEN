@@ -17,6 +17,9 @@ var tuning: Tuning
 ## Equipos del próximo partido (rutas a TeamData).
 var home_team_path: String = DEFAULT_HOME
 var away_team_path: String = DEFAULT_AWAY
+## Uniforme de cada equipo: 0 = titular, 1 = alternativo.
+var home_kit: int = 0
+var away_kit: int = 0
 ## Modo de cámara elegido (índice en MatchCamera.PRESETS); se recuerda entre partidos.
 var camera_preset: int = 0
 ## Ayudas visuales (se podrán activar desde el menú de opciones, Fase 8).
@@ -72,7 +75,8 @@ var stick_directions: int = 8
 const SETTINGS_PATH := "user://settings.cfg"
 const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", "wind_choice",
 	"pitch_choice", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
-	"stick_directions", "camera_preset", "show_pass_target", "offside"]
+	"stick_directions", "camera_preset", "show_pass_target", "offside", "home_team_path", "away_team_path",
+	"home_kit", "away_kit"]
 ## Falso en los tests y las herramientas: no leen ni pisan la configuración
 ## del jugador (así los resultados no dependen de lo que eligió).
 var persist := true
@@ -144,6 +148,12 @@ func load_settings(path: String = SETTINGS_PATH) -> void:
 	if not stick_directions in STICK_OPTIONS:
 		stick_directions = tuning.stick_directions
 	camera_preset = maxi(camera_preset, 0)
+	if not ResourceLoader.exists(home_team_path):
+		home_team_path = DEFAULT_HOME
+	if not ResourceLoader.exists(away_team_path):
+		away_team_path = DEFAULT_AWAY
+	home_kit = clampi(home_kit, 0, 1)
+	away_kit = clampi(away_kit, 0, 1)
 
 
 ## Herramienta de desarrollo: `-- --capture=<carpeta>` saca capturas y sale.
@@ -202,6 +212,26 @@ func set_mode(new_mode: int) -> void:
 func _on_joy_connection_changed(_device: int, _connected: bool) -> void:
 	# Reasigna dispositivos automáticamente al conectar/desconectar un mando.
 	InputRouter.setup_for_mode(mode)
+
+
+## Todos los equipos (data/teams), en orden alfabético de archivo.
+func team_paths() -> Array[String]:
+	var out: Array[String] = []
+	var dir := DirAccess.open("res://data/teams")
+	if dir == null:
+		return [DEFAULT_HOME, DEFAULT_AWAY]
+	for f in dir.get_files():
+		var name := f.trim_suffix(".remap")
+		if name.ends_with(".tres") and not out.has("res://data/teams/" + name):
+			out.append("res://data/teams/" + name)
+	out.sort()
+	return out
+
+
+## Uniforme que no se confunda: si las camisetas se parecen, el visitante
+## usa el otro.
+static func kits_clash(a: Color, b: Color) -> bool:
+	return Vector3(a.r - b.r, a.g - b.g, a.b - b.b).length() < 0.35
 
 
 func home_team() -> TeamData:

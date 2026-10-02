@@ -47,6 +47,9 @@ var _hint: Label
 var _formation: Control
 ## Dirección del equipo de la previa (alineación libre, pateadores, capitán).
 var sheet: TeamSheet
+## Cartel con los once titulares durante la formación (como en el WE).
+var _lineup: PanelContainer
+var _lineup_team := -1
 var _rng := RandomNumberGenerator.new()
 
 
@@ -103,6 +106,8 @@ func tick(dt: float) -> void:
 		Step.LINEUP:
 			_walk_to_targets()
 			_update_looks(dt)
+			# Primero los titulares del local y después los del visitante.
+			show_lineup(0 if _t < DURATION[Step.LINEUP] * 0.5 else 1)
 			# Paneo a lo largo de las dos filas, frente a los jugadores.
 			var k := clampf(_t / DURATION[Step.LINEUP], 0.0, 1.0)
 			var x := lerpf(-16.0, 16.0, k)
@@ -116,6 +121,9 @@ func _enter(s: int) -> void:
 	_t = 0.0
 	_menu.visible = s == Step.MENU
 	_formation.visible = s == Step.FORMATION
+	if s != Step.LINEUP:
+		_lineup.visible = false
+		_lineup_team = -1
 	_hint.visible = s != Step.MENU and s != Step.DONE
 	match s:
 		Step.MENU:
@@ -356,6 +364,16 @@ func _build_ui() -> void:
 			_menu.visible = true
 			(_menu.get_child(2) as Button).grab_focus())
 	sheet.play_pressed.connect(func() -> void: _enter(Step.WARMUP))
+	_lineup = PanelContainer.new()
+	var lsb := StyleBoxFlat.new()
+	lsb.bg_color = Color(0.02, 0.12, 0.08, 0.78)
+	lsb.border_color = Color(0.2, 0.7, 0.45, 0.9)
+	lsb.border_width_top = 4
+	lsb.set_content_margin_all(14)
+	_lineup.add_theme_stylebox_override("panel", lsb)
+	_lineup.position = Vector2(40, 70)
+	_lineup.visible = false
+	_ui.add_child(_lineup)
 	_formation = FormationBoard.new()
 	(_formation as FormationBoard).match_ref = _match
 	_formation.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -369,22 +387,45 @@ func open_team_sheet() -> void:
 	sheet.open(_match, _match.teams[idx], true)
 
 
+## Cartel de los titulares: puesto (siglas del WE), número y nombre.
+func show_lineup(team_index: int) -> void:
+	_lineup.visible = true
+	if _lineup_team == team_index:
+		return
+	_lineup_team = team_index
+	for c in _lineup.get_children():
+		_lineup.remove_child(c)
+		c.queue_free()
+	var t := _match.teams[team_index]
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	_lineup.add_child(box)
+	box.add_child(WEStyle.label(t.team_name, 26, Color.WHITE))
+	for p in t.roster:
+		if not t.players.has(p):
+			continue
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		box.add_child(row)
+		var code := Label.new()
+		code.text = "GK" if p.is_keeper() else TeamSheet.ROLE_CODES[clampi(p.tactical_role, 0, TeamSheet.ROLE_CODES.size() - 1)]
+		code.custom_minimum_size = Vector2(44, 0)
+		code.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		code.add_theme_font_size_override("font_size", 18)
+		var sb := StyleBoxFlat.new()
+		var pos := PlayerData.Position.GK if p.is_keeper() else TacticalRole.to_position(p.tactical_role)
+		sb.bg_color = TeamSheet.POS_COLORS[pos]
+		code.add_theme_stylebox_override("normal", sb)
+		row.add_child(code)
+		var num := WEStyle.label(str(p.number), 22)
+		num.custom_minimum_size = Vector2(34, 0)
+		num.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(num)
+		row.add_child(WEStyle.label(p.display_name, 22))
+
+
 func _option(text: String, cb: Callable) -> void:
-	var b := Button.new()
-	b.text = text
-	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.custom_minimum_size = Vector2(380, 44)
-	b.add_theme_font_size_override("font_size", 22)
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.22, 0.18, 0.45, 0.88)
-	style.set_corner_radius_all(2)
-	style.content_margin_left = 16
-	b.add_theme_stylebox_override("normal", style)
-	var focus := style.duplicate() as StyleBoxFlat
-	focus.bg_color = Color(0.45, 0.38, 0.85, 0.95)
-	b.add_theme_stylebox_override("focus", focus)
-	b.add_theme_stylebox_override("hover", focus)
-	b.pressed.connect(cb)
+	var b := WEStyle.bar(text, cb, 400.0, 22)
 	_menu.add_child(b)
 
 

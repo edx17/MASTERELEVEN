@@ -17,6 +17,40 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Menús estilo WE (según tus capturas)
+
+| Pantalla | Qué tiene |
+|---|---|
+| Menú principal | Ya no se corta. Barras violetas a la izquierda: Partido, Liga, Copa, Liga Master, Entrenamiento, Editor, Opciones y Salir; las que todavía no existen aparecen apagadas. A la derecha el logo con una pelota (sin marcas) y abajo la caja verde de ayuda que explica la opción elegida. |
+| Modo | 1 jugador vs CPU, 2 jugadores (si hay mando para el segundo) o CPU vs CPU. |
+| Elección de equipos | Grilla de escudos de los **8 equipos** (6 nuevos, todos inventados: Real Costanera, Unión Pampa, Sporting Bahía, Atlético Cordillera, Club Puerto Viejo, Norteña FC). Arriba, el local y el visitante con escudo y uniforme, y en el medio las barras de ataque, defensa, fuerza, velocidad y técnica. Primero se elige el local, después el visitante; Cuadrado (Z) elige al azar. |
+| Partido ("Match Mode") | Filas con flechas a los costados: horario, clima, viento, césped, duración, nivel de la CPU, offside, estadio y **uniforme** de cada equipo (titular o alternativo; si las camisetas se confunden, el visitante usa la otra). A la derecha, la miniatura del estadio y los dos uniformes. |
+| Opciones | Controles, velocidad del juego, movimiento (8 / 16 / libre), qué se ve sobre los jugadores, el arquero a los 6 s y la prueba de rendimiento. |
+| Controles | Tabla de ataque y defensa por botón, con mando y teclado. Cambiar los botones queda para más adelante. |
+| Pausa | Como la del WE: cartel "PAUSA" arriba a la izquierda, barras a la izquierda (el partido se sigue viendo) y ayuda abajo. |
+| Previa | Botones con el mismo estilo; durante la formación en la cancha aparece el cartel con los once titulares (puesto, número y nombre) de cada equipo. |
+
+Los equipos y uniformes elegidos se guardan para el próximo partido.
+
+**Tests:** 247 en verde. Se agregaron (`tests/unit/test_menus.gd`):
+- ocho equipos de 23 con dos uniformes;
+- páginas del menú y volver;
+- elegir local y visitante;
+- filas de la configuración;
+- uniformes elegidos y camisetas que no se confunden.
+
+### Pantallas que faltan (hoja de ruta)
+
+| Pantalla | Cuándo |
+|---|---|
+| Gol (repetición y cartel con puesto, número, nombre, altura y edad del goleador) | Fase 5 (presentación) |
+| Presentación de jugadores en la previa con primeros planos | Fase 5, con tu modelo final |
+| Configurar controles (cambiar los botones, por mando) | Fase 8 (pulido) |
+| Liga Master, con **mercado de pases** (lista con puntos y costo, y ficha con barras) | Fase 6 |
+| Liga y Copa (formato, cantidad de equipos, grupos, duración, nivel) | Fase 7 |
+| Editor y creación de jugadores (pelo, cara, altura, físico, edad, pie) y de equipos | Más adelante, junto al creador de estadios |
+| Sonido y audio (público, relato, pelota, silbato). Referencia que pasaste: https://www.youtube.com/watch?v=GQMqctHarjo | Fase 5 |
+
 ## Fase 4 (3): cuerpo a cuerpo, lesiones, habilidades especiales y estrategias
 
 | Tema | Cambio |

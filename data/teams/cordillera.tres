@@ -1,0 +1,484 @@
+[gd_resource type="Resource" script_class="TeamData" format=3]
+
+[ext_resource type="Resource" path="res://data/formations/f_5-3-2.tres" id="1_kaml8"]
+[ext_resource type="Script" path="res://scripts/player/player_data.gd" id="2_iv6g1"]
+[ext_resource type="Script" path="res://scripts/match/team_data.gd" id="3_7pdf3"]
+
+[sub_resource type="Resource" id="Resource_3c35t"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_01"
+player_name = "E. Werthein"
+position = 0
+speed = 50
+acceleration = 74
+stamina = 67
+strength = 70
+passing = 68
+shooting = 30
+technique = 68
+ball_control = 69
+heading = 58
+defense = 40
+reaction = 73
+balance = 62
+goalkeeping = 70
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_2skar"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_02"
+player_name = "O. Echeverri"
+number = 2
+position = 1
+speed = 64
+acceleration = 72
+stamina = 61
+strength = 80
+passing = 65
+shooting = 54
+technique = 58
+ball_control = 62
+heading = 74
+defense = 69
+reaction = 62
+balance = 71
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_c8epn"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_03"
+player_name = "J. Cardozo"
+number = 3
+position = 1
+speed = 59
+acceleration = 72
+stamina = 61
+strength = 72
+passing = 56
+shooting = 55
+technique = 64
+ball_control = 72
+heading = 63
+defense = 81
+reaction = 59
+balance = 66
+goalkeeping = 33
+abilities = PackedStringArray("marcador")
+
+[sub_resource type="Resource" id="Resource_rhmyp"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_04"
+player_name = "A. Urquiza"
+number = 4
+position = 1
+speed = 59
+acceleration = 64
+stamina = 73
+strength = 72
+passing = 70
+shooting = 54
+technique = 69
+ball_control = 65
+heading = 72
+defense = 81
+reaction = 66
+balance = 58
+goalkeeping = 30
+abilities = PackedStringArray("marcador")
+
+[sub_resource type="Resource" id="Resource_jjmh8"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_05"
+player_name = "G. Salcedo"
+number = 5
+position = 1
+speed = 63
+acceleration = 70
+stamina = 62
+strength = 75
+passing = 66
+shooting = 43
+ball_control = 68
+heading = 68
+defense = 78
+reaction = 71
+balance = 71
+goalkeeping = 30
+abilities = PackedStringArray("marcador")
+
+[sub_resource type="Resource" id="Resource_37nma"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_06"
+player_name = "M. Herrán"
+number = 6
+speed = 65
+acceleration = 66
+stamina = 76
+strength = 71
+passing = 67
+shooting = 51
+technique = 68
+ball_control = 63
+heading = 68
+defense = 52
+reaction = 57
+balance = 56
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_18bge"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_07"
+player_name = "S. Castañar"
+number = 7
+speed = 72
+stamina = 76
+strength = 59
+passing = 74
+shooting = 65
+technique = 68
+ball_control = 65
+heading = 52
+defense = 51
+reaction = 59
+balance = 64
+goalkeeping = 31
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_1l0o8"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_08"
+player_name = "G. Olmedo"
+number = 8
+foot = 1
+acceleration = 68
+stamina = 82
+strength = 59
+passing = 66
+shooting = 57
+technique = 70
+ball_control = 71
+heading = 54
+defense = 62
+reaction = 58
+balance = 70
+goalkeeping = 30
+abilities = PackedStringArray("gambeteador")
+
+[sub_resource type="Resource" id="Resource_do7yk"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_09"
+player_name = "V. Nazar"
+number = 9
+speed = 62
+acceleration = 59
+stamina = 69
+strength = 72
+passing = 82
+shooting = 63
+technique = 66
+ball_control = 70
+heading = 68
+defense = 54
+balance = 68
+goalkeeping = 30
+abilities = PackedStringArray("pasador", "gambeteador")
+
+[sub_resource type="Resource" id="Resource_1s2ik"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_10"
+player_name = "C. Kessler"
+number = 10
+position = 3
+speed = 67
+acceleration = 67
+strength = 68
+passing = 56
+shooting = 77
+technique = 56
+ball_control = 71
+heading = 55
+defense = 33
+reaction = 72
+balance = 57
+goalkeeping = 30
+abilities = PackedStringArray("goleador")
+
+[sub_resource type="Resource" id="Resource_cnwp3"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_11"
+player_name = "L. Larrea"
+number = 11
+position = 3
+speed = 71
+acceleration = 66
+stamina = 66
+strength = 62
+passing = 69
+shooting = 74
+technique = 69
+ball_control = 73
+defense = 38
+reaction = 67
+balance = 65
+goalkeeping = 32
+abilities = PackedStringArray("gambeteador")
+
+[sub_resource type="Resource" id="Resource_vowgi"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_12"
+player_name = "J. Arrieta"
+number = 12
+position = 0
+speed = 56
+acceleration = 67
+stamina = 64
+strength = 71
+passing = 71
+shooting = 33
+technique = 69
+ball_control = 59
+heading = 59
+defense = 44
+reaction = 82
+balance = 70
+goalkeeping = 74
+abilities = PackedStringArray("atajador")
+
+[sub_resource type="Resource" id="Resource_234m7"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_13"
+player_name = "O. Pereyra"
+number = 13
+position = 1
+speed = 65
+acceleration = 72
+strength = 79
+passing = 72
+shooting = 41
+technique = 56
+ball_control = 70
+heading = 78
+defense = 79
+reaction = 61
+balance = 61
+goalkeeping = 30
+abilities = PackedStringArray("cabeceador", "marcador")
+
+[sub_resource type="Resource" id="Resource_k0wnj"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_14"
+player_name = "C. Quiroga"
+number = 14
+speed = 63
+acceleration = 71
+stamina = 69
+strength = 59
+passing = 78
+shooting = 57
+technique = 77
+ball_control = 64
+heading = 58
+defense = 65
+reaction = 57
+balance = 68
+goalkeeping = 30
+abilities = PackedStringArray("pasador")
+
+[sub_resource type="Resource" id="Resource_tbvqo"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_15"
+player_name = "E. Zabala"
+number = 15
+foot = 1
+speed = 61
+acceleration = 71
+stamina = 81
+strength = 71
+passing = 70
+shooting = 62
+technique = 77
+ball_control = 64
+heading = 64
+defense = 63
+reaction = 61
+balance = 65
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_1igcq"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_16"
+player_name = "D. Bermejo"
+number = 16
+position = 3
+speed = 68
+acceleration = 63
+strength = 66
+passing = 61
+shooting = 72
+technique = 65
+ball_control = 77
+heading = 55
+defense = 33
+reaction = 59
+balance = 66
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_7vf0k"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_17"
+player_name = "J. Rivadeo"
+number = 17
+position = 1
+speed = 63
+acceleration = 71
+stamina = 67
+strength = 80
+passing = 59
+shooting = 51
+technique = 67
+ball_control = 64
+heading = 64
+defense = 67
+reaction = 61
+balance = 65
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_gqh8h"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_18"
+player_name = "N. Valdano"
+number = 18
+position = 1
+foot = 1
+stamina = 62
+strength = 69
+shooting = 42
+technique = 65
+ball_control = 68
+heading = 64
+defense = 72
+reaction = 71
+balance = 56
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_ebqu6"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_19"
+player_name = "N. Jáuregui"
+number = 19
+speed = 63
+acceleration = 61
+stamina = 80
+strength = 68
+passing = 77
+shooting = 53
+technique = 71
+ball_control = 69
+heading = 61
+defense = 65
+reaction = 63
+balance = 64
+goalkeeping = 30
+abilities = PackedStringArray("pasador")
+
+[sub_resource type="Resource" id="Resource_jwg7k"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_20"
+player_name = "B. Garmendia"
+number = 20
+speed = 58
+acceleration = 59
+stamina = 74
+strength = 67
+passing = 78
+shooting = 66
+technique = 65
+ball_control = 72
+heading = 55
+defense = 50
+reaction = 65
+balance = 63
+goalkeeping = 30
+abilities = PackedStringArray("pasador")
+
+[sub_resource type="Resource" id="Resource_8xlny"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_21"
+player_name = "S. Maidana"
+number = 21
+position = 3
+speed = 69
+acceleration = 74
+stamina = 68
+strength = 61
+passing = 63
+shooting = 70
+technique = 57
+ball_control = 76
+heading = 52
+defense = 33
+reaction = 69
+balance = 71
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_de2vc"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_22"
+player_name = "G. Duarte"
+number = 22
+position = 3
+speed = 78
+acceleration = 58
+stamina = 76
+strength = 72
+passing = 68
+shooting = 69
+technique = 61
+ball_control = 74
+heading = 53
+defense = 35
+reaction = 56
+balance = 70
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_5v1wc"]
+script = ExtResource("2_iv6g1")
+id = "cordillera_23"
+player_name = "D. Benavídez"
+number = 23
+position = 0
+speed = 52
+acceleration = 74
+stamina = 76
+strength = 66
+passing = 65
+shooting = 30
+technique = 70
+ball_control = 71
+heading = 65
+defense = 39
+reaction = 70
+balance = 70
+goalkeeping = 78
+abilities = PackedStringArray("atajador")
+
+[resource]
+script = ExtResource("3_7pdf3")
+id = "cordillera"
+team_name = "Atlético Cordillera"
+short_name = "ACO"
+color = Color(0.5, 0.08, 0.15, 1)
+secondary_color = Color(0.95, 0.9, 0.8, 1)
+keeper_color = Color(0.15, 0.6, 0.6, 1)
+away_color = Color(0.95, 0.9, 0.8, 1)
+away_secondary = Color(0.5, 0.08, 0.15, 1)
+formation = ExtResource("1_kaml8")
+players = Array[ExtResource("2_iv6g1")]([SubResource("Resource_3c35t"), SubResource("Resource_2skar"), SubResource("Resource_c8epn"), SubResource("Resource_rhmyp"), SubResource("Resource_jjmh8"), SubResource("Resource_37nma"), SubResource("Resource_18bge"), SubResource("Resource_1l0o8"), SubResource("Resource_do7yk"), SubResource("Resource_1s2ik"), SubResource("Resource_cnwp3"), SubResource("Resource_vowgi"), SubResource("Resource_234m7"), SubResource("Resource_k0wnj"), SubResource("Resource_tbvqo"), SubResource("Resource_1igcq"), SubResource("Resource_7vf0k"), SubResource("Resource_gqh8h"), SubResource("Resource_ebqu6"), SubResource("Resource_jwg7k"), SubResource("Resource_8xlny"), SubResource("Resource_de2vc"), SubResource("Resource_5v1wc")])

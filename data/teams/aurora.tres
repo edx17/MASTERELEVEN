@@ -479,5 +479,7 @@ short_name = "AUR"
 color = Color(0.35, 0.65, 0.95, 1)
 secondary_color = Color(0.95, 0.95, 0.95, 1)
 keeper_color = Color(0.15, 0.15, 0.15, 1)
+away_color = Color(0.1, 0.14, 0.3, 1)
+away_secondary = Color(0.1, 0.14, 0.3, 1)
 formation = ExtResource("1_b8o03")
 players = Array[ExtResource("2_g8a4c")]([SubResource("Resource_jlfxb"), SubResource("Resource_m2sx4"), SubResource("Resource_nwfuk"), SubResource("Resource_b8f2l"), SubResource("Resource_4ylut"), SubResource("Resource_c843m"), SubResource("Resource_o8f4y"), SubResource("Resource_lf7yx"), SubResource("Resource_rdktv"), SubResource("Resource_qxidh"), SubResource("Resource_7tj6r"), SubResource("Resource_054l2"), SubResource("Resource_8uafo"), SubResource("Resource_e2jgp"), SubResource("Resource_6o3yb"), SubResource("Resource_p5aj2"), SubResource("Resource_yyduf"), SubResource("Resource_yrnpf"), SubResource("Resource_lu0j5"), SubResource("Resource_luugq"), SubResource("Resource_ujjmy"), SubResource("Resource_1c88h"), SubResource("Resource_7ieis")])

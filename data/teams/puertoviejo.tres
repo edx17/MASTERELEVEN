@@ -1,0 +1,484 @@
+[gd_resource type="Resource" script_class="TeamData" format=3]
+
+[ext_resource type="Resource" path="res://data/formations/f_4-3-3.tres" id="1_wdgkk"]
+[ext_resource type="Script" path="res://scripts/player/player_data.gd" id="2_x1rhl"]
+[ext_resource type="Script" path="res://scripts/match/team_data.gd" id="3_g11on"]
+
+[sub_resource type="Resource" id="Resource_658bj"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_01"
+player_name = "N. Cardozo"
+position = 0
+speed = 50
+acceleration = 67
+stamina = 61
+strength = 57
+passing = 69
+shooting = 30
+technique = 70
+ball_control = 68
+heading = 64
+defense = 50
+reaction = 72
+balance = 58
+goalkeeping = 74
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_t2x8i"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_02"
+player_name = "S. Benavídez"
+number = 2
+position = 1
+foot = 1
+speed = 72
+acceleration = 72
+stamina = 70
+strength = 64
+shooting = 46
+technique = 66
+ball_control = 61
+heading = 70
+defense = 79
+reaction = 59
+balance = 70
+goalkeeping = 30
+abilities = PackedStringArray("marcador")
+
+[sub_resource type="Resource" id="Resource_xqspb"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_03"
+player_name = "P. Pereyra"
+number = 3
+position = 1
+speed = 64
+acceleration = 58
+strength = 73
+passing = 71
+shooting = 55
+technique = 54
+ball_control = 71
+heading = 67
+defense = 74
+reaction = 67
+balance = 67
+goalkeeping = 31
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_nxso3"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_04"
+player_name = "R. Garmendia"
+number = 4
+position = 1
+speed = 58
+stamina = 71
+strength = 67
+passing = 59
+shooting = 51
+technique = 70
+ball_control = 66
+heading = 70
+defense = 81
+reaction = 56
+balance = 71
+goalkeeping = 32
+abilities = PackedStringArray("marcador")
+
+[sub_resource type="Resource" id="Resource_divpj"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_05"
+player_name = "B. Ferrán"
+number = 5
+position = 1
+speed = 65
+acceleration = 61
+stamina = 63
+strength = 68
+passing = 62
+shooting = 44
+technique = 68
+ball_control = 58
+heading = 74
+defense = 79
+reaction = 58
+balance = 61
+goalkeeping = 30
+abilities = PackedStringArray("marcador")
+
+[sub_resource type="Resource" id="Resource_jvw8t"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_06"
+player_name = "V. Castañar"
+number = 6
+speed = 66
+acceleration = 70
+stamina = 74
+passing = 67
+shooting = 56
+technique = 73
+ball_control = 61
+heading = 58
+defense = 51
+reaction = 61
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_3i7gf"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_07"
+player_name = "O. Jáuregui"
+number = 7
+speed = 69
+acceleration = 70
+stamina = 78
+strength = 68
+passing = 68
+shooting = 56
+technique = 64
+ball_control = 68
+defense = 62
+reaction = 67
+balance = 64
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_o8utf"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_08"
+player_name = "B. Figueras"
+number = 8
+speed = 69
+acceleration = 58
+stamina = 80
+strength = 58
+passing = 71
+shooting = 58
+technique = 70
+ball_control = 70
+defense = 54
+reaction = 65
+balance = 63
+goalkeeping = 30
+abilities = PackedStringArray("gambeteador")
+
+[sub_resource type="Resource" id="Resource_4gs8u"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_09"
+player_name = "D. Galdós"
+number = 9
+acceleration = 73
+stamina = 70
+strength = 69
+passing = 68
+shooting = 59
+technique = 69
+ball_control = 64
+heading = 63
+defense = 64
+reaction = 63
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_p1pvn"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_10"
+player_name = "N. Urquiza"
+number = 10
+position = 3
+speed = 74
+acceleration = 58
+stamina = 72
+strength = 62
+passing = 56
+shooting = 75
+technique = 62
+ball_control = 78
+heading = 64
+defense = 39
+reaction = 56
+balance = 68
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_dacim"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_11"
+player_name = "L. Hidalgo"
+number = 11
+position = 3
+speed = 68
+acceleration = 65
+stamina = 66
+strength = 57
+passing = 59
+shooting = 68
+technique = 69
+ball_control = 69
+heading = 56
+defense = 48
+reaction = 59
+balance = 64
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_uitbd"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_12"
+player_name = "V. Irigoyen"
+number = 12
+position = 0
+foot = 1
+speed = 57
+acceleration = 68
+stamina = 75
+strength = 65
+passing = 62
+shooting = 41
+technique = 59
+ball_control = 66
+heading = 54
+defense = 41
+reaction = 81
+balance = 59
+goalkeeping = 70
+abilities = PackedStringArray("atajador")
+
+[sub_resource type="Resource" id="Resource_dttsd"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_13"
+player_name = "D. Rivadeo"
+number = 13
+position = 1
+speed = 71
+acceleration = 73
+stamina = 63
+strength = 75
+passing = 67
+shooting = 49
+technique = 65
+ball_control = 69
+heading = 77
+defense = 75
+reaction = 71
+balance = 63
+goalkeeping = 30
+abilities = PackedStringArray("cabeceador")
+
+[sub_resource type="Resource" id="Resource_uunin"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_14"
+player_name = "O. Kessler"
+number = 14
+foot = 1
+speed = 72
+acceleration = 64
+stamina = 66
+strength = 69
+passing = 77
+shooting = 58
+technique = 78
+ball_control = 62
+heading = 52
+defense = 55
+reaction = 58
+goalkeeping = 30
+abilities = PackedStringArray("pasador")
+
+[sub_resource type="Resource" id="Resource_k1r8i"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_15"
+player_name = "O. Taborda"
+number = 15
+speed = 68
+acceleration = 62
+stamina = 67
+strength = 57
+passing = 80
+shooting = 50
+technique = 72
+ball_control = 66
+heading = 55
+defense = 55
+reaction = 65
+balance = 58
+goalkeeping = 30
+abilities = PackedStringArray("pasador")
+
+[sub_resource type="Resource" id="Resource_yqih1"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_16"
+player_name = "N. Herrán"
+number = 16
+position = 3
+speed = 72
+acceleration = 61
+stamina = 73
+strength = 66
+passing = 71
+shooting = 70
+technique = 69
+ball_control = 62
+heading = 62
+defense = 42
+reaction = 56
+balance = 67
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_fh3t0"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_17"
+player_name = "T. Zabala"
+number = 17
+position = 1
+speed = 74
+acceleration = 70
+stamina = 63
+strength = 76
+passing = 65
+shooting = 47
+technique = 65
+ball_control = 58
+heading = 66
+defense = 72
+reaction = 58
+balance = 69
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_unq6q"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_18"
+player_name = "R. Maidana"
+number = 18
+position = 1
+speed = 62
+acceleration = 63
+stamina = 69
+strength = 77
+passing = 59
+shooting = 48
+technique = 65
+ball_control = 59
+heading = 76
+defense = 71
+reaction = 71
+balance = 62
+goalkeeping = 30
+abilities = PackedStringArray("cabeceador")
+
+[sub_resource type="Resource" id="Resource_rdvi6"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_19"
+player_name = "T. Espina"
+number = 19
+speed = 72
+acceleration = 59
+stamina = 77
+strength = 69
+passing = 73
+shooting = 66
+technique = 70
+ball_control = 68
+heading = 61
+defense = 58
+reaction = 63
+balance = 57
+goalkeeping = 30
+abilities = PackedStringArray("especialista")
+
+[sub_resource type="Resource" id="Resource_ppopy"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_20"
+player_name = "N. Werthein"
+number = 20
+speed = 61
+acceleration = 59
+stamina = 71
+strength = 66
+passing = 67
+shooting = 62
+technique = 66
+heading = 53
+defense = 55
+reaction = 65
+balance = 64
+goalkeeping = 31
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_lbwtd"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_21"
+player_name = "F. Duarte"
+number = 21
+position = 3
+speed = 76
+acceleration = 66
+stamina = 75
+strength = 65
+passing = 61
+shooting = 74
+technique = 55
+ball_control = 63
+heading = 61
+defense = 38
+reaction = 62
+balance = 69
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_mjt23"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_22"
+player_name = "G. Dalmasso"
+number = 22
+position = 3
+speed = 68
+acceleration = 64
+stamina = 65
+strength = 61
+passing = 68
+shooting = 75
+technique = 59
+ball_control = 67
+heading = 67
+defense = 41
+reaction = 63
+balance = 59
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_nmpyo"]
+script = ExtResource("2_x1rhl")
+id = "puertoviejo_23"
+player_name = "D. Olmedo"
+number = 23
+position = 0
+speed = 54
+acceleration = 71
+stamina = 67
+strength = 57
+passing = 69
+shooting = 37
+technique = 61
+ball_control = 56
+heading = 68
+defense = 45
+reaction = 76
+balance = 67
+goalkeeping = 69
+abilities = PackedStringArray()
+
+[resource]
+script = ExtResource("3_g11on")
+id = "puertoviejo"
+team_name = "Club Puerto Viejo"
+short_name = "CPV"
+color = Color(0.98, 0.85, 0.1, 1)
+secondary_color = Color(0.08, 0.2, 0.6, 1)
+keeper_color = Color(0.85, 0.2, 0.6, 1)
+away_color = Color(0.08, 0.2, 0.6, 1)
+away_secondary = Color(0.98, 0.85, 0.1, 1)
+formation = ExtResource("1_wdgkk")
+players = Array[ExtResource("2_x1rhl")]([SubResource("Resource_658bj"), SubResource("Resource_t2x8i"), SubResource("Resource_xqspb"), SubResource("Resource_nxso3"), SubResource("Resource_divpj"), SubResource("Resource_jvw8t"), SubResource("Resource_3i7gf"), SubResource("Resource_o8utf"), SubResource("Resource_4gs8u"), SubResource("Resource_p1pvn"), SubResource("Resource_dacim"), SubResource("Resource_uitbd"), SubResource("Resource_dttsd"), SubResource("Resource_uunin"), SubResource("Resource_k1r8i"), SubResource("Resource_yqih1"), SubResource("Resource_fh3t0"), SubResource("Resource_unq6q"), SubResource("Resource_rdvi6"), SubResource("Resource_ppopy"), SubResource("Resource_lbwtd"), SubResource("Resource_mjt23"), SubResource("Resource_nmpyo")])

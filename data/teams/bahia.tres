@@ -1,0 +1,484 @@
+[gd_resource type="Resource" script_class="TeamData" format=3]
+
+[ext_resource type="Resource" path="res://data/formations/f_3-5-2.tres" id="1_ygv1g"]
+[ext_resource type="Script" path="res://scripts/player/player_data.gd" id="2_0tuen"]
+[ext_resource type="Script" path="res://scripts/match/team_data.gd" id="3_f0268"]
+
+[sub_resource type="Resource" id="Resource_fo4q6"]
+script = ExtResource("2_0tuen")
+id = "bahia_01"
+player_name = "N. Kessler"
+position = 0
+speed = 50
+acceleration = 72
+stamina = 71
+strength = 68
+passing = 56
+shooting = 37
+technique = 58
+ball_control = 66
+heading = 58
+defense = 50
+reaction = 67
+balance = 58
+goalkeeping = 69
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_yn7at"]
+script = ExtResource("2_0tuen")
+id = "bahia_02"
+player_name = "G. Duarte"
+number = 2
+position = 1
+speed = 70
+acceleration = 66
+strength = 74
+passing = 71
+shooting = 44
+technique = 67
+ball_control = 71
+heading = 64
+defense = 70
+reaction = 72
+balance = 71
+goalkeeping = 30
+abilities = PackedStringArray("gambeteador")
+
+[sub_resource type="Resource" id="Resource_njld0"]
+script = ExtResource("2_0tuen")
+id = "bahia_03"
+player_name = "T. Acosta"
+number = 3
+position = 1
+speed = 67
+stamina = 68
+strength = 70
+passing = 69
+shooting = 45
+technique = 57
+ball_control = 63
+heading = 69
+defense = 68
+reaction = 67
+balance = 68
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_11p1f"]
+script = ExtResource("2_0tuen")
+id = "bahia_04"
+player_name = "L. Nazar"
+number = 4
+position = 1
+foot = 1
+speed = 73
+acceleration = 73
+strength = 76
+passing = 72
+shooting = 55
+technique = 67
+ball_control = 69
+heading = 67
+defense = 78
+reaction = 59
+goalkeeping = 30
+abilities = PackedStringArray("marcador")
+
+[sub_resource type="Resource" id="Resource_hd4e5"]
+script = ExtResource("2_0tuen")
+id = "bahia_05"
+player_name = "C. Galdós"
+number = 5
+position = 1
+foot = 1
+speed = 64
+acceleration = 62
+stamina = 63
+strength = 68
+passing = 58
+shooting = 51
+technique = 63
+ball_control = 61
+heading = 64
+defense = 66
+reaction = 62
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_0h1ny"]
+script = ExtResource("2_0tuen")
+id = "bahia_06"
+player_name = "N. Zabala"
+number = 6
+speed = 73
+stamina = 69
+strength = 65
+passing = 70
+shooting = 55
+technique = 70
+ball_control = 64
+heading = 55
+defense = 50
+reaction = 65
+balance = 59
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_kalix"]
+script = ExtResource("2_0tuen")
+id = "bahia_07"
+player_name = "H. Olmedo"
+number = 7
+speed = 58
+acceleration = 71
+stamina = 81
+strength = 63
+passing = 76
+shooting = 66
+technique = 75
+ball_control = 66
+heading = 57
+defense = 57
+reaction = 72
+balance = 67
+goalkeeping = 30
+abilities = PackedStringArray("pasador", "especialista")
+
+[sub_resource type="Resource" id="Resource_iixfv"]
+script = ExtResource("2_0tuen")
+id = "bahia_08"
+player_name = "T. Hidalgo"
+number = 8
+foot = 1
+speed = 70
+acceleration = 71
+stamina = 69
+strength = 69
+passing = 71
+shooting = 50
+technique = 75
+ball_control = 67
+heading = 65
+defense = 51
+reaction = 71
+balance = 67
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_2jaft"]
+script = ExtResource("2_0tuen")
+id = "bahia_09"
+player_name = "O. Quiroga"
+number = 9
+foot = 1
+acceleration = 63
+stamina = 82
+strength = 72
+passing = 74
+shooting = 55
+technique = 78
+ball_control = 61
+heading = 55
+defense = 53
+reaction = 58
+goalkeeping = 32
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_a6f1w"]
+script = ExtResource("2_0tuen")
+id = "bahia_10"
+player_name = "G. Arrieta"
+number = 10
+position = 3
+speed = 67
+acceleration = 70
+stamina = 65
+strength = 61
+passing = 57
+shooting = 82
+technique = 67
+ball_control = 71
+heading = 68
+defense = 42
+reaction = 57
+balance = 62
+goalkeeping = 30
+abilities = PackedStringArray("goleador", "gambeteador")
+
+[sub_resource type="Resource" id="Resource_re04d"]
+script = ExtResource("2_0tuen")
+id = "bahia_11"
+player_name = "F. Valdano"
+number = 11
+position = 3
+foot = 1
+speed = 77
+acceleration = 70
+strength = 70
+passing = 64
+shooting = 81
+technique = 62
+ball_control = 77
+heading = 55
+defense = 32
+reaction = 57
+balance = 59
+goalkeeping = 30
+abilities = PackedStringArray("goleador")
+
+[sub_resource type="Resource" id="Resource_lsu5c"]
+script = ExtResource("2_0tuen")
+id = "bahia_12"
+player_name = "T. Jáuregui"
+number = 12
+position = 0
+speed = 59
+acceleration = 73
+stamina = 74
+strength = 69
+passing = 58
+shooting = 39
+technique = 59
+ball_control = 70
+heading = 67
+defense = 50
+reaction = 68
+balance = 57
+goalkeeping = 81
+abilities = PackedStringArray("atajador")
+
+[sub_resource type="Resource" id="Resource_8u4pi"]
+script = ExtResource("2_0tuen")
+id = "bahia_13"
+player_name = "F. Benavídez"
+number = 13
+position = 1
+foot = 1
+speed = 58
+acceleration = 68
+stamina = 72
+strength = 70
+passing = 66
+shooting = 43
+technique = 56
+ball_control = 67
+heading = 65
+defense = 73
+reaction = 67
+balance = 69
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_fbcl0"]
+script = ExtResource("2_0tuen")
+id = "bahia_14"
+player_name = "G. Bermejo"
+number = 14
+speed = 62
+acceleration = 74
+stamina = 75
+strength = 68
+passing = 75
+shooting = 53
+technique = 64
+ball_control = 72
+heading = 55
+defense = 58
+reaction = 57
+balance = 63
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_bu8dc"]
+script = ExtResource("2_0tuen")
+id = "bahia_15"
+player_name = "G. Rivadeo"
+number = 15
+speed = 68
+stamina = 71
+strength = 71
+passing = 75
+shooting = 52
+technique = 77
+ball_control = 63
+heading = 61
+defense = 50
+reaction = 61
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_2e8im"]
+script = ExtResource("2_0tuen")
+id = "bahia_16"
+player_name = "O. Garmendia"
+number = 16
+position = 3
+foot = 1
+speed = 66
+acceleration = 58
+stamina = 72
+strength = 65
+passing = 63
+shooting = 71
+technique = 68
+ball_control = 74
+heading = 55
+defense = 38
+reaction = 71
+balance = 64
+goalkeeping = 30
+abilities = PackedStringArray("gambeteador")
+
+[sub_resource type="Resource" id="Resource_87r0w"]
+script = ExtResource("2_0tuen")
+id = "bahia_17"
+player_name = "C. Urquiza"
+number = 17
+position = 1
+speed = 63
+acceleration = 68
+stamina = 74
+strength = 71
+passing = 68
+shooting = 54
+technique = 63
+ball_control = 63
+heading = 68
+defense = 69
+reaction = 61
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_i6p06"]
+script = ExtResource("2_0tuen")
+id = "bahia_18"
+player_name = "N. Echeverri"
+number = 18
+position = 1
+speed = 66
+acceleration = 73
+stamina = 66
+strength = 71
+passing = 59
+shooting = 44
+ball_control = 67
+heading = 75
+defense = 73
+reaction = 65
+balance = 70
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_ha217"]
+script = ExtResource("2_0tuen")
+id = "bahia_19"
+player_name = "L. Ferrán"
+number = 19
+speed = 63
+acceleration = 73
+stamina = 76
+passing = 68
+shooting = 58
+technique = 69
+heading = 53
+defense = 55
+reaction = 65
+balance = 58
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_8xppx"]
+script = ExtResource("2_0tuen")
+id = "bahia_20"
+player_name = "H. Herrán"
+number = 20
+speed = 67
+acceleration = 58
+stamina = 73
+strength = 64
+passing = 68
+shooting = 58
+technique = 67
+ball_control = 57
+heading = 55
+defense = 54
+reaction = 70
+balance = 58
+goalkeeping = 32
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_k6ind"]
+script = ExtResource("2_0tuen")
+id = "bahia_21"
+player_name = "F. Taborda"
+number = 21
+position = 3
+speed = 80
+acceleration = 58
+stamina = 74
+strength = 67
+passing = 66
+shooting = 77
+technique = 58
+ball_control = 63
+heading = 66
+defense = 39
+reaction = 57
+balance = 61
+goalkeeping = 33
+abilities = PackedStringArray("goleador")
+
+[sub_resource type="Resource" id="Resource_08nds"]
+script = ExtResource("2_0tuen")
+id = "bahia_22"
+player_name = "H. Maidana"
+number = 22
+position = 3
+speed = 71
+acceleration = 66
+stamina = 62
+strength = 71
+passing = 58
+shooting = 68
+technique = 69
+ball_control = 75
+heading = 55
+defense = 37
+reaction = 65
+balance = 71
+goalkeeping = 30
+abilities = PackedStringArray("gambeteador")
+
+[sub_resource type="Resource" id="Resource_hs3r4"]
+script = ExtResource("2_0tuen")
+id = "bahia_23"
+player_name = "C. Pereyra"
+number = 23
+position = 0
+speed = 59
+acceleration = 72
+stamina = 75
+strength = 68
+passing = 71
+shooting = 37
+technique = 61
+ball_control = 58
+heading = 68
+defense = 39
+reaction = 81
+balance = 63
+goalkeeping = 81
+abilities = PackedStringArray("atajador")
+
+[resource]
+script = ExtResource("3_f0268")
+id = "bahia"
+team_name = "Sporting Bahía"
+short_name = "SBA"
+color = Color(0.98, 0.5, 0.08, 1)
+secondary_color = Color(0.06, 0.06, 0.06, 1)
+keeper_color = Color(0.3, 0.3, 0.85, 1)
+away_color = Color(0.06, 0.06, 0.06, 1)
+away_secondary = Color(0.98, 0.5, 0.08, 1)
+formation = ExtResource("1_ygv1g")
+players = Array[ExtResource("2_0tuen")]([SubResource("Resource_fo4q6"), SubResource("Resource_yn7at"), SubResource("Resource_njld0"), SubResource("Resource_11p1f"), SubResource("Resource_hd4e5"), SubResource("Resource_0h1ny"), SubResource("Resource_kalix"), SubResource("Resource_iixfv"), SubResource("Resource_2jaft"), SubResource("Resource_a6f1w"), SubResource("Resource_re04d"), SubResource("Resource_lsu5c"), SubResource("Resource_8u4pi"), SubResource("Resource_fbcl0"), SubResource("Resource_bu8dc"), SubResource("Resource_2e8im"), SubResource("Resource_87r0w"), SubResource("Resource_i6p06"), SubResource("Resource_ha217"), SubResource("Resource_8xppx"), SubResource("Resource_k6ind"), SubResource("Resource_08nds"), SubResource("Resource_hs3r4")])

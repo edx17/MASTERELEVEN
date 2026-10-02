@@ -1,6 +1,7 @@
 extends Node
 ## Captura del menú principal (para revisar su diseño):
-## xvfb-run godot -- --menu-shot=archivo.png
+## xvfb-run godot -- --menu-shot=archivo.png [--menu-page=teams]
+## Páginas: home, modes, teams, setup, options, controls.
 
 var out := "user://menu.png"
 
@@ -10,6 +11,18 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	for f in 10:
+		await get_tree().process_frame
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--menu-page="):
+			var menu := get_tree().current_scene
+			var page := a.trim_prefix("--menu-page=")
+			if page == "setup":
+				GameSettings.home_team_path = "res://data/teams/bahia.tres"
+				GameSettings.away_team_path = "res://data/teams/pampa.tres"
+			if page == "teams":
+				menu.call("show_page", "modes")
+			menu.call("show_page", page)
 	for f in 20:
 		await get_tree().process_frame
 	var img := get_tree().root.get_texture().get_image()

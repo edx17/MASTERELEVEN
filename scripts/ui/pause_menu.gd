@@ -2,7 +2,8 @@ class_name PauseMenu
 extends CanvasLayer
 ## Pausa (Esc / Start). También resuelve la salida al menú al final del partido.
 
-var _panel: PanelContainer
+var _panel: Control
+var _help: Label
 var _resume: Button
 var _formation_btn: Button
 var _difficulty_btn: Button
@@ -18,33 +19,34 @@ var _sheet: TeamSheet
 func _ready() -> void:
 	layer = 10
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_panel = PanelContainer.new()
-	_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.05, 0.08, 0.12, 0.92)
-	style.set_corner_radius_all(10)
-	style.set_content_margin_all(24)
-	_panel.add_theme_stylebox_override("panel", style)
+	# Al estilo del WE: cartel "PAUSA" arriba a la izquierda, barras violetas
+	# a la izquierda (el partido se sigue viendo) y la ayuda abajo.
+	_panel = Control.new()
+	_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_panel)
+	var head := ColorRect.new()
+	head.color = Color(0.02, 0.02, 0.06, 0.85)
+	head.position = Vector2(0, 74)
+	head.size = Vector2(520, 50)
+	_panel.add_child(head)
+	var title := WEStyle.label("PAUSA", 30, Color(0.85, 0.9, 1.0))
+	title.position = Vector2(24, 78)
+	_panel.add_child(title)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 12)
+	box.position = Vector2(0, 136)
+	box.add_theme_constant_override("separation", 5)
 	_panel.add_child(box)
-	var title := Label.new()
-	title.text = "PAUSA"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 36)
-	box.add_child(title)
-	_resume = _button(box, "Continuar", _toggle)
-	_subs_btn = _button(box, "", _open_subs)
-	_formation_btn = _button(box, "", _cycle_formation)
-	_difficulty_btn = _button(box, "", _cycle_difficulty)
-	_stick_btn = _button(box, "", _cycle_stick)
-	_speed_btn = _button(box, "", _cycle_speed)
-	_keeper_btn = _button(box, "", _cycle_keeper)
-	_label_btn = _button(box, "", _cycle_label)
-	_button(box, "Salir al menú", _exit)
+	_help = WEStyle.help_box(_panel)
+	_resume = _button(box, "Continuar", _toggle, "Volver al partido.")
+	_subs_btn = _button(box, "", _open_subs, "Cambios, posiciones, pateadores, capitán, formación y estrategias.")
+	_formation_btn = _button(box, "", _cycle_formation, "Cambiar la formación de tu equipo.")
+	_difficulty_btn = _button(box, "", _cycle_difficulty, "Qué tan bien juega la computadora.")
+	_stick_btn = _button(box, "", _cycle_stick, "8 o 16 rumbos como en el WE, o libre.")
+	_speed_btn = _button(box, "", _cycle_speed, "Más lento o más rápido (el reloj del partido no cambia).")
+	_keeper_btn = _button(box, "", _cycle_keeper, "Qué hace tu arquero si no la soltaste a tiempo.")
+	_label_btn = _button(box, "", _cycle_label, "Qué se ve arriba de los jugadores.")
+	_button(box, "Salir del partido", _exit, "Volver al menú principal.")
 	_panel.visible = false
 
 	_sheet = TeamSheet.new()
@@ -52,12 +54,10 @@ func _ready() -> void:
 	_sheet.closed.connect(_close_subs)
 
 
-func _button(parent: Control, text: String, cb: Callable) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.custom_minimum_size = Vector2(280, 48)
-	b.add_theme_font_size_override("font_size", 22)
-	b.pressed.connect(cb)
+func _button(parent: Control, text: String, cb: Callable, help: String = "") -> Button:
+	var b := WEStyle.bar(text, cb, 470.0, 21)
+	b.custom_minimum_size.y = 42
+	b.focus_entered.connect(func() -> void: _help.text = help)
 	parent.add_child(b)
 	return b
 

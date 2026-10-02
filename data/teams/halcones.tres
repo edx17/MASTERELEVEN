@@ -483,5 +483,7 @@ short_name = "HAL"
 color = Color(0.85, 0.15, 0.15, 1)
 secondary_color = Color(0.08, 0.08, 0.08, 1)
 keeper_color = Color(0.2, 0.85, 0.35, 1)
+away_color = Color(0.95, 0.95, 0.95, 1)
+away_secondary = Color(0.85, 0.15, 0.15, 1)
 formation = ExtResource("1_lt551")
 players = Array[ExtResource("2_t4at2")]([SubResource("Resource_wyxu8"), SubResource("Resource_5sscg"), SubResource("Resource_ypnxi"), SubResource("Resource_8vdff"), SubResource("Resource_1kbkc"), SubResource("Resource_j2nmc"), SubResource("Resource_g6y01"), SubResource("Resource_f7ehe"), SubResource("Resource_m512e"), SubResource("Resource_e3uhl"), SubResource("Resource_mhfki"), SubResource("Resource_brtea"), SubResource("Resource_ujkna"), SubResource("Resource_1dx33"), SubResource("Resource_m62su"), SubResource("Resource_igjdm"), SubResource("Resource_vf2b3"), SubResource("Resource_vdgve"), SubResource("Resource_0487b"), SubResource("Resource_l1xxu"), SubResource("Resource_jcjgx"), SubResource("Resource_l33bx"), SubResource("Resource_de5cx")])
