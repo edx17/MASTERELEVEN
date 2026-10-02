@@ -212,6 +212,18 @@ func tick(dt: float) -> void:
 			p.desired_move = to_meet.normalized() * clampf(to_meet.length() / 2.0, 0.3, 1.0)
 		else:
 			p.look_at_point(ball.flat_pos())
+	elif incoming and not _auto_off and ball.intended_receiver == p:
+		# Como en WE: mientras viene el pase el receptor va al encuentro de la
+		# pelota aunque se mueva el stick (si se corre de la línea, la pelota
+		# le pasa de largo). El control vuelve apenas la recibe.
+		var meet2 := _match.loose_ball_intercept(p)
+		var to_meet2 := meet2 - p.flat_pos()
+		if to_meet2.length() > 0.4:
+			p.desired_move = to_meet2.normalized() * clampf(to_meet2.length() / 2.0, 0.3, 1.0)
+		else:
+			p.desired_move = Vector3.ZERO
+			p.look_at_point(ball.flat_pos())
+		p.wants_sprint = false
 
 	# Sin pelota: pase corto mantenido = presionar (corre hacia la pelota) y,
 	# al llegar a distancia, intentar la entrada (como en WE). Se puede fallar.

@@ -13,7 +13,7 @@ extends Node3D
 ## un clip propio en ModelVisual; acá se dibujan con el gesto más parecido.
 enum Event { KICK, PASS, HEADER, THROW, DIVE_LEFT, DIVE_RIGHT, CATCH, TACKLE,
 		RECEIVE, CHEST, CATCH_HIGH, CATCH_LOW, BLOCK, CELEBRATE, DEJECTED, ROLL,
-		FEINT, ROULETTE, STEPOVER, HIGH_FIVE }
+		FEINT, ROULETTE, STEPOVER, HIGH_FIVE, HANDSHAKE }
 ## Estado continuo (lo decide el Footballer a partir de su State).
 enum Pose { NORMAL, SLIDING, FALLEN }
 
@@ -154,6 +154,7 @@ func play(event: int, side: float = 1.0) -> void:
 		Event.ROULETTE: _event_len = 0.7
 		Event.STEPOVER: _event_len = 0.6
 		Event.HIGH_FIVE: _event_len = 0.5
+		Event.HANDSHAKE: _event_len = 0.75
 		_: _event_len = 1.1
 
 

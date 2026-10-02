@@ -67,6 +67,8 @@ static func snow_level(total_game_seconds: float) -> float:
 
 func _process(dt: float) -> void:
 	_t += dt
+	if not _sliding.is_empty():
+		_update_slide_marks(dt)
 	if precipitation != null and _camera != null:
 		precipitation.global_position = precipitation_origin(_camera)
 	# Nieve: los surcos de las líneas se van tapando durante cada tiempo (en el
@@ -285,20 +287,55 @@ func _build_floodlights() -> void:
 
 ## Barrida con el césped mojado o nevado: queda una marca de barro (o de
 ## pasto a la vista, con nieve) a lo largo del deslizamiento.
+## Barrida en curso: la marca nace cuando el cuerpo toca el piso y se va
+## alargando detrás del jugador mientras se desliza.
+## {jugador: {"decal", "start", "dir", "t"}}
+var _sliding := {}
+const MARK_TOUCHDOWN := 0.1
+
 func _on_slide(p: Footballer) -> void:
-	var d := Decal.new()
-	d.texture_albedo = _mark_texture()
-	var length := 4.5
-	d.size = Vector3(0.7, 0.6, length)
-	d.modulate = Color(0.35, 0.27, 0.17, 0.85) if not conditions.is_snow() else Color(0.28, 0.33, 0.2, 0.9)
-	d.cull_mask = 1
-	add_child(d)
-	var dir := Vector3(p.facing.x, 0.0, p.facing.z).normalized()
-	d.global_position = p.flat_pos() + dir * length * 0.5 + Vector3.UP * 0.1
-	d.global_basis = Basis.looking_at(dir, Vector3.UP)
-	_marks.append(d)
-	if _marks.size() > MAX_MARKS:
-		_marks.pop_front().queue_free()
+	_sliding[p] = {"decal": null, "start": Vector3.ZERO, "dir": Vector3(p.facing.x, 0.0, p.facing.z).normalized(), "t": 0.0}
+
+
+func _update_slide_marks(dt: float) -> void:
+	for p: Footballer in _sliding.keys():
+		var s: Dictionary = _sliding[p]
+		s["t"] += dt
+		var sliding := p.state == Footballer.State.SLIDING
+		if s["decal"] == null:
+			if not sliding:
+				_sliding.erase(p)
+				continue
+			if s["t"] < MARK_TOUCHDOWN:
+				continue
+			var d := Decal.new()
+			d.texture_albedo = _mark_texture()
+			d.modulate = Color(0.35, 0.27, 0.17, 0.85) if not conditions.is_snow() else Color(0.28, 0.33, 0.2, 0.9)
+			d.cull_mask = 1
+			add_child(d)
+			s["decal"] = d
+			s["start"] = p.flat_pos()
+			_marks.append(d)
+			if _marks.size() > MAX_MARKS:
+				var old: Decal = _marks.pop_front()
+				for other in _sliding.values():
+					if other["decal"] == old:
+						other["decal"] = null
+				old.queue_free()
+		var decal: Decal = s["decal"]
+		if decal == null:
+			_sliding.erase(p)
+			continue
+		# Desde donde tocó el piso hasta debajo de la cadera (detrás de los pies).
+		var dir: Vector3 = s["dir"]
+		var start: Vector3 = s["start"]
+		var end := p.flat_pos() - dir * 0.25
+		var length := maxf((end - start).dot(dir), 0.05)
+		decal.size = Vector3(0.7, 0.6, length)
+		decal.global_position = start + dir * length * 0.5 + Vector3.UP * 0.1
+		decal.global_basis = Basis.looking_at(dir, Vector3.UP)
+		if not sliding:
+			_sliding.erase(p)
 
 
 static func _mark_texture() -> Texture2D:

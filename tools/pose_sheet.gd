@@ -48,6 +48,10 @@ func _run() -> void:
 	var builds := out.contains("build")
 	# Hoja del lateral ("throw" en el nombre): esperando con la pelota.
 	var throw := out.contains("throw")
+	# Hoja del apretón de manos ("shake"): el que espera y el que pasa.
+	var shake := out.contains("shake")
+	if shake:
+		stances = [1, 1, 1, 1]
 	if throw:
 		stances = [1, 1]
 	if builds:
@@ -82,6 +86,9 @@ func _run() -> void:
 		if stances[i] < 0:
 			v.update(1.0 / 60.0, 0.0, 8.4, PlayerVisual.Pose.NORMAL, 0.0)
 			v.play(PlayerVisual.Event.HIGH_FIVE)
+		if shake:
+			v.update(1.0 / 60.0, 0.0, 8.4, PlayerVisual.Pose.NORMAL, 0.0)
+			v.play(PlayerVisual.Event.HANDSHAKE, 1.0 if i % 2 == 0 else -1.0)
 		for f in 20:
 			v.update(1.0 / 60.0, 0.0, 8.4, PlayerVisual.Pose.NORMAL, 0.0)
 			await process_frame

@@ -206,18 +206,27 @@ func _set_handshake_targets() -> void:
 		_targets[p] = Vector3(-14.0 - (away.players.size() - 1 - n) * 1.05, 0.0, LANE_Z)
 
 
-## El visitante que pasa frente a un local: los dos levantan la derecha (se
-## arranca un poco antes para que las manos se junten justo enfrente).
+## El visitante que pasa frente a un local: se dan la mano. Los dos estiran
+## la derecha a la vez (un poco antes de quedar enfrentados, así las manos se
+## juntan en el medio) y el local gira el cuerpo hacia el que llega.
+const GREET_AHEAD := 0.7
+var _greeting := {} # local -> [visitante, tiempo que le queda]
+
 func _high_fives() -> void:
+	for h: Footballer in _greeting.keys():
+		_greeting[h][1] -= get_physics_process_delta_time()
+		if _greeting[h][1] <= 0.0:
+			_greeting.erase(h)
 	for w: Footballer in _match.teams[1].players:
 		if _via.has(w) or w.flat_pos().z < LANE_Z - 0.2:
 			continue
 		for h: Footballer in _match.teams[0].players:
 			var dx := w.flat_pos().x - h.flat_pos().x
-			if dx > 0.0 and dx < 0.45 and not _fives.has([w, h]):
+			if dx > 0.0 and dx < GREET_AHEAD and not _fives.has([w, h]):
 				_fives[[w, h]] = true
-				w.visual.play(PlayerVisual.Event.HIGH_FIVE)
-				h.visual.play(PlayerVisual.Event.HIGH_FIVE)
+				w.visual.play(PlayerVisual.Event.HANDSHAKE, -1.0)
+				h.visual.play(PlayerVisual.Event.HANDSHAKE, 1.0)
+				_greeting[h] = [w, 0.75]
 
 
 ## Cada uno parado a su manera en la formación: brazos al costado, mano en el
@@ -272,8 +281,13 @@ func _walk_to_targets() -> void:
 			tgt = _targets[p]
 		if p.flat_pos().distance_to(tgt) < 0.3:
 			p.desired_move = Vector3.ZERO
-			# En la fila, mirando a la tribuna principal (la cámara).
-			if step != Step.HANDSHAKE or p.team.index == 0:
+			# En la fila, mirando a la tribuna principal (la cámara); el que
+			# saluda gira hacia el visitante que le da la mano.
+			if _greeting.has(p):
+				var w: Footballer = _greeting[p][0]
+				var to_w := w.flat_pos() - p.flat_pos()
+				p.facing = (Vector3.BACK + to_w.normalized() * 0.8).normalized()
+			elif step != Step.HANDSHAKE or p.team.index == 0:
 				p.facing = Vector3.BACK
 		else:
 			_move(p, tgt, WALK if step == Step.HANDSHAKE else WALK_IN)

@@ -17,6 +17,42 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Ronda WE2002 (10): nieve difuminada, barrida, saludo, pelota en las manos y "riel" del receptor
+
+| Reclamo | Causa | Cambio |
+|---|---|---|
+| Rectas y "cuadrados" en la nieve | El ruido del shader (de valor, con grilla) más un borde de transición angosto dejaban contornos poligonales. | Manchas con una textura de ruido simplex suave (sin costuras) y un borde ancho: quedan redondeadas y difuminadas. |
+| La marca de la barrida aparece antes de tocar el piso | Se dibujaba entera (4,5 m) en el momento de tirarse. | Nace cuando el cuerpo toca el piso (0,1 s) y se va alargando detrás del jugador mientras se desliza. |
+| El reflejo en la nieve y el pasto sigue con mucho brillo | — | Menos brillo especular en el pasto (seco y mojado) y casi nada en la nieve. |
+| En el saludo, el que espera no se mueve | Chocaban los cinco, pero el local casi no lo hacía y no coincidían. | Se dan la mano: los dos estiran la derecha a la vez (un poco antes de quedar enfrentados, así las manos se juntan en el medio). El que espera gira el cuerpo hacia el que llega. |
+| La pelota rueda en las manos del arquero mientras camina | La pelota giraba según su velocidad aunque estuviera agarrada. | En las manos no gira. |
+| El receptor se mueve muy libre antes de recibir | Mover el stick cancelaba la ayuda y el receptor salía corriendo libre. | "Riel" como en el WE2002: mientras viene el pase, el receptor va al encuentro de la pelota aunque se mueva el stick (y sin sprint); el control vuelve al recibir. El super cancel (L1+R1) corta el riel y deja el control manual. |
+
+### Tu análisis del WE2002, contra lo que ya hay
+- **Ya está:**
+  - riel del receptor y super cancel (esta ronda);
+  - 8 direcciones (también 16 o libre, desde la pausa);
+  - presión del compañero con Cuadrado y presión propia manteniendo X;
+  - Triángulo para el pase al hueco y para sacar al arquero;
+  - pared con L1+X;
+  - centro alto, y bajo con doble toque;
+  - globo con L1+Cuadrado;
+  - barridas con falta más probable de atrás y de costado;
+  - tiro según cuánto se carga la barra.
+- **Para ver más adelante:**
+  - el tercer tipo de centro (triple toque, rasante);
+  - el timing del cabezazo en el punto más alto del salto;
+  - el frenazo al soltar R1 como cambio de ritmo;
+  - la roja directa en barridas de atrás (Fase 4);
+  - el peso de la potencia y la precisión del pateador;
+  - los rebotes cortos del arquero hacia el medio;
+  - la debilidad del primer palo (decidir si se quiere imitar).
+
+**Tests:** 196 en verde. Se agregaron:
+- la marca de la barrida que crece;
+- el receptor sigue en el riel aunque se mueva el stick;
+- el super cancel corta el riel.
+
 ## Ronda WE2002 (9): nieve, brillo del piso y sombras de noche
 
 | Reclamo | Causa | Cambio |

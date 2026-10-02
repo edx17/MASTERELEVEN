@@ -212,7 +212,8 @@ func _sync_node(dt: float) -> void:
 	# Rotación visual: rueda en la dirección del movimiento.
 	var hv := Vector3(state.vel.x, 0.0, state.vel.z)
 	var hs := hv.length()
-	if hs > 0.01 and dt > 0.0 and _mesh != null:
+	# En las manos del arquero no rueda (camina con ella agarrada).
+	if hs > 0.01 and dt > 0.0 and _mesh != null and not in_hands:
 		var axis := Vector3.UP.cross(hv / hs).normalized()
 		_mesh.global_rotate(axis, hs * dt / _tuning.ball_radius)
 	if _shadow != null:

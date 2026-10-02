@@ -172,7 +172,10 @@ func test_receiver_comes_to_the_ball_even_with_stick_held() -> void:
 	assert_lt(receiver.global_position.x, start_x + 1.0, "no se escapó en la dirección del stick")
 
 
-func test_moving_stick_elsewhere_returns_control() -> void:
+func test_moving_stick_elsewhere_keeps_the_receiver_on_the_ball() -> void:
+	# Como en WE: mientras viene el pase, el receptor va a la pelota aunque
+	# se mueva el stick (y aunque se apriete sprint); recibe y recién ahí
+	# vuelve el control.
 	var mates := _two_mates()
 	_carrier_at_origin()
 	_run(0.2)
@@ -183,8 +186,17 @@ func test_moving_stick_elsewhere_returns_control() -> void:
 	_run(0.05)
 	# Nueva orden: hacia abajo (90° de la dirección del pase).
 	input.move = Vector3(0, 0, 1)
-	_run(0.3)
-	assert_gt(mates[1].velocity.z, 1.0, "el jugador toma el control del receptor")
+	input.hold(&"sprint")
+	var start_z := mates[1].global_position.z
+	var got := false
+	for i in 240:
+		m._physics_process(dt)
+		if m.ball.owner_player == mates[1]:
+			got = true
+			break
+	input.release(&"sprint")
+	assert_true(got, "recibe igual")
+	assert_lt(absf(mates[1].global_position.z - start_z), 2.5, "no salió corriendo libre hacia el stick (libre se iba más de 10 m)")
 
 
 func test_pass_marker_hidden_by_default() -> void:
@@ -197,3 +209,23 @@ func test_pass_marker_hidden_by_default() -> void:
 	assert_eq(m.humans[0].preview_receiver, mates[0], "el receptor se elige igual")
 	assert_true(mates[0]._pass_marker == null or not mates[0]._pass_marker.visible, "pero el aro no se ve")
 	input.release(&"pass_short")
+
+
+func test_super_cancel_breaks_the_receiver_rail() -> void:
+	# L1 + R1: se cancela el "riel" y el receptor queda en manual.
+	var mates := _two_mates()
+	_carrier_at_origin()
+	_run(0.2)
+	input.move = Vector3.RIGHT
+	input.hold(&"pass_short")
+	_run(0.15)
+	input.release(&"pass_short")
+	_run(0.05)
+	input.move = Vector3(0, 0, 1)
+	input.hold(&"special")
+	input.hold(&"sprint")
+	_run(0.05)
+	input.release(&"special")
+	input.release(&"sprint")
+	_run(0.3)
+	assert_gt(mates[1].velocity.z, 1.0, "manual: va hacia donde apunta el stick")
