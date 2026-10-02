@@ -1,8 +1,8 @@
 class_name RetroBody
 extends RefCounted
 ## Modo visual "retro" (estilo PlayStation 1, beta): el modelo base de pocos
-## polígonos (assets/models/players/retro/, fuera del repo hasta confirmar su
-## licencia) vestido sobre el esqueleto de nuestros jugadores, así usa todas
+## polígonos (assets/models/players/retro/, libre) vestido sobre el esqueleto
+## de nuestros jugadores, así usa todas
 ## las animaciones y los físicos.
 ##   - Se escala a la altura del esqueleto y los brazos (en pose A) se suben a
 ##     la pose T de reposo.
