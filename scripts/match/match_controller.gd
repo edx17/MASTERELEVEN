@@ -67,7 +67,7 @@ var toast_text: String = ""
 var _toast_timer: float = 0.0
 ## Estadísticas simples del partido, por equipo.
 var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won": [0, 0],
-	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0], "subs": [0, 0]}
+	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0], "subs": [0, 0], "injuries": [0, 0], "contacts": [0, 0]}
 ## Atajada planificada para el último remate (ver SaveModel):
 ## {keeper, will_save, parry, point, time_left, chance}. Vacío si no hay.
 var save_plan := {}
@@ -299,6 +299,8 @@ func _physics_process(dt: float) -> void:
 	for p in all_players():
 		p.tick(dt, ball.owner_player == p and not (goal_kick and p == restart_taker))
 	_separate_players()
+	if phase == Phase.PLAYING:
+		_body_contact(dt)
 	if phase == Phase.RESTART:
 		_keep_distance_from_restart()
 
@@ -406,6 +408,7 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 	if player == null:
 		return null
 	var from_restart := restart_type if phase == Phase.RESTART else -1
+	kicks.set_piece = from_restart in [MatchRules.Restart.FREE_KICK, MatchRules.Restart.PENALTY]
 	# El adelantado que la juega de primera (cabezazo, remate) también está
 	# en offside: se cobra antes de que su patada cuente.
 	if phase == Phase.PLAYING and not _offside.is_empty() and player != _offside["kicker"]:
@@ -676,6 +679,9 @@ func in_header_reach(p: Footballer) -> bool:
 		return false
 	# Los altos llegan más arriba y un poco más lejos.
 	var tall := p.data.body_height() if p.data else 1.0
+	# El cabeceador salta mejor.
+	if p.data != null and p.data.has_ability("cabeceador"):
+		tall += 0.04
 	if h > tuning.header_max_height * tall:
 		return false
 	return ball.flat_pos().distance_to(p.flat_pos()) < tuning.header_reach * lerpf(1.0, tall, 2.0)
@@ -804,6 +810,9 @@ func foul_chance(offender: Footballer, victim: Footballer, slide: bool) -> float
 	else:
 		p = 0.35 if front < -0.3 else 0.1
 	p += 0.1 * conditions.wetness if conditions != null else 0.0
+	# El marcador entra limpio.
+	if offender.data != null and offender.data.has_ability("marcador"):
+		p *= 0.7
 	return clampf(p, 0.0, 0.9)
 
 
@@ -815,6 +824,7 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 	var from_behind := victim.facing.dot((offender.flat_pos() - victim.flat_pos()).normalized()) < -0.3
 	stats["fouls"][offender.team.index] += 1
 	victim.trip(tuning.trip_duration * 0.8)
+	_maybe_injure(victim, slide, from_behind)
 	var spot := victim.flat_pos()
 	var awarded := victim.team.index
 	var type := MatchRules.Restart.FREE_KICK
@@ -1007,6 +1017,7 @@ func request_sub(out: Footballer, in_data: PlayerData) -> bool:
 func _make_pending_subs() -> void:
 	for t in teams:
 		if not _has_human(t):
+			_cpu_strategy(t)
 			_cpu_subs(t)
 		for s in t.pending_subs.duplicate():
 			t.pending_subs.erase(s)
@@ -1161,6 +1172,32 @@ func swap_lineup(out: Footballer, in_data: PlayerData) -> Footballer:
 			h.select(p)
 	out.queue_free()
 	return p
+
+
+## L2 + botón: activa la estrategia de ese botón (o la apaga si ya estaba).
+func toggle_strategy(t: Team, slot: int) -> void:
+	var kind: int = t.strategy_slots[clampi(slot, 0, t.strategy_slots.size() - 1)]
+	set_strategy(t, Strategy.Kind.NONE if t.strategy == kind else kind)
+
+
+func set_strategy(t: Team, kind: int) -> void:
+	if t.strategy == kind:
+		return
+	t.strategy = kind
+	show_toast("%s: %s" % [t.short_name, Strategy.NAMES[kind] if kind != Strategy.Kind.NONE else "sin estrategia"], 2.0)
+
+
+## La CPU: todos al ataque si va perdiendo desde el 70', todos atrás si gana
+## desde el 80'; si no, sin estrategia (la presión ya la decide su IA).
+func _cpu_strategy(t: Team) -> void:
+	var minute := clock.total_game_seconds() / 60.0
+	var diff := t.score - opponents_of(t).score
+	var kind := Strategy.Kind.NONE
+	if minute >= 70.0 and diff < 0:
+		kind = Strategy.Kind.ALL_ATTACK
+	elif minute >= 80.0 and diff > 0:
+		kind = Strategy.Kind.ALL_DEFENSE
+	set_strategy(t, kind)
 
 
 func _has_human(t: Team) -> bool:
@@ -1455,7 +1492,8 @@ func _try_steal(dt: float) -> void:
 		if o.is_keeper() and o.state == Footballer.State.NORMAL and d < tuning.keeper_smother_radius \
 				and Pitch.in_penalty_area(o.flat_pos(), o.team.own_side()):
 			# El arquero se tira a los pies del atacante.
-			if randf() < tuning.keeper_smother_rate * dt:
+			var smother := tuning.keeper_smother_rate * (1.6 if o.data != null and o.data.has_ability("atajador") else 1.0)
+			if randf() < smother * dt:
 				carrier.touch_block = tuning.lost_ball_cooldown
 				if o.visual != null:
 					o.visual.play(PlayerVisual.Event.BLOCK)
@@ -1505,6 +1543,11 @@ func tackle_chance(defender: Footballer, carrier: Footballer) -> float:
 	var carrier_speed := Vector3(carrier.velocity.x, 0.0, carrier.velocity.z).length()
 	if carrier_speed < Dribble.SHIELD_SPEED * 2.0 and carrier.dribble_pressure > 0.6:
 		chance -= 0.12
+	# Habilidades: el gambeteador la cuida, el marcador entra mejor.
+	if carrier.data != null and carrier.data.has_ability("gambeteador"):
+		chance -= 0.1
+	if defender.data != null and defender.data.has_ability("marcador"):
+		chance += 0.08
 	# En plena marsellesa la pelota queda protegida por el cuerpo que gira.
 	if carrier.skill == Footballer.Skill.ROULETTE:
 		chance *= 0.35
@@ -1530,6 +1573,97 @@ func _resolve_tackle(defender: Footballer, carrier: Footballer) -> bool:
 	return false
 
 
+# --- Cuerpo a cuerpo y lesiones ------------------------------------------------
+
+## Choque de hombros: distancia, chance por segundo corriendo a la par, pausa
+## entre choques y cuánto trastabilla el que pierde.
+const CONTACT_DIST := 1.1
+const CONTACT_RATE := 2.2
+const CONTACT_COOLDOWN := 1.2
+const CONTACT_STAGGER := 0.4
+## Chance de lesión del que recibe la falta: barrida de atrás, barrida, otra.
+const INJURY_CHANCE := [0.15, 0.07, 0.02]
+## De las lesiones, cuántas no le dejan seguir bien.
+const INJURY_SERIOUS := 0.35
+
+
+## Probabilidad de que el que lleva la pelota pierda el choque de hombros:
+## fuerza, equilibrio y físico de cada uno (el flaquito trastabilla).
+func contact_loss_chance(defender: Footballer, carrier: Footballer) -> float:
+	var dp := defender.data.body_power() if defender.data else 0.0
+	var cp := carrier.data.body_power() if carrier.data else 0.0
+	var chance := 0.42 + 0.3 * (dp - cp)
+	if carrier.data != null and carrier.data.has_ability("gambeteador"):
+		chance -= 0.08
+	return clampf(chance, 0.08, 0.85)
+
+
+## Corriendo a la par, el defensor y el que lleva la pelota chocan: el que
+## pierde trastabilla (si es el que la lleva, la pelota queda suelta).
+func _body_contact(dt: float) -> void:
+	var carrier := ball.owner_player
+	if carrier == null or ball.in_hands or carrier.state != Footballer.State.NORMAL or carrier.contact_cooldown > 0.0:
+		return
+	var cv := Vector3(carrier.velocity.x, 0.0, carrier.velocity.z)
+	if cv.length() < 2.5:
+		return
+	for o in opponents_of(carrier.team).players:
+		if o.is_keeper() or o.state != Footballer.State.NORMAL or o.contact_cooldown > 0.0:
+			continue
+		if o.flat_pos().distance_to(carrier.flat_pos()) > CONTACT_DIST:
+			continue
+		var ov := Vector3(o.velocity.x, 0.0, o.velocity.z)
+		# Corriendo a la par o en diagonal (de frente es una entrada, no un choque).
+		if ov.length() < 1.5 or ov.normalized().dot(cv.normalized()) < 0.0:
+			continue
+		if randf() > CONTACT_RATE * dt:
+			continue
+		resolve_contact(o, carrier, randf() < contact_loss_chance(o, carrier))
+		return
+
+
+## Resultado de un choque (separado para los tests).
+func resolve_contact(defender: Footballer, carrier: Footballer, carrier_loses: bool) -> void:
+	defender.contact_cooldown = CONTACT_COOLDOWN
+	carrier.contact_cooldown = CONTACT_COOLDOWN
+	stats["contacts"][defender.team.index] += 1
+	var loser := carrier if carrier_loses else defender
+	var steady := PlayerData.unit(loser.data.balance) if loser.data else 0.5
+	loser.stagger(CONTACT_STAGGER * (1.3 - 0.6 * steady))
+	if carrier_loses and ball.owner_player == carrier:
+		ball.owner_player = null
+		carrier.touch_block = tuning.lost_ball_cooldown
+
+
+## Al que le hacen la falta se puede lesionar: un golpe (juega rengo) o algo
+## peor (tiene que salir; la CPU lo cambia, al humano se le avisa).
+func _maybe_injure(victim: Footballer, slide: bool, from_behind: bool) -> void:
+	var chance: float = INJURY_CHANCE[0 if slide and from_behind else (1 if slide else 2)]
+	if randf() >= chance:
+		return
+	injure(victim, Footballer.Injury.SERIOUS if randf() < INJURY_SERIOUS else Footballer.Injury.KNOCK)
+
+
+func injure(p: Footballer, level: int) -> void:
+	p.injury = maxi(p.injury, level)
+	stats["injuries"][p.team.index] += 1
+	var t := p.team
+	if level == Footballer.Injury.SERIOUS:
+		show_toast("LESIONADO: %s%s" % [p.display_name, "" if not _has_human(t) else "  (cambialo desde la pausa)"], 3.0)
+		if not _has_human(t) and t.subs_left() > 0:
+			var pick: PlayerData = null
+			for d in t.bench:
+				var gk := d.position == PlayerData.Position.GK
+				if gk != p.is_keeper():
+					continue
+				if pick == null or (d.position == p.base_data.position and pick.position != p.base_data.position):
+					pick = d
+			if pick != null:
+				t.pending_subs.append({"out": p, "in": pick})
+	else:
+		show_toast("%s quedó rengo" % p.display_name, 2.0)
+
+
 ## Separación suave entre jugadores (sin física de cuerpos, decisión B).
 func _separate_players() -> void:
 	var list := all_players()
@@ -1553,8 +1687,12 @@ func _separate_players() -> void:
 			elif b_fixed:
 				a.global_position -= push
 			else:
-				a.global_position -= push * 0.5
-				b.global_position += push * 0.5
+				# El más pesado y fuerte corre al otro.
+				var ma := a.data.mass() if a.data else 1.0
+				var mb := b.data.mass() if b.data else 1.0
+				var share := mb / (ma + mb)
+				a.global_position -= push * share
+				b.global_position += push * (1.0 - share)
 	for p in list:
 		_clamp_player(p)
 

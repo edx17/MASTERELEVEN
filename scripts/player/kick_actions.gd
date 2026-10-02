@@ -317,6 +317,10 @@ func _best_in_box(player: Footballer) -> Footballer:
 ## define velocidad y altura (a potencia máxima puede irse por arriba). Con la
 ## pelota en el aire sale de cabeza o de volea. La precisión depende de
 ## shooting/technique/balance, la presión, la orientación y la distancia.
+## La patada es un tiro libre o un penal (para el especialista). La fija el partido.
+var set_piece := false
+
+
 func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, placed: bool = false) -> void:
 	var side := player.team.attack_dir
 	var aim_z := 0.0
@@ -351,6 +355,14 @@ func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, pl
 	var weak := not header and uses_weak_foot(player, ball.flat_pos())
 	if weak:
 		err *= WEAK_FOOT_ERROR
+	# Habilidades especiales.
+	if data != null:
+		if data.has_ability("goleador") and to.length() < 20.0:
+			err *= 0.8
+		if header and data.has_ability("cabeceador"):
+			err *= 0.75
+		if set_piece and data.has_ability("especialista"):
+			err *= 0.65
 	err += KickAccuracy.fatigue_penalty(player.stamina_fraction())
 	last_error = err
 	if randomize_error:
@@ -513,6 +525,8 @@ func _pass_direction(player: Footballer, to_target: Vector3, stick: Vector3, pow
 	var data := player.data
 	var err := KickAccuracy.pass_error(data.passing if data else 60, data.technique if data else 60,
 		pressure, rad_to_deg(player.facing.angle_to(dir)), power)
+	if data != null and data.has_ability("pasador"):
+		err *= 0.65
 	err += KickAccuracy.fatigue_penalty(player.stamina_fraction())
 	last_error = err
 	if randomize_error:

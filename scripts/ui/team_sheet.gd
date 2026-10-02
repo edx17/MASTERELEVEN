@@ -245,6 +245,8 @@ func _row(i: int, e: Dictionary, pending: String) -> Button:
 		tag += "  (C)"
 	if pending != "":
 		tag += "  [%s]" % pending
+	if e["p"] != null and (e["p"] as Footballer).injury > 0:
+		tag += "  [lesionado]" if (e["p"] as Footballer).injury == Footballer.Injury.SERIOUS else "  [golpe]"
 	var nl := _label(hb, d.player_name + tag, 15, name_color)
 	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var num := _label(hb, str(d.number), 15, Color.WHITE)
@@ -387,14 +389,18 @@ func _build_menu() -> void:
 	_menu_button("Penales: %s" % _taker_name(team.pk_taker), _choose.bind(Mode.PK))
 	_menu_button("Capitán: %s" % _taker_name(team.captain), _choose.bind(Mode.CAPTAIN))
 	_menu_button("Formación: %s" % (team.formation.formation_name if team.formation else "-"), _next_formation)
+	for i in team.strategy_slots.size():
+		var on := "  (activa)" if team.strategy == team.strategy_slots[i] else ""
+		_menu_button("Estrategia L2 + %s: %s%s" % [Strategy.BUTTON_NAMES[i], Strategy.NAMES[team.strategy_slots[i]], on],
+			cycle_strategy_slot.bind(i))
 
 
 func _menu_button(text: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.custom_minimum_size = Vector2(570, 30)
-	b.add_theme_font_size_override("font_size", 18)
+	b.custom_minimum_size = Vector2(570, 25)
+	b.add_theme_font_size_override("font_size", 16)
 	for st in ["normal", "hover", "focus", "pressed"]:
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = Color(0.3, 0.5, 0.75, 0.9) if st in ["focus", "hover"] else Color(0, 0, 0, 0)
@@ -435,6 +441,22 @@ func _choose(m: int) -> void:
 	_rebuild()
 	if not _rows.is_empty():
 		_rows[clampi(_focus_index, 0, 10)].grab_focus()
+
+
+## Cambia la estrategia asignada a un botón (sin repetir y sin "ninguna").
+func cycle_strategy_slot(i: int) -> void:
+	var kind: int = team.strategy_slots[i]
+	for n in Strategy.NAMES.size():
+		kind = kind % (Strategy.NAMES.size() - 1) + 1
+		if not team.strategy_slots.has(kind):
+			break
+	if team.strategy == team.strategy_slots[i]:
+		team.strategy = kind
+	team.strategy_slots[i] = kind
+	var idx := _menu.get_children().find(get_viewport().gui_get_focus_owner()) if is_inside_tree() else -1
+	_rebuild()
+	if idx >= 0 and idx < _menu.get_child_count():
+		(_menu.get_child(idx) as Control).grab_focus()
 
 
 func _next_formation() -> void:
@@ -487,6 +509,8 @@ func _show_detail(i: int) -> void:
 		roles.append("Córners")
 	if team.pk_taker == base:
 		roles.append("Penales")
+	if p != null and p.injury > 0:
+		roles.append("Lesionado" if p.injury == Footballer.Injury.SERIOUS else "Golpeado (juega rengo)")
 	if e["kind"] == "red":
 		roles.append("Expulsado")
 	if e["kind"] == "out":
@@ -504,6 +528,9 @@ func _show_detail(i: int) -> void:
 		nl.custom_minimum_size = Vector2(150, 0)
 		var vl := _label(grid, str(v), 16, attribute_color(v))
 		vl.custom_minimum_size = Vector2(40, 0)
+	# Habilidades especiales (las estrellitas del WE).
+	for id in base.abilities:
+		_label(_detail, "★ " + String(PlayerData.ABILITY_NAMES.get(id, id)), 15, Color(1.0, 0.85, 0.35))
 
 
 ## Colores de los puntajes como en el WE: los altos resaltan.

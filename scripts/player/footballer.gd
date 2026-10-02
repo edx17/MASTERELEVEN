@@ -70,6 +70,12 @@ var debug_state: String = ""
 var stamina: float = 100.0
 ## Cansancio acumulado en el partido (puntos que se le restan al tope de 100).
 var wear: float = 0.0
+## Tiempo hasta otro choque de hombros (MatchController._body_contact).
+var contact_cooldown: float = 0.0
+## Lesión: 0 = sano, 1 = golpe (juega rengo), 2 = no puede seguir bien.
+enum Injury { NONE, KNOCK, SERIOUS }
+var injury: int = Injury.NONE
+const INJURY_SPEED := [1.0, 0.9, 0.75]
 ## Datos del plantel (sin la condición del día; `data` ya la incluye).
 var base_data: PlayerData
 ## Tiempo de reacción pendiente (IA): mientras corre, mantiene la orden anterior.
@@ -175,7 +181,7 @@ func rest_at_halftime() -> void:
 ## Multiplicador de velocidad por cansancio: debajo del umbral cae hasta el
 ## mínimo; el desgaste acumulado baja además la velocidad tope.
 func fatigue_speed_factor() -> float:
-	var worn := lerpf(1.0, _tuning.wear_min_speed_factor, clampf(wear / _tuning.wear_max, 0.0, 1.0))
+	var worn: float = lerpf(1.0, _tuning.wear_min_speed_factor, clampf(wear / _tuning.wear_max, 0.0, 1.0)) * INJURY_SPEED[injury]
 	var th := _tuning.stamina_tired_threshold
 	if stamina >= th:
 		return worn
@@ -314,6 +320,7 @@ func tick(dt: float, has_ball: bool) -> void:
 	touch_block = maxf(0.0, touch_block - dt)
 	kick_brake = maxf(0.0, kick_brake - dt)
 	tackle_cooldown = maxf(0.0, tackle_cooldown - dt)
+	contact_cooldown = maxf(0.0, contact_cooldown - dt)
 	pass_target_timer = maxf(0.0, pass_target_timer - dt)
 	possession_time = possession_time + dt if has_ball else 0.0
 	reaction_timer = maxf(0.0, reaction_timer - dt)

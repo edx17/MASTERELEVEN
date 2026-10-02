@@ -63,7 +63,7 @@ static func params_for(state: int) -> Params:
 
 
 ## Objetivos (espacio de equipo) de los 11 puestos.
-static func compute(formation: FormationData, state: int, ball: Vector2) -> Array[Vector2]:
+static func compute(formation: FormationData, state: int, ball: Vector2, strategy: int = 0) -> Array[Vector2]:
 	var p := params_for(state)
 	var def_base := 1.0
 	var fw_base := 0.0
@@ -132,7 +132,9 @@ static func compute(formation: FormationData, state: int, ball: Vector2) -> Arra
 			if TacticalRole.is_defender(role):
 				x = line + (0.02 if role == TacticalRole.Kind.FB else 0.0)
 		var r: Vector2 = TacticalRole.X_RANGE[role]
-		out.append(Vector2(clampf(x, r.x, r.y), clampf(y, -0.95, 0.95)))
+		var adj := Strategy.adjust(strategy, role, Vector2(x, y), ball, p.in_possession)
+		var top := r.y + (0.08 if strategy == Strategy.Kind.OFFSIDE_TRAP else 0.0)
+		out.append(Vector2(clampf(adj.x, r.x, top), clampf(adj.y, -0.95, 0.95)))
 	return out
 
 

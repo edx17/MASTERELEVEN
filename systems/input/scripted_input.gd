@@ -32,12 +32,18 @@ func right_vector() -> Vector3:
 
 
 func pressed(action: StringName) -> bool:
+	if muted.has(action):
+		return false
 	return _now.has(action)
 
 
 func just_pressed(action: StringName) -> bool:
+	if muted.has(action):
+		return false
 	return _now.has(action) and not _prev.has(action)
 
 
 func just_released(action: StringName) -> bool:
+	if muted.has(action):
+		return false
 	return _prev.has(action) and not _now.has(action)

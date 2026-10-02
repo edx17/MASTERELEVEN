@@ -10,6 +10,11 @@ extends RefCounted
 ## con la pelota), &"pause".
 
 
+## Acciones silenciadas (no se leen como apretadas): las usa L2 + botón para
+## elegir una estrategia sin que el botón también patee.
+var muted: Array[StringName] = []
+
+
 ## Se llama una vez por tick antes de leer (para fuentes que llevan estado).
 func poll() -> void:
 	pass

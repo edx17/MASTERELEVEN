@@ -21,6 +21,7 @@ defense = 48
 reaction = 73
 balance = 63
 goalkeeping = 84
+abilities = PackedStringArray("atajador")
 
 [sub_resource type="Resource" id="Resource_m2sx4"]
 script = ExtResource("2_g8a4c")
@@ -40,6 +41,7 @@ defense = 68
 reaction = 66
 balance = 57
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_nwfuk"]
 script = ExtResource("2_g8a4c")
@@ -60,6 +62,7 @@ defense = 72
 reaction = 66
 balance = 58
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_b8f2l"]
 script = ExtResource("2_g8a4c")
@@ -79,6 +82,7 @@ heading = 73
 defense = 73
 reaction = 57
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_4ylut"]
 script = ExtResource("2_g8a4c")
@@ -98,6 +102,7 @@ defense = 75
 reaction = 71
 balance = 63
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_c843m"]
 script = ExtResource("2_g8a4c")
@@ -115,6 +120,7 @@ defense = 62
 reaction = 56
 balance = 70
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_o8f4y"]
 script = ExtResource("2_g8a4c")
@@ -134,6 +140,7 @@ defense = 52
 reaction = 72
 balance = 57
 goalkeeping = 30
+abilities = PackedStringArray("pasador")
 
 [sub_resource type="Resource" id="Resource_lf7yx"]
 script = ExtResource("2_g8a4c")
@@ -154,6 +161,7 @@ defense = 62
 reaction = 66
 balance = 69
 goalkeeping = 30
+abilities = PackedStringArray("pasador")
 
 [sub_resource type="Resource" id="Resource_rdktv"]
 script = ExtResource("2_g8a4c")
@@ -173,6 +181,7 @@ defense = 62
 reaction = 63
 balance = 67
 goalkeeping = 32
+abilities = PackedStringArray("pasador")
 
 [sub_resource type="Resource" id="Resource_qxidh"]
 script = ExtResource("2_g8a4c")
@@ -193,6 +202,7 @@ defense = 41
 reaction = 62
 balance = 63
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_7tj6r"]
 script = ExtResource("2_g8a4c")
@@ -212,6 +222,7 @@ defense = 33
 reaction = 62
 balance = 61
 goalkeeping = 30
+abilities = PackedStringArray("goleador")
 
 [sub_resource type="Resource" id="Resource_054l2"]
 script = ExtResource("2_g8a4c")
@@ -233,6 +244,7 @@ defense = 53
 reaction = 74
 balance = 57
 goalkeeping = 76
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_8uafo"]
 script = ExtResource("2_g8a4c")
@@ -252,6 +264,7 @@ defense = 74
 reaction = 61
 balance = 62
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_e2jgp"]
 script = ExtResource("2_g8a4c")
@@ -271,6 +284,7 @@ heading = 52
 defense = 64
 reaction = 58
 goalkeeping = 30
+abilities = PackedStringArray("pasador")
 
 [sub_resource type="Resource" id="Resource_6o3yb"]
 script = ExtResource("2_g8a4c")
@@ -289,6 +303,7 @@ heading = 57
 defense = 50
 reaction = 70
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_p5aj2"]
 script = ExtResource("2_g8a4c")
@@ -309,6 +324,7 @@ defense = 47
 reaction = 62
 balance = 56
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_yyduf"]
 script = ExtResource("2_g8a4c")
@@ -329,6 +345,7 @@ defense = 75
 reaction = 68
 balance = 63
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_yrnpf"]
 script = ExtResource("2_g8a4c")
@@ -349,6 +366,7 @@ defense = 66
 reaction = 67
 balance = 69
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_lu0j5"]
 script = ExtResource("2_g8a4c")
@@ -368,6 +386,7 @@ defense = 65
 reaction = 65
 balance = 56
 goalkeeping = 31
+abilities = PackedStringArray("especialista")
 
 [sub_resource type="Resource" id="Resource_luugq"]
 script = ExtResource("2_g8a4c")
@@ -387,6 +406,7 @@ defense = 66
 reaction = 58
 balance = 68
 goalkeeping = 33
+abilities = PackedStringArray("pasador")
 
 [sub_resource type="Resource" id="Resource_ujjmy"]
 script = ExtResource("2_g8a4c")
@@ -407,6 +427,7 @@ defense = 35
 reaction = 61
 balance = 56
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_1c88h"]
 script = ExtResource("2_g8a4c")
@@ -427,6 +448,7 @@ defense = 33
 reaction = 56
 balance = 65
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_7ieis"]
 script = ExtResource("2_g8a4c")
@@ -447,6 +469,7 @@ defense = 49
 reaction = 67
 balance = 57
 goalkeeping = 74
+abilities = PackedStringArray()
 
 [resource]
 script = ExtResource("3_c5s0o")

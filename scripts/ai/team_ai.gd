@@ -184,10 +184,12 @@ func _update_state(ball: Ball) -> void:
 		state = S.DEFENDING
 		return
 	if _possession_team == team.index:
-		var just_won := since < 3.5
+		# Con la estrategia de contraataque se sale rápido aunque haya más rivales.
+		var counter := team.strategy == Strategy.Kind.COUNTER
+		var just_won := since < (6.0 if counter else 3.5)
 		var was_defending := state in [S.DEFENDING, S.PRESSING, S.RETREATING]
 		if (was_defending or state == S.COUNTER_ATTACK) and just_won and bx > 0.25 and bx < 0.8 \
-				and _opponents_goal_side(bx) <= 5:
+				and _opponents_goal_side(bx) <= (7 if counter else 5):
 			state = S.COUNTER_ATTACK
 		elif bx < 0.33:
 			state = S.BUILD_UP
@@ -195,7 +197,9 @@ func _update_state(ball: Ball) -> void:
 			state = S.ATTACKING
 	else:
 		var lost_recently := since < 4.0
-		if lost_recently and bx > 0.55:
+		if team.strategy == Strategy.Kind.PRESSING and bx > 0.3:
+			state = S.PRESSING # presión en todo el campo
+		elif lost_recently and bx > 0.55:
 			state = S.PRESSING # contrapresión donde se perdió
 		elif difficulty.level == Difficulty.Level.HARD and bx > 0.66:
 			state = S.PRESSING
@@ -226,7 +230,7 @@ func _own_players_ahead(bx: float) -> int:
 func _update_shape() -> void:
 	var f := team.formation if team.formation != null else FormationLibrary.build("4-4-2")
 	var bp := _match.ball.flat_pos() if _match.ball != null else Vector3.ZERO
-	shape = TeamShape.compute(f, state, Vector2(team.progress_of(bp), team.lateral_of(bp)))
+	shape = TeamShape.compute(f, state, Vector2(team.progress_of(bp), team.lateral_of(bp)), team.strategy)
 
 
 ## Objetivo de forma de un jugador (mundo).

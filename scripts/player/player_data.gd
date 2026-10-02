@@ -34,6 +34,10 @@ enum Build { AUTO = -1, NORMAL, HEAVY, SLIM, TALL, SHORT, STOCKY, MUSCULAR }
 @export_range(1, 99) var balance: int = 60
 @export_range(1, 99) var goalkeeping: int = 20
 
+@export_group("Habilidades especiales")
+## Ids de ABILITY_NAMES (como las estrellitas del WE).
+@export var abilities: PackedStringArray = []
+
 
 ## Atributo normalizado a -1..1 alrededor del promedio (50).
 static func centered(value: int) -> float:
@@ -123,3 +127,59 @@ func with_condition(c: int) -> PlayerData:
 	for a in ATTRIBUTES:
 		d.set(a, clampi(int(get(a)) + delta, 1, 99))
 	return d
+
+
+# --- Físico en el cuerpo a cuerpo ------------------------------------------------
+
+## Peso extra por físico (los pesados y musculosos empujan más).
+const BUILD_MASS := {Build.NORMAL: 0.0, Build.HEAVY: 0.2, Build.SLIM: -0.15, Build.TALL: 0.05,
+	Build.SHORT: -0.12, Build.STOCKY: 0.15, Build.MUSCULAR: 0.2}
+
+
+## Fuerza en un choque (-1.5..1.5): fuerza, equilibrio y físico.
+func body_power() -> float:
+	return 0.6 * centered(strength) + 0.4 * centered(balance) + BUILD_MASS.get(visual_build(), 0.0)
+
+
+## Peso relativo al separarse de otro (1 = promedio).
+func mass() -> float:
+	return 1.0 + 0.35 * centered(strength) + BUILD_MASS.get(visual_build(), 0.0)
+
+
+# --- Habilidades especiales ------------------------------------------------------
+
+const ABILITY_NAMES := {
+	"pasador": "Pasador: pases precisos al hueco",
+	"goleador": "Goleador: define mejor en el área",
+	"gambeteador": "Gambeteador: difícil de sacarle la pelota",
+	"cabeceador": "Cabeceador: gana arriba",
+	"especialista": "Especialista en tiros libres",
+	"marcador": "Marcador: entradas más limpias",
+	"atajador": "Arquero de mano a mano",
+}
+
+
+func has_ability(id: String) -> bool:
+	return abilities.has(id)
+
+
+## Habilidades que corresponden a los atributos (las usa el generador de datos).
+func suggested_abilities() -> PackedStringArray:
+	var out := PackedStringArray()
+	if position == Position.GK:
+		if goalkeeping >= 78 or reaction >= 80:
+			out.append("atajador")
+		return out
+	if passing >= 76:
+		out.append("pasador")
+	if shooting >= 76:
+		out.append("goleador")
+	if ball_control >= 70 and technique >= 66:
+		out.append("gambeteador")
+	if heading >= 76:
+		out.append("cabeceador")
+	if technique >= 70 and shooting >= 64 and passing >= 66:
+		out.append("especialista")
+	if defense >= 78:
+		out.append("marcador")
+	return out

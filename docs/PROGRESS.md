@@ -9,13 +9,55 @@ Ver `Claude.md` para visión, criterios y fases.
 | 2 — Prototipo 0.1: sensación de juego | ✅ Hecha (PR #2) |
 | 3 — IA de partido (TeamAI, formaciones, zonas, arquero) | 🟡 Implementada, **pendiente de tu prueba** |
 | Visual 1 — Se ve como la referencia (jugadores animados, cámara, cancha) | 🟡 Implementada, **pendiente de tu prueba** |
-| 4 — Reglas, atributos y plantel | 🟡 En curso: tarjetas, offside, cambios y cansancio hechos |
+| 4 — Reglas, atributos y plantel | 🟡 Implementada, **pendiente de tu prueba** |
 | 5 — Presentación moderna (estadio, modelos, animaciones, audio) | ⬜ |
 | 6 — Liga Master | ⬜ |
 | 7 — Torneos | ⬜ |
 | 8 — Pulido | ⬜ |
 
 ---
+
+## Fase 4 (3): cuerpo a cuerpo, lesiones, habilidades especiales y estrategias
+
+| Tema | Cambio |
+|---|---|
+| Cuerpo a cuerpo | Corriendo a la par del que lleva la pelota, a veces chocan de hombros. Pierde el de menos fuerza, equilibrio y físico (el flaquito trastabilla; el pesado o musculoso aguanta). Si pierde el que la lleva, la pelota queda suelta. Al separarse, el más pesado corre al otro. Unos 5 choques por partido entre la CPU. |
+| Lesiones | Al que le hacen falta se puede lesionar: barrida de atrás 15 %, barrida 7 %, otra 2 %. Un golpe lo deja rengo (−10 % de velocidad); algo peor (−25 %) obliga a cambiarlo: la CPU lo cambia sola y a vos se te avisa. Se ve en la Dirección del equipo. |
+| Habilidades especiales | Como las estrellitas del WE, según los atributos: **pasador** (pases un 35 % más precisos), **goleador** (define mejor en el área), **gambeteador** (cuesta sacarle la pelota y aguanta los choques), **cabeceador** (salta más y cabecea más preciso), **especialista** (tiros libres y penales más precisos), **marcador** (entra mejor y hace menos faltas), **atajador** (arquero que achica mejor el mano a mano). Se ven en la ficha del jugador. |
+| Estrategias | En la Dirección del equipo se asignan cuatro a los botones; en el partido se activan y apagan con **L2 + X / Cuadrado / Círculo / Triángulo** (con teclado, **R** + la tecla). Presión en todo el campo, contraataque (los de arriba no bajan y se sale rápido), trampa del offside (línea alta), ataque por las bandas, todos al ataque, todos atrás. La activa se ve arriba a la derecha. La CPU va con todos al ataque si pierde desde el 70' y con todos atrás si gana desde el 80'. Mientras L2 está apretado los botones no patean. |
+
+**Tests:** 241 en verde. Se agregaron (`tests/unit/test_contact_strategy.gd`):
+- choque de hombros: quién gana y qué pasa;
+- frecuencia de los choques;
+- empuje según el peso;
+- lesión: más lento y la CPU lo cambia;
+- habilidades: gambeteador, marcador y pasador;
+- forma del equipo con cada estrategia;
+- L2 + botón activa la estrategia sin patear;
+- presión en todo el campo;
+- estrategia de la CPU según el resultado;
+- asignar estrategias a los botones.
+
+## Fase 4 (2): plantel de 23, Dirección del equipo y condición
+
+| Tema | Cambio |
+|---|---|
+| Plantel | 23 por equipo como en el WE: 11 titulares y 12 suplentes (tres arqueros). Siguen siendo 3 cambios. |
+| Dirección del equipo | Pantalla al estilo del WE, desde la pausa y desde la previa del partido. A la izquierda, la minicancha con la formación y la lista de los 23. Con L1 / R1 (o Q / E) la columna pasa por **Puesto** (GK, CB, SB, DH, CH, OH, SH, WG, CF), **Energía** (con el desgaste en oscuro) y **Condición**. A la derecha, el menú y la ficha del jugador elegido: pie, altura, condición, energía y los 13 puntajes (los altos en amarillo y naranja). |
+| Sustituir | X sobre un jugador y después sobre otro. Dos titulares cambian de puesto (si uno va al arco, se cambia la ropa). Titular y suplente: en la previa es un cambio libre de la alineación; en el partido es uno de los 3 cambios. |
+| Pateadores y capitán | Tiros libres (cerca del arco), córners y penales los patea el elegido; capitán marcado con (C). |
+| Condición (flechas) | Cada jugador llega al partido en un estado al azar: roja arriba (+6 a todos los atributos), naranja (+3), amarilla (normal), azul (−3), gris abajo (−6). Afecta el juego y se ve en la lista. |
+
+**Tests:** 229 en verde. Se agregaron (`tests/unit/test_team_sheet.gd`):
+- plantel de 23;
+- la condición cambia los atributos;
+- sorteo de la condición;
+- columnas con L1 / R1;
+- cambio libre en la previa;
+- en el partido, un cambio;
+- dos titulares cambian de puesto;
+- pateadores elegidos;
+- capitán y pateador desde la pantalla.
 
 ## Fase 4 (1): cambios, cansancio acumulado y arquero expulsado
 

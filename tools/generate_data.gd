@@ -64,6 +64,7 @@ func _init() -> void:
 		for i in roles.size():
 			var p := _make_player(rng, roles[i], i + 1, names[i])
 			p.id = "%s_%02d" % [team.id, i + 1]
+			p.abilities = p.suggested_abilities()
 			team.players.append(p)
 		_save(team, "res://data/teams/%s.tres" % team.id)
 	print("Datos generados.")

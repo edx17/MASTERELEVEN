@@ -35,6 +35,9 @@ var captain: PlayerData = null
 var fk_taker: PlayerData = null
 var ck_taker: PlayerData = null
 var pk_taker: PlayerData = null
+## Estrategias asignadas a los cuatro botones y la que está activa.
+var strategy_slots: Array[int] = Strategy.DEFAULT_SLOTS.duplicate()
+var strategy: int = Strategy.Kind.NONE
 var score: int = 0
 
 
