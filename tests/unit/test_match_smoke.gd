@@ -57,6 +57,8 @@ func test_full_match_reaches_final_whistle() -> void:
 		total += p.wear
 	gut.p("Desgaste: promedio %.1f, máximo %.1f; cambios %d - %d" % [total / _match.all_players().size(), worst,
 			_match.stats["subs"][0], _match.stats["subs"][1]])
+	gut.p("Choques: %d, lesiones: %d, faltas: %d" % [_match.stats["contacts"][0] + _match.stats["contacts"][1],
+			_match.stats["injuries"][0] + _match.stats["injuries"][1], _match.stats["fouls"][0] + _match.stats["fouls"][1]])
 	for t in _match.teams:
 		assert_eq(t.players.size() + t.sent_off.size(), 11, "los cambios no cambian la cantidad")
 		assert_lte(t.subs_used, Team.MAX_SUBS)

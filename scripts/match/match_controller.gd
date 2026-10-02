@@ -10,12 +10,26 @@ signal phase_changed(phase: int)
 ## Se mostró una tarjeta amarilla.
 signal card_shown(player: Footballer)
 
-enum Phase { PLAYING, STOPPED, RESTART, GOAL, HALFTIME, FULLTIME, INTRO }
+enum Phase { PLAYING, STOPPED, RESTART, GOAL, HALFTIME, FULLTIME, INTRO, REPLAY }
 
 const FORECAST_STEP := 0.1
 const FORECAST_POINTS := 30
 const STOP_DELAY := 1.1
 const FOUL_DELAY := 2.0
+## Falta fuerte (barrida o de atrás): el derribado queda en el piso este rato.
+const HARD_FOUL_DOWN := 3.4
+## Distancia de la pelota desde la que el arquero ordena a la defensa.
+const KEEPER_DIRECTING_DIST := 52.0
+## Chilena: altura de la pelota y de espaldas al arco (coseno entre el frente
+## y la dirección al arco por debajo de este valor), hasta esta distancia.
+const CHILENA_MIN_HEIGHT := 0.95
+const CHILENA_MAX_HEIGHT := 2.05
+const CHILENA_BACK_DOT := -0.25
+const CHILENA_MAX_DIST := 24.0
+## Tiempo en el piso después de la chilena (s).
+const CHILENA_DOWN := 2.0
+## Rival a esta distancia: el arquero se tira sobre la pelota dividida.
+const SMOTHER_RIVAL_DIST := 3.0
 const GOAL_DELAY := 3.0
 const HALFTIME_DELAY := 3.0
 const RESTART_AI_DELAY := 1.0
@@ -66,8 +80,18 @@ var stadium: Node3D
 var toast_text: String = ""
 var _toast_timer: float = 0.0
 ## Estadísticas simples del partido, por equipo.
+## Repetición de los goles y último goleador (ball.last_toucher del gol).
+var replay: Replay
+var audio: MatchAudio
+var goal_scorer: Footballer
+## Jugada peligrosa para repetir antes del próximo saque ({} = ninguna).
+var replay_request := {}
+## La pelota pegó en el palo desde el último remate.
+var _post_hit := false
+
 var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won": [0, 0],
-	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0], "subs": [0, 0]}
+	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0], "subs": [0, 0], "injuries": [0, 0], "contacts": [0, 0],
+	"chilenas": [0, 0]}
 ## Atajada planificada para el último remate (ver SaveModel):
 ## {keeper, will_save, parry, point, time_left, chance}. Vacío si no hay.
 var save_plan := {}
@@ -105,6 +129,9 @@ var _camera: MatchCamera
 var _hud: MatchHud
 ## true mientras se ejecuta perform_kick (para distinguir desvíos).
 var _in_kick: bool = false
+## Tipo de la patada en curso (-1 fuera de perform_kick) y si es de chilena.
+var _kick_kind := -1
+var _chilena := false
 
 
 func _ready() -> void:
@@ -216,9 +243,17 @@ func _build_world() -> void:
 	var datas: Array[TeamData] = [GameSettings.home_team(), GameSettings.away_team()]
 	for i in 2:
 		var d := datas[i]
-		var team := Team.new(i, d.team_name, d.short_name, d.color, d.secondary_color, d.keeper_color)
+		var kit := d.kit(GameSettings.home_kit if i == 0 else GameSettings.away_kit)
+		if i == 1 and GameSettings.kits_clash(kit[0], teams[0].color):
+			kit = d.kit(1 - GameSettings.away_kit)
+		var team := Team.new(i, d.team_name, d.short_name, kit[0], kit[1], d.keeper_color)
 		team.data = d
 		team.formation = d.formation
+		# Condición del día de todo el plantel (flechas).
+		var cond_rng := RandomNumberGenerator.new()
+		cond_rng.randomize()
+		for pd in d.players:
+			team.conditions[pd] = PlayerData.roll_condition(cond_rng) if GameSettings.random_conditions else PlayerData.Condition.NORMAL
 		team.attack_dir = 1 if i == 0 else -1
 		teams.append(team)
 		var formation := d.formation
@@ -242,6 +277,15 @@ func _build_world() -> void:
 	atmosphere.attach(_camera, self)
 	show_toast(conditions.describe(), 4.0)
 
+	replay = Replay.new()
+	add_child(replay)
+	replay.setup(self)
+	audio = MatchAudio.new()
+	add_child(audio)
+	audio.setup(self)
+	replay.finished.connect(_on_replay_finished)
+	ball.hit_post.connect(func() -> void: _post_hit = true)
+
 	var pause := PauseMenu.new()
 	add_child(pause)
 
@@ -249,7 +293,8 @@ func _build_world() -> void:
 func _setup_controllers() -> void:
 	match GameSettings.mode:
 		GameSettings.Mode.VS_CPU:
-			humans.append(HumanController.new(0, teams[0], self))
+			# En la Liga / Copa el humano también puede jugar de visitante.
+			humans.append(HumanController.new(0, teams[clampi(GameSettings.human_side, 0, 1)], self))
 		GameSettings.Mode.TWO_PLAYERS:
 			humans.append(HumanController.new(0, teams[0], self))
 			humans.append(HumanController.new(1, teams[1], self))
@@ -271,6 +316,9 @@ func _on_intro_finished() -> void:
 
 
 func _physics_process(dt: float) -> void:
+	if phase == Phase.REPLAY:
+		replay.tick(dt)
+		return
 	if phase == Phase.INTRO:
 		# Presentación: sólo se mueven los jugadores (la pelota quieta).
 		intro.tick(dt)
@@ -288,12 +336,16 @@ func _physics_process(dt: float) -> void:
 		h.tick(dt)
 	for a in ais:
 		a.tick(dt)
+	if phase == Phase.GOAL:
+		_drive_celebration(dt)
 	var goal_kick := goal_kick_in_progress()
 	if goal_kick:
 		_drive_goal_kick()
 	for p in all_players():
 		p.tick(dt, ball.owner_player == p and not (goal_kick and p == restart_taker))
 	_separate_players()
+	if phase == Phase.PLAYING:
+		_body_contact(dt)
 	if phase == Phase.RESTART:
 		_keep_distance_from_restart()
 
@@ -303,6 +355,10 @@ func _physics_process(dt: float) -> void:
 		var gk := t.keeper()
 		if gk != null:
 			gk.ball_in_hands = ball.in_hands and ball.owner_player == gk
+			# Ordena a la defensa con la pelota en sus manos (mientras corren
+			# los 6 s) o lejos, en el otro campo.
+			gk.directing = phase == Phase.PLAYING and (gk.ball_in_hands \
+				or ball.flat_pos().distance_to(gk.flat_pos()) > KEEPER_DIRECTING_DIST)
 
 	# Primero las reglas (una pelota que ya cruzó la línea no se puede atajar).
 	if phase == Phase.PLAYING:
@@ -313,6 +369,9 @@ func _physics_process(dt: float) -> void:
 
 	clock.running = phase in [Phase.PLAYING, Phase.STOPPED] or (phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF)
 	# El reloj va en tiempo real aunque el juego corra más lento (velocidad).
+	# Grabación para la repetición (el juego y el primer instante del gol).
+	if phase == Phase.PLAYING or (phase == Phase.GOAL and _goal_elapsed < 0.8):
+		replay.record()
 	var real_dt := dt / maxf(Engine.time_scale, 0.01)
 	clock.advance(real_dt)
 	# Cansancio acumulado: corre con el reloj del partido.
@@ -359,10 +418,27 @@ func _update_phase(dt: float) -> void:
 				banner_text = ""
 		Phase.STOPPED:
 			if _phase_timer <= 0.0:
-				_setup_restart(_pending)
+				# Jugada peligrosa: primero la repetición, después el saque.
+				if not replay_request.is_empty() and GameSettings.replay_chances and replay.has_frames():
+					var req := replay_request
+					replay_request = {}
+					banner_text = ""
+					_set_phase(Phase.REPLAY)
+					replay.start(req["kind"], req["team"], req["caption"])
+				else:
+					replay_request = {}
+					_setup_restart(_pending)
 		Phase.GOAL:
 			if _phase_timer <= 0.0:
-				_setup_kickoff(1 - _pending.team)
+				if GameSettings.show_replays and replay.has_frames():
+					banner_text = ""
+					_set_phase(Phase.REPLAY)
+					var caption := "GOL"
+					if goal_scorer != null:
+						caption = "GOL   " + Replay.scorer_line(goal_scorer, goal_scorer.team.index != _pending.team)
+					replay.start(Replay.Kind.GOAL, _pending.team, caption)
+				else:
+					_setup_kickoff(1 - _pending.team)
 		Phase.HALFTIME:
 			if _phase_timer <= 0.0:
 				for t in teams:
@@ -401,6 +477,7 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 	if player == null:
 		return null
 	var from_restart := restart_type if phase == Phase.RESTART else -1
+	kicks.set_piece = from_restart in [MatchRules.Restart.FREE_KICK, MatchRules.Restart.PENALTY]
 	# El adelantado que la juega de primera (cabezazo, remate) también está
 	# en offside: se cobra antes de que su patada cuente.
 	if phase == Phase.PLAYING and not _offside.is_empty() and player != _offside["kicker"]:
@@ -434,9 +511,16 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 	kicks.forced_receiver = receiver_hint
 	kicks.variant = variant
 	_snapshot_offside(player, from_restart)
+	_chilena = is_chilena(player, kind)
 	_in_kick = true
+	_kick_kind = kind
 	var receiver := kicks.execute(kind, player, dir, clampf(power, 0.0, 1.0))
 	_in_kick = false
+	_kick_kind = -1
+	if _chilena:
+		# Después de la chilena queda en el piso y se levanta.
+		_chilena = false
+		player.stagger(CHILENA_DOWN)
 	kicks.throw_in_mode = false
 	kick_count += 1
 	save_plan = {}
@@ -550,11 +634,30 @@ func _update_throw_in_hold() -> void:
 		ball.visual_offset = off if off.length() < 3.0 else Vector3.ZERO
 
 
+## Remate de chilena: pelota a media altura, de espaldas al arco rival y
+## cerca (la patea igual que un remate; después queda en el piso).
+func is_chilena(p: Footballer, kind: int) -> bool:
+	if kind != KickActions.Kind.SHOT or p.is_keeper():
+		return false
+	var h := ball.state.pos.y
+	if h < CHILENA_MIN_HEIGHT or h > CHILENA_MAX_HEIGHT:
+		return false
+	var to_goal := p.team.target_goal() - p.flat_pos()
+	to_goal.y = 0.0
+	if to_goal.length() > CHILENA_MAX_DIST:
+		return false
+	return p.facing.dot(to_goal.normalized()) < CHILENA_BACK_DOT
+
+
 ## Animación de quien la tocó (sólo presentación).
 func _show_kick(kicker: Footballer) -> void:
 	if kicker == null or kicker.visual == null:
 		return
 	var ev := PlayerVisual.Event.KICK
+	if _in_kick and _chilena:
+		kicker.visual.play(PlayerVisual.Event.CHILENA)
+		stats["chilenas"][kicker.team.index] += 1
+		return
 	if kicks.throw_in_mode:
 		ev = PlayerVisual.Event.THROW
 	elif _in_kick and kicks.hand_throw:
@@ -566,7 +669,8 @@ func _show_kick(kicker: Footballer) -> void:
 		ev = PlayerVisual.Event.KICK
 	elif _in_kick and ball.speed() < 16.0:
 		ev = PlayerVisual.Event.PASS
-	kicker.visual.play(ev)
+	# Cabezazo: la altura de la pelota elige con o sin salto.
+	kicker.visual.play(ev, ball.state.pos.y if ev == PlayerVisual.Event.HEADER else 1.0)
 	# Patada o pase a propósito: frena un instante mientras hace el gesto.
 	if _in_kick and ev in [PlayerVisual.Event.KICK, PlayerVisual.Event.PASS] and not kicker.is_keeper():
 		kicker.kick_brake = 0.3
@@ -583,7 +687,7 @@ func _show_dive(gk: Footballer, point: Vector3) -> void:
 	var rel := point - gk.flat_pos()
 	rel.y = 0.0
 	if rel.length() < 1.2:
-		gk.visual.play(catch_event(point.y))
+		gk.visual.play(catch_event(point.y), point.y)
 		return
 	var right := gk.global_basis.x
 	gk.visual.play(PlayerVisual.Event.DIVE_RIGHT if right.dot(rel) > 0.0 else PlayerVisual.Event.DIVE_LEFT)
@@ -671,6 +775,9 @@ func in_header_reach(p: Footballer) -> bool:
 		return false
 	# Los altos llegan más arriba y un poco más lejos.
 	var tall := p.data.body_height() if p.data else 1.0
+	# El cabeceador salta mejor.
+	if p.data != null and p.data.has_ability("cabeceador"):
+		tall += 0.04
 	if h > tuning.header_max_height * tall:
 		return false
 	return ball.flat_pos().distance_to(p.flat_pos()) < tuning.header_reach * lerpf(1.0, tall, 2.0)
@@ -778,8 +885,12 @@ func _try_take_loose_ball() -> void:
 		receiver.clear_pass_target()
 	save_plan = {}
 	if best.visual != null:
-		if hands:
-			best.visual.play(catch_event(h))
+		if hands and _smother_catch(best, h):
+			# Se tira encima de la pelota: va ganando y hace tiempo, o un rival
+			# llegaba a la pelota dividida.
+			best.visual.play(PlayerVisual.Event.SMOTHER, h)
+		elif hands:
+			best.visual.play(catch_event(h), h)
 		elif best == receiver or ball.speed() > 6.0:
 			_show_receive(best, h)
 	ball.give_to(best, true, hands)
@@ -799,6 +910,9 @@ func foul_chance(offender: Footballer, victim: Footballer, slide: bool) -> float
 	else:
 		p = 0.35 if front < -0.3 else 0.1
 	p += 0.1 * conditions.wetness if conditions != null else 0.0
+	# El marcador entra limpio.
+	if offender.data != null and offender.data.has_ability("marcador"):
+		p *= 0.7
 	return clampf(p, 0.0, 0.9)
 
 
@@ -809,7 +923,11 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 		return
 	var from_behind := victim.facing.dot((offender.flat_pos() - victim.flat_pos()).normalized()) < -0.3
 	stats["fouls"][offender.team.index] += 1
-	victim.trip(tuning.trip_duration * 0.8)
+	# Falta fuerte (barrida o de atrás) o lesión: queda un rato en el piso.
+	var hard := slide or from_behind
+	_maybe_injure(victim, slide, from_behind)
+	var down := HARD_FOUL_DOWN if hard or victim.injury != Footballer.Injury.NONE else tuning.trip_duration * 0.8
+	victim.trip(down, from_behind)
 	var spot := victim.flat_pos()
 	var awarded := victim.team.index
 	var type := MatchRules.Restart.FREE_KICK
@@ -838,13 +956,25 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 		else:
 			text += "   -   AMARILLA: %s" % offender.display_name
 		card_shown.emit(offender)
+	# Repetición de las faltas importantes: penal, tarjeta o tiro libre
+	# cerca del área.
+	var carded := text.contains("AMARILLA") or text.contains("ROJA")
+	if type == MatchRules.Restart.PENALTY or carded or spot.distance_to(teams[awarded].target_goal()) < 32.0:
+		var caption := "Falta de %s" % offender.display_name
+		if text.contains("ROJA"):
+			caption += "   ·   ROJA"
+		elif carded:
+			caption += "   ·   AMARILLA"
+		if type == MatchRules.Restart.PENALTY:
+			caption += "   ·   PENAL"
+		request_replay(Replay.Kind.FOUL, awarded, caption)
 	_pending = MatchRules.Outcome.new(type, awarded, Vector3(spot.x, tuning.ball_radius, spot.z))
 	ball.owner_player = null
 	ball.intended_receiver = null
 	ball.state.vel = Vector3.ZERO
 	save_plan = {}
 	banner_text = text
-	_phase_timer = FOUL_DELAY
+	_phase_timer = maxf(FOUL_DELAY, down - 0.4)
 	_set_phase(Phase.STOPPED)
 
 
@@ -967,6 +1097,9 @@ func _leave_pitch(p: Footballer) -> void:
 
 # --- Cambios ------------------------------------------------------------------
 
+## Distancia al arco hasta la que el tiro libre lo patea el elegido.
+const FK_TAKER_RANGE := 35.0
+
 ## Minuto desde el que la CPU cambia a los cansados.
 const CPU_SUB_MINUTE := 55.0
 ## Energía (tope o actual) debajo de la cual la CPU considera cambiarlo.
@@ -999,6 +1132,7 @@ func request_sub(out: Footballer, in_data: PlayerData) -> bool:
 func _make_pending_subs() -> void:
 	for t in teams:
 		if not _has_human(t):
+			_cpu_strategy(t)
 			_cpu_subs(t)
 		for s in t.pending_subs.duplicate():
 			t.pending_subs.erase(s)
@@ -1101,6 +1235,84 @@ func _cpu_subs(t: Team) -> void:
 			pick = d
 	if pick != null:
 		t.pending_subs.append({"out": tired, "in": pick})
+
+
+## Dos de la cancha intercambian sus puestos (no cuenta como cambio). Si uno
+## pasa al arco o sale de él, se cambia la ropa.
+func swap_slots(a: Footballer, b: Footballer) -> void:
+	var t := a.team
+	var sa := t.slot_of(a)
+	var sb := t.slot_of(b)
+	if t != b.team or sa < 0 or sb < 0 or a == b:
+		return
+	t.roster[sa] = b
+	t.roster[sb] = a
+	var spot_a := a.flat_pos()
+	a.teleport(b.flat_pos(), b.facing)
+	b.teleport(spot_a, a.facing)
+	_apply_slot(a, sb)
+	_apply_slot(b, sa)
+
+
+## Pone al jugador en el puesto `slot` de la formación del equipo.
+func _apply_slot(p: Footballer, slot: int) -> void:
+	var f := p.team.formation
+	var was_keeper := p.is_keeper()
+	if f != null and slot < f.slots.size():
+		p.base_spot = f.slots[slot]
+		p.role = f.roles[slot] as Footballer.Role
+		p.tactical_role = f.tactical_role(slot)
+	if p.is_keeper() != was_keeper and p.visual != null:
+		p.visual.recolor(p.kit_colors())
+
+
+## Antes del partido: un suplente pasa a titular en el lugar de `out`, que
+## vuelve al banco (no cuenta como cambio).
+func swap_lineup(out: Footballer, in_data: PlayerData) -> Footballer:
+	var t := out.team
+	if not t.players.has(out) or not t.bench.has(in_data):
+		return null
+	var p := Footballer.new()
+	add_child(p)
+	p.setup(t, in_data, out.role, out.base_spot, tuning)
+	p.tactical_role = out.tactical_role
+	p.teleport(out.flat_pos(), out.facing)
+	p.set_presenting(out.presenting)
+	t.players[t.players.find(out)] = p
+	t.roster[t.roster.find(out)] = p
+	t.bench[t.bench.find(in_data)] = out.base_data
+	for h in humans:
+		if h.controlled == out:
+			h.controlled = null
+			h.select(p)
+	out.queue_free()
+	return p
+
+
+## L2 + botón: activa la estrategia de ese botón (o la apaga si ya estaba).
+func toggle_strategy(t: Team, slot: int) -> void:
+	var kind: int = t.strategy_slots[clampi(slot, 0, t.strategy_slots.size() - 1)]
+	set_strategy(t, Strategy.Kind.NONE if t.strategy == kind else kind)
+
+
+func set_strategy(t: Team, kind: int) -> void:
+	if t.strategy == kind:
+		return
+	t.strategy = kind
+	show_toast("%s: %s" % [t.short_name, Strategy.NAMES[kind] if kind != Strategy.Kind.NONE else "sin estrategia"], 2.0)
+
+
+## La CPU: todos al ataque si va perdiendo desde el 70', todos atrás si gana
+## desde el 80'; si no, sin estrategia (la presión ya la decide su IA).
+func _cpu_strategy(t: Team) -> void:
+	var minute := clock.total_game_seconds() / 60.0
+	var diff := t.score - opponents_of(t).score
+	var kind := Strategy.Kind.NONE
+	if minute >= 70.0 and diff < 0:
+		kind = Strategy.Kind.ALL_ATTACK
+	elif minute >= 80.0 and diff > 0:
+		kind = Strategy.Kind.ALL_DEFENSE
+	set_strategy(t, kind)
 
 
 func _has_human(t: Team) -> bool:
@@ -1279,6 +1491,25 @@ func _update_one_two(dt: float) -> void:
 		perform_kick(receiver, KickActions.Kind.THROUGH_PASS, to_run, 0.45, passer)
 
 
+## El arquero que la agarra se tira encima (salta, la abraza y cae sobre
+## ella): pelota dividida con un rival encima, o va ganando y hace tiempo
+## (siempre desde el 75', a veces antes).
+func _smother_catch(gk: Footballer, height: float) -> bool:
+	if not gk.is_keeper() or height > 1.7:
+		return false
+	var opp := _nearest_opponent(gk)
+	if height < 0.6 and opp != null and opp.flat_pos().distance_to(gk.flat_pos()) < SMOTHER_RIVAL_DIST:
+		return true
+	if gk.team.score <= opponents_of(gk.team).score:
+		return false
+	return wasting_time(gk.team) or randf() < 0.4
+
+
+## El equipo va ganando sobre el final (desde el 75'): hace tiempo.
+func wasting_time(t: Team) -> bool:
+	return t.score > opponents_of(t).score and clock.total_game_seconds() / 60.0 >= 75.0
+
+
 ## Gesto del arquero al embolsarla según la altura de la pelota.
 static func catch_event(height: float) -> int:
 	if height > 1.7:
@@ -1395,7 +1626,8 @@ func _try_steal(dt: float) -> void:
 		if o.is_keeper() and o.state == Footballer.State.NORMAL and d < tuning.keeper_smother_radius \
 				and Pitch.in_penalty_area(o.flat_pos(), o.team.own_side()):
 			# El arquero se tira a los pies del atacante.
-			if randf() < tuning.keeper_smother_rate * dt:
+			var smother := tuning.keeper_smother_rate * (1.6 if o.data != null and o.data.has_ability("atajador") else 1.0)
+			if randf() < smother * dt:
 				carrier.touch_block = tuning.lost_ball_cooldown
 				if o.visual != null:
 					o.visual.play(PlayerVisual.Event.BLOCK)
@@ -1445,6 +1677,11 @@ func tackle_chance(defender: Footballer, carrier: Footballer) -> float:
 	var carrier_speed := Vector3(carrier.velocity.x, 0.0, carrier.velocity.z).length()
 	if carrier_speed < Dribble.SHIELD_SPEED * 2.0 and carrier.dribble_pressure > 0.6:
 		chance -= 0.12
+	# Habilidades: el gambeteador la cuida, el marcador entra mejor.
+	if carrier.data != null and carrier.data.has_ability("gambeteador"):
+		chance -= 0.1
+	if defender.data != null and defender.data.has_ability("marcador"):
+		chance += 0.08
 	# En plena marsellesa la pelota queda protegida por el cuerpo que gira.
 	if carrier.skill == Footballer.Skill.ROULETTE:
 		chance *= 0.35
@@ -1470,6 +1707,97 @@ func _resolve_tackle(defender: Footballer, carrier: Footballer) -> bool:
 	return false
 
 
+# --- Cuerpo a cuerpo y lesiones ------------------------------------------------
+
+## Choque de hombros: distancia, chance por segundo corriendo a la par, pausa
+## entre choques y cuánto trastabilla el que pierde.
+const CONTACT_DIST := 1.1
+const CONTACT_RATE := 2.2
+const CONTACT_COOLDOWN := 1.2
+const CONTACT_STAGGER := 0.4
+## Chance de lesión del que recibe la falta: barrida de atrás, barrida, otra.
+const INJURY_CHANCE := [0.15, 0.07, 0.02]
+## De las lesiones, cuántas no le dejan seguir bien.
+const INJURY_SERIOUS := 0.35
+
+
+## Probabilidad de que el que lleva la pelota pierda el choque de hombros:
+## fuerza, equilibrio y físico de cada uno (el flaquito trastabilla).
+func contact_loss_chance(defender: Footballer, carrier: Footballer) -> float:
+	var dp := defender.data.body_power() if defender.data else 0.0
+	var cp := carrier.data.body_power() if carrier.data else 0.0
+	var chance := 0.42 + 0.3 * (dp - cp)
+	if carrier.data != null and carrier.data.has_ability("gambeteador"):
+		chance -= 0.08
+	return clampf(chance, 0.08, 0.85)
+
+
+## Corriendo a la par, el defensor y el que lleva la pelota chocan: el que
+## pierde trastabilla (si es el que la lleva, la pelota queda suelta).
+func _body_contact(dt: float) -> void:
+	var carrier := ball.owner_player
+	if carrier == null or ball.in_hands or carrier.state != Footballer.State.NORMAL or carrier.contact_cooldown > 0.0:
+		return
+	var cv := Vector3(carrier.velocity.x, 0.0, carrier.velocity.z)
+	if cv.length() < 2.5:
+		return
+	for o in opponents_of(carrier.team).players:
+		if o.is_keeper() or o.state != Footballer.State.NORMAL or o.contact_cooldown > 0.0:
+			continue
+		if o.flat_pos().distance_to(carrier.flat_pos()) > CONTACT_DIST:
+			continue
+		var ov := Vector3(o.velocity.x, 0.0, o.velocity.z)
+		# Corriendo a la par o en diagonal (de frente es una entrada, no un choque).
+		if ov.length() < 1.5 or ov.normalized().dot(cv.normalized()) < 0.0:
+			continue
+		if randf() > CONTACT_RATE * dt:
+			continue
+		resolve_contact(o, carrier, randf() < contact_loss_chance(o, carrier))
+		return
+
+
+## Resultado de un choque (separado para los tests).
+func resolve_contact(defender: Footballer, carrier: Footballer, carrier_loses: bool) -> void:
+	defender.contact_cooldown = CONTACT_COOLDOWN
+	carrier.contact_cooldown = CONTACT_COOLDOWN
+	stats["contacts"][defender.team.index] += 1
+	var loser := carrier if carrier_loses else defender
+	var steady := PlayerData.unit(loser.data.balance) if loser.data else 0.5
+	loser.stagger(CONTACT_STAGGER * (1.3 - 0.6 * steady))
+	if carrier_loses and ball.owner_player == carrier:
+		ball.owner_player = null
+		carrier.touch_block = tuning.lost_ball_cooldown
+
+
+## Al que le hacen la falta se puede lesionar: un golpe (juega rengo) o algo
+## peor (tiene que salir; la CPU lo cambia, al humano se le avisa).
+func _maybe_injure(victim: Footballer, slide: bool, from_behind: bool) -> void:
+	var chance: float = INJURY_CHANCE[0 if slide and from_behind else (1 if slide else 2)]
+	if randf() >= chance:
+		return
+	injure(victim, Footballer.Injury.SERIOUS if randf() < INJURY_SERIOUS else Footballer.Injury.KNOCK)
+
+
+func injure(p: Footballer, level: int) -> void:
+	p.injury = maxi(p.injury, level)
+	stats["injuries"][p.team.index] += 1
+	var t := p.team
+	if level == Footballer.Injury.SERIOUS:
+		show_toast("LESIONADO: %s%s" % [p.display_name, "" if not _has_human(t) else "  (cambialo desde la pausa)"], 3.0)
+		if not _has_human(t) and t.subs_left() > 0:
+			var pick: PlayerData = null
+			for d in t.bench:
+				var gk := d.position == PlayerData.Position.GK
+				if gk != p.is_keeper():
+					continue
+				if pick == null or (d.position == p.base_data.position and pick.position != p.base_data.position):
+					pick = d
+			if pick != null:
+				t.pending_subs.append({"out": p, "in": pick})
+	else:
+		show_toast("%s quedó rengo" % p.display_name, 2.0)
+
+
 ## Separación suave entre jugadores (sin física de cuerpos, decisión B).
 func _separate_players() -> void:
 	var list := all_players()
@@ -1493,8 +1821,12 @@ func _separate_players() -> void:
 			elif b_fixed:
 				a.global_position -= push
 			else:
-				a.global_position -= push * 0.5
-				b.global_position += push * 0.5
+				# El más pesado y fuerte corre al otro.
+				var ma := a.data.mass() if a.data else 1.0
+				var mb := b.data.mass() if b.data else 1.0
+				var share := mb / (ma + mb)
+				a.global_position -= push * share
+				b.global_position += push * (1.0 - share)
 	for p in list:
 		_clamp_player(p)
 
@@ -1524,13 +1856,29 @@ func _check_rules() -> void:
 	ball.owner_player = null
 	ball.intended_receiver = null
 	if outcome.type == MatchRules.Restart.GOAL:
+		goal_scorer = ball.last_toucher
 		_show_goal(outcome.team)
 		teams[outcome.team].score += 1
 		banner_text = "¡GOL!"
-		_phase_timer = GOAL_DELAY
+		_phase_timer = CELEBRATION_MAX
+		_goal_elapsed = 0.0
+		_start_celebration(outcome.team)
 		_set_phase(Phase.GOAL)
 		goal_scored.emit(outcome.team)
 		return
+	# Un remate que se va cerca o que el arquero manda al córner: "uhh" del
+	# público y repetición.
+	var shooter: Footballer = last_kick.get("player")
+	if outcome.type in [MatchRules.Restart.GOAL_KICK, MatchRules.Restart.CORNER] \
+			and last_kick.get("kind") == KickActions.Kind.SHOT and shooter != null:
+		var keeper_save := outcome.type == MatchRules.Restart.CORNER and ball.last_toucher != null \
+				and ball.last_toucher.is_keeper() and ball.last_toucher.team != shooter.team
+		if keeper_save:
+			request_replay(Replay.Kind.CHANCE, shooter.team.index, "¡Atajada de %s!   Remate de %s" % [ball.last_toucher.display_name, shooter.display_name])
+		elif absf(ball.state.pos.z) < 8.0 or _post_hit:
+			audio.cheer("ooh")
+			request_replay(Replay.Kind.CHANCE, shooter.team.index, ("¡Al palo!   " if _post_hit else "¡Cerca!   ") + "Remate de %s" % shooter.display_name)
+	_post_hit = false
 	var names := {
 		MatchRules.Restart.GOAL_KICK: "SAQUE DE ARCO",
 		MatchRules.Restart.CORNER: "CÓRNER",
@@ -1551,12 +1899,121 @@ func _show_goal(scoring_team: int) -> void:
 		var tw := create_tween()
 		tw.tween_interval(GOAL_DELAY)
 		tw.tween_method(func(v: float) -> void: StadiumBuilder.crowd_material.set_shader_parameter("cheer", v), 1.0, 0.0, 1.5)
-	var scorer := ball.last_toucher
-	if scorer != null and scorer.team.index == scoring_team:
-		scorer.celebrate(GOAL_DELAY)
 	var keeper := teams[1 - scoring_team].keeper()
 	if keeper != null and keeper.visual != null:
 		keeper.visual.play(PlayerVisual.Event.DEJECTED)
+
+
+# --- Festejo del gol --------------------------------------------------------
+
+## Tope del festejo (s) y cuánto dura el festejo en el córner.
+const CELEBRATION_MAX := 10.0
+## El goleador frena estos metros antes del banderín (en cada eje).
+const CORNER_INSET := 3.5
+## {"scorer", "target", "mates": [[jugador, destino]], "arrived": s desde que llegó (-1 = no)}
+var celebration := {}
+var _goal_elapsed := 0.0
+
+
+## El goleador corre al córner más cercano del arco donde hizo el gol (unos
+## metros antes del banderín) y ahí festeja; lo acompañan 2 o 3 compañeros
+## de los más cercanos; los demás del equipo levantan los brazos donde están.
+func _start_celebration(team_index: int) -> void:
+	var t := teams[team_index]
+	var scorer := goal_scorer if goal_scorer != null and goal_scorer.team == t and not goal_scorer.is_keeper() else null
+	if scorer == null:
+		scorer = _nearest_outfield(t, ball.flat_pos())
+	if scorer == null:
+		celebration = {}
+		return
+	var gx := signf(t.target_goal().x)
+	var gz := signf(scorer.global_position.z) if absf(scorer.global_position.z) > 0.5 else 1.0
+	var target := Vector3(gx * (Pitch.HALF_LENGTH - CORNER_INSET), 0.0, gz * (Pitch.HALF_WIDTH - CORNER_INSET))
+	var others: Array[Footballer] = []
+	for p in t.players:
+		if p != scorer and not p.is_keeper():
+			others.append(p)
+	others.sort_custom(func(a: Footballer, b: Footballer) -> bool:
+		return a.flat_pos().distance_to(scorer.flat_pos()) < b.flat_pos().distance_to(scorer.flat_pos()))
+	var n := mini(2 + randi() % 2, others.size())
+	var mates := []
+	var to_field := (Vector3(0, 0, 0) - target).normalized()
+	for i in n:
+		# Alrededor del goleador, del lado de la cancha.
+		var side := to_field.rotated(Vector3.UP, lerpf(-1.1, 1.1, float(i) / maxf(n - 1, 1)))
+		mates.append([others[i], target + side * 2.2])
+	# El festejo del goleador: su preferido o uno al azar.
+	var which := Celebrations.pick(scorer.base_data)
+	celebration = {"scorer": scorer, "target": target, "mates": mates, "arrived": -1.0,
+		"which": which, "time": Celebrations.duration(which)}
+	for i in range(n, others.size()):
+		if others[i].visual != null:
+			others[i].visual.play(PlayerVisual.Event.CHEER)
+
+
+## Mueve a los que festejan (después de la IA y los controles, que en el gol
+## no mandan) y termina el festejo cuando el goleador ya festejó.
+func _drive_celebration(dt: float) -> void:
+	_goal_elapsed += dt
+	for p in all_players():
+		p.desired_move = Vector3.ZERO
+		p.wants_sprint = false
+	if celebration.is_empty():
+		return
+	var scorer: Footballer = celebration["scorer"]
+	var target: Vector3 = celebration["target"]
+	if celebration["arrived"] < 0.0:
+		var to := target - scorer.flat_pos()
+		if to.length() < 1.2 or _phase_timer < celebration["time"] + 0.3:
+			celebration["arrived"] = 0.0
+			scorer.look_at_point(Vector3.ZERO)
+			scorer.celebrate(celebration["time"], celebration["which"])
+		else:
+			scorer.desired_move = to.normalized()
+			scorer.wants_sprint = true
+	else:
+		celebration["arrived"] += dt
+		if celebration["arrived"] > celebration["time"] + 0.4:
+			_phase_timer = 0.0
+	for m in celebration["mates"]:
+		var p: Footballer = m[0]
+		var to: Vector3 = (m[1] as Vector3) - p.flat_pos()
+		if to.length() > 0.8:
+			p.desired_move = to.normalized()
+			p.wants_sprint = true
+		elif not m.has(true):
+			m.append(true)
+			p.look_at_point(scorer.flat_pos())
+			if p.visual != null:
+				p.visual.play(PlayerVisual.Event.CHEER)
+	# X / Start saltea el festejo.
+	if _goal_elapsed > 1.0 and not humans.is_empty() and (Input.is_action_just_pressed(&"ui_accept")):
+		_phase_timer = 0.0
+
+
+## Terminó la repetición: vuelve la cámara del partido y se saca del medio.
+func _on_replay_finished() -> void:
+	if _camera != null:
+		_camera.end_cinematic()
+	# Los expulsados y reemplazados aparecieron en la repetición: se van otra vez.
+	for t in teams:
+		for p in t.sent_off + t.subbed_off:
+			p.visible = false
+	if phase != Phase.REPLAY:
+		return
+	if _pending.type == MatchRules.Restart.GOAL:
+		_setup_kickoff(1 - _pending.team)
+	else:
+		_setup_restart(_pending)
+
+
+## Pide la repetición de una jugada peligrosa (se ve antes del saque).
+func request_replay(kind: int, team: int, caption: String) -> void:
+	replay_request = {"kind": kind, "team": team, "caption": caption}
+
+
+func camera() -> MatchCamera:
+	return _camera
 
 
 func _end_half() -> void:
@@ -1571,6 +2028,10 @@ func _end_half() -> void:
 
 
 func _begin_restart(type: int, taker: Footballer) -> void:
+	# La repetición empieza en la jugada (no antes de la pelota parada).
+	replay.clear()
+	replay_request = {}
+	_post_hit = false
 	restart_type = type
 	restart_taker = taker
 	_restart_elapsed = 0.0
@@ -1621,16 +2082,23 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 			stand = spot - Vector3(team.attack_dir * 0.6, 0.0, 0.0)
 			look = Vector3(team.attack_dir, 0.0, 0.0)
 		MatchRules.Restart.CORNER:
-			taker = _nearest_outfield(team, spot)
+			taker = team.on_pitch(team.ck_taker)
+			if taker == null or taker.is_keeper():
+				taker = _nearest_outfield(team, spot)
 			var out := Vector3(signf(spot.x), 0.0, signf(spot.z)).normalized()
 			stand = spot + out * 0.6
 			look = (team.target_goal() - spot).normalized()
 		MatchRules.Restart.FREE_KICK:
-			taker = _nearest_outfield(team, spot)
+			# El pateador elegido, si es para pegarle al arco; si no, el más cerca.
+			taker = team.on_pitch(team.fk_taker) if spot.distance_to(team.target_goal()) < FK_TAKER_RANGE else null
+			if taker == null or taker.is_keeper():
+				taker = _nearest_outfield(team, spot)
 			look = (team.target_goal() - spot).normalized()
 			stand = spot - look * 0.7
 		MatchRules.Restart.PENALTY:
-			taker = _best_shooter(team)
+			taker = team.on_pitch(team.pk_taker)
+			if taker == null:
+				taker = _best_shooter(team)
 			look = (team.target_goal() - spot).normalized()
 			stand = spot - look * 1.3
 		_:
@@ -1793,5 +2261,7 @@ func _exit_tree() -> void:
 
 
 func exit_to_menu() -> void:
+	# Partido de Liga / Copa: cuenta sólo si se jugó hasta el final.
+	GameSettings.last_result = [teams[0].score, teams[1].score] if phase == Phase.FULLTIME else []
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")

@@ -13,7 +13,14 @@ extends Node3D
 ## un clip propio en ModelVisual; acá se dibujan con el gesto más parecido.
 enum Event { KICK, PASS, HEADER, THROW, DIVE_LEFT, DIVE_RIGHT, CATCH, TACKLE,
 		RECEIVE, CHEST, CATCH_HIGH, CATCH_LOW, BLOCK, CELEBRATE, DEJECTED, ROLL,
-		FEINT, ROULETTE, STEPOVER, HIGH_FIVE, HANDSHAKE }
+		FEINT, ROULETTE, STEPOVER, HIGH_FIVE, HANDSHAKE, CHEER,
+		SPRINT_START, SPRINT_TURN, CHILENA, SMOTHER }
+## Cada gesto pedido (lo escucha la repetición para volver a mostrarlo).
+## En HEADER y en las atajadas `side` lleva la altura de la pelota; en
+## CELEBRATE, el festejo (Celebrations); en SPRINT_TURN, hacia dónde gira
+## (+ = a su izquierda).
+signal played(event: int, side: float)
+
 ## Estado continuo (lo decide el Footballer a partir de su State).
 enum Pose { NORMAL, SLIDING, FALLEN }
 
@@ -139,13 +146,21 @@ func contact_point(event: int) -> Vector3:
 	return global_transform * Vector3(-0.12, 0.11, 0.45)
 
 
+## Lo pone una subclase que ya avisó el gesto (no se avisa dos veces).
+var _quiet := false
+
+
 func play(event: int, side: float = 1.0) -> void:
+	if not _quiet:
+		played.emit(event, side)
 	match event:
-		Event.CATCH_HIGH, Event.CATCH_LOW, Event.BLOCK:
+		Event.CATCH_HIGH, Event.CATCH_LOW, Event.BLOCK, Event.SMOTHER:
 			event = Event.CATCH
 		Event.ROLL:
 			event = Event.THROW
-		Event.RECEIVE, Event.DEJECTED:
+		Event.CHILENA:
+			event = Event.KICK
+		Event.RECEIVE, Event.DEJECTED, Event.SPRINT_START, Event.SPRINT_TURN:
 			return # sin gesto propio en el humanoide armado por piezas
 	_event = event
 	_event_t = 0.0
@@ -160,6 +175,7 @@ func play(event: int, side: float = 1.0) -> void:
 		Event.TACKLE: _event_len = 0.45
 		Event.CHEST: _event_len = 0.5
 		Event.CELEBRATE: _event_len = 2.5
+		Event.CHEER: _event_len = 3.0
 		Event.FEINT: _event_len = 0.35
 		Event.ROULETTE: _event_len = 0.7
 		Event.STEPOVER: _event_len = 0.6
@@ -235,7 +251,7 @@ func _apply(run: float) -> void:
 			var first := k < 0.5
 			var kk := sin(fmod(k * 2.0, 1.0) * PI)
 			_leg[1 if first else 0].rotation = Vector3(-0.6 * kk, 0, (1.0 if first else -1.0) * -0.7 * kk)
-		Event.CELEBRATE:
+		Event.CELEBRATE, Event.CHEER:
 			# Brazos arriba y saltito.
 			_hips.position.y += 0.2 * absf(sin(k * PI * 4.0))
 			for i in 2:

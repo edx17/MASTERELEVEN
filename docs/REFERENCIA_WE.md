@@ -26,7 +26,7 @@ Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **F
 | L1 + X: pared, el que pasa pica al vacío | Hecho | |
 | La IA rival sigue la pelota y pierde al que pica en la pared | Hecho | Durante 2 s la marca no lo sigue. |
 | Centros: 1 toque alto al segundo palo, 2 a media altura, 3 rasante al primer palo | Hecho | Esta ronda. L1 + Círculo: centro bien bombeado. |
-| Playmaker: el pase al hueco de un enganche pasa justo entre los centrales | Pendiente | Habilidad especial (Fase 4: atributos). |
+| Playmaker: el pase al hueco de un enganche pasa justo entre los centrales | Hecho | Habilidad "pasador": pases un 35 % más precisos. |
 
 ## 3. Remates
 
@@ -69,9 +69,9 @@ Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **F
 |---|---|---|
 | Altura: los altos ganan los centros | Hecho | Esta ronda: los altos alcanzan más alto y ganan el duelo entre parejos. |
 | Centro de gravedad: los bajos giran más cerrado | Hecho | Esta ronda: agilidad por físico. |
-| Balance: el flaquito trastabilla en el cuerpo a cuerpo | Fase 4 | Choques con fuerza y equilibrio. |
+| Balance: el flaquito trastabilla en el cuerpo a cuerpo | Hecho | Choques de hombros según fuerza, equilibrio y físico. |
 | Velocidad que "rompe" el juego | Parcial | Atributo de velocidad ±8 %; se puede ampliar. |
-| Reaction: delanteros que leen el rebote antes | Pendiente | Habilidad especial (Fase 4). |
+| Reaction: delanteros que leen el rebote antes | Parcial | Habilidad "goleador" (define mejor en el área); falta la lectura del rebote. |
 | Animaciones propias por estrella (carrera, tiro libre) | Pendiente | Después del modelo nuevo. |
 
 ## 7. Plantel, condición y fatiga
@@ -81,6 +81,8 @@ Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **F
 | Barra de energía; R1 la vacía; fundido llega tarde y patea mordido | Hecho | Energía de corto plazo y penalización de precisión, más cansancio acumulado: el tope de energía baja con los minutos y el sprint (en el HUD, la parte oscura de la barra). El entretiempo recupera el 30 %. |
 | Cambios: 3 por partido desde el banco | Hecho | Pausa → Cambios (Sale / Entra / Confirmar). La CPU cambia a los cansados desde el minuto 55. |
 | Arquero expulsado | Hecho | Entra el arquero suplente por un jugador de campo; sin cambios, va al arco un defensor con ropa de arquero y su número. |
-| Flechas de condición (roja a gris) | Fase 4/6 | |
+| Flechas de condición (roja a gris) | Hecho | 5 estados por partido (±6 / ±3 a los atributos). En la Liga Master dependerán de la forma. |
 | Táctica libre en la pizarra y flechas de actitud por jugador | Pendiente | Hoy hay 5 formaciones; editor libre más adelante. |
+| Estrategias con L2 + botón | Hecho | Presión, contraataque, trampa del offside, por las bandas, todos al ataque, todos atrás. |
+| Lista de 23 con Puesto / Energía / Condición (L1 / R1) | Hecho | Dirección del equipo, en la pausa y en la previa. |
 | Master Liga | Fase 6 | |

@@ -22,6 +22,7 @@ defense = 45
 reaction = 78
 balance = 61
 goalkeeping = 79
+abilities = PackedStringArray("atajador")
 
 [sub_resource type="Resource" id="Resource_5sscg"]
 script = ExtResource("2_t4at2")
@@ -42,6 +43,7 @@ defense = 82
 reaction = 69
 balance = 58
 goalkeeping = 30
+abilities = PackedStringArray("marcador")
 
 [sub_resource type="Resource" id="Resource_ypnxi"]
 script = ExtResource("2_t4at2")
@@ -63,6 +65,7 @@ defense = 71
 reaction = 72
 balance = 71
 goalkeeping = 30
+abilities = PackedStringArray("cabeceador")
 
 [sub_resource type="Resource" id="Resource_8vdff"]
 script = ExtResource("2_t4at2")
@@ -84,6 +87,7 @@ defense = 76
 reaction = 58
 balance = 63
 goalkeeping = 30
+abilities = PackedStringArray("cabeceador")
 
 [sub_resource type="Resource" id="Resource_1kbkc"]
 script = ExtResource("2_t4at2")
@@ -105,6 +109,7 @@ defense = 80
 reaction = 56
 balance = 66
 goalkeeping = 30
+abilities = PackedStringArray("marcador")
 
 [sub_resource type="Resource" id="Resource_j2nmc"]
 script = ExtResource("2_t4at2")
@@ -124,6 +129,7 @@ defense = 59
 reaction = 63
 balance = 70
 goalkeeping = 33
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_g6y01"]
 script = ExtResource("2_t4at2")
@@ -143,6 +149,7 @@ defense = 58
 reaction = 72
 balance = 70
 goalkeeping = 30
+abilities = PackedStringArray("pasador")
 
 [sub_resource type="Resource" id="Resource_f7ehe"]
 script = ExtResource("2_t4at2")
@@ -161,6 +168,7 @@ defense = 62
 reaction = 66
 balance = 56
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_m512e"]
 script = ExtResource("2_t4at2")
@@ -179,6 +187,7 @@ defense = 56
 reaction = 65
 balance = 69
 goalkeeping = 30
+abilities = PackedStringArray("pasador")
 
 [sub_resource type="Resource" id="Resource_e3uhl"]
 script = ExtResource("2_t4at2")
@@ -198,6 +207,7 @@ defense = 48
 reaction = 56
 balance = 71
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_mhfki"]
 script = ExtResource("2_t4at2")
@@ -217,6 +227,7 @@ defense = 33
 reaction = 69
 balance = 58
 goalkeeping = 31
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_brtea"]
 script = ExtResource("2_t4at2")
@@ -236,6 +247,7 @@ defense = 44
 reaction = 70
 balance = 71
 goalkeeping = 74
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_ujkna"]
 script = ExtResource("2_t4at2")
@@ -257,6 +269,7 @@ defense = 79
 reaction = 64
 balance = 57
 goalkeeping = 30
+abilities = PackedStringArray("marcador")
 
 [sub_resource type="Resource" id="Resource_1dx33"]
 script = ExtResource("2_t4at2")
@@ -276,6 +289,7 @@ defense = 57
 reaction = 59
 balance = 68
 goalkeeping = 30
+abilities = PackedStringArray("gambeteador")
 
 [sub_resource type="Resource" id="Resource_m62su"]
 script = ExtResource("2_t4at2")
@@ -296,6 +310,7 @@ defense = 66
 reaction = 57
 balance = 56
 goalkeeping = 30
+abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_igjdm"]
 script = ExtResource("2_t4at2")
@@ -314,6 +329,151 @@ heading = 59
 defense = 33
 balance = 67
 goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_vf2b3"]
+script = ExtResource("2_t4at2")
+id = "halcones_17"
+player_name = "M. Rivadeo"
+number = 17
+position = 1
+acceleration = 66
+stamina = 65
+strength = 80
+passing = 71
+shooting = 51
+technique = 67
+ball_control = 58
+heading = 66
+defense = 72
+reaction = 69
+balance = 62
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_vdgve"]
+script = ExtResource("2_t4at2")
+id = "halcones_18"
+player_name = "O. Pereyra"
+number = 18
+position = 1
+foot = 1
+speed = 63
+acceleration = 71
+stamina = 72
+strength = 65
+passing = 57
+shooting = 49
+technique = 61
+ball_control = 57
+heading = 63
+defense = 67
+reaction = 64
+balance = 63
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_0487b"]
+script = ExtResource("2_t4at2")
+id = "halcones_19"
+player_name = "E. Werthein"
+number = 19
+foot = 1
+speed = 70
+acceleration = 72
+stamina = 72
+strength = 57
+passing = 72
+shooting = 63
+technique = 63
+ball_control = 72
+heading = 68
+defense = 52
+reaction = 66
+balance = 71
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_l1xxu"]
+script = ExtResource("2_t4at2")
+id = "halcones_20"
+player_name = "D. Olmedo"
+number = 20
+speed = 70
+acceleration = 64
+stamina = 77
+strength = 68
+passing = 79
+shooting = 59
+technique = 77
+ball_control = 69
+heading = 52
+defense = 64
+reaction = 66
+balance = 61
+goalkeeping = 30
+abilities = PackedStringArray("pasador")
+
+[sub_resource type="Resource" id="Resource_jcjgx"]
+script = ExtResource("2_t4at2")
+id = "halcones_21"
+player_name = "S. Acosta"
+number = 21
+position = 3
+foot = 1
+speed = 68
+acceleration = 68
+stamina = 65
+passing = 58
+shooting = 77
+technique = 61
+ball_control = 76
+heading = 58
+defense = 36
+balance = 64
+goalkeeping = 30
+abilities = PackedStringArray("goleador")
+
+[sub_resource type="Resource" id="Resource_l33bx"]
+script = ExtResource("2_t4at2")
+id = "halcones_22"
+player_name = "N. Quiroga"
+number = 22
+position = 3
+speed = 65
+acceleration = 66
+stamina = 76
+strength = 71
+passing = 62
+shooting = 83
+ball_control = 72
+heading = 54
+defense = 48
+reaction = 61
+balance = 62
+goalkeeping = 30
+abilities = PackedStringArray("goleador")
+
+[sub_resource type="Resource" id="Resource_de5cx"]
+script = ExtResource("2_t4at2")
+id = "halcones_23"
+player_name = "D. Taborda"
+number = 23
+position = 0
+speed = 56
+acceleration = 65
+stamina = 61
+strength = 61
+passing = 70
+shooting = 30
+technique = 58
+ball_control = 57
+heading = 54
+defense = 52
+reaction = 82
+balance = 57
+goalkeeping = 73
+abilities = PackedStringArray("atajador")
 
 [resource]
 script = ExtResource("3_532ij")
@@ -323,5 +483,7 @@ short_name = "HAL"
 color = Color(0.85, 0.15, 0.15, 1)
 secondary_color = Color(0.08, 0.08, 0.08, 1)
 keeper_color = Color(0.2, 0.85, 0.35, 1)
+away_color = Color(0.95, 0.95, 0.95, 1)
+away_secondary = Color(0.85, 0.15, 0.15, 1)
 formation = ExtResource("1_lt551")
-players = Array[ExtResource("2_t4at2")]([SubResource("Resource_wyxu8"), SubResource("Resource_5sscg"), SubResource("Resource_ypnxi"), SubResource("Resource_8vdff"), SubResource("Resource_1kbkc"), SubResource("Resource_j2nmc"), SubResource("Resource_g6y01"), SubResource("Resource_f7ehe"), SubResource("Resource_m512e"), SubResource("Resource_e3uhl"), SubResource("Resource_mhfki"), SubResource("Resource_brtea"), SubResource("Resource_ujkna"), SubResource("Resource_1dx33"), SubResource("Resource_m62su"), SubResource("Resource_igjdm")])
+players = Array[ExtResource("2_t4at2")]([SubResource("Resource_wyxu8"), SubResource("Resource_5sscg"), SubResource("Resource_ypnxi"), SubResource("Resource_8vdff"), SubResource("Resource_1kbkc"), SubResource("Resource_j2nmc"), SubResource("Resource_g6y01"), SubResource("Resource_f7ehe"), SubResource("Resource_m512e"), SubResource("Resource_e3uhl"), SubResource("Resource_mhfki"), SubResource("Resource_brtea"), SubResource("Resource_ujkna"), SubResource("Resource_1dx33"), SubResource("Resource_m62su"), SubResource("Resource_igjdm"), SubResource("Resource_vf2b3"), SubResource("Resource_vdgve"), SubResource("Resource_0487b"), SubResource("Resource_l1xxu"), SubResource("Resource_jcjgx"), SubResource("Resource_l33bx"), SubResource("Resource_de5cx")])

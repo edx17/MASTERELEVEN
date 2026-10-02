@@ -15,6 +15,11 @@ const PANEL_SIZE := Vector2(250, 44)
 var _match: MatchController
 var _score: Label
 var _clock: Label
+## Marcador (lo único que queda en la repetición).
+var _top: Control
+var _was_replaying := false
+## Estrategia activa de cada equipo (debajo del reloj).
+var _strategy: Label
 var _banner: Label
 var _hint: Label
 var _radar: Radar
@@ -28,6 +33,7 @@ func setup(p_match: MatchController) -> void:
 
 	# Marcador.
 	var top := HBoxContainer.new()
+	_top = top
 	top.position = Vector2(24, 18)
 	top.add_theme_constant_override("separation", 8)
 	add_child(top)
@@ -51,6 +57,13 @@ func setup(p_match: MatchController) -> void:
 	_clock.position += Vector2(-28, 18)
 	_clock.add_theme_font_size_override("font_size", 28)
 	add_child(_clock)
+
+	_strategy = _label("", 18)
+	_strategy.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	_strategy.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_strategy.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_strategy.position += Vector2(-28, 58)
+	add_child(_strategy)
 
 	_banner = _label("", 40)
 	_banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
@@ -91,7 +104,25 @@ func _process(_dt: float) -> void:
 	var t0 := _match.teams[0]
 	var t1 := _match.teams[1]
 	_score.text = "%d - %d" % [t0.score, t1.score]
+	# En la repetición sólo queda el marcador (la marca y el cartel los pone
+	# la repetición).
+	if _match.phase == MatchController.Phase.REPLAY:
+		for c in get_children():
+			if c is CanvasItem:
+				(c as CanvasItem).visible = c == _top
+		_was_replaying = true
+		return
+	if _was_replaying:
+		_was_replaying = false
+		for c in get_children():
+			if c is CanvasItem:
+				(c as CanvasItem).visible = true
 	_clock.text = "%s %s" % ["1st" if _match.clock.half == 1 else "2nd", _match.clock.display()]
+	var lines := []
+	for t in _match.teams:
+		if t.strategy != Strategy.Kind.NONE:
+			lines.append("%s: %s" % [t.short_name, Strategy.NAMES[t.strategy]])
+	_strategy.text = "\n".join(lines)
 	_banner.text = _match.banner_text
 	if _match.phase == MatchController.Phase.FULLTIME:
 		_banner.text = "FINAL   %s %d - %d %s" % [t0.short_name, t0.score, t1.score, t1.short_name]

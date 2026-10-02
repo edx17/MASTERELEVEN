@@ -34,6 +34,8 @@ var team: Team
 ## Fuente de órdenes (HumanInput por defecto; intercambiable).
 var input: InputSource
 var controlled: Footballer = null
+## Botones silenciados hasta soltarlos (se usaron con L2 para una estrategia).
+var _strategy_mute := false
 
 ## Barra de potencia (se muestra en el HUD).
 var charging_action: StringName = &""
@@ -116,12 +118,36 @@ func nearest_to_ball(exclude: Footballer = null) -> Footballer:
 	return best
 
 
+## Botones de las estrategias (L2 + X / Cuadrado / Círculo / Triángulo).
+const STRATEGY_BUTTONS: Array[StringName] = [&"pass_short", &"shoot", &"pass_long", &"pass_through"]
+
+
+## L2 (o R) mantenido + un botón: activa o apaga la estrategia de ese botón.
+## Mientras tanto (y hasta soltarlos) los botones no patean.
+func _strategy_buttons() -> void:
+	input.muted.clear()
+	var held := input.pressed(&"strategy")
+	if held:
+		for i in STRATEGY_BUTTONS.size():
+			if input.just_pressed(STRATEGY_BUTTONS[i]):
+				_match.toggle_strategy(team, i)
+	if held or _strategy_mute:
+		_strategy_mute = false
+		for b in STRATEGY_BUTTONS:
+			if input.pressed(b):
+				_strategy_mute = true
+		input.muted.assign(STRATEGY_BUTTONS)
+		if not held and not _strategy_mute:
+			input.muted.clear()
+
+
 func tick(dt: float) -> void:
 	input.poll()
 	_switch_cooldown = maxf(0.0, _switch_cooldown - dt)
 	var ball := _match.ball
 	_auto_switch(ball)
 
+	_strategy_buttons()
 	var l1 := input.pressed(&"special")
 	var r1 := input.pressed(&"sprint")
 	_clock += dt

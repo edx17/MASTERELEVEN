@@ -28,6 +28,16 @@ var subbed_off: Array[Footballer] = []
 var subs_used: int = 0
 ## Cambios pedidos que se hacen en la próxima pelota parada: [{out, in}].
 var pending_subs: Array[Dictionary] = []
+## Condición del día de cada jugador del plantel (PlayerData -> Condition).
+var conditions := {}
+## Capitán y pateadores elegidos en la Dirección del equipo (null = automático).
+var captain: PlayerData = null
+var fk_taker: PlayerData = null
+var ck_taker: PlayerData = null
+var pk_taker: PlayerData = null
+## Estrategias asignadas a los cuatro botones y la que está activa.
+var strategy_slots: Array[int] = Strategy.DEFAULT_SLOTS.duplicate()
+var strategy: int = Strategy.Kind.NONE
 var score: int = 0
 
 
@@ -43,6 +53,20 @@ func _init(p_index: int, p_name: String, p_short: String, p_color: Color, p_seco
 ## Puesto del jugador en la formación (índice del plantel).
 func slot_of(p: Footballer) -> int:
 	return roster.find(p)
+
+
+func condition_of(d: PlayerData) -> int:
+	return conditions.get(d, PlayerData.Condition.NORMAL)
+
+
+## El que está en la cancha con esos datos (o null).
+func on_pitch(d: PlayerData) -> Footballer:
+	if d == null:
+		return null
+	for p in players:
+		if p.base_data == d:
+			return p
+	return null
 
 
 func subs_left() -> int:

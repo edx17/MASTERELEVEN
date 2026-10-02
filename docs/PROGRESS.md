@@ -9,13 +9,133 @@ Ver `Claude.md` para visión, criterios y fases.
 | 2 — Prototipo 0.1: sensación de juego | ✅ Hecha (PR #2) |
 | 3 — IA de partido (TeamAI, formaciones, zonas, arquero) | 🟡 Implementada, **pendiente de tu prueba** |
 | Visual 1 — Se ve como la referencia (jugadores animados, cámara, cancha) | 🟡 Implementada, **pendiente de tu prueba** |
-| 4 — Reglas, atributos y plantel | 🟡 En curso: tarjetas, offside, cambios y cansancio hechos |
-| 5 — Presentación moderna (estadio, modelos, animaciones, audio) | ⬜ |
+| 4 — Reglas, atributos y plantel | 🟡 Implementada, **pendiente de tu prueba** |
+| 5 — Presentación moderna (estadio, modelos, animaciones, audio) | 🟡 En curso: repetición del gol y sonido hechos; falta tu modelo |
 | 6 — Liga Master | ⬜ |
-| 7 — Torneos | ⬜ |
+| 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) |
 | 8 — Pulido | ⬜ |
 
 ---
+
+## Festejos, animaciones nuevas y jugadores retro (beta)
+
+| Tema | Cambio |
+|---|---|
+| Festejo del gol | El goleador corre al córner más cercano del arco donde hizo el gol y frena unos metros antes del banderín; ahí festeja con un festejo al azar (Festejo1 Catwheel o Festejo2 Golf Putt si están; si no, la rueda de antes). Lo acompañan 2 o 3 de los compañeros más cercanos, que se ubican alrededor y levantan los brazos. Los demás del equipo levantan los brazos desde donde están. Dura lo que tarde en llegar más el festejo (tope 9 s); X lo saltea. Después, la repetición. |
+| Animaciones nuevas (tanda "Animation Pro") | Reemplazan a las viejas (ya no hay respaldo a las anteriores con el mismo uso). Carrera: Jog Forward, Sprint y Jog Backward, con la cadencia ajustada a la velocidad real (sale de cuánto avanza la cadera en un ciclo). Remate (remate), pase (Soccer Pass), cabezazo según la altura de la pelota (No jump Header / Soccer Header / Soccer Header little jump), amague X + Cuadrado (XCuadrado Chip), pecho (Receive pecho), lateral (Throw In), barrida (Soccer Tackle), caída tras una falta o barrida (foul) y levantarse (Standing Up), marsellesa (Soccer Spin), conducción (Dribble), festejos al azar (Festejo1 Catwheel / Festejo2 Golf Putt). Arquero: espera, atajada parado / con salto / corta centro (si viene muy alta) / de abajo (Scoop), estirada (Diving Save, ahora va hacia la derecha del modelo y se espeja para el otro lado), error, saque con la mano rápido y rodando, saque de volea (Drop Kick), paso lateral de achique. |
+| Festejos a elección | 12 festejos (Rueda, Golpe de golf, Mortal hacia atrás, Capoeira, Carrera y frenada, El fusil, Gateo, La araña, Molinete, Baile del jinete, Paso lunar, El robot) en `Celebrations`. Cada jugador tiene su preferido (`PlayerData.celebration`, -1 = al azar) para el futuro modo edición; si no, uno al azar. Los cortos se repiten y los bailes largos se cortan (entre 2,6 y 5,5 s). |
+| Chilena | Remate con la pelota a media altura (0,95 a 2,05 m), de espaldas al arco y a menos de 24 m: sale de chilena (humano o CPU, también cuando la CPU la iba a cabecear al arco). Después queda 2 s en el piso y se levanta. |
+| Arranque y giro en carrera | R1 casi parado: arranque de velocista (Idle To Sprint). Corte brusco a toda velocidad: giro en carrera (Sprint Turn, espejado para el otro lado), una vez por giro. |
+| Arquero ordena a la defensa | Con la pelota en el otro campo (a más de 52 m) o mientras la tiene en las manos (los 6 s): Goalkeeper Directing; la pelota va en la mano que queda pegada al cuerpo. |
+| Hacer tiempo | Va ganando desde el 75': el arquero de la CPU la duerme casi hasta los 6 s, y al agarrarla salta y se tira encima (GoalkeeperReceiver Catch; antes del 75', a veces). También se tira encima de una pelota dividida con un rival a menos de 3 m. |
+| Faltas fuertes | Barrida o falta de atrás (o si lo lesionan): queda 3,4 s en el piso y el juego espera. De atrás cae de espaldas (caida de atras Hit On Legs); si no, se cae (foul) y queda tirado dolorido (Fallen Idle) hasta levantarse. |
+| Lesionado | Trota rengo (Lesionado andando Injured Jog). |
+| Arreglo | Cada gesto se avisaba dos veces a la repetición; ahora una. |
+| Jugadores retro (beta) | Opción "Jugadores: actuales / retro PS1 (beta)" en la configuración del partido. Usa el modelo base que pasaste (libre, en `assets/models/players/retro/`) vestido sobre el esqueleto del juego: se escala, los brazos pasan de la pose A a la T, cada vértice va pegado al hueso más cercano (como en PS1) y cada cara se pinta de un color plano por zona (camiseta, short, rodillas, medias, botines, piel, pelo y guantes del arquero). Toma todas las animaciones y los físicos. |
+
+**Tests:** 275 en verde. Se agregaron `test_celebration.gd` (córner, compañeros y brazos arriba) y `test_animation_pack3.gd` (festejos, chilena, arranque y giro, falta fuerte, arquero que ordena y que hace tiempo, lesionado).
+
+## Repeticiones limpias y sombras que no quedan negras (tu feedback)
+
+| Tema | Cambio |
+|---|---|
+| Repetición | En pantalla sólo queda el marcador, la marca **REPETICIÓN** (con un punto rojo que late) arriba a la derecha y un cartel simple abajo con quién hizo la jugada. Nada del HUD de jugadores ni el radar. Entra y sale con una **cortina** (una franja con el nombre del juego que cruza la pantalla). X / Start la saltea. |
+| Jugadas peligrosas | También se repiten (antes del saque): remates que se van cerca del palo o pegan en él ("¡Cerca! / ¡Al palo! Remate de ..."), atajadas que el arquero manda al córner ("¡Atajada de ...!") y faltas importantes (penal, tarjeta o tiro libre cerca del área: "Falta de ... · AMARILLA"). Las de jugadas duran 4 s; la del gol, 6. |
+| Opción | "Repeticiones: goles y jugadas / sólo goles / no" en Opciones. |
+| Sombras de día | La sombra del sol deja pasar parte de la luz (como la que rebota en el cielo, el césped y las tribunas): queda marcada pero nunca negra. Se sumó un relleno de luz parejo que no depende de cuánto cielo "ve" cada lugar, menos oclusión ambiental y más rebote de la iluminación global. El arco, el área y los jugadores bajo la sombra del techo ahora se ven. |
+| Túnel | Ya no es un hueco negro: pasillo con paredes pintadas, piso de goma, paneles de luz en el techo y lámparas. |
+| Estructuras | El muro perimetral y el frente de las bandejas pasaron de casi negro a hormigón pintado; el banco de suplentes dejó de ser una caja oscura: ahora tiene pared de fondo, laterales, asientos y techo traslúcido. |
+
+## Mientras armás el modelo: repetición, sonido, Liga y Copa
+
+| Tema | Cambio |
+|---|---|
+| Repetición del gol | Después del festejo se ve la jugada otra vez (los últimos 6 s), con una cámara baja que sigue la pelota y cámara lenta al final. Arriba dice "REPETICIÓN"; abajo, la ficha del goleador como en tu captura: puesto, número, nombre, altura y edad (y "en contra" si fue gol en contra). Se ven también los gestos (patada, cabezazo, estirada). X / Start la saltea. Opción "Repeticiones de gol" en Opciones. |
+| Sonido | Generado por código, sin archivos de terceros: silbato (corto en faltas y saques del medio, doble en el entretiempo, triple al final), patada (más grave cuanto más fuerte), pique, palo, red, murmullo del público que sube cuando la pelota se acerca a un arco, grito de gol y "uhh" cuando un remate se va cerca o pega en el palo. Volúmenes de efectos y del público en Opciones. Es una base: cuando tengamos sonidos grabados (CC0) o tu referencia de video, se reemplazan uno por uno. |
+| Liga | Todos contra todos con los 8 equipos (7 fechas). Elegís tu equipo; cada fecha jugás tu partido (pasando por la configuración del partido, de local o de visitante) o lo simulás; el resto se simula según los puntajes de los equipos. Tabla con PJ, G, E, P, GF, GC, DG y puntos. Al final, el campeón. |
+| Copa | Eliminación directa por sorteo: cuartos, semis y final. Si tu partido termina empatado se define por penales (por ahora simulados). |
+| Guardado | La Liga o la Copa en curso se guarda entre partidos y sesiones; "Abandonar" la borra (pide confirmación). Un partido que se abandona a mitad no cuenta. |
+
+**Tests:** 260 en verde. Se agregaron:
+- `test_replay.gd`: gol, repetición con ficha y saque del medio; ficha; sin repetición si está apagada;
+- `test_audio.gd`: todos los sonidos, pitazo final y el partido los dispara;
+- `test_competition.gd`: fixture, tabla, resultado del lado correcto, copa con penales y campeón, simulación con 2 a 3 goles por partido, guardado y jugar de visitante.
+
+## Menús estilo WE (según tus capturas)
+
+| Pantalla | Qué tiene |
+|---|---|
+| Menú principal | Ya no se corta. Barras violetas a la izquierda: Partido, Liga, Copa, Liga Master, Entrenamiento, Editor, Opciones y Salir; las que todavía no existen aparecen apagadas. A la derecha el logo con una pelota (sin marcas) y abajo la caja verde de ayuda que explica la opción elegida. |
+| Modo | 1 jugador vs CPU, 2 jugadores (si hay mando para el segundo) o CPU vs CPU. |
+| Elección de equipos | Grilla de escudos de los **8 equipos** (6 nuevos, todos inventados: Real Costanera, Unión Pampa, Sporting Bahía, Atlético Cordillera, Club Puerto Viejo, Norteña FC). Arriba, el local y el visitante con escudo y uniforme, y en el medio las barras de ataque, defensa, fuerza, velocidad y técnica. Primero se elige el local, después el visitante; Cuadrado (Z) elige al azar. |
+| Partido ("Match Mode") | Filas con flechas a los costados: horario, clima, viento, césped, duración, nivel de la CPU, offside, estadio y **uniforme** de cada equipo (titular o alternativo; si las camisetas se confunden, el visitante usa la otra). A la derecha, la miniatura del estadio y los dos uniformes. |
+| Opciones | Controles, velocidad del juego, movimiento (8 / 16 / libre), qué se ve sobre los jugadores, el arquero a los 6 s y la prueba de rendimiento. |
+| Controles | Tabla de ataque y defensa por botón, con mando y teclado. Cambiar los botones queda para más adelante. |
+| Pausa | Como la del WE: cartel "PAUSA" arriba a la izquierda, barras a la izquierda (el partido se sigue viendo) y ayuda abajo. |
+| Previa | Botones con el mismo estilo; durante la formación en la cancha aparece el cartel con los once titulares (puesto, número y nombre) de cada equipo. |
+
+Los equipos y uniformes elegidos se guardan para el próximo partido.
+
+**Tests:** 247 en verde. Se agregaron (`tests/unit/test_menus.gd`):
+- ocho equipos de 23 con dos uniformes;
+- páginas del menú y volver;
+- elegir local y visitante;
+- filas de la configuración;
+- uniformes elegidos y camisetas que no se confunden.
+
+### Pantallas que faltan (hoja de ruta)
+
+| Pantalla | Cuándo |
+|---|---|
+| Gol: repetición con la ficha del goleador | ✅ Hecho |
+| Presentación de jugadores en la previa con primeros planos | Fase 5, con tu modelo final |
+| Configurar controles (cambiar los botones, por mando) | Fase 8 (pulido) |
+| Liga Master, con **mercado de pases** (lista con puntos y costo, y ficha con barras) | Fase 6 |
+| Liga y Copa: más equipos, fase de grupos, penales jugados, dos ruedas desde el menú | Fase 7 |
+| Editor y creación de jugadores (pelo, cara, altura, físico, edad, pie) y de equipos | Más adelante, junto al creador de estadios |
+| Sonido grabado y relato (hoy: sonido generado por código). Referencia que pasaste: https://www.youtube.com/watch?v=GQMqctHarjo | Fase 5 |
+
+## Fase 4 (3): cuerpo a cuerpo, lesiones, habilidades especiales y estrategias
+
+| Tema | Cambio |
+|---|---|
+| Cuerpo a cuerpo | Corriendo a la par del que lleva la pelota, a veces chocan de hombros. Pierde el de menos fuerza, equilibrio y físico (el flaquito trastabilla; el pesado o musculoso aguanta). Si pierde el que la lleva, la pelota queda suelta. Al separarse, el más pesado corre al otro. Unos 5 choques por partido entre la CPU. |
+| Lesiones | Al que le hacen falta se puede lesionar: barrida de atrás 15 %, barrida 7 %, otra 2 %. Un golpe lo deja rengo (−10 % de velocidad); algo peor (−25 %) obliga a cambiarlo: la CPU lo cambia sola y a vos se te avisa. Se ve en la Dirección del equipo. |
+| Habilidades especiales | Como las estrellitas del WE, según los atributos: **pasador** (pases un 35 % más precisos), **goleador** (define mejor en el área), **gambeteador** (cuesta sacarle la pelota y aguanta los choques), **cabeceador** (salta más y cabecea más preciso), **especialista** (tiros libres y penales más precisos), **marcador** (entra mejor y hace menos faltas), **atajador** (arquero que achica mejor el mano a mano). Se ven en la ficha del jugador. |
+| Estrategias | En la Dirección del equipo se asignan cuatro a los botones; en el partido se activan y apagan con **L2 + X / Cuadrado / Círculo / Triángulo** (con teclado, **R** + la tecla). Presión en todo el campo, contraataque (los de arriba no bajan y se sale rápido), trampa del offside (línea alta), ataque por las bandas, todos al ataque, todos atrás. La activa se ve arriba a la derecha. La CPU va con todos al ataque si pierde desde el 70' y con todos atrás si gana desde el 80'. Mientras L2 está apretado los botones no patean. |
+
+**Tests:** 241 en verde. Se agregaron (`tests/unit/test_contact_strategy.gd`):
+- choque de hombros: quién gana y qué pasa;
+- frecuencia de los choques;
+- empuje según el peso;
+- lesión: más lento y la CPU lo cambia;
+- habilidades: gambeteador, marcador y pasador;
+- forma del equipo con cada estrategia;
+- L2 + botón activa la estrategia sin patear;
+- presión en todo el campo;
+- estrategia de la CPU según el resultado;
+- asignar estrategias a los botones.
+
+## Fase 4 (2): plantel de 23, Dirección del equipo y condición
+
+| Tema | Cambio |
+|---|---|
+| Plantel | 23 por equipo como en el WE: 11 titulares y 12 suplentes (tres arqueros). Siguen siendo 3 cambios. |
+| Dirección del equipo | Pantalla al estilo del WE, desde la pausa y desde la previa del partido. A la izquierda, la minicancha con la formación y la lista de los 23. Con L1 / R1 (o Q / E) la columna pasa por **Puesto** (GK, CB, SB, DH, CH, OH, SH, WG, CF), **Energía** (con el desgaste en oscuro) y **Condición**. A la derecha, el menú y la ficha del jugador elegido: pie, altura, condición, energía y los 13 puntajes (los altos en amarillo y naranja). |
+| Sustituir | X sobre un jugador y después sobre otro. Dos titulares cambian de puesto (si uno va al arco, se cambia la ropa). Titular y suplente: en la previa es un cambio libre de la alineación; en el partido es uno de los 3 cambios. |
+| Pateadores y capitán | Tiros libres (cerca del arco), córners y penales los patea el elegido; capitán marcado con (C). |
+| Condición (flechas) | Cada jugador llega al partido en un estado al azar: roja arriba (+6 a todos los atributos), naranja (+3), amarilla (normal), azul (−3), gris abajo (−6). Afecta el juego y se ve en la lista. |
+
+**Tests:** 229 en verde. Se agregaron (`tests/unit/test_team_sheet.gd`):
+- plantel de 23;
+- la condición cambia los atributos;
+- sorteo de la condición;
+- columnas con L1 / R1;
+- cambio libre en la previa;
+- en el partido, un cambio;
+- dos titulares cambian de puesto;
+- pateadores elegidos;
+- capitán y pateador desde la pantalla.
 
 ## Fase 4 (1): cambios, cansancio acumulado y arquero expulsado
 

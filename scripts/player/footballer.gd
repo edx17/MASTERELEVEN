@@ -70,6 +70,14 @@ var debug_state: String = ""
 var stamina: float = 100.0
 ## Cansancio acumulado en el partido (puntos que se le restan al tope de 100).
 var wear: float = 0.0
+## Tiempo hasta otro choque de hombros (MatchController._body_contact).
+var contact_cooldown: float = 0.0
+## Lesión: 0 = sano, 1 = golpe (juega rengo), 2 = no puede seguir bien.
+enum Injury { NONE, KNOCK, SERIOUS }
+var injury: int = Injury.NONE
+const INJURY_SPEED := [1.0, 0.9, 0.75]
+## Datos del plantel (sin la condición del día; `data` ya la incluye).
+var base_data: PlayerData
 ## Tiempo de reacción pendiente (IA): mientras corre, mantiene la orden anterior.
 var reaction_timer: float = 0.0
 ## Posición del rival más cercano (la fija el partido; sirve para cubrir la pelota).
@@ -97,6 +105,11 @@ var yellow_cards: int = 0
 var sent_off := false
 ## Arquero con la pelota en las manos (lo fija el partido; para la pose).
 var ball_in_hands: bool = false
+## Arquero que ordena a la defensa (lo fija el partido: pelota lejos o en sus
+## manos esperando para sacar).
+var directing: bool = false
+## Derribado por una falta de atrás (cae de espaldas).
+var trip_back: bool = false
 
 var _tuning: Tuning
 var _arrow: MeshInstance3D
@@ -106,11 +119,20 @@ var _label: Label3D
 ## Capa de presentación (modelo y animaciones); no afecta la simulación.
 var visual: PlayerVisual
 var _prev_speed: float = 0.0
+## Arranque (R1 desde parado) y giro brusco en carrera: el gesto, una vez.
+var _was_sprinting := false
+var _turn_cooldown := 0.0
+## Velocidad desde la que un corte en carrera es un "giro en sprint".
+const SPRINT_TURN_SPEED := 5.0
+## Hasta qué velocidad apretar R1 es un arranque desde parado.
+const SPRINT_START_SPEED := 2.0
 
 
 func setup(p_team: Team, p_data: PlayerData, p_role: int, p_spot: Vector2, tuning: Tuning) -> void:
 	team = p_team
-	data = p_data
+	base_data = p_data
+	# Atributos del día: los del plantel más la condición (flechas).
+	data = p_data.with_condition(team.condition_of(p_data)) if p_data != null else null
 	number = data.number
 	role = p_role as Role
 	base_spot = p_spot
@@ -171,7 +193,7 @@ func rest_at_halftime() -> void:
 ## Multiplicador de velocidad por cansancio: debajo del umbral cae hasta el
 ## mínimo; el desgaste acumulado baja además la velocidad tope.
 func fatigue_speed_factor() -> float:
-	var worn := lerpf(1.0, _tuning.wear_min_speed_factor, clampf(wear / _tuning.wear_max, 0.0, 1.0))
+	var worn: float = lerpf(1.0, _tuning.wear_min_speed_factor, clampf(wear / _tuning.wear_max, 0.0, 1.0)) * INJURY_SPEED[injury]
 	var th := _tuning.stamina_tired_threshold
 	if stamina >= th:
 		return worn
@@ -259,12 +281,13 @@ func stagger(duration: float) -> void:
 
 ## Derribado por una barrida: queda en el piso y se levanta (no puede tocar
 ## la pelota ni moverse mientras tanto).
-func trip(duration: float) -> void:
+func trip(duration: float, from_behind: bool = false) -> void:
 	if state == State.SLIDING:
 		return
 	state = State.RECOVERING
 	state_timer = duration
 	tripped = true
+	trip_back = from_behind
 	velocity *= 0.3
 
 
@@ -286,10 +309,11 @@ func _tick_skill(dt: float) -> void:
 
 
 ## Festejo de gol (sólo presentación; el partido está detenido).
-func celebrate(duration: float) -> void:
+## `which`: índice de Celebrations (el festejo elegido).
+func celebrate(duration: float, which: int = 0) -> void:
 	celebrate_timer = duration
 	if visual != null:
-		visual.play(PlayerVisual.Event.CELEBRATE)
+		visual.play(PlayerVisual.Event.CELEBRATE, which)
 
 
 ## Mueve instantáneamente al jugador (reubicaciones de pelota parada).
@@ -310,6 +334,7 @@ func tick(dt: float, has_ball: bool) -> void:
 	touch_block = maxf(0.0, touch_block - dt)
 	kick_brake = maxf(0.0, kick_brake - dt)
 	tackle_cooldown = maxf(0.0, tackle_cooldown - dt)
+	contact_cooldown = maxf(0.0, contact_cooldown - dt)
 	pass_target_timer = maxf(0.0, pass_target_timer - dt)
 	possession_time = possession_time + dt if has_ball else 0.0
 	reaction_timer = maxf(0.0, reaction_timer - dt)
@@ -362,7 +387,11 @@ func _update_visual(dt: float) -> void:
 		mv.recover_left = state_timer if state == State.RECOVERING else 0.0
 		# Desplazamiento de costado (eje X del modelo = su izquierda).
 		mv.side_speed = velocity.dot(global_basis.x)
+		mv.forward_speed = velocity.dot(global_basis.z)
 		mv.holding = ball_in_hands
+		mv.directing = directing and is_keeper()
+		mv.trip_back = trip_back
+		mv.injured = injury != Injury.NONE
 	visual.update(dt, spd, _tuning.sprint_speed, pose, accel)
 
 
@@ -437,6 +466,18 @@ func _tick_normal(dt: float, has_ball: bool) -> void:
 				stagger(0.35)
 				slipped.emit()
 				return
+
+	# Gestos de carrera: arranque al apretar R1 casi parado; giro brusco a
+	# toda velocidad (hacia el lado del corte).
+	_turn_cooldown = maxf(0.0, _turn_cooldown - dt)
+	var sprint_now := sprinting and move.length_squared() > 0.04
+	if visual != null and not has_ball:
+		if sprint_now and not _was_sprinting and cur_speed < SPRINT_START_SPEED:
+			visual.play(PlayerVisual.Event.SPRINT_START)
+		elif cut and cur_speed > SPRINT_TURN_SPEED and _turn_cooldown <= 0.0:
+			_turn_cooldown = 0.9
+			visual.play(PlayerVisual.Event.SPRINT_TURN, signf(facing.signed_angle_to(move.normalized(), Vector3.UP)))
+	_was_sprinting = sprint_now
 
 	# Se acelera hacia donde pide el stick; la inercia la da la aceleración
 	# (sin arcos de "auto": el jugador no se desliza de costado porque el

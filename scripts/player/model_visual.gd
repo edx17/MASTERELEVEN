@@ -28,7 +28,7 @@ const BLEND := 0.18
 ## terminar justo cuando la simulación le devuelve el control).
 const GETUP_TIME := 0.9
 ## Clips que no se cortan por otro gesto (en el piso, festejando).
-const UNINTERRUPTIBLE := ["trip", "get_up", "celebrate"]
+const UNINTERRUPTIBLE := ["trip", "trip_back", "fallen_idle", "get_up", "chilena"]
 
 static var _body_scene: PackedScene
 static var _anim_lib: AnimationLibrary
@@ -56,6 +56,9 @@ var _slide_played := false
 var keeper := false
 ## Material del cuerpo (colores de la ropa) y número de la espalda.
 var _body_mat: ShaderMaterial
+## Cuerpo del modo retro (o null) y su piel / pelo.
+var _retro: MeshInstance3D
+var _retro_colors := {}
 var _number_label: Label3D
 var carrying := false
 ## Lo fija el Footballer: derribado por una barrida, cuánto le falta para
@@ -90,8 +93,18 @@ var hair_style: int = -1
 var hair_node: MeshInstance3D
 var recover_left := 0.0
 var side_speed := 0.0
+## Velocidad hacia adelante (negativa = retrocede); la fija el Footballer.
+var forward_speed := 0.0
 var _trip_played := false
 var _getup_played := false
+## Lo fija el Footballer: la falta fue de atrás (cae de espaldas), está
+## lesionado (trota rengo) y el arquero ordena a la defensa (pelota lejos o
+## en sus manos).
+var trip_back := false
+var injured := false
+var directing := false
+var _down_t := 0.0
+var _carry_hand := -1
 
 
 ## Hay modelo y animaciones importados en el proyecto.
@@ -152,6 +165,20 @@ func setup(colors: Dictionary, seed: int) -> void:
 		mat.set_shader_parameter("trim", _trim_for(shirt, colors.get("shorts", Color.WHITE)))
 		body.material_override = mat
 		_body_mat = mat
+	# Modo retro (beta): el modelo de pocos polígonos sobre el mismo esqueleto.
+	if GameSettings.player_style == 1 and RetroBody.available() and body != null:
+		_retro_colors = {"skin": SKIN_TONES[rng.randi() % SKIN_TONES.size()], "hair": HAIR_TONES[rng.randi() % HAIR_TONES.size()]}
+		var rc := colors.duplicate()
+		rc.merge(_retro_colors)
+		_retro = RetroBody.build(_skel, rc)
+		if _retro != null:
+			body.visible = false
+			if hair_node != null:
+				hair_node.visible = false
+			for extra in ["Eyebrows", "Eyes"]:
+				var em := _skel.find_child(extra, false, false) as Node3D
+				if em != null:
+					em.visible = false
 	if colors.has("number"):
 		_add_back_number(int(colors["number"]), colors.get("shirt", Color.WHITE))
 	var dark := _mat(Color(0.05, 0.04, 0.04))
@@ -182,6 +209,10 @@ static func _trim_for(shirt: Color, shorts: Color) -> Color:
 ## Cambia la ropa (un jugador de campo que va al arco: camiseta y guantes de
 ## arquero, con su número).
 func recolor(colors: Dictionary) -> void:
+	if _retro != null:
+		var rc := colors.duplicate()
+		rc.merge(_retro_colors)
+		RetroBody.recolor(_retro, rc)
 	if _body_mat != null:
 		var shirt: Color = colors.get("shirt", Color.WHITE)
 		_body_mat.set_shader_parameter("shirt", shirt)
@@ -309,8 +340,13 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 		_slide_played = false
 	# Derribado: se cae y, al final, se levanta (a tiempo con la simulación).
 	if pose == Pose.FALLEN and tripped:
+		_down_t += dt
 		if not _trip_played:
-			_trip_played = _play_clip("trip", 1.25, true)
+			_trip_played = _play_clip("trip_back" if trip_back and _mx != null and _mx.has_animation("trip_back") else "trip", 1.25, true)
+			_down_t = 0.0
+		elif _clip == "trip" and _down_t > 1.3 and recover_left > GETUP_TIME + 0.6:
+			# Se queda en el piso dolorido hasta levantarse.
+			_play_clip("fallen_idle", 1.0, true)
 		elif not _getup_played and recover_left <= GETUP_TIME:
 			var m: Dictionary = MixamoLibrary.marks.get("get_up", {})
 			var span: float = m.get("end", 1.6) - m.get("start", 0.0)
@@ -318,7 +354,7 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 	else:
 		_trip_played = false
 		_getup_played = false
-		if _clip == "trip":
+		if _clip in ["trip", "trip_back", "fallen_idle"]:
 			_clip_left = 0.0 # lo reubicaron (pelota parada): vuelve a estar de pie
 	if _clip != "":
 		_clip_left -= dt
@@ -334,25 +370,40 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 
 ## Gestos: con animación de Mixamo si está disponible; si no, por código.
 func play(event: int, side: float = 1.0) -> void:
+	played.emit(event, side)
 	if _clip.begins_with("gk_dive") and event != Event.DIVE_LEFT and event != Event.DIVE_RIGHT:
 		return # ya está volando: la estirada termina (atrapa o rechaza en el aire)
-	if _clip in UNINTERRUPTIBLE:
+	if _clip in UNINTERRUPTIBLE or _clip.begins_with("cel"):
 		return
+	# Arranque y giro en carrera: no cortan otro gesto en curso.
+	if event in [Event.SPRINT_START, Event.SPRINT_TURN] and _clip != "" and not _clip.begins_with("sprint"):
+		return
+	_quiet = true
 	super.play(event, side)
+	_quiet = false
 	var clip := ""
 	match event:
 		Event.KICK:
-			clip = "gk_kick" if keeper else "kick"
+			# Remate (la patada vieja queda de respaldo).
+			clip = "gk_kick" if keeper else ("shot" if _mx != null and _mx.has_animation("shot") else "kick")
 		Event.PASS:
 			clip = "gk_kick" if keeper else "pass"
 		Event.HEADER:
+			# `side` trae la altura de la pelota: sin salto, normal o con saltito.
 			clip = "header"
+			if side < 1.85 and _mx != null and _mx.has_animation("header_stand"):
+				clip = "header_stand"
+			elif side > 2.15 and _mx != null and _mx.has_animation("header_jump"):
+				clip = "header_jump"
 		Event.THROW:
-			clip = "gk_throw" if keeper else ""
+			clip = "gk_throw" if keeper else "throw_in"
 		Event.CATCH:
 			clip = "gk_catch"
 		Event.CATCH_HIGH:
+			# `side` trae la altura: muy alta es cortar un centro.
 			clip = "gk_catch_high"
+			if side > 2.3 and _mx != null and _mx.has_animation("gk_catch_cross"):
+				clip = "gk_catch_cross"
 		Event.CATCH_LOW:
 			clip = "gk_catch_low"
 		Event.BLOCK:
@@ -364,7 +415,31 @@ func play(event: int, side: float = 1.0) -> void:
 		Event.RECEIVE:
 			clip = "receive"
 		Event.CELEBRATE:
-			clip = "celebrate"
+			# El festejo elegido (Celebrations); se repite o se corta a su duración.
+			var idx := int(side)
+			if not Celebrations.available(idx):
+				idx = Celebrations.pick(null)
+			if _play_clip(Celebrations.clip(idx)):
+				_clip_left = Celebrations.duration(idx)
+				_event = -1
+			return
+		Event.CHILENA:
+			# Dura lo que el jugador queda en el piso (MatchController.CHILENA_DOWN).
+			if _mx != null and _mx.has_animation("chilena"):
+				var mc: Dictionary = MixamoLibrary.marks["chilena"]
+				if _play_clip("chilena", (mc["end"] - mc["start"]) / MatchController.CHILENA_DOWN):
+					_event = -1
+				return
+			clip = "kick"
+		Event.SMOTHER:
+			clip = "gk_smother" if _mx != null and _mx.has_animation("gk_smother") else "gk_catch"
+		Event.SPRINT_START:
+			clip = "sprint_start"
+		Event.SPRINT_TURN:
+			# El clip sin espejar gira hacia MixamoLibrary.turn_sign.
+			clip = "sprint_turn" if signf(side) == MixamoLibrary.turn_sign else "sprint_turn_m"
+		Event.CHEST:
+			clip = "chest"
 		Event.DEJECTED:
 			clip = "gk_miss" if keeper else ""
 		Event.ROULETTE:
@@ -374,7 +449,11 @@ func play(event: int, side: float = 1.0) -> void:
 					_event = -1
 			return
 		Event.FEINT:
-			# La carga de la patada, cortada antes del golpe.
+			# Amague (X + Cuadrado): el clip propio si está.
+			if _mx != null and _mx.has_animation("feint") and _play_clip("feint"):
+				_event = -1
+				return
+			# Si no, la carga de la patada, cortada antes del golpe.
 			if _mx != null and _mx.has_animation("kick"):
 				var mk: Dictionary = MixamoLibrary.marks["kick"]
 				var c: float = mk["contact"]
@@ -399,6 +478,16 @@ func hold_point() -> Vector3:
 	var r := _skel.find_bone("hand_r")
 	if l < 0 or r < 0:
 		return super.hold_point()
+	if _current == "mx/gk_directing" and _clip == "":
+		# Ordenando con una mano: la pelota va en la otra (la más pegada al
+		# cuerpo al empezar; no cambia de mano en el medio).
+		if _carry_hand < 0:
+			var chest := _skel.get_bone_global_pose(_skel.find_bone("spine_03")).origin
+			var dl := _skel.get_bone_global_pose(l).origin.distance_to(chest)
+			var dr := _skel.get_bone_global_pose(r).origin.distance_to(chest)
+			_carry_hand = l if dl < dr else r
+		return _skel.global_transform * _skel.get_bone_global_pose(_carry_hand).origin + global_basis.z * 0.08
+	_carry_hand = -1
 	var mid := (_skel.get_bone_global_pose(l).origin + _skel.get_bone_global_pose(r).origin) * 0.5
 	var p := _skel.global_transform * mid
 	# Las manos agarran la pelota por delante de los huesos de la muñeca.
@@ -466,10 +555,22 @@ func _play_locomotion(speed: float) -> void:
 		anim_name = stand
 	if _mx != null:
 		# Arquero quieto: postura de espera. Conduciendo al trote: conducción.
-		if keeper and not formal and anim_name == "Idle" and _mx.has_animation("gk_idle"):
+		if keeper and directing and speed < 0.6 and _mx.has_animation("gk_directing"):
+			# Ordena a la defensa (pelota lejos o mientras la tiene en las manos).
+			pick = ["mx/gk_directing", 0.0, 0.0]
+		elif keeper and not formal and anim_name == "Idle" and _mx.has_animation("gk_idle"):
 			pick = ["mx/gk_idle", 0.0, 0.0]
+		elif injured and speed > 0.5 and _mx.has_animation("injured_jog"):
+			pick = ["mx/injured_jog", 0.5, MixamoLibrary.nominal.get("injured_jog", 1.5)]
 		elif carrying and anim_name == "Jog_Fwd" and _mx.has_animation("dribble"):
 			pick = ["mx/dribble", 2.4, 2.8]
+		elif not keeper and forward_speed < -1.0 and speed > 1.0 and _mx.has_animation("jog_back"):
+			# Retrocede mirando la jugada: trote hacia atrás.
+			pick = ["mx/jog_back", 1.0, MixamoLibrary.nominal.get("jog_back", 2.0)]
+		elif anim_name == "Jog_Fwd" and _mx.has_animation("jog"):
+			pick = ["mx/jog", 2.4, MixamoLibrary.nominal.get("jog", 3.5)]
+		elif anim_name == "Sprint" and _mx.has_animation("sprint"):
+			pick = ["mx/sprint", 6.6, MixamoLibrary.nominal.get("sprint", 7.0)]
 		elif keeper and absf(side_speed) > 0.6 and absf(side_speed) > speed * 0.7 and speed < 4.5 \
 				and _mx.has_animation("gk_side_a"):
 			# Arquero que se acomoda de costado mirando la pelota: paso lateral.
@@ -545,7 +646,7 @@ func _apply_gestures() -> void:
 			_rotate_bone("upperarm_" + side, Vector3.RIGHT, throw_pose.x)
 			_rotate_bone("upperarm_" + side, Vector3.FORWARD, sgn * throw_pose.y)
 			_rotate_bone("lowerarm_" + side, Vector3.RIGHT, throw_pose.z)
-	if holding and _event < 0:
+	if holding and _event < 0 and _current != "mx/gk_directing":
 		# Pelota contra el pecho: brazos adelante, hacia el centro, y los
 		# antebrazos doblados hacia arriba.
 		_rotate_bone("upperarm_l", Vector3.RIGHT, -0.95)
@@ -634,6 +735,14 @@ func _apply_gestures() -> void:
 		Event.CELEBRATE:
 			_rotate_bone("upperarm_l", Vector3.RIGHT, -2.9 * minf(k * 5.0, 1.0))
 			_rotate_bone("upperarm_r", Vector3.RIGHT, -2.9 * minf(k * 5.0, 1.0))
+		Event.CHEER:
+			# Brazos arriba festejando desde donde está (los puños suben y bajan).
+			var up := minf(k * 6.0, 1.0) * minf((1.0 - k) * 6.0, 1.0)
+			var pump := 0.15 * sin(k * 18.0)
+			_rotate_bone("upperarm_l", Vector3.RIGHT, (-2.7 + pump) * up)
+			_rotate_bone("upperarm_r", Vector3.RIGHT, (-2.7 - pump) * up)
+			_rotate_bone("lowerarm_l", Vector3.RIGHT, -0.4 * up)
+			_rotate_bone("lowerarm_r", Vector3.RIGHT, -0.4 * up)
 		Event.CATCH:
 			_rotate_bone("upperarm_l", Vector3.RIGHT, -1.4 * strike)
 			_rotate_bone("upperarm_r", Vector3.RIGHT, -1.4 * strike)

@@ -27,7 +27,7 @@ func _bench_of(t: Team, pos: int) -> PlayerData:
 
 func test_bench_and_substitution_keep_the_slot() -> void:
 	var t := m.teams[0]
-	assert_eq(t.bench.size(), 5, "cinco suplentes")
+	assert_eq(t.bench.size(), 12, "doce suplentes: 23 en la lista")
 	assert_not_null(t.bench_keeper(), "con arquero suplente")
 	var out: Footballer = t.players[9]
 	var slot := t.slot_of(out)
@@ -85,7 +85,7 @@ func test_keeper_can_be_sent_off_and_the_sub_keeper_comes_on() -> void:
 	assert_true(gk.sent_off)
 	var new_gk := t.keeper()
 	assert_not_null(new_gk, "nunca queda el arco vacío")
-	assert_eq(new_gk.data, sub, "entra el arquero suplente")
+	assert_eq(new_gk.base_data, sub, "entra el arquero suplente")
 	assert_eq(t.slot_of(new_gk), 0, "en el puesto del arquero")
 	assert_eq(t.players.size(), 10, "sale un jugador de campo: quedan 10")
 	assert_eq(t.subs_used, 1)

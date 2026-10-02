@@ -1,0 +1,487 @@
+[gd_resource type="Resource" script_class="TeamData" format=3]
+
+[ext_resource type="Resource" path="res://data/formations/f_4-2-3-1.tres" id="1_oxy60"]
+[ext_resource type="Script" path="res://scripts/player/player_data.gd" id="2_mnjcr"]
+[ext_resource type="Script" path="res://scripts/match/team_data.gd" id="3_pixgp"]
+
+[sub_resource type="Resource" id="Resource_0bj4q"]
+script = ExtResource("2_mnjcr")
+id = "costanera_01"
+player_name = "H. Werthein"
+position = 0
+speed = 63
+acceleration = 63
+stamina = 67
+strength = 66
+passing = 58
+shooting = 30
+technique = 57
+ball_control = 56
+heading = 55
+defense = 49
+reaction = 74
+balance = 66
+goalkeeping = 83
+abilities = PackedStringArray("atajador")
+
+[sub_resource type="Resource" id="Resource_vdaob"]
+script = ExtResource("2_mnjcr")
+id = "costanera_02"
+player_name = "H. Zabala"
+number = 2
+position = 1
+speed = 66
+acceleration = 62
+stamina = 65
+strength = 69
+passing = 65
+shooting = 47
+technique = 68
+ball_control = 71
+heading = 63
+defense = 79
+reaction = 70
+balance = 67
+goalkeeping = 30
+abilities = PackedStringArray("gambeteador", "marcador")
+
+[sub_resource type="Resource" id="Resource_p3v7i"]
+script = ExtResource("2_mnjcr")
+id = "costanera_03"
+player_name = "C. Valdano"
+number = 3
+position = 1
+speed = 66
+acceleration = 61
+stamina = 65
+strength = 69
+passing = 65
+shooting = 56
+technique = 55
+heading = 62
+defense = 67
+reaction = 61
+balance = 61
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_tybos"]
+script = ExtResource("2_mnjcr")
+id = "costanera_04"
+player_name = "R. Garmendia"
+number = 4
+position = 1
+speed = 63
+acceleration = 72
+stamina = 74
+strength = 65
+passing = 67
+shooting = 49
+technique = 66
+ball_control = 58
+heading = 65
+defense = 70
+reaction = 62
+balance = 72
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_dyo3y"]
+script = ExtResource("2_mnjcr")
+id = "costanera_05"
+player_name = "R. Urquiza"
+number = 5
+position = 1
+speed = 63
+acceleration = 65
+stamina = 73
+strength = 80
+passing = 70
+shooting = 47
+technique = 61
+ball_control = 68
+heading = 68
+defense = 69
+reaction = 68
+balance = 57
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_78n1v"]
+script = ExtResource("2_mnjcr")
+id = "costanera_06"
+player_name = "M. Cardozo"
+number = 6
+speed = 71
+acceleration = 66
+stamina = 69
+strength = 63
+passing = 75
+shooting = 58
+technique = 62
+heading = 56
+defense = 52
+reaction = 57
+balance = 62
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_tocr8"]
+script = ExtResource("2_mnjcr")
+id = "costanera_07"
+player_name = "S. Olmedo"
+number = 7
+speed = 66
+acceleration = 72
+stamina = 72
+strength = 69
+passing = 74
+shooting = 52
+technique = 62
+ball_control = 65
+heading = 55
+defense = 66
+reaction = 68
+balance = 63
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_penkj"]
+script = ExtResource("2_mnjcr")
+id = "costanera_08"
+player_name = "L. Salcedo"
+number = 8
+foot = 1
+speed = 74
+acceleration = 61
+stamina = 79
+strength = 57
+passing = 75
+shooting = 62
+technique = 77
+ball_control = 63
+heading = 53
+defense = 51
+reaction = 67
+balance = 57
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_c1k8l"]
+script = ExtResource("2_mnjcr")
+id = "costanera_09"
+player_name = "C. Jáuregui"
+number = 9
+foot = 1
+speed = 59
+acceleration = 68
+stamina = 72
+strength = 68
+passing = 67
+shooting = 61
+technique = 73
+ball_control = 66
+heading = 66
+defense = 63
+reaction = 58
+balance = 56
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_ha3bt"]
+script = ExtResource("2_mnjcr")
+id = "costanera_10"
+player_name = "D. Nazar"
+number = 10
+position = 3
+speed = 67
+acceleration = 73
+stamina = 67
+strength = 66
+passing = 62
+shooting = 82
+technique = 63
+ball_control = 77
+heading = 61
+defense = 48
+reaction = 67
+balance = 68
+goalkeeping = 30
+abilities = PackedStringArray("goleador")
+
+[sub_resource type="Resource" id="Resource_nsn2j"]
+script = ExtResource("2_mnjcr")
+id = "costanera_11"
+player_name = "H. Kessler"
+number = 11
+position = 3
+foot = 1
+speed = 71
+acceleration = 59
+stamina = 75
+strength = 65
+passing = 63
+shooting = 80
+technique = 65
+ball_control = 73
+heading = 61
+defense = 45
+reaction = 69
+balance = 65
+goalkeeping = 32
+abilities = PackedStringArray("goleador")
+
+[sub_resource type="Resource" id="Resource_2laqq"]
+script = ExtResource("2_mnjcr")
+id = "costanera_12"
+player_name = "L. Castañar"
+number = 12
+position = 0
+foot = 1
+speed = 49
+acceleration = 72
+stamina = 65
+strength = 64
+shooting = 36
+technique = 58
+ball_control = 70
+heading = 61
+defense = 37
+reaction = 77
+balance = 72
+goalkeeping = 76
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_dqoot"]
+script = ExtResource("2_mnjcr")
+id = "costanera_13"
+player_name = "E. Ferrán"
+number = 13
+position = 1
+speed = 73
+acceleration = 73
+stamina = 75
+strength = 66
+shooting = 44
+technique = 61
+ball_control = 69
+heading = 75
+defense = 81
+reaction = 71
+balance = 59
+goalkeeping = 33
+abilities = PackedStringArray("marcador")
+
+[sub_resource type="Resource" id="Resource_qrf52"]
+script = ExtResource("2_mnjcr")
+id = "costanera_14"
+player_name = "B. Pereyra"
+number = 14
+foot = 1
+speed = 67
+stamina = 66
+strength = 65
+passing = 82
+technique = 77
+defense = 51
+reaction = 62
+balance = 61
+goalkeeping = 30
+abilities = PackedStringArray("pasador")
+
+[sub_resource type="Resource" id="Resource_uybvi"]
+script = ExtResource("2_mnjcr")
+id = "costanera_15"
+player_name = "L. Acosta"
+number = 15
+foot = 1
+speed = 69
+acceleration = 65
+stamina = 66
+strength = 63
+passing = 69
+shooting = 51
+technique = 66
+ball_control = 57
+defense = 59
+reaction = 66
+balance = 62
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_6ad68"]
+script = ExtResource("2_mnjcr")
+id = "costanera_16"
+player_name = "J. Quiroga"
+number = 16
+position = 3
+speed = 75
+acceleration = 71
+stamina = 70
+strength = 71
+passing = 69
+shooting = 81
+ball_control = 64
+heading = 68
+defense = 38
+reaction = 69
+balance = 71
+goalkeeping = 32
+abilities = PackedStringArray("goleador")
+
+[sub_resource type="Resource" id="Resource_fevsq"]
+script = ExtResource("2_mnjcr")
+id = "costanera_17"
+player_name = "V. Benavídez"
+number = 17
+position = 1
+foot = 1
+speed = 62
+acceleration = 67
+stamina = 67
+strength = 73
+passing = 69
+shooting = 52
+technique = 58
+ball_control = 69
+heading = 73
+defense = 71
+reaction = 64
+balance = 57
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_d7a1f"]
+script = ExtResource("2_mnjcr")
+id = "costanera_18"
+player_name = "P. Irigoyen"
+number = 18
+position = 1
+speed = 67
+acceleration = 72
+stamina = 68
+strength = 76
+passing = 61
+shooting = 53
+technique = 68
+ball_control = 70
+heading = 67
+defense = 72
+reaction = 57
+balance = 58
+goalkeeping = 30
+abilities = PackedStringArray("gambeteador")
+
+[sub_resource type="Resource" id="Resource_aqngc"]
+script = ExtResource("2_mnjcr")
+id = "costanera_19"
+player_name = "R. Hidalgo"
+number = 19
+speed = 69
+acceleration = 64
+stamina = 78
+strength = 65
+passing = 80
+shooting = 51
+technique = 71
+ball_control = 59
+heading = 57
+defense = 50
+reaction = 64
+balance = 71
+goalkeeping = 31
+abilities = PackedStringArray("pasador")
+
+[sub_resource type="Resource" id="Resource_atr7u"]
+script = ExtResource("2_mnjcr")
+id = "costanera_20"
+player_name = "V. Larrea"
+number = 20
+speed = 74
+acceleration = 62
+stamina = 70
+passing = 82
+shooting = 53
+technique = 64
+ball_control = 67
+heading = 61
+defense = 50
+reaction = 65
+balance = 64
+goalkeeping = 30
+abilities = PackedStringArray("pasador")
+
+[sub_resource type="Resource" id="Resource_27ae7"]
+script = ExtResource("2_mnjcr")
+id = "costanera_21"
+player_name = "O. Espina"
+number = 21
+position = 3
+speed = 64
+acceleration = 65
+stamina = 72
+strength = 63
+passing = 68
+shooting = 75
+technique = 54
+ball_control = 65
+defense = 46
+reaction = 69
+balance = 64
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_c7gys"]
+script = ExtResource("2_mnjcr")
+id = "costanera_22"
+player_name = "P. Bermejo"
+number = 22
+position = 3
+foot = 1
+speed = 70
+stamina = 62
+strength = 68
+passing = 71
+shooting = 72
+technique = 69
+ball_control = 66
+heading = 65
+defense = 42
+reaction = 70
+balance = 57
+goalkeeping = 30
+abilities = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_xx65r"]
+script = ExtResource("2_mnjcr")
+id = "costanera_23"
+player_name = "G. Echeverri"
+number = 23
+position = 0
+foot = 1
+speed = 53
+stamina = 73
+strength = 65
+passing = 69
+shooting = 36
+technique = 64
+ball_control = 59
+heading = 58
+defense = 44
+reaction = 68
+balance = 62
+goalkeeping = 77
+abilities = PackedStringArray()
+
+[resource]
+script = ExtResource("3_pixgp")
+id = "costanera"
+team_name = "Real Costanera"
+short_name = "CST"
+color = Color(0.96, 0.96, 0.96, 1)
+secondary_color = Color(0.08, 0.12, 0.35, 1)
+keeper_color = Color(0.9, 0.5, 0.1, 1)
+away_color = Color(0.08, 0.12, 0.35, 1)
+away_secondary = Color(0.08, 0.12, 0.35, 1)
+formation = ExtResource("1_oxy60")
+players = Array[ExtResource("2_mnjcr")]([SubResource("Resource_0bj4q"), SubResource("Resource_vdaob"), SubResource("Resource_p3v7i"), SubResource("Resource_tybos"), SubResource("Resource_dyo3y"), SubResource("Resource_78n1v"), SubResource("Resource_tocr8"), SubResource("Resource_penkj"), SubResource("Resource_c1k8l"), SubResource("Resource_ha3bt"), SubResource("Resource_nsn2j"), SubResource("Resource_2laqq"), SubResource("Resource_dqoot"), SubResource("Resource_qrf52"), SubResource("Resource_uybvi"), SubResource("Resource_6ad68"), SubResource("Resource_fevsq"), SubResource("Resource_d7a1f"), SubResource("Resource_aqngc"), SubResource("Resource_atr7u"), SubResource("Resource_27ae7"), SubResource("Resource_c7gys"), SubResource("Resource_xx65r")])

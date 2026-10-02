@@ -119,6 +119,21 @@ func _ready() -> void:
 		_script = [[20, "freeze"], [25, "late"], [30, "subs_menu"], [50, "shot:capture_subs.png"],
 			[55, "subs_close"], [56, "preset:Cercana"], [57, "keeper_red"], [58, "simulate:0.5"],
 			[80, "shot:capture_field_keeper.png"], [85, "quit"]]
+	# `--sheet`: la Dirección del equipo con sus tres columnas y un cambio marcado.
+	if "--sheet" in OS.get_cmdline_user_args():
+		GameSettings.random_conditions = true
+		_script = [[20, "freeze"], [25, "late"], [26, "sheet"], [45, "shot:capture_sheet_position.png"],
+			[46, "sheet_col"], [60, "shot:capture_sheet_energy.png"], [61, "sheet_col"], [62, "sheet_mark"],
+			[80, "shot:capture_sheet_condition.png"], [85, "quit"]]
+	# `--replay`: un gol y su repetición con la ficha del goleador.
+	if "--replay" in OS.get_cmdline_user_args():
+		GameSettings.show_replays = true
+		_script = [[20, "freeze"], [22, "replay_goal"], [23, "until_replay"], [30, "shot:capture_replay_wipe.png"],
+			[31, "simulate:1.2"], [40, "shot:capture_replay.png"],
+			[41, "simulate:3.0"], [58, "shot:capture_replay_card.png"], [62, "quit"]]
+	# `--retro`: jugadores con el modelo retro (estilo PS1).
+	if "--retro" in OS.get_cmdline_user_args():
+		GameSettings.player_style = 1
 	# `--stadium=N`: estadio (StadiumStyles).
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--stadium="):
@@ -256,15 +271,63 @@ func _run(action: String) -> void:
 		_match.clock.game_seconds = MatchClock.HALF_GAME_SECONDS * 0.6
 	elif action.begins_with("intro:"):
 		_match.intro._enter(int(action.trim_prefix("intro:")))
+	elif action == "until_replay":
+		# Pasa el festejo hasta que arranca la cortina de la repetición.
+		for i in 900:
+			if _match.phase == MatchController.Phase.REPLAY:
+				break
+			_match._physics_process(1.0 / 60.0)
+		for i in 10:
+			_match._physics_process(1.0 / 60.0)
+	elif action == "replay_goal":
+		var t0 := _match.teams[0]
+		var shooter: Footballer = t0.players[9]
+		var goal := t0.target_goal()
+		_match.teams[1].keeper().teleport(goal - Vector3(t0.attack_dir * 12.0, 0, 18.0))
+		_place(goal - Vector3(t0.attack_dir * 20.0, 0, 6.0), goal - Vector3(t0.attack_dir * 19.5, -0.11, 6.0), shooter)
+		_camera._focus = shooter.flat_pos()
+		# Corre hacia el arco y remata (se graba para la repetición).
+		GameSettings.offside = false
+		for i in 50:
+			shooter.desired_move = Vector3(t0.attack_dir, 0, 0.3).normalized()
+			shooter.wants_sprint = true
+			_match._physics_process(1.0 / 60.0)
+		# Si la simulación cortó el juego (falta, offside), se reanuda para el remate.
+		_match.phase = MatchController.Phase.PLAYING
+		_match.restart_taker = null
+		_match.ball.frozen = false
+		shooter.state = Footballer.State.NORMAL
+		_match.ball.place(shooter.flat_pos() + Vector3(t0.attack_dir * 0.5, 0.11, 0))
+		_match.ball.give_to(shooter)
+		_match.kicks.randomize_error = false
+		_match.perform_kick(shooter, KickActions.Kind.SHOT, (goal - shooter.flat_pos()).normalized(), 0.8)
+		for i in 90:
+			_match._physics_process(1.0 / 60.0)
+			if _match.phase == MatchController.Phase.GOAL:
+				break
+	elif action == "sheet":
+		var t0 := _match.teams[0]
+		for p in _match.all_players():
+			p.wear = randf_range(12.0, 34.0)
+			p.stamina = randf_range(45.0, p.stamina_cap())
+		_pause_menu()._sheet.open(_match, t0, false)
+		_pause_menu()._sheet._rows[9].grab_focus()
+	elif action == "sheet_col":
+		_pause_menu()._sheet.cycle_column(1)
+		_pause_menu()._sheet._rows[9].grab_focus()
+	elif action == "sheet_mark":
+		var sh := _pause_menu()._sheet
+		sh.press_entry(sh.entries()[9])
+		sh._rows[14].grab_focus()
 	elif action == "subs_menu":
-		var pm := _pause_menu()
+		var sh := _pause_menu()._sheet
 		var t0 := _match.teams[0]
 		t0.players[9].wear = 31.0
-		pm._open_subs()
-		pm._pick_out(t0.players[9])
-		pm._pick_in(t0.bench[3])
+		sh.open(_match, t0, false)
+		sh.press_entry(sh.entries()[9])
+		sh._rows[14].grab_focus()
 	elif action == "subs_close":
-		_pause_menu()._subs_panel.visible = false
+		_pause_menu()._sheet.close()
 	elif action == "keeper_red":
 		# Sin cambios: el defensor más cercano va al arco con ropa de arquero.
 		var t1 := _match.teams[1]

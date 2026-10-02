@@ -266,7 +266,7 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 		fascia.generate_normals()
 		var fascia_mi := MeshInstance3D.new()
 		fascia_mi.mesh = fascia.commit()
-		fascia_mi.material_override = _mat(Color(0.07, 0.07, 0.08), 0.5)
+		fascia_mi.material_override = _mat(Color(0.2, 0.21, 0.24), 0.6)
 		stand.add_child(fascia_mi)
 
 	if not people.is_empty():
@@ -419,9 +419,11 @@ static func _roof(stand: Node3D, roof_type: String, back_len: float, front_len: 
 ## la boca y adentro todo negro (paredes, techo y fondo), así se ve el hueco y
 ## los jugadores salen de la oscuridad.
 static func _tunnel(stand: Node3D) -> void:
-	var dark := StandardMaterial3D.new()
-	dark.albedo_color = Color(0.012, 0.012, 0.014)
-	dark.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	# Pasillo iluminado (como en los estadios de verdad): paredes pintadas,
+	# piso de goma y paneles de luz en el techo; más adentro, más oscuro.
+	var wall := StandardMaterial3D.new()
+	wall.albedo_color = Color(0.22, 0.25, 0.32)
+	wall.roughness = 0.8
 	var h := TUNNEL_HALF
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -434,8 +436,33 @@ static func _tunnel(stand: Node3D) -> void:
 	var inside := MeshInstance3D.new()
 	inside.name = "Tunnel"
 	inside.mesh = st.commit()
-	inside.material_override = dark
+	inside.material_override = wall
 	stand.add_child(inside)
+	# Paneles de luz en el techo y lámparas (sin sombras: baratas).
+	var panel_mat := StandardMaterial3D.new()
+	panel_mat.albedo_color = Color(1.0, 0.97, 0.9)
+	panel_mat.emission_enabled = true
+	panel_mat.emission = Color(1.0, 0.95, 0.85)
+	panel_mat.emission_energy_multiplier = 3.0
+	var n := 3
+	for i in n:
+		var z := lerpf(1.2, TUNNEL_DEPTH - 1.0, float(i) / maxf(n - 1, 1))
+		var lamp := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(h * 1.1, 0.05, 0.6)
+		lamp.mesh = bm
+		lamp.material_override = panel_mat
+		lamp.position = Vector3(0.0, TUNNEL_H - 0.03, z)
+		lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		stand.add_child(lamp)
+		var light := OmniLight3D.new()
+		light.light_color = Color(1.0, 0.93, 0.82)
+		light.light_energy = 1.6 if i == 0 else 1.2
+		light.omni_range = TUNNEL_H * 2.4
+		light.omni_attenuation = 1.2
+		light.shadow_enabled = false
+		light.position = Vector3(0.0, TUNNEL_H - 0.35, z)
+		stand.add_child(light)
 	var fr := SurfaceTool.new()
 	fr.begin(Mesh.PRIMITIVE_TRIANGLES)
 	_box(fr, Vector3(-h - 0.6, 0.0, -0.3), Vector3(-h, TUNNEL_H + 0.6, 0.3))
@@ -756,7 +783,7 @@ static func _box(st: SurfaceTool, a: Vector3, b: Vector3) -> void:
 
 ## Muro oscuro alrededor de la cancha y carteles lisos (sin marcas).
 static func _perimeter(root: Node3D, style: Dictionary) -> void:
-	var wall_mat := _mat(Color(0.08, 0.08, 0.09))
+	var wall_mat := _mat(Color(0.17, 0.2, 0.27))
 	var wall: float = style["wall"]
 	var hl := Pitch.HALF_LENGTH + wall
 	var hw := Pitch.HALF_WIDTH + wall
@@ -848,14 +875,29 @@ static func _technical_area(parent: Node3D, style: Dictionary) -> void:
 			m.position = seg[0] + Vector3(seg[1].x * 0.5 if seg[1].x > 1.0 else 0.0, 0, 0)
 			# Las líneas están en el césped: siempre visibles.
 			parent.add_child(m)
-		# Banco con techito.
-		var bench := MeshInstance3D.new()
-		var bb := BoxMesh.new()
-		bb.size = Vector3(9.0, 2.2, 1.6)
-		bench.mesh = bb
-		bench.material_override = _mat(Color(0.15, 0.17, 0.2))
-		bench.position = Vector3(cx, 1.1, Pitch.HALF_WIDTH + float(style["wall"]) - 1.2)
-		root.add_child(bench)
+		# Banco de suplentes: abierto hacia la cancha, con pared de fondo,
+		# laterales, techo traslúcido y una fila de asientos.
+		var bz := Pitch.HALF_WIDTH + float(style["wall"]) - 1.2
+		var shell := _mat(Color(0.36, 0.4, 0.48), 0.7)
+		var parts := [
+			[Vector3(cx, 1.1, bz + 0.72), Vector3(9.0, 2.2, 0.16), shell],
+			[Vector3(cx - 4.44, 1.1, bz), Vector3(0.12, 2.2, 1.6), shell],
+			[Vector3(cx + 4.44, 1.1, bz), Vector3(0.12, 2.2, 1.6), shell],
+			[Vector3(cx, 0.24, bz + 0.38), Vector3(8.6, 0.46, 0.5), _mat(Color(0.55, 0.12, 0.12), 0.5)],
+			[Vector3(cx, 0.02, bz), Vector3(8.8, 0.04, 1.6), _mat(Color(0.3, 0.3, 0.32), 0.9)],
+		]
+		var roof_mat := _mat(Color(0.78, 0.84, 0.9), 0.2)
+		roof_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		roof_mat.albedo_color.a = 0.55
+		parts.append([Vector3(cx, 2.25, bz - 0.05), Vector3(9.2, 0.08, 1.9), roof_mat])
+		for part in parts:
+			var piece := MeshInstance3D.new()
+			var pb := BoxMesh.new()
+			pb.size = part[1]
+			piece.mesh = pb
+			piece.material_override = part[2]
+			piece.position = part[0]
+			root.add_child(piece)
 
 
 ## Tipografía de 5x7 "píxeles" para escribir con butacas (cada píxel = 2x2 butacas).
