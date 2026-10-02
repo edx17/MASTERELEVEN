@@ -70,6 +70,8 @@ var debug_state: String = ""
 var stamina: float = 100.0
 ## Cansancio acumulado en el partido (puntos que se le restan al tope de 100).
 var wear: float = 0.0
+## Datos del plantel (sin la condición del día; `data` ya la incluye).
+var base_data: PlayerData
 ## Tiempo de reacción pendiente (IA): mientras corre, mantiene la orden anterior.
 var reaction_timer: float = 0.0
 ## Posición del rival más cercano (la fija el partido; sirve para cubrir la pelota).
@@ -110,7 +112,9 @@ var _prev_speed: float = 0.0
 
 func setup(p_team: Team, p_data: PlayerData, p_role: int, p_spot: Vector2, tuning: Tuning) -> void:
 	team = p_team
-	data = p_data
+	base_data = p_data
+	# Atributos del día: los del plantel más la condición (flechas).
+	data = p_data.with_condition(team.condition_of(p_data)) if p_data != null else null
 	number = data.number
 	role = p_role as Role
 	base_spot = p_spot

@@ -45,6 +45,8 @@ var _ui: CanvasLayer
 var _menu: VBoxContainer
 var _hint: Label
 var _formation: Control
+## Dirección del equipo de la previa (alineación libre, pateadores, capitán).
+var sheet: TeamSheet
 var _rng := RandomNumberGenerator.new()
 
 
@@ -330,6 +332,7 @@ func _build_ui() -> void:
 	title.add_theme_constant_override("outline_size", 8)
 	_menu.add_child(title)
 	_option("Comenzar el partido", func() -> void: _enter(Step.WARMUP))
+	_option("Dirección del equipo", open_team_sheet)
 	_option("Saltear la presentación", func() -> void: _enter(Step.DONE))
 	_option("Salir al menú", func() -> void: _match.exit_to_menu())
 	var cond := Label.new()
@@ -346,10 +349,24 @@ func _build_ui() -> void:
 	_hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	_hint.position += Vector2(-200, -50)
 	_ui.add_child(_hint)
+	sheet = TeamSheet.new()
+	_ui.add_child(sheet)
+	sheet.closed.connect(func() -> void:
+		if step == Step.MENU:
+			_menu.visible = true
+			(_menu.get_child(2) as Button).grab_focus())
+	sheet.play_pressed.connect(func() -> void: _enter(Step.WARMUP))
 	_formation = FormationBoard.new()
 	(_formation as FormationBoard).match_ref = _match
 	_formation.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_ui.add_child(_formation)
+
+
+## Previa: la Dirección del equipo del jugador 1 (cambios libres).
+func open_team_sheet() -> void:
+	var idx := _match.humans[0].team.index if not _match.humans.is_empty() else 0
+	_menu.visible = false
+	sheet.open(_match, _match.teams[idx], true)
 
 
 func _option(text: String, cb: Callable) -> void:

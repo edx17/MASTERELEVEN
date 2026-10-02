@@ -310,6 +310,144 @@ reaction = 62
 balance = 56
 goalkeeping = 30
 
+[sub_resource type="Resource" id="Resource_yyduf"]
+script = ExtResource("2_g8a4c")
+id = "aurora_17"
+player_name = "F. Jáuregui"
+number = 17
+position = 1
+speed = 66
+acceleration = 64
+stamina = 66
+strength = 70
+passing = 64
+shooting = 52
+technique = 55
+ball_control = 64
+heading = 71
+defense = 75
+reaction = 68
+balance = 63
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_yrnpf"]
+script = ExtResource("2_g8a4c")
+id = "aurora_18"
+player_name = "P. Pereyra"
+number = 18
+position = 1
+speed = 70
+acceleration = 64
+stamina = 69
+strength = 78
+passing = 66
+shooting = 55
+technique = 67
+ball_control = 65
+heading = 73
+defense = 66
+reaction = 67
+balance = 69
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_lu0j5"]
+script = ExtResource("2_g8a4c")
+id = "aurora_19"
+player_name = "F. Castañar"
+number = 19
+speed = 74
+acceleration = 70
+stamina = 82
+strength = 63
+passing = 74
+shooting = 65
+technique = 76
+ball_control = 59
+heading = 56
+defense = 65
+reaction = 65
+balance = 56
+goalkeeping = 31
+
+[sub_resource type="Resource" id="Resource_luugq"]
+script = ExtResource("2_g8a4c")
+id = "aurora_20"
+player_name = "P. Taborda"
+number = 20
+speed = 63
+acceleration = 66
+stamina = 81
+strength = 61
+passing = 82
+shooting = 54
+technique = 76
+ball_control = 58
+heading = 66
+defense = 66
+reaction = 58
+balance = 68
+goalkeeping = 33
+
+[sub_resource type="Resource" id="Resource_ujjmy"]
+script = ExtResource("2_g8a4c")
+id = "aurora_21"
+player_name = "T. Espina"
+number = 21
+position = 3
+speed = 71
+acceleration = 72
+stamina = 67
+strength = 67
+passing = 69
+shooting = 67
+technique = 64
+ball_control = 70
+heading = 59
+defense = 35
+reaction = 61
+balance = 56
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_1c88h"]
+script = ExtResource("2_g8a4c")
+id = "aurora_22"
+player_name = "O. Nazar"
+number = 22
+position = 3
+speed = 70
+acceleration = 68
+stamina = 70
+strength = 66
+passing = 71
+shooting = 73
+technique = 68
+ball_control = 65
+heading = 59
+defense = 33
+reaction = 56
+balance = 65
+goalkeeping = 30
+
+[sub_resource type="Resource" id="Resource_7ieis"]
+script = ExtResource("2_g8a4c")
+id = "aurora_23"
+player_name = "L. Maidana"
+number = 23
+position = 0
+speed = 47
+acceleration = 65
+stamina = 62
+strength = 68
+passing = 70
+shooting = 30
+technique = 69
+ball_control = 70
+heading = 63
+defense = 49
+reaction = 67
+balance = 57
+goalkeeping = 74
+
 [resource]
 script = ExtResource("3_c5s0o")
 id = "aurora"
@@ -319,4 +457,4 @@ color = Color(0.35, 0.65, 0.95, 1)
 secondary_color = Color(0.95, 0.95, 0.95, 1)
 keeper_color = Color(0.15, 0.15, 0.15, 1)
 formation = ExtResource("1_b8o03")
-players = Array[ExtResource("2_g8a4c")]([SubResource("Resource_jlfxb"), SubResource("Resource_m2sx4"), SubResource("Resource_nwfuk"), SubResource("Resource_b8f2l"), SubResource("Resource_4ylut"), SubResource("Resource_c843m"), SubResource("Resource_o8f4y"), SubResource("Resource_lf7yx"), SubResource("Resource_rdktv"), SubResource("Resource_qxidh"), SubResource("Resource_7tj6r"), SubResource("Resource_054l2"), SubResource("Resource_8uafo"), SubResource("Resource_e2jgp"), SubResource("Resource_6o3yb"), SubResource("Resource_p5aj2")])
+players = Array[ExtResource("2_g8a4c")]([SubResource("Resource_jlfxb"), SubResource("Resource_m2sx4"), SubResource("Resource_nwfuk"), SubResource("Resource_b8f2l"), SubResource("Resource_4ylut"), SubResource("Resource_c843m"), SubResource("Resource_o8f4y"), SubResource("Resource_lf7yx"), SubResource("Resource_rdktv"), SubResource("Resource_qxidh"), SubResource("Resource_7tj6r"), SubResource("Resource_054l2"), SubResource("Resource_8uafo"), SubResource("Resource_e2jgp"), SubResource("Resource_6o3yb"), SubResource("Resource_p5aj2"), SubResource("Resource_yyduf"), SubResource("Resource_yrnpf"), SubResource("Resource_lu0j5"), SubResource("Resource_luugq"), SubResource("Resource_ujjmy"), SubResource("Resource_1c88h"), SubResource("Resource_7ieis")])

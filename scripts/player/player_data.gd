@@ -80,3 +80,46 @@ func visual_build() -> Build:
 	if r < 0.1:
 		return Build.HEAVY
 	return Build.NORMAL if r < 0.7 else (Build.TALL if r < 0.85 else Build.STOCKY)
+
+
+## Altura en cm para la ficha (según el físico, con una variación estable).
+func height_cm() -> int:
+	var r := float(hash(player_name + "cm") % 1000) / 1000.0
+	return roundi(178.0 * body_height() + lerpf(-4.0, 4.0, r))
+
+
+# --- Condición del día (flechas del WE) ----------------------------------------
+
+## De mejor a peor: roja hacia arriba, naranja, amarilla (normal), azul, gris
+## hacia abajo.
+enum Condition { TOP, GOOD, NORMAL, LOW, BAD }
+const CONDITION_NAMES := ["Excelente", "Buena", "Normal", "Baja", "Mala"]
+## Puntos que se suman a cada atributo según la condición.
+const CONDITION_DELTA := [6, 3, 0, -3, -6]
+## Probabilidad de cada condición al empezar un partido.
+const CONDITION_ODDS := [0.1, 0.25, 0.35, 0.2, 0.1]
+## Atributos que muestra la ficha y que cambian con la condición.
+const ATTRIBUTES := ["speed", "acceleration", "stamina", "strength", "passing", "shooting",
+	"technique", "ball_control", "heading", "defense", "reaction", "balance", "goalkeeping"]
+const ATTRIBUTE_NAMES := ["Velocidad", "Aceleración", "Resistencia", "Fuerza", "Pases", "Tiro",
+	"Técnica", "Dominio", "Cabeza", "Defensa", "Respuesta", "Balance", "Arquero"]
+
+
+static func roll_condition(rng: RandomNumberGenerator) -> int:
+	var r := rng.randf()
+	for i in CONDITION_ODDS.size():
+		r -= CONDITION_ODDS[i]
+		if r < 0.0:
+			return i
+	return Condition.NORMAL
+
+
+## Copia con los atributos del día (la misma si la condición es normal).
+func with_condition(c: int) -> PlayerData:
+	var delta: int = CONDITION_DELTA[clampi(c, 0, CONDITION_DELTA.size() - 1)]
+	if delta == 0:
+		return self
+	var d := duplicate() as PlayerData
+	for a in ATTRIBUTES:
+		d.set(a, clampi(int(get(a)) + delta, 1, 99))
+	return d

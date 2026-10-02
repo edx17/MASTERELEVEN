@@ -119,6 +119,12 @@ func _ready() -> void:
 		_script = [[20, "freeze"], [25, "late"], [30, "subs_menu"], [50, "shot:capture_subs.png"],
 			[55, "subs_close"], [56, "preset:Cercana"], [57, "keeper_red"], [58, "simulate:0.5"],
 			[80, "shot:capture_field_keeper.png"], [85, "quit"]]
+	# `--sheet`: la Dirección del equipo con sus tres columnas y un cambio marcado.
+	if "--sheet" in OS.get_cmdline_user_args():
+		GameSettings.random_conditions = true
+		_script = [[20, "freeze"], [25, "late"], [26, "sheet"], [45, "shot:capture_sheet_position.png"],
+			[46, "sheet_col"], [60, "shot:capture_sheet_energy.png"], [61, "sheet_col"], [62, "sheet_mark"],
+			[80, "shot:capture_sheet_condition.png"], [85, "quit"]]
 	# `--stadium=N`: estadio (StadiumStyles).
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--stadium="):
@@ -256,15 +262,29 @@ func _run(action: String) -> void:
 		_match.clock.game_seconds = MatchClock.HALF_GAME_SECONDS * 0.6
 	elif action.begins_with("intro:"):
 		_match.intro._enter(int(action.trim_prefix("intro:")))
+	elif action == "sheet":
+		var t0 := _match.teams[0]
+		for p in _match.all_players():
+			p.wear = randf_range(12.0, 34.0)
+			p.stamina = randf_range(45.0, p.stamina_cap())
+		_pause_menu()._sheet.open(_match, t0, false)
+		_pause_menu()._sheet._rows[9].grab_focus()
+	elif action == "sheet_col":
+		_pause_menu()._sheet.cycle_column(1)
+		_pause_menu()._sheet._rows[9].grab_focus()
+	elif action == "sheet_mark":
+		var sh := _pause_menu()._sheet
+		sh.press_entry(sh.entries()[9])
+		sh._rows[14].grab_focus()
 	elif action == "subs_menu":
-		var pm := _pause_menu()
+		var sh := _pause_menu()._sheet
 		var t0 := _match.teams[0]
 		t0.players[9].wear = 31.0
-		pm._open_subs()
-		pm._pick_out(t0.players[9])
-		pm._pick_in(t0.bench[3])
+		sh.open(_match, t0, false)
+		sh.press_entry(sh.entries()[9])
+		sh._rows[14].grab_focus()
 	elif action == "subs_close":
-		_pause_menu()._subs_panel.visible = false
+		_pause_menu()._sheet.close()
 	elif action == "keeper_red":
 		# Sin cambios: el defensor más cercano va al arco con ropa de arquero.
 		var t1 := _match.teams[1]

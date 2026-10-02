@@ -21,9 +21,13 @@ const TEAMS := [
 		"formation": "4-4-2"},
 ]
 
-# Suplentes: arquero, defensor, volante, volante, delantero.
+# Suplentes (12, como en el WE: 23 en la lista): arquero, defensor, volante,
+# volante, delantero y después dos defensores, dos volantes, dos delanteros y
+# el tercer arquero. Se agregan al final para no cambiar a los anteriores.
 const BENCH_ROLES := [PlayerData.Position.GK, PlayerData.Position.DF, PlayerData.Position.MF,
-	PlayerData.Position.MF, PlayerData.Position.FW]
+	PlayerData.Position.MF, PlayerData.Position.FW,
+	PlayerData.Position.DF, PlayerData.Position.DF, PlayerData.Position.MF, PlayerData.Position.MF,
+	PlayerData.Position.FW, PlayerData.Position.FW, PlayerData.Position.GK]
 
 
 func _init() -> void:

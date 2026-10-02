@@ -219,6 +219,11 @@ func _build_world() -> void:
 		var team := Team.new(i, d.team_name, d.short_name, d.color, d.secondary_color, d.keeper_color)
 		team.data = d
 		team.formation = d.formation
+		# Condición del día de todo el plantel (flechas).
+		var cond_rng := RandomNumberGenerator.new()
+		cond_rng.randomize()
+		for pd in d.players:
+			team.conditions[pd] = PlayerData.roll_condition(cond_rng) if GameSettings.random_conditions else PlayerData.Condition.NORMAL
 		team.attack_dir = 1 if i == 0 else -1
 		teams.append(team)
 		var formation := d.formation
@@ -967,6 +972,9 @@ func _leave_pitch(p: Footballer) -> void:
 
 # --- Cambios ------------------------------------------------------------------
 
+## Distancia al arco hasta la que el tiro libre lo patea el elegido.
+const FK_TAKER_RANGE := 35.0
+
 ## Minuto desde el que la CPU cambia a los cansados.
 const CPU_SUB_MINUTE := 55.0
 ## Energía (tope o actual) debajo de la cual la CPU considera cambiarlo.
@@ -1101,6 +1109,58 @@ func _cpu_subs(t: Team) -> void:
 			pick = d
 	if pick != null:
 		t.pending_subs.append({"out": tired, "in": pick})
+
+
+## Dos de la cancha intercambian sus puestos (no cuenta como cambio). Si uno
+## pasa al arco o sale de él, se cambia la ropa.
+func swap_slots(a: Footballer, b: Footballer) -> void:
+	var t := a.team
+	var sa := t.slot_of(a)
+	var sb := t.slot_of(b)
+	if t != b.team or sa < 0 or sb < 0 or a == b:
+		return
+	t.roster[sa] = b
+	t.roster[sb] = a
+	var spot_a := a.flat_pos()
+	a.teleport(b.flat_pos(), b.facing)
+	b.teleport(spot_a, a.facing)
+	_apply_slot(a, sb)
+	_apply_slot(b, sa)
+
+
+## Pone al jugador en el puesto `slot` de la formación del equipo.
+func _apply_slot(p: Footballer, slot: int) -> void:
+	var f := p.team.formation
+	var was_keeper := p.is_keeper()
+	if f != null and slot < f.slots.size():
+		p.base_spot = f.slots[slot]
+		p.role = f.roles[slot] as Footballer.Role
+		p.tactical_role = f.tactical_role(slot)
+	if p.is_keeper() != was_keeper and p.visual != null:
+		p.visual.recolor(p.kit_colors())
+
+
+## Antes del partido: un suplente pasa a titular en el lugar de `out`, que
+## vuelve al banco (no cuenta como cambio).
+func swap_lineup(out: Footballer, in_data: PlayerData) -> Footballer:
+	var t := out.team
+	if not t.players.has(out) or not t.bench.has(in_data):
+		return null
+	var p := Footballer.new()
+	add_child(p)
+	p.setup(t, in_data, out.role, out.base_spot, tuning)
+	p.tactical_role = out.tactical_role
+	p.teleport(out.flat_pos(), out.facing)
+	p.set_presenting(out.presenting)
+	t.players[t.players.find(out)] = p
+	t.roster[t.roster.find(out)] = p
+	t.bench[t.bench.find(in_data)] = out.base_data
+	for h in humans:
+		if h.controlled == out:
+			h.controlled = null
+			h.select(p)
+	out.queue_free()
+	return p
 
 
 func _has_human(t: Team) -> bool:
@@ -1621,16 +1681,23 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 			stand = spot - Vector3(team.attack_dir * 0.6, 0.0, 0.0)
 			look = Vector3(team.attack_dir, 0.0, 0.0)
 		MatchRules.Restart.CORNER:
-			taker = _nearest_outfield(team, spot)
+			taker = team.on_pitch(team.ck_taker)
+			if taker == null or taker.is_keeper():
+				taker = _nearest_outfield(team, spot)
 			var out := Vector3(signf(spot.x), 0.0, signf(spot.z)).normalized()
 			stand = spot + out * 0.6
 			look = (team.target_goal() - spot).normalized()
 		MatchRules.Restart.FREE_KICK:
-			taker = _nearest_outfield(team, spot)
+			# El pateador elegido, si es para pegarle al arco; si no, el más cerca.
+			taker = team.on_pitch(team.fk_taker) if spot.distance_to(team.target_goal()) < FK_TAKER_RANGE else null
+			if taker == null or taker.is_keeper():
+				taker = _nearest_outfield(team, spot)
 			look = (team.target_goal() - spot).normalized()
 			stand = spot - look * 0.7
 		MatchRules.Restart.PENALTY:
-			taker = _best_shooter(team)
+			taker = team.on_pitch(team.pk_taker)
+			if taker == null:
+				taker = _best_shooter(team)
 			look = (team.target_goal() - spot).normalized()
 			stand = spot - look * 1.3
 		_:

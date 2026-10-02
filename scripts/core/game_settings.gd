@@ -76,6 +76,9 @@ const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", 
 ## Falso en los tests y las herramientas: no leen ni pisan la configuración
 ## del jugador (así los resultados no dependen de lo que eligió).
 var persist := true
+## Condición al azar de los jugadores en cada partido (flechas). En los
+## tests y herramientas todos llegan normales (resultados repetibles).
+var random_conditions := true
 
 
 func _ready() -> void:
@@ -85,6 +88,7 @@ func _ready() -> void:
 		tuning = Tuning.new()
 	stick_directions = tuning.stick_directions
 	persist = not _is_tool_run()
+	random_conditions = persist
 	if persist:
 		load_settings()
 	InputRouter.setup_for_mode(mode)
