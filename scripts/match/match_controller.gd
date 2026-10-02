@@ -67,7 +67,7 @@ var toast_text: String = ""
 var _toast_timer: float = 0.0
 ## Estadísticas simples del partido, por equipo.
 var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won": [0, 0],
-	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0]}
+	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0]}
 ## Atajada planificada para el último remate (ver SaveModel):
 ## {keeper, will_save, parry, point, time_left, chance}. Vacío si no hay.
 var save_plan := {}
@@ -306,6 +306,7 @@ func _physics_process(dt: float) -> void:
 		_check_rules()
 	if phase == Phase.PLAYING:
 		_update_possession(dt)
+		_check_offside()
 
 	clock.running = phase in [Phase.PLAYING, Phase.STOPPED] or (phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF)
 	# El reloj va en tiempo real aunque el juego corra más lento (velocidad).
@@ -388,6 +389,15 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 		variant: int = KickActions.Variant.NORMAL) -> Footballer:
 	if player == null:
 		return null
+	var from_restart := restart_type if phase == Phase.RESTART else -1
+	# El adelantado que la juega de primera (cabezazo, remate) también está
+	# en offside: se cobra antes de que su patada cuente.
+	if phase == Phase.PLAYING and not _offside.is_empty() and player != _offside["kicker"]:
+		if (_offside["flagged"] as Array).has(player):
+			call_offside(player)
+			_offside = {}
+			return null
+		_offside = {}
 	if phase == Phase.RESTART:
 		if player != restart_taker or _restart_elapsed < RESTART_HUMAN_DELAY:
 			return null
@@ -412,6 +422,7 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 	kicks.pressure = Dribble.pressure_from_distance(_nearest_opponent_distance(player))
 	kicks.forced_receiver = receiver_hint
 	kicks.variant = variant
+	_snapshot_offside(player, from_restart)
 	_in_kick = true
 	var receiver := kicks.execute(kind, player, dir, clampf(power, 0.0, 1.0))
 	_in_kick = false
@@ -822,6 +833,80 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 	ball.state.vel = Vector3.ZERO
 	save_plan = {}
 	banner_text = text
+	_phase_timer = FOUL_DELAY
+	_set_phase(Phase.STOPPED)
+
+
+# --- Offside ------------------------------------------------------------------
+
+## Pase en curso: compañeros que estaban en posición adelantada cuando se
+## pateó. {"team", "kicker", "flagged": Array[Footballer]}; vacío si no hay.
+var _offside := {}
+
+
+## Al patear: anota a los compañeros en posición adelantada (en campo rival,
+## delante de la pelota y del penúltimo rival). No hay offside en laterales,
+## saques de arco ni córners.
+func _snapshot_offside(kicker: Footballer, from_restart: int) -> void:
+	_offside = {}
+	if not GameSettings.offside:
+		return
+	if from_restart in [MatchRules.Restart.THROW_IN, MatchRules.Restart.GOAL_KICK, MatchRules.Restart.CORNER]:
+		return
+	var flagged := offside_positions(kicker, ball.flat_pos())
+	if not flagged.is_empty():
+		_offside = {"team": kicker.team.index, "kicker": kicker, "flagged": flagged}
+
+
+## Compañeros de `kicker` en posición adelantada con la pelota en `ball_pos`.
+func offside_positions(kicker: Footballer, ball_pos: Vector3) -> Array[Footballer]:
+	var team := kicker.team
+	var dir := float(team.attack_dir)
+	var depths: Array[float] = []
+	for o in opponents_of(team).players:
+		depths.append(o.flat_pos().x * dir)
+	depths.sort()
+	var second_last: float = depths[depths.size() - 2] if depths.size() >= 2 else 0.0
+	var out: Array[Footballer] = []
+	for m in team.players:
+		if m == kicker:
+			continue
+		var d := m.flat_pos().x * dir
+		if d > OFFSIDE_MARGIN and d > ball_pos.x * dir + OFFSIDE_MARGIN and d > second_last + OFFSIDE_MARGIN:
+			out.append(m)
+	return out
+
+
+## Lo que tiene que sobrar para cobrarlo (m): "en línea" está habilitado.
+const OFFSIDE_MARGIN := 0.3
+
+
+## Si la toca primero uno que estaba adelantado, es offside; si la toca otro
+## (o un rival), la jugada queda habilitada.
+func _check_offside() -> void:
+	if _offside.is_empty():
+		return
+	var t := ball.last_toucher
+	if t == null or t == _offside["kicker"]:
+		return
+	var flagged: Array = _offside["flagged"]
+	if t.team.index == _offside["team"] and flagged.has(t):
+		call_offside(t)
+	_offside = {}
+
+
+## Offside: tiro libre para el que defiende donde estaba el adelantado.
+func call_offside(p: Footballer) -> void:
+	if phase != Phase.PLAYING:
+		return
+	stats["offsides"][p.team.index] += 1
+	var spot := Pitch.clamp_to_field(p.flat_pos(), 1.0)
+	_pending = MatchRules.Outcome.new(MatchRules.Restart.FREE_KICK, 1 - p.team.index, Vector3(spot.x, tuning.ball_radius, spot.z))
+	ball.owner_player = null
+	ball.intended_receiver = null
+	ball.state.vel = Vector3.ZERO
+	save_plan = {}
+	banner_text = "FUERA DE JUEGO: %s" % p.display_name
 	_phase_timer = FOUL_DELAY
 	_set_phase(Phase.STOPPED)
 

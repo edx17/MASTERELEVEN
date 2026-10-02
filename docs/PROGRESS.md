@@ -17,6 +17,22 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
+## Ronda WE2002 (14): offside
+
+| Regla | Cambio |
+|---|---|
+| Posición adelantada | Al patear, se anotan los compañeros que están en campo rival, delante de la pelota y del penúltimo rival (con 30 cm de tolerancia: "en línea" está habilitado). |
+| Cuándo se cobra | Si uno de esos la toca primero (recibe, cabecea o la desvía) antes que un rival u otro compañero. Tiro libre para el que defiende donde estaba el adelantado. |
+| Excepciones | No hay offside en laterales, saques de arco ni córners. |
+| Opción | "Offside: sí/no" en el menú principal (se guarda). |
+
+En simulaciones CPU vs CPU da 2 a 3 offsides por partido (en el fútbol real son unos 4): no corta el juego a cada rato. Offsides en las estadísticas (`stats["offsides"]`).
+
+**Tests:** 211 en verde. Se agregaron:
+- se cobra al recibir el adelantado;
+- habilitado no se cobra;
+- lateral y opción apagada.
+
 ## Ronda WE2002 (13): expulsiones (primera parte de la Fase 4)
 
 | Regla | Cambio |

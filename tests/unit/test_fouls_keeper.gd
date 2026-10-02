@@ -247,3 +247,55 @@ func test_team_with_ten_keeps_formation_slots_and_kicks_off() -> void:
 	m._setup_kickoff(1)
 	_step(30)
 	assert_eq(m.phase, MatchController.Phase.RESTART, "el saque del medio anda con 10")
+
+
+## Arma una jugada: pasador en `from`, un compañero en `mate_x` (a lo ancho
+## en z=0) y la defensa rival con su penúltimo en `line_x` (en el sentido de
+## ataque del equipo 0).
+func _offside_setup(mate_x: float, line_x: float) -> Array:
+	var t0 := m.teams[0]
+	var t1 := m.teams[1]
+	var dir := float(t0.attack_dir)
+	var passer: Footballer = t0.players[6]
+	var mate: Footballer = t0.players[9]
+	passer.teleport(Vector3(dir * 5.0, 0, 10), Vector3(dir, 0, 0))
+	mate.teleport(Vector3(dir * mate_x, 0, 0), Vector3(dir, 0, 0))
+	for p in t0.players:
+		if p != passer and p != mate:
+			p.teleport(Vector3(-dir * 10.0, 0, p.flat_pos().z), Vector3(dir, 0, 0))
+	for p in t1.players:
+		if p.is_keeper():
+			p.teleport(Vector3(dir * 50.0, 0, 0), Vector3(-dir, 0, 0))
+		else:
+			p.teleport(Vector3(dir * line_x, 0, p.flat_pos().z * 0.5 - 15.0), Vector3(-dir, 0, 0))
+	m.ball.place(passer.flat_pos() + Vector3(dir * 0.5, 0.11, 0))
+	m.ball.give_to(passer)
+	return [passer, mate]
+
+
+func test_offside_is_called_when_the_forward_player_receives() -> void:
+	var pm := _offside_setup(30.0, 20.0)
+	assert_eq(m.offside_positions(pm[0], m.ball.flat_pos()), [pm[1]] as Array[Footballer])
+	m.perform_kick(pm[0], KickActions.Kind.SHORT_PASS, pm[1].flat_pos() - pm[0].flat_pos(), 0.6, pm[1])
+	for i in 240:
+		_step(1)
+		if m.phase != MatchController.Phase.PLAYING:
+			break
+	assert_eq(m.phase, MatchController.Phase.STOPPED, "se cobra")
+	assert_eq(m.stats["offsides"][0], 1)
+	assert_true(m.banner_text.begins_with("FUERA DE JUEGO"))
+
+
+func test_onside_player_plays_on() -> void:
+	var pm := _offside_setup(18.0, 20.0)
+	assert_true(m.offside_positions(pm[0], m.ball.flat_pos()).is_empty(), "habilitado")
+
+
+func test_no_offside_from_a_throw_in_or_when_disabled() -> void:
+	var pm := _offside_setup(30.0, 20.0)
+	m._snapshot_offside(pm[0], MatchRules.Restart.THROW_IN)
+	assert_true(m._offside.is_empty(), "lateral: no hay offside")
+	GameSettings.offside = false
+	m._snapshot_offside(pm[0], -1)
+	assert_true(m._offside.is_empty(), "opción apagada")
+	GameSettings.offside = true

@@ -61,6 +61,7 @@ Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **F
 | Anticipo: pararse en la línea de pase | Hecho | Intercepción por cercanía a la trayectoria. |
 | Barrida de atrás = roja directa; de frente tocando la pelota primero = limpia | Hecho | De atrás: falta casi siempre y roja directa (85 %). Segunda amarilla = roja. El expulsado sale y el equipo juega con 10. Falta: la barrida que toca primero la pelota nunca es falta. |
 | Riel del receptor y super cancel | Hecho | Ronda 10. |
+| Offside (con opción para sacarlo) | Hecho | Se cobra si el que estaba adelantado al pase la toca primero. No hay offside en laterales, saques de arco ni córners. Opción en el menú. |
 
 ## 6. Físico y habilidades
 
