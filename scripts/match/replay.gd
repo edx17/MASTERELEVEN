@@ -100,8 +100,10 @@ func record() -> void:
 	var players := {}
 	for p in _match.all_players():
 		track(p)
-		players[p] = [p.global_position, p.rotation.y, p.velocity, p.state, p.state_timer, p.tripped]
-	_frames.append({"ball": _match.ball.global_position, "players": players, "events": _events})
+		players[p] = [p.global_position, p.rotation.y, p.velocity, p.state, p.state_timer, p.tripped, p.trip_back]
+	var ref := _match.referee
+	var ref_state: Array = [ref.global_position, ref.rotation.y, ref.velocity.length()] if ref != null else []
+	_frames.append({"ball": _match.ball.global_position, "players": players, "events": _events, "ref": ref_state})
 	_events = []
 	var cap := int(SECONDS * RATE)
 	if _frames.size() > cap:
@@ -209,8 +211,15 @@ func _apply_frame(i: int, dt: float) -> void:
 		p.state = s[3]
 		p.state_timer = s[4]
 		p.tripped = s[5]
+		p.trip_back = s[6]
 		if dt > 0.0:
 			p._update_visual(dt)
+	var r: Array = f.get("ref", [])
+	if not r.is_empty() and _match.referee != null:
+		_match.referee.global_position = r[0]
+		_match.referee.rotation.y = r[1]
+		if dt > 0.0:
+			_match.referee.visual.update(dt, r[2], 8.4, PlayerVisual.Pose.NORMAL, 0.0)
 	var ball: Vector3 = f["ball"]
 	_match.ball.global_position = ball
 	# Cámara: detrás del que ataca, baja y siguiendo la pelota.

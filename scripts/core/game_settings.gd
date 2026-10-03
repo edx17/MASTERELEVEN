@@ -94,6 +94,11 @@ var replay_chances := true
 ## Partido de Liga / Copa en curso: de qué lado juega el humano y el
 ## resultado al terminar (lo lee el menú al volver). No se guardan.
 var competition_match := false
+## Entrenamiento en el Club House (TrainingSession): qué se practica al
+## entrar (TrainingSession.Kind y, en los desafíos, TrainingSession.Challenge).
+var training := false
+var training_kind: int = 0
+var training_challenge: int = 0
 var human_side: int = 0
 var last_result: Array = []
 ## Volumen de efectos (silbato, pelota) y del público, 0..10.

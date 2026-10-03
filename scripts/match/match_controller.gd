@@ -30,6 +30,17 @@ const CHILENA_MAX_DIST := 24.0
 const CHILENA_DOWN := 2.0
 ## Rival a esta distancia: el arquero se tira sobre la pelota dividida.
 const SMOTHER_RIVAL_DIST := 3.0
+## Tope para que el árbitro llegue a amonestar (s; si no, aparece ahí).
+const CARD_APPROACH_MAX := 3.0
+## Cámara del tiro libre: metros atrás de la pelota, altura y campo visual;
+## cuánto sigue a la pelota después del remate.
+const SET_PIECE_BACK := 10.5
+const SET_PIECE_HEIGHT := 3.6
+const SET_PIECE_FOV := 40.0
+const SET_PIECE_FOLLOW := 1.2
+## Dónde se para el que patea el tiro libre respecto de la pelota (m).
+const FK_STAND_BACK := 1.1
+const FK_STAND_SIDE := 0.8
 const GOAL_DELAY := 3.0
 const HALFTIME_DELAY := 3.0
 const RESTART_AI_DELAY := 1.0
@@ -126,6 +137,17 @@ var _goal_kick_kicking := false
 var _pending: MatchRules.Outcome = null
 var _first_half_kicker: int = 0
 var _camera: MatchCamera
+## Árbitro (sólo presentación).
+var referee: Referee
+## Entrenamiento en el Club House (null en un partido).
+var training: TrainingSession
+## Amonestación en curso: el árbitro va hasta el infractor y le muestra la
+## tarjeta. {"offender", "red", "pos", "facing", "stage" (0 va, 1 muestra), "t"}
+var card_scene := {}
+## Toma de tiro libre / penal (cámara atrás del pateador) y cuánto sigue a la
+## pelota después del remate.
+var set_piece_cam := false
+var _set_piece_follow := 0.0
 var _hud: MatchHud
 ## true mientras se ejecuta perform_kick (para distinguir desvíos).
 var _in_kick: bool = false
@@ -153,7 +175,15 @@ func _ready() -> void:
 	add_child(dbg)
 	dbg.setup(self)
 	_first_half_kicker = randi() % 2
-	if GameSettings.play_intro:
+	if GameSettings.training:
+		# Entrenamiento: sin presentación ni árbitro; la práctica arma la jugada.
+		GameSettings.play_intro = false
+		referee.visible = false
+		training = TrainingSession.new()
+		add_child(training)
+		training.setup(self)
+		training.start()
+	elif GameSettings.play_intro:
 		# Desde el menú: presentación previa (menú con el estadio de fondo,
 		# calentamiento, túnel, saludo, formaciones) y después el saque.
 		GameSettings.play_intro = false
@@ -221,13 +251,16 @@ func _build_world() -> void:
 	var st_i := GameSettings.stadium_choice
 	if st_i < 0:
 		st_i = randi() % StadiumStyles.STYLES.size()
-	StadiumStyles.current = StadiumStyles.get_style(st_i)
+	StadiumStyles.current = ClubHouseBuilder.STYLE if GameSettings.training else StadiumStyles.get_style(st_i)
 	atmosphere = Atmosphere.new()
 	atmosphere.name = "Atmosphere"
 	add_child(atmosphere)
 	atmosphere.setup(conditions)
 	add_child(PitchBuilder.build(atmosphere.grass_params()))
-	stadium = StadiumBuilder.build(GameSettings.home_team(), GameSettings.away_team())
+	if GameSettings.training:
+		stadium = ClubHouseBuilder.build(GameSettings.home_team())
+	else:
+		stadium = StadiumBuilder.build(GameSettings.home_team(), GameSettings.away_team())
 	add_child(stadium)
 	if conditions.time_of_day == MatchConditions.TimeOfDay.NIGHT:
 		StadiumBuilder.disable_shadows(stadium)
@@ -276,6 +309,10 @@ func _build_world() -> void:
 	_camera.mode_changed.connect(func(n: String) -> void: show_toast("Cámara: %s" % n))
 	atmosphere.attach(_camera, self)
 	show_toast(conditions.describe(), 4.0)
+
+	referee = Referee.new()
+	add_child(referee)
+	referee.teleport(Vector3(0.0, 0.0, -Referee.TRAIL_Z))
 
 	replay = Replay.new()
 	add_child(replay)
@@ -336,11 +373,14 @@ func _physics_process(dt: float) -> void:
 		h.tick(dt)
 	for a in ais:
 		a.tick(dt)
+	if training != null:
+		training.after_ai(dt)
 	if phase == Phase.GOAL:
 		_drive_celebration(dt)
 	var goal_kick := goal_kick_in_progress()
 	if goal_kick:
 		_drive_goal_kick()
+	_hold_card_offender(dt)
 	for p in all_players():
 		p.tick(dt, ball.owner_player == p and not (goal_kick and p == restart_taker))
 	_separate_players()
@@ -351,6 +391,9 @@ func _physics_process(dt: float) -> void:
 
 	_update_throw_in_hold()
 	ball.tick(dt)
+	if referee != null:
+		referee.tick(dt, ball.global_position, phase == Phase.PLAYING)
+	_update_set_piece_camera(dt)
 	for t in teams:
 		var gk := t.keeper()
 		if gk != null:
@@ -367,7 +410,7 @@ func _physics_process(dt: float) -> void:
 		_update_possession(dt)
 		_check_offside()
 
-	clock.running = phase in [Phase.PLAYING, Phase.STOPPED] or (phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF)
+	clock.running = training == null and (phase in [Phase.PLAYING, Phase.STOPPED] or (phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF))
 	# El reloj va en tiempo real aunque el juego corra más lento (velocidad).
 	# Grabación para la repetición (el juego y el primer instante del gol).
 	if phase == Phase.PLAYING or (phase == Phase.GOAL and _goal_elapsed < 0.8):
@@ -379,8 +422,10 @@ func _physics_process(dt: float) -> void:
 		var game_dt := real_dt * clock.rate()
 		for p in all_players():
 			p.accumulate_wear(game_dt)
-	if clock.is_half_over() and phase == Phase.PLAYING:
+	if clock.is_half_over() and phase == Phase.PLAYING and training == null:
 		_end_half()
+	if training != null:
+		training.tick(dt)
 
 
 func show_toast(text: String, seconds: float = 1.5) -> void:
@@ -417,7 +462,14 @@ func _update_phase(dt: float) -> void:
 			if _restart_elapsed > 0.8:
 				banner_text = ""
 		Phase.STOPPED:
-			if _phase_timer <= 0.0:
+			if training != null:
+				# Entrenamiento: sin repetición ni saque; se rearma la jugada.
+				if _phase_timer <= 0.0:
+					_phase_timer = INF
+					training.on_stopped()
+			elif not card_scene.is_empty():
+				_drive_card_scene(dt)
+			elif _phase_timer <= 0.0:
 				# Jugada peligrosa: primero la repetición, después el saque.
 				if not replay_request.is_empty() and GameSettings.replay_chances and replay.has_frames():
 					var req := replay_request
@@ -941,8 +993,12 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 	# Tarjeta (como en el WE): barrida de atrás = roja directa casi siempre;
 	# si no, amarilla a veces, y la segunda amarilla es roja. Al arquero
 	# también lo pueden echar (ver _replace_keeper).
-	var red := slide and from_behind and randf() < RED_FROM_BEHIND
+	var offender_pos := offender.flat_pos()
+	var offender_facing := offender.facing
+	var red := training == null and slide and from_behind and randf() < RED_FROM_BEHIND
 	var yellow_p := (0.6 if from_behind else 0.2) if slide else (0.3 if from_behind else 0.05)
+	if training != null:
+		yellow_p = 0.0 # en la práctica no hay tarjetas
 	if red:
 		text += "   -   ROJA: %s" % offender.display_name
 		send_off(offender)
@@ -956,18 +1012,21 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 		else:
 			text += "   -   AMARILLA: %s" % offender.display_name
 		card_shown.emit(offender)
-	# Repetición de las faltas importantes: penal, tarjeta o tiro libre
-	# cerca del área.
+	# El árbitro va hasta el infractor y le muestra la tarjeta (antes de la
+	# repetición).
 	var carded := text.contains("AMARILLA") or text.contains("ROJA")
-	if type == MatchRules.Restart.PENALTY or carded or spot.distance_to(teams[awarded].target_goal()) < 32.0:
-		var caption := "Falta de %s" % offender.display_name
-		if text.contains("ROJA"):
-			caption += "   ·   ROJA"
-		elif carded:
-			caption += "   ·   AMARILLA"
-		if type == MatchRules.Restart.PENALTY:
-			caption += "   ·   PENAL"
-		request_replay(Replay.Kind.FOUL, awarded, caption)
+	if carded and referee != null:
+		card_scene = {"offender": offender, "red": text.contains("ROJA"), "pos": offender_pos,
+			"facing": offender_facing, "stage": 0, "t": 0.0}
+	# Repetición de la falta (siempre: hubo un jugador derribado).
+	var caption := "Falta de %s" % offender.display_name
+	if text.contains("ROJA"):
+		caption += "   ·   ROJA"
+	elif carded:
+		caption += "   ·   AMARILLA"
+	if type == MatchRules.Restart.PENALTY:
+		caption += "   ·   PENAL"
+	request_replay(Replay.Kind.FOUL, awarded, caption)
 	_pending = MatchRules.Outcome.new(type, awarded, Vector3(spot.x, tuning.ball_radius, spot.z))
 	ball.owner_player = null
 	ball.intended_receiver = null
@@ -990,7 +1049,7 @@ var _offside := {}
 ## saques de arco ni córners.
 func _snapshot_offside(kicker: Footballer, from_restart: int) -> void:
 	_offside = {}
-	if not GameSettings.offside:
+	if not GameSettings.offside or training != null:
 		return
 	if from_restart in [MatchRules.Restart.THROW_IN, MatchRules.Restart.GOAL_KICK, MatchRules.Restart.CORNER]:
 		return
@@ -1855,6 +1914,9 @@ func _check_rules() -> void:
 	# Con el juego detenido nadie conserva la pelota en el pie.
 	ball.owner_player = null
 	ball.intended_receiver = null
+	if training != null:
+		training.on_outcome(outcome)
+		return
 	if outcome.type == MatchRules.Restart.GOAL:
 		goal_scorer = ball.last_toucher
 		_show_goal(outcome.team)
@@ -2008,6 +2070,92 @@ func _on_replay_finished() -> void:
 
 
 ## Pide la repetición de una jugada peligrosa (se ve antes del saque).
+## Amonestación: el árbitro corre hasta el infractor (que vuelve a estar
+## donde cometió la falta, aunque lo hayan echado) y, ya enfrente, levanta la
+## tarjeta con la cámara cerca. Después sigue la repetición.
+func _drive_card_scene(dt: float) -> void:
+	var off: Footballer = card_scene["offender"]
+	var pos: Vector3 = card_scene["pos"]
+	card_scene["t"] += dt
+	if card_scene["stage"] == 0:
+		if card_scene["t"] <= dt * 1.5:
+			off.visible = true
+			off.global_position = pos
+			off.velocity = Vector3.ZERO
+			off.facing = card_scene["facing"]
+			referee.approach(pos, referee.global_position)
+		off.look_at_point(referee.global_position)
+		if referee.arrived() or card_scene["t"] > CARD_APPROACH_MAX:
+			if not referee.arrived():
+				referee.teleport(referee.target)
+			referee.show_card(card_scene["red"])
+			off.look_at_point(referee.global_position)
+			# Toma de costado: el árbitro con la tarjeta y el amonestado.
+			var mid := (referee.global_position + pos) * 0.5
+			var across := (pos - referee.global_position).cross(Vector3.UP).normalized()
+			if across.z < 0.0:
+				across = -across # del lado de la cámara del partido
+			_camera.set_shot(mid + across * 5.5 + Vector3(0, 1.7, 0), mid + Vector3(0, 1.45, 0), 34.0)
+			card_scene["stage"] = 1
+			card_scene["t"] = 0.0
+	elif card_scene["t"] >= Referee.CARD_TIME + 0.2:
+		if off.sent_off:
+			off.visible = false
+		referee.release()
+		_camera.end_cinematic()
+		card_scene = {}
+		_phase_timer = minf(_phase_timer, 0.0)
+
+
+## El amonestado se queda quieto mirando al árbitro (a un expulsado ya no lo
+## mueve nadie: se lo avanza acá).
+func _hold_card_offender(dt: float) -> void:
+	if card_scene.is_empty():
+		return
+	var off: Footballer = card_scene["offender"]
+	off.desired_move = Vector3.ZERO
+	off.wants_sprint = false
+	off.look_at_point(referee.global_position)
+	if off.sent_off and off.visible:
+		off.tick(dt, false)
+
+
+## Tiro libre en campo rival o penal: se patea con la cámara atrás del
+## pateador (en campo propio, la cámara del partido).
+static func wants_set_piece_camera(type: int, team: Team, spot: Vector3) -> bool:
+	if type == MatchRules.Restart.PENALTY:
+		return true
+	return type == MatchRules.Restart.FREE_KICK and team.progress_of(spot) > 0.5
+
+
+## [posición, a dónde mira] de la cámara atrás del pateador.
+static func set_piece_shot(team: Team, spot: Vector3) -> Array:
+	var goal := team.target_goal()
+	var dir := goal - spot
+	dir.y = 0.0
+	dir = dir.normalized()
+	var pos := spot - dir * SET_PIECE_BACK + Vector3(0.0, SET_PIECE_HEIGHT, 0.0)
+	return [pos, Vector3(goal.x, 1.0, goal.z * 0.6 + spot.z * 0.4)]
+
+
+## La toma del tiro libre queda hasta que se patea y sigue un momento a la
+## pelota; después vuelve la cámara del partido.
+func _update_set_piece_camera(dt: float) -> void:
+	if not set_piece_cam or _camera == null:
+		return
+	if phase == Phase.RESTART:
+		return
+	if phase == Phase.PLAYING and _set_piece_follow < SET_PIECE_FOLLOW:
+		_set_piece_follow += dt
+		_camera.shot_look = _camera.shot_look.lerp(ball.global_position, 1.0 - exp(-6.0 * dt))
+		return
+	set_piece_cam = false
+	for p in all_players():
+		p.set_presenting(false)
+	if phase != Phase.REPLAY and card_scene.is_empty():
+		_camera.end_cinematic()
+
+
 func request_replay(kind: int, team: int, caption: String) -> void:
 	replay_request = {"kind": kind, "team": team, "caption": caption}
 
@@ -2028,6 +2176,16 @@ func _end_half() -> void:
 
 
 func _begin_restart(type: int, taker: Footballer) -> void:
+	# Tiro libre en campo rival o penal: la cámara atrás del pateador.
+	set_piece_cam = false
+	_set_piece_follow = 0.0
+	if _camera != null and wants_set_piece_camera(type, taker.team, ball.flat_pos()):
+		set_piece_cam = true
+		var shot := set_piece_shot(taker.team, ball.flat_pos())
+		_camera.set_shot(shot[0], shot[1], SET_PIECE_FOV)
+		# Con la cámara tan cerca, sin nombres ni marcas flotando.
+		for p in all_players():
+			p.set_presenting(true)
 	# La repetición empieza en la jugada (no antes de la pelota parada).
 	replay.clear()
 	replay_request = {}
@@ -2094,7 +2252,9 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 			if taker == null or taker.is_keeper():
 				taker = _nearest_outfield(team, spot)
 			look = (team.target_goal() - spot).normalized()
-			stand = spot - look * 0.7
+			# En diagonal atrás de la pelota, del lado izquierdo (como en el WE:
+			# desde la cámara de atrás se ve la pelota y el arco).
+			stand = spot - look * FK_STAND_BACK + Vector3.UP.cross(look).normalized() * FK_STAND_SIDE
 		MatchRules.Restart.PENALTY:
 			taker = team.on_pitch(team.pk_taker)
 			if taker == null:
@@ -2261,6 +2421,7 @@ func _exit_tree() -> void:
 
 
 func exit_to_menu() -> void:
+	GameSettings.training = false
 	# Partido de Liga / Copa: cuenta sólo si se jugó hasta el final.
 	GameSettings.last_result = [teams[0].score, teams[1].score] if phase == Phase.FULLTIME else []
 	get_tree().paused = false

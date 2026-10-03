@@ -131,6 +131,26 @@ func _ready() -> void:
 		_script = [[20, "freeze"], [22, "replay_goal"], [23, "until_replay"], [30, "shot:capture_replay_wipe.png"],
 			[31, "simulate:1.2"], [40, "shot:capture_replay.png"],
 			[41, "simulate:3.0"], [58, "shot:capture_replay_card.png"], [62, "quit"]]
+	# `--foul`: falta con tarjeta del árbitro, repetición y tiro libre con la
+	# cámara atrás del pateador.
+	if "--foul" in OS.get_cmdline_user_args():
+		GameSettings.replay_chances = true
+		_script = [[20, "freeze"], [22, "foul_card"], [23, "simulate:0.9"], [30, "shot:foul_down.png"],
+			[31, "until_card"], [40, "shot:foul_card.png"], [41, "until_replay"], [42, "simulate:2.0"],
+			[50, "shot:foul_replay.png"], [51, "until_restart"], [52, "simulate:0.4"],
+			[60, "shot:foul_freekick.png"], [65, "quit"]]
+	# `--training`: el Club House y cada práctica, más el menú de práctica.
+	if "--training" in OS.get_cmdline_user_args():
+		GameSettings.training = true
+		GameSettings.training_kind = 0
+		_script = [[20, "freeze"], [22, "train:0"], [23, "simulate:0.8"], [30, "shot:train_free.png"],
+			[31, "train_overview"], [38, "shot:train_overview.png"], [39, "end_cinematic"],
+			[40, "train:1"], [41, "simulate:0.4"], [48, "shot:train_freekick.png"],
+			[50, "train:4"], [51, "simulate:1.2"], [58, "shot:train_slalom.png"],
+			[60, "train:5"], [61, "simulate:0.6"], [68, "shot:train_passing.png"],
+			[70, "train:6"], [71, "simulate:1.0"], [78, "shot:train_rondo.png"],
+			[80, "train:7"], [81, "simulate:0.4"], [88, "shot:train_targets.png"],
+			[90, "train_pause"], [98, "shot:train_pause.png"], [100, "quit"]]
 	# `--retro`: jugadores con el modelo retro (estilo PS1).
 	if "--retro" in OS.get_cmdline_user_args():
 		GameSettings.player_style = 1
@@ -172,6 +192,22 @@ func _process(_delta: float) -> void:
 			_run(step[1])
 
 
+## Un paso de simulación con las animaciones al mismo reloj (si no, quedan
+## congeladas): jugadores, expulsados que siguen a la vista y árbitro.
+func _step_all() -> void:
+	_match._physics_process(1.0 / 60.0)
+	var visuals: Array = []
+	for t in _match.teams:
+		for p in t.players + t.sent_off:
+			visuals.append(p.visual)
+	if _match.referee != null:
+		visuals.append(_match.referee.visual)
+	for v in visuals:
+		if v is ModelVisual:
+			(v as ModelVisual)._anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+			(v as ModelVisual)._anim.advance(1.0 / 60.0)
+
+
 func _run(action: String) -> void:
 	if _camera == null:
 		for c in _match.get_children():
@@ -203,11 +239,7 @@ func _run(action: String) -> void:
 			if p.visual is ModelVisual:
 				(p.visual as ModelVisual)._anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 		for i in int(secs * 60.0):
-			_match._physics_process(1.0 / 60.0)
-			# Las animaciones avanzan con el mismo reloj (si no, quedan congeladas).
-			for p in _match.all_players():
-				if p.visual is ModelVisual:
-					(p.visual as ModelVisual)._anim.advance(1.0 / 60.0)
+			_step_all()
 	elif action == "real_time":
 		_match.set_physics_process(true)
 	elif action == "unfreeze":
@@ -271,6 +303,52 @@ func _run(action: String) -> void:
 		_match.clock.game_seconds = MatchClock.HALF_GAME_SECONDS * 0.6
 	elif action.begins_with("intro:"):
 		_match.intro._enter(int(action.trim_prefix("intro:")))
+	elif action == "foul_card":
+		# Falta de atrás a 22 m del arco rival, hasta que salga con tarjeta.
+		var t0 := _match.teams[0]
+		var spot := t0.target_goal() - Vector3(t0.attack_dir * 22.0, 0, -2.0)
+		for i in 40:
+			var victim: Footballer = t0.players[9]
+			var offender: Footballer = _match.teams[1].players[5]
+			_match.phase = MatchController.Phase.PLAYING
+			_match.card_scene = {}
+			_match.replay_request = {}
+			victim.teleport(spot, Vector3(t0.attack_dir, 0, 0))
+			offender.teleport(spot - Vector3(t0.attack_dir * 0.9, 0, 0), Vector3(t0.attack_dir, 0, 0))
+			for k in 90:
+				_match._physics_process(1.0 / 60.0)
+			_match.phase = MatchController.Phase.PLAYING
+			_match.ball.place(spot + Vector3(t0.attack_dir * 0.6, 0.11, 0))
+			_match.ball.state.vel = Vector3.ZERO
+			_match.call_foul(offender, victim, true)
+			if not _match.card_scene.is_empty():
+				break
+		_camera._focus = spot
+	elif action == "until_card":
+		for i in 600:
+			if _match.referee.card_left > 0.0:
+				break
+			_step_all()
+		for i in 40:
+			_step_all()
+	elif action.begins_with("train:"):
+		_match.training.start(int(action.trim_prefix("train:")))
+		_camera._focus = _match.ball.flat_pos()
+	elif action == "train_overview":
+		# Vista general: la cancha, los árboles y el edificio del club.
+		_camera.set_shot(Vector3(-30.0, 22.0, 60.0), Vector3(0.0, 2.0, -25.0), 55.0)
+	elif action == "end_cinematic":
+		_camera.end_cinematic()
+	elif action == "train_pause":
+		process_mode = Node.PROCESS_MODE_ALWAYS
+		for c in _match.get_children():
+			if c is PauseMenu:
+				(c as PauseMenu)._toggle()
+	elif action == "until_restart":
+		for i in 1200:
+			if _match.phase == MatchController.Phase.RESTART:
+				break
+			_step_all()
 	elif action == "until_replay":
 		# Pasa el festejo hasta que arranca la cortina de la repetición.
 		for i in 900:

@@ -118,6 +118,11 @@ func _process(_dt: float) -> void:
 			if c is CanvasItem:
 				(c as CanvasItem).visible = true
 	_clock.text = "%s %s" % ["1st" if _match.clock.half == 1 else "2nd", _match.clock.display()]
+	if _match.training != null:
+		# Entrenamiento: sin marcador ni reloj (los datos de la práctica los
+		# muestra TrainingSession).
+		_top.visible = false
+		_clock.visible = false
 	var lines := []
 	for t in _match.teams:
 		if t.strategy != Strategy.Kind.NONE:

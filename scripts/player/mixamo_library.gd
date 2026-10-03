@@ -89,6 +89,8 @@ const CLIPS := {
 	"gk_idle": {"file": "Goalkeeper Idle", "loop": true},
 	# Ordena a la defensa: con la pelota lejos o mientras la tiene en las manos.
 	"gk_directing": {"file": "Goalkeeper Directing", "loop": true},
+	# Se levanta del piso boca abajo (después de tirarse sobre la pelota).
+	"gk_stand_up": {"file": "Stand_Up", "face": true, "full": true},
 	# Salta, la agarra y se tira encima (para hacer tiempo; pelota dividida).
 	"gk_smother": {"file": "GoalkeeperReceiver Catch", "face": true, "range": [0.7, 1.0, 3.45]},
 	"gk_catch": {"file": "Goalkeeper Catch stay"},
