@@ -275,6 +275,12 @@ Criterio: capturas lado a lado con la referencia y 60 FPS con 22 jugadores.
 6. Si una decisión técnica es grande (arquitectura, librerías, formato de
    datos), consultame antes.
 7. Mantené actualizado un /docs/PROGRESS.md con el estado de cada fase.
-8. Antes de seguir trabajando, revisá siempre si el PR anterior ya fue
-   mergeado. Si lo fue, el trabajo nuevo arranca desde `main` actualizado
-   (nunca encima de historia ya mergeada) y va en un PR nuevo.
+8. **Un solo PR abierto a la vez.** Antes de seguir trabajando, revisá
+   siempre si el PR anterior ya fue mergeado y comprobá en `main` que el
+   trabajo no esté ya aplicado:
+   - Si **no** fue mergeado: se sigue en ese mismo PR (misma rama); no se
+     abre otro.
+   - Si **ya** fue mergeado: el trabajo nuevo arranca desde `main`
+     actualizado (nunca encima de historia ya mergeada) y va en un PR nuevo.
+9. Avanzar paso a paso y en orden; al terminar cada tanda, actualizar el
+   resumen "Dónde estamos" al principio de `docs/PROGRESS.md`.

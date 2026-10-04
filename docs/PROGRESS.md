@@ -3,25 +3,136 @@
 Motor: **Godot 4.7.2**, GDScript. Referencia de gameplay: WE2002 (ForeverEleven).
 Ver `Claude.md` para visión, criterios y fases.
 
-| Fase | Estado |
-|------|--------|
-| 1 — Base jugable | ✅ Hecha |
-| 2 — Prototipo 0.1: sensación de juego | ✅ Hecha (PR #2) |
-| 3 — IA de partido (TeamAI, formaciones, zonas, arquero) | 🟡 Implementada, **pendiente de tu prueba** |
-| Visual 1 — Se ve como la referencia (jugadores animados, cámara, cancha) | 🟡 Implementada, **pendiente de tu prueba** |
-| 4 — Reglas, atributos y plantel | 🟡 Implementada, **pendiente de tu prueba** |
-| 5 — Presentación moderna (estadio, modelos, animaciones, audio) | 🟡 En curso: repetición del gol y sonido hechos; falta tu modelo |
-| 6 — Liga Master | ⬜ |
-| 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) |
-| 8 — Pulido | ⬜ |
-| Entrenamiento (Club House) | 🟡 Implementado, **pendiente de tu prueba** |
-| Backlog B1–B9 (tu lista de pendientes) | 🟡 B1–B9 hechos (PR #24) |
-| Backlog B10 (tu prueba de octubre) + infraestructura | ✅ Hecho (PR #25) |
-| Backlog B11 (pasos 1-3: assets, correcciones, pelota parada, sonidos) | 🟡 Pasos 1-2 en PR #26; paso 3 **pendiente de tu prueba** |
+## Dónde estamos (octubre 2026)
+
+Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
+Eleven 2002. Todo ficticio: equipos, jugadores, estadios y escudos.
+**373 tests automáticos en verde** (corren solos en GitHub en cada push, que
+además arma el `.exe` de Windows).
+
+| Fase / tanda | Estado | PR |
+|---|---|---|
+| 1 — Base jugable | ✅ | — |
+| 2 — Prototipo 0.1: sensación de juego | ✅ | #2 |
+| 3 — IA de partido | ✅ Implementada (se sigue ajustando con tus pruebas) | — |
+| 4 — Reglas, atributos y plantel | ✅ Implementada | — |
+| 5 — Presentación moderna (estadios, animaciones, audio, repeticiones) | 🟡 Muy avanzada; falta el pelo "Detallados" y la voz del locutor | — |
+| 6 — Liga Master | ⬜ | — |
+| 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) | — |
+| 8 — Pulido | ⬜ | — |
+| Entrenamiento (Club House) | ✅ | #23 |
+| Backlog B1–B9 | ✅ | #24 |
+| Backlog B10 + infraestructura (CI, .exe, skills) | ✅ | #25 |
+| Backlog B11 pasos 1-2 (assets, correcciones) | ✅ | #26 |
+| Backlog B11 pasos 3-4 (pelota parada, sonidos) | ✅ | #27 |
+
+### Base del juego (fases 1 a 3)
+- **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
+  pelota (rebote, efecto, viento, césped mojado). Conducción guiada, pases
+  que buscan al compañero, remates según la altura y modelo de atajada.
+- **Control estilo WE2002**: barra de potencia, 8/16 direcciones, cambio de
+  jugador, toque de primera con la orden guardada, globo, rasante, centro
+  alto/raso, pared, super cancel; gambetas (marsellesa, bicicleta, amagues);
+  presión de un compañero, barrida y entrada con timing.
+- **IA de equipo**: 5 formaciones y roles tácticos; el bloque se mueve como
+  unidad (salida, ataque, contraataque, defensa); pelotas paradas y arquero
+  con achique.
+- **Cámaras**: TV, amplia, cercana, vertical y dron. HUD con radar.
+
+### Reglas, plantel y presentación (fases 4 y 5)
+- **Reglas**: faltas, tarjetas (el árbitro va a mostrarlas), tiros libres,
+  penales, offside, lesiones y cuerpo a cuerpo.
+- **Plantel** de 23 con condición del día (flechas) y Dirección del equipo
+  (en la previa y en la pausa).
+- **Condiciones**: horario, lluvia, nieve (pelota naranja), viento y estado
+  del césped; de noche, torres de luz.
+- **Estadios** ficticios con público, túnel, techos y carteles.
+- **Presentación**: túnel, formación y repeticiones de goles y faltas.
+- **Animaciones Mixamo**: festejos, chilena, caídas, gestos del arquero.
+- **Menús estilo WE**: liga y copa con los 8 equipos, benchmark de FPS.
+- **Entrenamiento (Club House)**: práctica libre, pelota parada y desafíos
+  con récord.
+
+### Backlog B1–B9 (PR #24)
+1. **Bugs**: foco del menú de cambios, retro que caminaban para atrás, L1
+   cambia al instante, lateral automático a los 6 s, entretiempo con inercia
+   y estadísticas con highlights.
+2. **Camisetas y cuerpo**: número, diseño y escudo pintados en la tela
+   (adelante sólo el escudo); cuerpo low-poly estilo WE98 por defecto.
+3. **Pelota y jugador**: conducción por toques sin hueco; las gambetas mueven
+   la pelota de verdad.
+4. **Animaciones**: zurdos, pases sin giros bruscos, cabezazo de primera a
+   tiempo.
+5. **Arquero**: la estirada no flota y sale a tiempo; no ataja lo que le pasa
+   por arriba; se agacha en las rasantes; no persigue su propio rebote.
+6. **Ataque**: la IA ocupa el área en los centros; remate potente
+   (L1 + R1 + Cuadrado).
+7. **Gráficos**: césped mate, túnel iluminado, vincha sin brillo, red que se
+   infla.
+8. **Cinemáticas**: calentamiento (rondos 4 contra 1, arqueros), presentación
+   de los 11 con cartel, repetición del offside con la línea.
+9. **UI y datos**: íconos del mando, cambio de controles guardado, formación
+   animada, nombre flotante chico, ficha con 15 atributos y etiquetas que
+   influyen en el juego.
+10. **Escenarios**: Club House como predio; estadio "Coloso del Sur" (ovalado,
+    4 bandejas, anillos LED, techo traslúcido).
+
+### Esta sesión: B10 y B11 (PR #25, #26 y #27)
+- **Infraestructura**: CI con los tests y el `.exe` de Windows en cada push;
+  Godot instalado solo en las sesiones de Claude; 25 skills de gamedev;
+  assets en el repo (se suben a `assets/_entrada/` y Claude los procesa).
+- **B10 (tu prueba)**: cancha con todas las marcas; CPU que remata (3,8 → 8,5
+  remates por partido); mentalidad con L2 + cruceta; repeticiones fluidas
+  con festejo y cámara del goleador; offside desde la banda; entretiempo y
+  final animados (túnel, festejos, bronca, público que se va); puntajes y
+  figura del partido; sombras y reflectores de noche; túnel del Coloso del
+  Sur; cuerpo clásico sin aberturas; presentación prolija y entrenador de
+  arqueros en el calentamiento.
+- **B11 paso 1 (assets)**: 53 de 58 animaciones de Mixamo, 6 cielos HDRI,
+  césped gastado (opción "Estado"), tierra y tela.
+- **B11 paso 2 (correcciones)**: pelota que queda en la red, offside
+  congelado, salida caminando al túnel, saludos del empate, público que se va
+  por los pasillos, flecha más chica, carteles de repetición (número, nombre,
+  tarjeta) y del partido (grandes), indicador de mentalidad.
+- **B11 paso 3 (pelota parada a la WE2002)**: carrera en tiros libres,
+  córners y penales; tiro libre según el stick (colocado, rasante, cañonazo,
+  comba, globito, al palo) con la mira en el stick derecho; penal de 5
+  direcciones; arquero sobre la línea que elige el lado; tierra en estadios
+  humildes; tela en camisetas y trapos.
+- **B11 paso 4 (tus sonidos)**: 16 sonidos tuyos recortados y en OGG
+  (silbato, pase, palo, "uhh", gol + canto, silbidos, tribuna, cánticos,
+  ambiente previo, vuvuzelas, final, menú) más aplausos, swoosh y música
+  generados.
+- **Arreglos de tus pruebas**: el cambio en la previa cerraba el juego; la
+  red no se movía en el gol; el arquero corría la pelota que se fue afuera;
+  el pateador quedaba trabado al entretiempo.
+
+### Cosas para tener en cuenta
+- **Animaciones de atajada**: los rangos de agachado y en el aire se
+  ajustaron sin ver las animaciones reales; conviene mirarlas jugando.
+- **Faltan 4 clips de Mixamo**: Kick Soccerball, Soccer Tackle 1, Receive
+  Soccerball y Goalkeeper Body Block (esos gestos siguen por código).
+- **Sonidos**: los recortes se eligieron midiendo el volumen, sin
+  escucharlos; revisalos al jugar. Los generados (aplausos, swoosh, música)
+  son los más inciertos.
+- **Tests intermitentes**: se arreglaron dos (entretiempo con el pateador
+  trabado; horario "al azar"). Si alguno falla una sola vez, avisar.
+- **Capturas de Claude**: son en modo compatibilidad; en tu PC (Forward+) la
+  luz y las sombras se ven distinto.
+
+### Próximos pasos (en orden)
+1. **Tu prueba** de los pasos 3 y 4 (pelota parada y sonidos).
+2. **Paso 5**: pelo de los jugadores "Detallados" (hoy parece plastilina).
+3. Más festejos en el córner (medialuna, mortal, nuevos) con todos los clips.
+4. Fase 6 — **Liga Master**.
+5. Editor de jugadores.
+6. Voz real del locutor (hoy la presentación sólo emite la señal y el
+   público responde).
+7. Fase 8 — Pulido final.
 
 ---
 
-## Backlog B11 — pasos 3 y 4: pelota parada a la WE2002, tierra, tela y sonidos
+## Backlog B11 — pasos 3 y 4: pelota parada a la WE2002, tierra, tela y sonidos (PR #27)
 
 ### Pelota parada
 - **Carrera**: en tiros libres, córners y penales el pateador se para atrás
@@ -89,7 +200,34 @@ Tests: `tests/unit/test_backlog_b12.gd` (15 tests).
 
 ---
 
-## Backlog B10 e infraestructura
+## Backlog B11 — pasos 1 y 2: assets y correcciones (PR #26)
+
+### Paso 1: tus assets
+| Qué | Cambio |
+|---|---|
+| Animaciones | `MixamoLibrary` busca los FBX en `assets/animations/` (y en `mixamo/`): 53 de 58 clips. Faltan Kick Soccerball, Soccer Tackle 1, Receive Soccerball y Goalkeeper Body Block. |
+| Cielos | Los 6 de ambientCG en JPG 2K (`assets/skies/`, 1,7 MB; los EXR pesaban 100 MB). |
+| Texturas | Césped gastado (Poliigon GrassPatchyGround), tierra (GroundFieldAgriculture) y trama de tela. `assets/_entrada/` pasó de 163 MB a 7 MB. |
+| Césped gastado | Opción "Estado" en la configuración del partido; siempre en el Club House. |
+
+### Paso 2: correcciones de tu prueba
+| Pedido | Cambio |
+|---|---|
+| La pelota no entraba en la red | El fondo de la red la devuelve un poco (12 %) y adentro del arco se frena; la cámara del gol muestra la pelota en la red 1,2 s antes de ir con el goleador. |
+| Offside: seguían moviéndose | En la pausa de la repetición todos quedan quietos. |
+| Entretiempo al trote y trabados en el túnel | Caminando y en fila hasta adentro, sin empujarse en la boca. |
+| Empate | Cada uno saluda al más cercano (rival: apretón de manos; compañero: choque de manos). |
+| Público que desaparece | Se para, camina por la fila al pasillo, sube a la salida y recién ahí desaparece. |
+| Flecha del jugador | A la mitad del tamaño. |
+| Carteles de repetición | Gol, falta, remate: número y nombre; offside: nada; tarjeta dibujada delante del nombre. |
+| Carteles del partido | Más grandes, mayúsculas, letra gruesa con borde. |
+| Mentalidad | Cuadrado con tres barras (rojo ofensiva, verde equilibrada, azul defensiva) al lado del jugador, con la estrategia activa arriba. |
+
+Tests: `test_backlog_b11.gd` (6).
+
+---
+
+## Backlog B10 e infraestructura (PR #25)
 
 ### Infraestructura
 
