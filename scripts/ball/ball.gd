@@ -9,6 +9,8 @@ signal kicked(kicker: Footballer)
 signal bounced(strength: float)
 signal hit_post
 signal hit_net
+## Velocidad con la que la pelota llegó a la red (la red se infla según esto).
+var net_hit_speed := 0.0
 
 const PHYSICS_SUBSTEPS := 2
 
@@ -141,12 +143,14 @@ func tick(dt: float) -> void:
 	var sub := dt / PHYSICS_SUBSTEPS
 	for i in PHYSICS_SUBSTEPS:
 		var vy_before := state.vel.y
+		var speed_before := state.vel.length()
 		var ev := BallPhysics.step(state, sub, _tuning)
 		if ev & BallPhysics.EV_BOUNCE:
 			bounced.emit(absf(vy_before))
 		if ev & BallPhysics.EV_POST:
 			hit_post.emit()
 		if ev & BallPhysics.EV_NET:
+			net_hit_speed = speed_before
 			hit_net.emit()
 	_sync_node(dt)
 

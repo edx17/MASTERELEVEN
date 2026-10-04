@@ -346,6 +346,7 @@ func _build_world() -> void:
 	audio.setup(self)
 	replay.finished.connect(_on_replay_finished)
 	ball.hit_post.connect(func() -> void: _post_hit = true)
+	ball.hit_net.connect(_on_net_hit)
 
 	if not GameSettings.training:
 		halftime_screen = HalftimeScreen.new()
@@ -686,6 +687,20 @@ func _plan_save_for(defenders: Team, extra_reaction: float) -> void:
 ## Cuándo se tira: cuando la pelota está por llegar (lo que dura el vuelo
 ## hasta el contacto), pero nunca después de que pasó: si reacciona tarde,
 ## igual se tira (aunque no llegue), no cuando la pelota ya entró.
+## La red del arco donde pegó la pelota se infla (sólo si llega con fuerza:
+## apoyada en la red no tiembla).
+func _on_net_hit() -> void:
+	if ball.net_hit_speed < NET_REACT_SPEED:
+		return
+	for n in get_tree().get_nodes_in_group(&"goal_net"):
+		var net := n as GoalNet
+		if net != null and signf(ball.global_position.x) == float(net.side):
+			net.hit(ball.global_position, ball.net_hit_speed)
+
+
+const NET_REACT_SPEED := 3.0
+
+
 static func dive_time(react: float, save_time: float) -> float:
 	return minf(maxf(react, save_time - DIVE_LEAD), maxf(0.0, save_time - DIVE_LATEST))
 

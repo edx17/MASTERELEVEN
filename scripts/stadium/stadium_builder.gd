@@ -422,7 +422,9 @@ static func _tunnel(stand: Node3D) -> void:
 	# Pasillo iluminado (como en los estadios de verdad): paredes pintadas,
 	# piso de goma y paneles de luz en el techo; más adentro, más oscuro.
 	var wall := StandardMaterial3D.new()
-	wall.albedo_color = Color(0.22, 0.25, 0.32)
+	# Paredes claras (gris cálido): con las luces del techo el pasillo se ve
+	# iluminado, no una cueva.
+	wall.albedo_color = Color(0.62, 0.6, 0.56)
 	wall.roughness = 0.8
 	var h := TUNNEL_HALF
 	var st := SurfaceTool.new()
@@ -444,9 +446,9 @@ static func _tunnel(stand: Node3D) -> void:
 	panel_mat.emission_enabled = true
 	panel_mat.emission = Color(1.0, 0.95, 0.85)
 	panel_mat.emission_energy_multiplier = 3.0
-	var n := 3
+	var n := 4
 	for i in n:
-		var z := lerpf(1.2, TUNNEL_DEPTH - 1.0, float(i) / maxf(n - 1, 1))
+		var z := lerpf(0.9, TUNNEL_DEPTH - 1.0, float(i) / maxf(n - 1, 1))
 		var lamp := MeshInstance3D.new()
 		var bm := BoxMesh.new()
 		bm.size = Vector3(h * 1.1, 0.05, 0.6)
@@ -457,8 +459,8 @@ static func _tunnel(stand: Node3D) -> void:
 		stand.add_child(lamp)
 		var light := OmniLight3D.new()
 		light.light_color = Color(1.0, 0.93, 0.82)
-		light.light_energy = 1.6 if i == 0 else 1.2
-		light.omni_range = TUNNEL_H * 2.4
+		light.light_energy = 2.6 if i == 0 else 2.0
+		light.omni_range = TUNNEL_H * 3.0
 		light.omni_attenuation = 1.2
 		light.shadow_enabled = false
 		light.position = Vector3(0.0, TUNNEL_H - 0.35, z)

@@ -15,7 +15,7 @@ Ver `Claude.md` para visión, criterios y fases.
 | 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) |
 | 8 — Pulido | ⬜ |
 | Entrenamiento (Club House) | 🟡 Implementado, **pendiente de tu prueba** |
-| Backlog B1–B9 (tu lista de pendientes) | 🟡 B1–B5 hechos, B6–B9 en curso (PR #24) |
+| Backlog B1–B9 (tu lista de pendientes) | 🟡 B1–B6 hechos, B7–B9 en curso (PR #24) |
 
 ---
 
@@ -30,6 +30,7 @@ Ver `Claude.md` para visión, criterios y fases.
 | Cuerpo clásico | Cuerpo low-poly proporcionado al estilo WE98 (por defecto; Jugadores: Clásico / Retro / Detallado). |
 | B4 Arquero | La estirada no flota (clip más rápido y desplazamiento lateral corto); se tira a tiempo (nunca después de que pasó la pelota); no hace el gesto de atajar una pelota que le pasa por arriba; se agacha en las rasantes (rango del clip de recoger); después de su rebote no la persigue en bucle. |
 | B5 Ataque | Con la pelota en la banda en el último tercio, los de arriba ocupan el área: punto penal, primer palo, segundo palo y uno a la puerta del área (nunca en offside). **Remate potente: L1 + R1 + Cuadrado**: la barra carga más lento, el jugador se perfila 0,3 s y le pega 30 % más fuerte con el doble de error. La CPU también lo usa de lejos. |
+| B6 Gráficos | Césped mate (rugosidad mínima 0,85 y casi sin especular: no se ve de plástico); túnel con paredes claras y cuatro paneles de luz (ya no es una cueva); vincha de tela mate sin brillo; **la red se infla donde pega la pelota** (según la velocidad) y vuelve oscilando; la pelota gira en las repeticiones (de B1). |
 
 ---
 

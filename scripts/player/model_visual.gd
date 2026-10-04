@@ -367,6 +367,18 @@ func _chain(bone: String, parent_visible: Vector3, visible: Vector3) -> void:
 
 ## Pelo: la malla de HairBuilder sigue al hueso de la cabeza. Está armada en el
 ## espacio de reposo del esqueleto, así que se compensa la pose de reposo.
+## Vincha: tela mate, sin brillo ni emisión; el color se baja un poco para
+## que con la luz de los estadios no "irradie" (la tela blanca pura con el
+## glow quedaba fosforescente).
+static func _band_material(c: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color.from_hsv(c.h, c.s * 0.85, minf(c.v, 0.78))
+	m.roughness = 0.95
+	m.metallic_specular = 0.15
+	m.emission_enabled = false
+	return m
+
+
 func _add_hair(style: int, color: Color, band_color: Color) -> void:
 	var m := HairBuilder.mesh(style)
 	if m == null:
@@ -382,7 +394,7 @@ func _add_hair(style: int, color: Color, band_color: Color) -> void:
 	mi.set_surface_override_material(0, HairBuilder.material(color))
 	if m.get_surface_count() > 1:
 		var b := band_color if band_color.get_luminance() > 0.2 else Color(0.95, 0.95, 0.95)
-		mi.set_surface_override_material(1, _mat(b))
+		mi.set_surface_override_material(1, _band_material(b))
 	att.add_child(mi)
 	hair_node = mi
 

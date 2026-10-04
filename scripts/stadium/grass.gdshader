@@ -105,13 +105,15 @@ void fragment() {
 	float fine = 1.0 - smoothstep(12.0, 38.0, length(VERTEX));
 	float n = fbm(p * 0.08) * 0.5 + fbm(p * 0.6) * 0.3 + mix(0.5, noise(p * 18.0), fine) * 0.2;
 	c *= (1.0 - variation * 0.5) + n * variation;
-	float roughness = mix(0.82, 0.92, stripe);
+	float roughness = mix(0.88, 0.95, stripe);
 	if (use_textures) {
 		vec3 t = texture(albedo_tex, p * tex_scale).rgb;
 		// La textura aporta el detalle; el tono lo siguen dando las franjas.
 		c *= t / max(dot(t, vec3(0.333)), 0.05) * 0.9;
 		if (use_roughness_tex) {
-			roughness = texture(roughness_tex, p * tex_scale).r;
+			// Nunca por debajo de 0,85: el pasto seco no brilla (si no, se ve
+			// de plástico).
+			roughness = max(texture(roughness_tex, p * tex_scale).r, 0.85);
 		}
 	}
 	// Desgaste (pasto pisado, algo de tierra).
@@ -131,7 +133,7 @@ void fragment() {
 	// El pasto mojado oscurece y brilla un poco, pero no es un espejo.
 	c *= 1.0 - 0.28 * wetness;
 	roughness = mix(roughness, 0.55, wetness);
-	float spec = mix(0.12, 0.25, wetness);
+	float spec = mix(0.06, 0.25, wetness);
 	// Nieve: cubre el césped (menos donde se juega más: el centro y las áreas).
 	// Más nieve hacia las bandas y los fondos; en el medio, donde se juega, el
 	// pasto se ve (como una cancha nevada que se fue pisando).
