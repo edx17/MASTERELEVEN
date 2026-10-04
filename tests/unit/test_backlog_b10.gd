@@ -414,3 +414,55 @@ func test_fulltime_reactions_and_crowd_leaves() -> void:
 	_step(600)
 	var empty: float = StadiumBuilder.crowd_material.get_shader_parameter("empty")
 	assert_gt(empty, 0.05, "la gente se va yendo")
+
+
+## Noche: los reflectores sólo proyectan sombras de jugadores y pelota (la
+## cancha y el estadio van en otra capa: sin la grilla de arcos, red y techos).
+func test_floodlights_only_shadow_the_players() -> void:
+	GameSettings.time_choice = MatchConditions.TimeOfDay.NIGHT
+	_start_match()
+	GameSettings.time_choice = -1
+	assert_false(m.atmosphere.floodlights.is_empty())
+	for spot in m.atmosphere.floodlights:
+		assert_eq(spot.shadow_caster_mask, Atmosphere.ACTORS_LAYER)
+	for n in m.stadium.find_children("*", "VisualInstance3D", true, false):
+		assert_eq((n as VisualInstance3D).layers, Atmosphere.SCENERY_LAYER, "estadio en su capa")
+		break
+	for p in m.all_players():
+		for n in p.find_children("*", "GeometryInstance3D", true, false):
+			assert_true((n as VisualInstance3D).layers & Atmosphere.ACTORS_LAYER != 0, "jugadores en la capa que da sombra")
+			break
+	assert_lt(m.atmosphere.sun.shadow_opacity, 0.6, "sombra del sol más suave")
+
+
+## Coloso del Sur: los bancos van embutidos en el muro (antes quedaban delante
+## del túnel y tapaban la salida).
+func test_coloso_benches_do_not_block_the_tunnel() -> void:
+	var style := StadiumStyles.get_style(4)
+	assert_eq(style["name"], "Coloso del Sur")
+	var bench_z := Pitch.HALF_WIDTH + float(style.get("bench", style["wall"])) - 1.2
+	var tunnel_z := Pitch.HALF_WIDTH + float(style["gap"])
+	assert_lt(tunnel_z - bench_z, 2.0, "el banco queda al lado de la boca del túnel")
+
+
+## Calentamiento: un entrenador le patea al arquero y hay pelotas sueltas;
+## la fila de la presentación queda prolija con el árbitro en el medio.
+func test_warmup_coach_loose_balls_and_tidy_lineup() -> void:
+	GameSettings.play_intro = true
+	GameSettings.set_mode(GameSettings.Mode.CPU_VS_CPU)
+	m = load("res://scenes/match/match.tscn").instantiate()
+	add_child_autofree(m)
+	var intro := m.intro
+	intro._enter(MatchIntro.Step.WARMUP)
+	for d in intro._keeper_drills:
+		assert_not_null(d.get("coach"), "entrenador de arqueros")
+		var gk: Footballer = d["keeper"]
+		assert_almost_eq((d["coach"] as Node3D).global_position.distance_to(gk.flat_pos()), MatchIntro.COACH_DIST, 1.5)
+	assert_eq(intro._loose_balls.size(), MatchIntro.LOOSE_BALLS * 2)
+	intro._enter(MatchIntro.Step.TUNNEL)
+	assert_true(intro._loose_balls.is_empty(), "se levantan al salir")
+	intro._enter(MatchIntro.Step.LINEUP)
+	for p in intro._targets:
+		assert_almost_eq(p.flat_pos().distance_to(intro._targets[p]), 0.0, 0.05, "en su lugar")
+	assert_almost_eq(m.referee.global_position.x, 0.0, 0.05, "el árbitro al medio")
+	intro._enter(MatchIntro.Step.DONE)

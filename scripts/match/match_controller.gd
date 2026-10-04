@@ -280,12 +280,18 @@ func _build_world() -> void:
 	atmosphere.name = "Atmosphere"
 	add_child(atmosphere)
 	atmosphere.setup(conditions)
-	add_child(PitchBuilder.build(atmosphere.grass_params()))
+	var pitch := PitchBuilder.build(atmosphere.grass_params())
+	add_child(pitch)
 	if GameSettings.training:
 		stadium = ClubHouseBuilder.build(GameSettings.home_team())
 	else:
 		stadium = StadiumBuilder.build(GameSettings.home_team(), GameSettings.away_team())
 	add_child(stadium)
+	# Cancha y estadio en su propia capa: los reflectores de la noche sólo
+	# proyectan sombras de los jugadores y la pelota (no la grilla de los
+	# arcos, la red, los carteles y los techos sobre el césped).
+	Atmosphere.move_to_scenery_layer(pitch)
+	Atmosphere.move_to_scenery_layer(stadium)
 	if conditions.time_of_day == MatchConditions.TimeOfDay.NIGHT:
 		StadiumBuilder.disable_shadows(stadium)
 
