@@ -205,6 +205,20 @@ func _dribble(dt: float) -> void:
 	state.spin = Vector3.ZERO
 
 
+## Giro visual de la pelota (lo graba la repetición).
+func spin_pose() -> Quaternion:
+	return _mesh.quaternion if _mesh != null else Quaternion.IDENTITY
+
+
+## Pose de la pelota en una repetición: lugar, giro y sombra.
+func replay_pose(pos: Vector3, rot: Quaternion) -> void:
+	global_position = pos
+	if _mesh != null:
+		_mesh.quaternion = rot
+	if _shadow != null:
+		_shadow.global_position = Vector3(pos.x, 0.02, pos.z)
+
+
 func _sync_node(dt: float) -> void:
 	if dt > 0.0:
 		visual_offset *= exp(-dt / VISUAL_SETTLE)

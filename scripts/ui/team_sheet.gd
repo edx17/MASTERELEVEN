@@ -185,6 +185,12 @@ func entries() -> Array[Dictionary]:
 func _rebuild() -> void:
 	if team == null:
 		return
+	# El foco vive en filas y botones que se rearman: se recuerda dónde estaba
+	# para devolverlo (si no, al cambiar de columna con L1 / R1 el cursor se
+	# perdía y no se podía seguir).
+	var owner: Control = get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	var was_row := owner != null and _rows.has(owner)
+	var menu_idx := _menu.get_children().find(owner) if owner != null and _menu != null else -1
 	_entries = entries()
 	for c in _list.get_children():
 		_list.remove_child(c)
@@ -211,8 +217,14 @@ func _rebuild() -> void:
 	_pitch.queue_redraw()
 	_show_detail(_focus_index)
 	_status.text = _hint()
-	if _focus_index < _rows.size() and (mode != Mode.SUBSTITUTE or not _marked.is_empty()):
-		_rows[_focus_index].grab_focus()
+	if _rows.is_empty():
+		return
+	if was_row or mode != Mode.SUBSTITUTE or not _marked.is_empty():
+		_rows[clampi(_focus_index, 0, _rows.size() - 1)].grab_focus()
+	elif menu_idx >= 0 and menu_idx < _menu.get_child_count():
+		(_menu.get_child(menu_idx) as Control).grab_focus()
+	elif visible and is_inside_tree() and get_viewport().gui_get_focus_owner() == null:
+		_rows[0].grab_focus()
 
 
 func _row(i: int, e: Dictionary, pending: String) -> Button:

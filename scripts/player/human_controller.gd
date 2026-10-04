@@ -69,6 +69,10 @@ var _receive_lock_dir: Vector3 = Vector3.ZERO
 var _aim_dir: Vector3 = Vector3.ZERO
 var _aim_age: float = 999.0
 var _switch_cooldown: float = 0.0
+## L1: segundos hacia adelante en que se mira la pelota y ventaja (m) de los
+## que están entre la pelota y el arco propio al defender.
+const SWITCH_LOOKAHEAD := 0.45
+const SWITCH_GOAL_SIDE_BONUS := 4.0
 ## Último pase (contador de patadas del partido) ya usado para cambio automático.
 var _handled_kick: int = -1
 
@@ -114,6 +118,36 @@ func nearest_to_ball(exclude: Footballer = null) -> Footballer:
 		var d := p.flat_pos().distance_to(bp)
 		if d < best_d:
 			best_d = d
+			best = p
+	return best
+
+
+## A quién pasa el control con L1 (al instante): el destinatario de un pase
+## que viaja; si no, el que mejor llega adonde va a estar la pelota en un
+## momento. Defendiendo, pesan más los que están entre la pelota y el arco
+## propio (los que pueden cortar la línea).
+func switch_target() -> Footballer:
+	var ball := _match.ball
+	var recv := ball.intended_receiver
+	if recv != null and recv.team == team and recv != controlled and not recv.is_keeper() and ball.is_loose():
+		return recv
+	var ahead := ball.flat_pos() + Vector3(ball.state.vel.x, 0.0, ball.state.vel.z) * SWITCH_LOOKAHEAD
+	var rival_has_it := ball.owner_player != null and ball.owner_player.team != team
+	var own_goal := team.own_goal()
+	var best: Footballer = null
+	var best_score := INF
+	for p in team.players:
+		if p == controlled or p.is_keeper() or (p.is_human() and p.human_slot != slot):
+			continue
+		var score := p.flat_pos().distance_to(ahead)
+		if rival_has_it:
+			# Entre la pelota y el arco propio: puede cerrar el camino.
+			var to_goal := own_goal - ahead
+			var along := (p.flat_pos() - ahead).dot(to_goal.normalized())
+			if along > 0.0 and along < to_goal.length():
+				score -= SWITCH_GOAL_SIDE_BONUS
+		if score < best_score:
+			best_score = score
 			best = p
 	return best
 
@@ -165,7 +199,7 @@ func tick(dt: float) -> void:
 		_auto_off = false
 	# L1 sin la pelota = cambio de jugador (con la pelota es gambeta).
 	if input.just_pressed(&"special") and not r1 and not has_ball and not _match.is_restart_taker(controlled):
-		var next := nearest_to_ball(controlled)
+		var next := switch_target()
 		if next != null:
 			select(next)
 			_switch_cooldown = 1.0

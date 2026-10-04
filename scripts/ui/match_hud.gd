@@ -138,6 +138,9 @@ func _process(_dt: float) -> void:
 		var left := _match.hands_time_left()
 		if left >= 0.0 and left < 3.0 and _hint.text == "":
 			_hint.text = "Arquero: %d s (Triángulo la suelta)" % ceili(left)
+		var throw_left := _match.throw_in_time_left()
+		if throw_left >= 0.0 and throw_left < 3.0 and _hint.text == "":
+			_hint.text = "Lateral: %d s" % ceili(throw_left)
 	for side in 2:
 		var h := _human_for_team(side)
 		var p: Footballer = h.controlled if h != null else _reference_player(_match.teams[side])

@@ -103,7 +103,8 @@ func record() -> void:
 		players[p] = [p.global_position, p.rotation.y, p.velocity, p.state, p.state_timer, p.tripped, p.trip_back]
 	var ref := _match.referee
 	var ref_state: Array = [ref.global_position, ref.rotation.y, ref.velocity.length()] if ref != null else []
-	_frames.append({"ball": _match.ball.global_position, "players": players, "events": _events, "ref": ref_state})
+	_frames.append({"ball": _match.ball.global_position, "spin": _match.ball.spin_pose(), "players": players,
+		"events": _events, "ref": ref_state})
 	_events = []
 	var cap := int(SECONDS * RATE)
 	if _frames.size() > cap:
@@ -117,6 +118,20 @@ func clear() -> void:
 
 func has_frames() -> bool:
 	return _frames.size() > RATE
+
+
+## Copia de la jugada que se va a mostrar (para los highlights del
+## entretiempo y del final): {"frames", "kind", "team", "caption"}.
+func snapshot(p_kind: int, team: int, caption: String) -> Dictionary:
+	var seconds := SECONDS if p_kind == Kind.GOAL else CHANCE_SECONDS
+	var first := maxi(0, _frames.size() - int(seconds * RATE))
+	return {"frames": _frames.slice(first), "kind": p_kind, "team": team, "caption": caption}
+
+
+## Muestra una jugada guardada (highlight) con la misma cortina y cartel.
+func play_clip(clip: Dictionary) -> void:
+	_frames = (clip["frames"] as Array).duplicate()
+	start(clip["kind"], clip["team"], clip["caption"])
 
 
 ## Arranca la repetición. `team` = el que atacaba (para ubicar la cámara);
@@ -221,7 +236,7 @@ func _apply_frame(i: int, dt: float) -> void:
 		if dt > 0.0:
 			_match.referee.visual.update(dt, r[2], 8.4, PlayerVisual.Pose.NORMAL, 0.0)
 	var ball: Vector3 = f["ball"]
-	_match.ball.global_position = ball
+	_match.ball.replay_pose(ball, f.get("spin", Quaternion.IDENTITY))
 	# Cámara: detrás del que ataca, baja y siguiendo la pelota.
 	var dir := float(_match.teams[_team].attack_dir)
 	var cam_pos := Vector3(ball.x - dir * 11.0, 3.6, ball.z + 7.5)

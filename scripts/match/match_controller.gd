@@ -16,6 +16,8 @@ const FORECAST_STEP := 0.1
 const FORECAST_POINTS := 30
 const STOP_DELAY := 1.1
 const FOUL_DELAY := 2.0
+## Tiempo para sacar un lateral (s).
+const THROW_IN_LIMIT := 6.0
 ## Falta fuerte (barrida o de atrás): el derribado queda en el piso este rato.
 const HARD_FOUL_DOWN := 3.4
 ## Distancia de la pelota desde la que el arquero ordena a la defensa.
@@ -43,6 +45,10 @@ const FK_STAND_BACK := 1.1
 const FK_STAND_SIDE := 0.8
 const GOAL_DELAY := 3.0
 const HALFTIME_DELAY := 3.0
+## Segundos que la jugada sigue por inercia después del pitazo y que la
+## pantalla del entretiempo espera sola si no hay humanos.
+const WHISTLE_COAST := 3.5
+const BREAK_AUTO_CONTINUE := 6.0
 const RESTART_AI_DELAY := 1.0
 const RESTART_HUMAN_DELAY := 0.35
 ## Saque de arco: el arquero deja la pelota en la línea del área chica,
@@ -102,7 +108,7 @@ var _post_hit := false
 
 var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won": [0, 0],
 	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0], "subs": [0, 0], "injuries": [0, 0], "contacts": [0, 0],
-	"chilenas": [0, 0]}
+	"chilenas": [0, 0], "corners": [0, 0], "possession": [0.0, 0.0]}
 ## Atajada planificada para el último remate (ver SaveModel):
 ## {keeper, will_save, parry, point, time_left, chance}. Vacío si no hay.
 var save_plan := {}
@@ -139,6 +145,13 @@ var _first_half_kicker: int = 0
 var _camera: MatchCamera
 ## Árbitro (sólo presentación).
 var referee: Referee
+## Jugadas repetidas en el partido (goles, atajadas, faltas), para verlas en
+## el entretiempo y al final.
+var highlights: Array[Dictionary] = []
+## Entretiempo / final: pantalla de estadísticas y si ya se mostró (antes,
+## unos segundos con la jugada siguiendo por inercia y sin control).
+var halftime_screen: HalftimeScreen
+var _break_shown := false
 ## Entrenamiento en el Club House (null en un partido).
 var training: TrainingSession
 ## Amonestación en curso: el árbitro va hasta el infractor y le muestra la
@@ -323,6 +336,10 @@ func _build_world() -> void:
 	replay.finished.connect(_on_replay_finished)
 	ball.hit_post.connect(func() -> void: _post_hit = true)
 
+	if not GameSettings.training:
+		halftime_screen = HalftimeScreen.new()
+		add_child(halftime_screen)
+		halftime_screen.setup(self)
 	var pause := PauseMenu.new()
 	add_child(pause)
 
@@ -353,7 +370,7 @@ func _on_intro_finished() -> void:
 
 
 func _physics_process(dt: float) -> void:
-	if phase == Phase.REPLAY:
+	if phase == Phase.REPLAY or (replay != null and replay.playing and phase in [Phase.HALFTIME, Phase.FULLTIME]):
 		replay.tick(dt)
 		return
 	if phase == Phase.INTRO:
@@ -377,6 +394,8 @@ func _physics_process(dt: float) -> void:
 		training.after_ai(dt)
 	if phase == Phase.GOAL:
 		_drive_celebration(dt)
+	if phase in [Phase.HALFTIME, Phase.FULLTIME]:
+		_release_players()
 	var goal_kick := goal_kick_in_progress()
 	if goal_kick:
 		_drive_goal_kick()
@@ -409,6 +428,9 @@ func _physics_process(dt: float) -> void:
 	if phase == Phase.PLAYING:
 		_update_possession(dt)
 		_check_offside()
+		var holder_team := ball.owner_player.team.index if ball.owner_player != null else ball.last_touch_team
+		if holder_team >= 0:
+			stats["possession"][holder_team] += dt
 
 	clock.running = training == null and (phase in [Phase.PLAYING, Phase.STOPPED] or (phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF))
 	# El reloj va en tiempo real aunque el juego corra más lento (velocidad).
@@ -461,6 +483,7 @@ func _update_phase(dt: float) -> void:
 			_restart_elapsed += dt
 			if _restart_elapsed > 0.8:
 				banner_text = ""
+			_check_throw_in_limit()
 		Phase.STOPPED:
 			if training != null:
 				# Entrenamiento: sin repetición ni saque; se rearma la jugada.
@@ -476,6 +499,7 @@ func _update_phase(dt: float) -> void:
 					replay_request = {}
 					banner_text = ""
 					_set_phase(Phase.REPLAY)
+					highlights.append(replay.snapshot(req["kind"], req["team"], req["caption"]))
 					replay.start(req["kind"], req["team"], req["caption"])
 				else:
 					replay_request = {}
@@ -488,19 +512,19 @@ func _update_phase(dt: float) -> void:
 					var caption := "GOL"
 					if goal_scorer != null:
 						caption = "GOL   " + Replay.scorer_line(goal_scorer, goal_scorer.team.index != _pending.team)
+					highlights.append(replay.snapshot(Replay.Kind.GOAL, _pending.team, caption))
 					replay.start(Replay.Kind.GOAL, _pending.team, caption)
 				else:
 					_setup_kickoff(1 - _pending.team)
 		Phase.HALFTIME:
 			if _phase_timer <= 0.0:
-				for t in teams:
-					t.attack_dir = -t.attack_dir
-				for p in all_players():
-					p.rest_at_halftime()
-				clock.start_second_half()
-				_setup_kickoff(1 - _first_half_kicker)
+				if not _break_shown:
+					_show_break()
+				else:
+					start_second_half()
 		Phase.FULLTIME:
-			pass
+			if _phase_timer <= 0.0 and not _break_shown:
+				_show_break()
 
 
 func _set_phase(p: Phase) -> void:
@@ -1411,6 +1435,35 @@ func _update_keeper_hands(dt: float) -> void:
 		perform_kick(gk, KickActions.Kind.LONG_PASS, Vector3(gk.team.attack_dir, 0.0, 0.0), 0.8)
 
 
+## Lateral: el que saca tiene 6 s. Si no sacó, se la da al compañero más
+## cercano (no se consume el reloj del partido esperando).
+func _check_throw_in_limit() -> void:
+	if restart_type != MatchRules.Restart.THROW_IN or restart_taker == null:
+		return
+	if _restart_elapsed < THROW_IN_LIMIT:
+		return
+	var taker := restart_taker
+	var best: Footballer = null
+	var best_d := INF
+	for p in taker.team.players:
+		if p == taker or p.is_keeper():
+			continue
+		var d := p.flat_pos().distance_to(taker.flat_pos())
+		if d < best_d:
+			best_d = d
+			best = p
+	var dir := (best.flat_pos() - taker.flat_pos()) if best != null else Vector3(taker.team.attack_dir, 0.0, -signf(taker.global_position.z))
+	show_toast("Se acabó el tiempo del lateral", 1.5)
+	perform_kick(taker, KickActions.Kind.SHORT_PASS, dir, 0.45, best)
+
+
+## Segundos que le quedan al que saca el lateral (para el HUD), o -1.
+func throw_in_time_left() -> float:
+	if phase != Phase.RESTART or restart_type != MatchRules.Restart.THROW_IN or restart_taker == null:
+		return -1.0
+	return maxf(0.0, THROW_IN_LIMIT - _restart_elapsed)
+
+
 ## Segundos que le quedan al arquero con la pelota en las manos (para el HUD).
 func hands_time_left() -> float:
 	return maxf(0.0, KEEPER_HANDS_LIMIT - hands_time) if ball.in_hands and phase == Phase.PLAYING else -1.0
@@ -1941,6 +1994,8 @@ func _check_rules() -> void:
 			audio.cheer("ooh")
 			request_replay(Replay.Kind.CHANCE, shooter.team.index, ("¡Al palo!   " if _post_hit else "¡Cerca!   ") + "Remate de %s" % shooter.display_name)
 	_post_hit = false
+	if outcome.type == MatchRules.Restart.CORNER:
+		stats["corners"][outcome.team] += 1
 	var names := {
 		MatchRules.Restart.GOAL_KICK: "SAQUE DE ARCO",
 		MatchRules.Restart.CORNER: "CÓRNER",
@@ -2164,15 +2219,51 @@ func camera() -> MatchCamera:
 	return _camera
 
 
+## Pitazo del final de un tiempo: sin control, la jugada sigue unos segundos
+## por inercia (la pelota rueda, los jugadores frenan) y después aparece la
+## pantalla de estadísticas.
 func _end_half() -> void:
-	if clock.half == 1:
-		banner_text = "ENTRETIEMPO"
-		_phase_timer = HALFTIME_DELAY
-		_set_phase(Phase.HALFTIME)
-	else:
-		banner_text = "FINAL"
-		_set_phase(Phase.FULLTIME)
+	banner_text = "ENTRETIEMPO" if clock.half == 1 else "FINAL"
+	_phase_timer = WHISTLE_COAST
+	_break_shown = false
+	_set_phase(Phase.HALFTIME if clock.half == 1 else Phase.FULLTIME)
+
+
+## Todos sueltan los controles (entretiempo / final): frenan solos.
+func _release_players() -> void:
+	for p in all_players():
+		p.desired_move = Vector3.ZERO
+		p.wants_sprint = false
+		p.wants_tackle = false
+
+
+## Termina el tiempo de inercia: se congela la jugada y se muestra la
+## pantalla (sin humanos, sigue sola después de un rato).
+func _show_break() -> void:
+	_break_shown = true
 	ball.frozen = true
+	ball.state.vel = Vector3.ZERO
+	banner_text = ""
+	if halftime_screen != null:
+		halftime_screen.open(phase == Phase.FULLTIME)
+	_phase_timer = BREAK_AUTO_CONTINUE if humans.is_empty() or halftime_screen == null else INF
+
+
+## Arranca el segundo tiempo (desde la pantalla del entretiempo o sola).
+func start_second_half() -> void:
+	if phase != Phase.HALFTIME:
+		return
+	if halftime_screen != null:
+		halftime_screen.close()
+	if _camera != null:
+		_camera.end_cinematic()
+	for t in teams:
+		t.attack_dir = -t.attack_dir
+	for p in all_players():
+		p.rest_at_halftime()
+	clock.start_second_half()
+	ball.frozen = false
+	_setup_kickoff(1 - _first_half_kicker)
 
 
 func _begin_restart(type: int, taker: Footballer) -> void:

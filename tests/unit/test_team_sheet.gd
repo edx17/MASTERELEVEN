@@ -69,6 +69,21 @@ func test_column_cycles_with_l1_r1() -> void:
 	assert_eq(sh.column, TeamSheet.Column.CONDITION)
 
 
+func test_focus_survives_the_column_change() -> void:
+	# Con el cursor en un jugador, L1 / R1 rearma la lista: el foco no se pierde.
+	var sh := _sheet(false)
+	sh._rows[4].grab_focus()
+	sh._focus_index = 4
+	sh.cycle_column(1)
+	var owner := sh.get_viewport().gui_get_focus_owner()
+	assert_not_null(owner, "sigue habiendo foco")
+	assert_eq(owner, sh._rows[4], "en el mismo jugador")
+	# Y con el cursor en el menú, vuelve al mismo botón.
+	(sh._menu.get_child(1) as Control).grab_focus()
+	sh.cycle_column(1)
+	assert_eq(sh.get_viewport().gui_get_focus_owner(), sh._menu.get_child(1))
+
+
 func test_prematch_swap_is_free() -> void:
 	var t := m.teams[0]
 	var sh := _sheet(true)
