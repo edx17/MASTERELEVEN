@@ -80,7 +80,7 @@ const SETTINGS_PATH := "user://settings.cfg"
 const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", "wind_choice",
 	"pitch_choice", "pitch_wear", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
 	"stick_directions", "camera_preset", "show_pass_target", "offside", "home_team_path", "away_team_path",
-	"home_kit", "away_kit", "show_replays", "replay_chances", "player_style", "sfx_volume", "crowd_volume"]
+	"home_kit", "away_kit", "show_replays", "replay_chances", "player_style", "sfx_volume", "crowd_volume", "music_volume"]
 ## Falso en los tests y las herramientas: no leen ni pisan la configuración
 ## del jugador (así los resultados no dependen de lo que eligió).
 var persist := true
@@ -111,6 +111,8 @@ var last_result: Array = []
 ## Volumen de efectos (silbato, pelota) y del público, 0..10.
 var sfx_volume: int = 8
 var crowd_volume: int = 7
+## Volumen de la música del menú, 0..10.
+var music_volume: int = 6
 
 
 func _ready() -> void:
@@ -188,6 +190,7 @@ func load_settings(path: String = SETTINGS_PATH) -> void:
 		away_team_path = DEFAULT_AWAY
 	sfx_volume = clampi(sfx_volume, 0, 10)
 	crowd_volume = clampi(crowd_volume, 0, 10)
+	music_volume = clampi(music_volume, 0, 10)
 	home_kit = clampi(home_kit, 0, 1)
 	away_kit = clampi(away_kit, 0, 1)
 

@@ -60,9 +60,10 @@ static func _build_grass(root: Node3D, params: Dictionary = {}) -> void:
 	var mat := ShaderMaterial.new()
 	mat.shader = preload("res://scripts/stadium/grass.gdshader")
 	for k in params:
-		if k != "worn":
+		if k != "worn" and k != "dirt":
 			mat.set_shader_parameter(k, params[k])
 	GrassTextures.apply(mat, bool(params.get("worn", false)))
+	GrassTextures.apply_dirt(mat, float(params.get("dirt", 0.0)))
 	if float(params.get("snow", 0.0)) > 0.0:
 		mat.set_shader_parameter("snow_noise", _snow_noise())
 	grass_material = mat

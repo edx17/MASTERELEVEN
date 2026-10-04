@@ -250,6 +250,11 @@ func tick(dt: float) -> void:
 	# L1 mantenido con la pelota: conducción cerrada (gambeta).
 	p.close_control = has_ball and l1 and not r1
 
+	# Tiro libre con la cámara atrás: el stick derecho gira la mira (y la
+	# cámara); el pateador no gira en el lugar.
+	if _match.free_kick_camera_active() and _match.is_restart_taker(p):
+		_match.turn_set_piece_aim(input.right_vector().x, dt)
+
 	# Remate potente perfilándose: frena, no acepta otra orden y le pega al
 	# terminar el armado (si todavía la tiene al alcance).
 	if not _windup.is_empty():
@@ -266,7 +271,7 @@ func tick(dt: float) -> void:
 		return
 
 	# Gambetas con la pelota: bicicleta (L1 x3) y marsellesa (stick derecho 360°).
-	if has_ball:
+	if has_ball and _match.phase != MatchController.Phase.RESTART:
 		if input.just_pressed(&"special"):
 			_l1_taps.append(_clock)
 			while not _l1_taps.is_empty() and _clock - _l1_taps[0] > TRIPLE_TAP:
@@ -550,12 +555,19 @@ func _do_kick(kind: int, pwr: float, move: Vector3, target: Footballer = null,
 		variant: int = KickActions.Variant.NORMAL, one_two: bool = false) -> void:
 	kind = aerial_kind(kind, controlled, _match.ball)
 	var passer := controlled
-	var set_piece := _match.phase == MatchController.Phase.RESTART and \
-			_match.restart_type in [MatchRules.Restart.FREE_KICK, MatchRules.Restart.CORNER]
-	var kicks_before := _match.kick_count
+	var restart := _match.phase == MatchController.Phase.RESTART and _match.is_restart_taker(controlled)
+	# Pelota parada a la WE2002: el pateador toma carrera y lo que se
+	# mantiene en el stick al llegar decide el tipo de remate.
+	if restart and _match.restart_type == MatchRules.Restart.PENALTY and kind == KickActions.Kind.SHOT:
+		_match.order_penalty(controlled, pwr, self)
+		return
+	if restart and _match.free_kick_camera_active() and kind in [KickActions.Kind.SHOT, KickActions.Kind.LONG_PASS]:
+		_match.order_free_kick(controlled, kind, pwr, self)
+		return
+	if restart and _match.restart_type in [MatchRules.Restart.FREE_KICK, MatchRules.Restart.CORNER]:
+		# La comba (stick derecho) se aplica cuando le pega, después de la carrera.
+		_match.pending_curl = _match.screen_to_world(input.right_vector())
 	var receiver := _match.perform_kick(controlled, kind, move, pwr, target, variant)
-	if set_piece and _match.kick_count != kicks_before:
-		_match.apply_set_piece_curl(_match.screen_to_world(input.right_vector()))
 	_auto_off = false
 	if one_two and receiver != null and receiver.team == team and not receiver.is_keeper():
 		# Pared: el control se queda en el que la tocó, que pica al espacio.

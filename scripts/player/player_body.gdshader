@@ -32,6 +32,10 @@ uniform vec3 number_outline : source_color = vec3(0.0);
 uniform bool crest = true;
 uniform float cloth_inflate = 0.012;
 uniform float cloth_smooth = 0.8;
+// Trama de la tela (normal map de tejido, assets/textures/fabric): se usa
+// como sombreado fino de la camiseta y el short.
+uniform bool use_fabric = false;
+uniform sampler2D fabric_tex : hint_normal, filter_linear_mipmap, repeat_enable;
 
 // Plano: entre la piel (3) y el pelo (5) no tiene que aparecer otra zona.
 varying flat float v_region;
@@ -153,9 +157,17 @@ void fragment() {
 		if (v_torso > 0.5) {
 			NORMAL = normalize(mix(NORMAL, normalize(v_cyl_normal), cloth_smooth));
 		}
-		// Trama muy fina de la tela.
-		float weave = hash(floor(v_rest.xy * 260.0)) * 0.06;
-		c *= 0.97 + weave;
+		// Trama de la tela: con la textura de tejido, un relieve suave que
+		// se apaga de lejos (si no, titila); sin ella, un ruido muy fino.
+		if (use_fabric) {
+			vec2 uv = vec2(v_rest.x + v_rest.z, v_rest.y) * 7.0;
+			vec2 w = texture(fabric_tex, uv).rg - vec2(0.5);
+			float near = 1.0 - smoothstep(0.004, 0.03, fwidth(uv.x));
+			c *= 1.0 + (w.x + w.y) * 0.22 * near;
+		} else {
+			float weave = hash(floor(v_rest.xy * 260.0)) * 0.06;
+			c *= 0.97 + weave;
+		}
 		rough = 0.95;
 		spec = 0.12;
 	}

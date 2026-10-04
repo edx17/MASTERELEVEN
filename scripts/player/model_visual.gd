@@ -179,6 +179,10 @@ func setup(colors: Dictionary, seed: int) -> void:
 		mat.set_shader_parameter("hands", colors.get("gloves", skin))
 		mat.set_shader_parameter("trim", _trim_for(shirt, colors.get("shorts", Color.WHITE)))
 		_apply_kit(mat, colors)
+		var fabric := fabric_texture()
+		if fabric != null:
+			mat.set_shader_parameter("use_fabric", true)
+			mat.set_shader_parameter("fabric_tex", fabric)
 		body.material_override = mat
 		_body_mat = mat
 	# Cuerpo clásico (por defecto): pocos polígonos y proporciones normales,
@@ -1201,3 +1205,16 @@ static func _region(v: Vector3) -> int:
 	if ax < 0.25:
 		return 0 # torso
 	return 0 if ax < 0.46 else 3 # manga corta / brazo
+
+
+## Textura de tejido para la ropa (opcional; Poliigon, ver CREDITS).
+const FABRIC_PATH := "res://assets/textures/fabric/fabric_normal.jpg"
+static var _fabric: Texture2D
+static var _fabric_checked := false
+
+static func fabric_texture() -> Texture2D:
+	if not _fabric_checked:
+		_fabric_checked = true
+		if ResourceLoader.exists(FABRIC_PATH):
+			_fabric = load(FABRIC_PATH) as Texture2D
+	return _fabric

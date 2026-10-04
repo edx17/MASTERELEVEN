@@ -27,6 +27,7 @@ func _ready() -> void:
 	get_tree().paused = false
 	Engine.time_scale = 1.0
 	WEStyle.background(self)
+	_start_music()
 	_help = WEStyle.help_box(self)
 	_build_home()
 	_build_modes()
@@ -326,7 +327,12 @@ func _build_options() -> void:
 			"Silbato del árbitro, patadas, piques, palo y red."],
 		["Volumen del público", func() -> String: return str(GameSettings.crowd_volume),
 			func(d: int) -> void: GameSettings.crowd_volume = clampi(GameSettings.crowd_volume + d, 0, 10),
-			"El murmullo de la tribuna, los gritos de gol y los \"uhh\"."],
+			"El murmullo de la tribuna, los cánticos, los silbidos, los aplausos y los \"uhh\"."],
+		["Volumen de la música", func() -> String: return str(GameSettings.music_volume),
+			func(d: int) -> void:
+				GameSettings.music_volume = clampi(GameSettings.music_volume + d, 0, 10)
+				_update_music(),
+			"La música de los menúes."],
 		["Repeticiones", func() -> String:
 				if not GameSettings.show_replays:
 					return "no"
@@ -408,3 +414,44 @@ static func stadium_thumbnail(i: int) -> Texture2D:
 	var img := Image.create(16, 9, false, Image.FORMAT_RGB8)
 	img.fill(Color(0.18, 0.2, 0.24))
 	return ImageTexture.create_from_image(img)
+
+
+# --- Música del menú (generada por código, MatchAudio.sound("menu_music")) ---
+
+var _music: AudioStreamPlayer
+
+
+var _ui_sfx: AudioStreamPlayer
+
+
+func _start_music() -> void:
+	_music = AudioStreamPlayer.new()
+	_music.stream = MatchAudio.stream("menu_music")
+	add_child(_music)
+	_update_music()
+	_music.play()
+	# Sonidos del menú (tus archivos): moverse entre opciones y elegir.
+	_ui_sfx = AudioStreamPlayer.new()
+	add_child(_ui_sfx)
+	get_viewport().gui_focus_changed.connect(func(_c: Control) -> void: _ui_sound("menu_move"))
+	get_tree().node_added.connect(_hook_button)
+	for b in find_children("*", "BaseButton", true, false):
+		_hook_button(b)
+
+
+func _hook_button(n: Node) -> void:
+	if n is BaseButton and not (n as BaseButton).pressed.is_connected(_ui_sound.bind("menu_select")):
+		(n as BaseButton).pressed.connect(_ui_sound.bind("menu_select"))
+
+
+func _ui_sound(name: String) -> void:
+	if _ui_sfx == null or not MatchAudio.has_file(name) or not is_inside_tree():
+		return
+	_ui_sfx.stream = MatchAudio.stream(name)
+	_ui_sfx.volume_db = linear_to_db(maxf(0.0001, GameSettings.sfx_volume / 10.0 * 0.7))
+	_ui_sfx.play()
+
+
+func _update_music() -> void:
+	if _music != null:
+		_music.volume_db = linear_to_db(maxf(0.0001, GameSettings.music_volume / 10.0 * 0.5))

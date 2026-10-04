@@ -270,6 +270,28 @@ func _clear_warmup() -> void:
 	_keeper_drills.clear()
 
 
+## Cambio antes del partido (TeamSheet → MatchController.swap_lineup): el
+## suplente toma el lugar del titular en el calentamiento, la fila y las
+## miradas (el titular se borra; si quedaba referenciado, se cerraba el juego).
+func replace_player(old: Footballer, new: Footballer) -> void:
+	for r in _rondos:
+		var ring: Array[Footballer] = r["ring"]
+		var i := ring.find(old)
+		if i >= 0:
+			ring[i] = new
+		if r["mid"] == old:
+			r["mid"] = new
+	for d in _keeper_drills:
+		if d["keeper"] == old:
+			d["keeper"] = new
+	if _targets.has(old):
+		_targets[new] = _targets[old]
+		_targets.erase(old)
+	if _looks.has(old):
+		_looks[new] = _looks[old]
+		_looks.erase(old)
+
+
 func _warmup_tick(dt: float) -> void:
 	for r in _rondos:
 		_rondo_tick(r, dt)

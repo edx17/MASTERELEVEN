@@ -44,6 +44,11 @@ func tick(p: Footballer, ai: TeamAI, dt: float) -> void:
 
 	var bp := ball.flat_pos()
 	var v := ball.state.vel
+	# Juego detenido (la pelota se fue, falta, offside): vuelve a su lugar
+	# caminando; no sigue a la pelota que se va.
+	if _match.phase == MatchController.Phase.STOPPED:
+		_position(p, ai, bp, goal, false)
+		return
 	# 1) Remate en curso: se tira al punto de cruce.
 	var plan: Dictionary = _match.save_plan
 	if plan.get("keeper") == p and plan.get("elapsed", 1.0) < plan.get("react", 0.0):
@@ -63,6 +68,16 @@ func tick(p: Footballer, ai: TeamAI, dt: float) -> void:
 		p.speed_override = _match.tuning.keeper_dive_speed * (1.0 if plan["will_save"] else 0.55)
 		p.debug_state = "estirada" if plan["will_save"] else "no llega"
 		ai.go_to(p, spot, true)
+		return
+	# 1a) Penal en contra: sobre la línea, en el medio, esperando el remate
+	# (no sale a buscar al pateador; se tira cuando le pegan).
+	if _match.phase == MatchController.Phase.RESTART and _match.restart_type == MatchRules.Restart.PENALTY \
+			and _match.restart_taker != null and _match.restart_taker.team != team:
+		p.debug_state = "en la línea"
+		var line := Vector3(goal.x - own * 0.15, 0.0, 0.0)
+		ai.go_to(p, line, p.flat_pos().distance_to(line) > 2.0)
+		p.face_point = bp
+		p.look_at_point(bp)
 		return
 	# 1b) Pedido del humano (Triángulo mantenido): sale a achicar al rival
 	# que lleva la pelota (o a la pelota que acaba de tocar) mientras esté en
@@ -115,8 +130,12 @@ func tick(p: Footballer, ai: TeamAI, dt: float) -> void:
 			p.debug_state = "sale"
 			ai.go_to(p, bp, true)
 			return
-	# 6) Ubicación: sobre la línea pelota-centro del arco. Si el equipo
-	# defiende alto y la pelota está lejos, se adelanta (líbero).
+	_position(p, ai, bp, goal, true)
+
+
+## 6) Ubicación: sobre la línea pelota-centro del arco. Si el equipo
+## defiende alto y la pelota está lejos, se adelanta (líbero).
+func _position(p: Footballer, ai: TeamAI, bp: Vector3, goal: Vector3, can_run: bool) -> void:
 	p.debug_state = "ubicación"
 	var to_ball := bp - goal
 	var off := clampf(to_ball.length() * 0.12, 0.8, 4.0)
@@ -126,9 +145,13 @@ func tick(p: Footballer, ai: TeamAI, dt: float) -> void:
 	var spot3 := goal + to_ball.normalized() * off
 	if off < 5.0:
 		spot3.z = clampf(spot3.z, -Pitch.GOAL_HALF_WIDTH, Pitch.GOAL_HALF_WIDTH)
+	# Nunca detrás de la línea (pelota que se fue por el fondo).
+	var own := team.own_side()
+	if (spot3.x - goal.x) * own > -0.6:
+		spot3.x = goal.x - own * 0.6
 	# Si quedó lejos de su lugar (volvía de líbero o de una salida), vuelve
 	# corriendo: un arquero fuera de posición es gol seguro de lejos.
-	ai.go_to(p, spot3, p.flat_pos().distance_to(spot3) > 3.0)
+	ai.go_to(p, spot3, can_run and p.flat_pos().distance_to(spot3) > 3.0)
 	# Se acomoda de costado sin dejar de mirar la pelota (paso lateral).
 	p.face_point = bp
 	p.look_at_point(bp)

@@ -72,6 +72,30 @@ el shader.
 | Tierra / campo (1K) | `assets/textures/ground/` | Poliigon GroundFieldAgriculture 12105 | Licencia Poliigon |
 | Trama de tela (normal 512) | `assets/textures/fabric/` | ambientCG FabricPlainNaturalSheer009 | CC0 |
 
+## Sonidos grabados (B11, paso 4)
+
+Aportados por el autor del proyecto (subidos a `assets/_entrada/`), recortados
+a la parte útil y convertidos a OGG 44,1 kHz en `assets/audio/`. El origen y la
+licencia de cada grabación los informa el autor; si alguno no se puede
+redistribuir, se borra el .ogg y el juego vuelve al sonido generado por código.
+
+| Archivo | Original | Uso |
+|---|---|---|
+| `post.ogg` | crossbar.mp3 | Pelota en el palo / travesaño |
+| `ooh.ogg` | miss from freekick.wav (4-11 s) | "Uhh" de un remate que se va cerca |
+| `cheer.ogg` | sonido de gol.wav (3,5-15,5 s) | Grito de gol |
+| `goal_chant.ogg` | hinchada gol.wav (3-33 s) | La hinchada canta después del gol |
+| `whistles.ogg` | hinchada en contra del arbitro.wav (4,5-12,5 s) | Silbidos en faltas y tarjetas |
+| `whistle_short.ogg`, `whistle_long.ogg` | sonido silbato.wav | Pitazos del árbitro |
+| `whistle_end.ogg` | whistle final partido.wav (8 canales / 96 kHz → mono) | Final del partido |
+| `pass.ogg` | sonido de pase.wav | Pases |
+| `crowd.ogg` | supports in stadium.wav | Tribuna de fondo (loop) |
+| `chant.ogg` | sonido-hinchad.wav (30-90 s) | Cánticos de fondo (loop) |
+| `prematch.ogg` | sonido ambiente previo partido.wav | Ambiente durante la presentación (loop) |
+| `vuvuzelas.ogg` | vuvuzelas.wav (0-20 s) | Al terminar la presentación |
+| `fulltime_win.ogg` | end to game wins.mp3 | Festejo de la tribuna al final (si alguien ganó) |
+| `menu_move.ogg`, `menu_select.ogg` | sonido moverse en menu.ogg, sonido de seleccion.ogg | Menúes |
+
 ## Cielos HDRI (opcionales, CC0)
 
 `SkyTextures` usa un panorama de `assets/skies/` según el horario y el clima:
