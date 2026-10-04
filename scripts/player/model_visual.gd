@@ -956,7 +956,8 @@ func _apply_gestures() -> void:
 		Event.CHEER:
 			# Brazos arriba festejando desde donde está (los puños suben y bajan).
 			var up := minf(k * 6.0, 1.0) * minf((1.0 - k) * 6.0, 1.0)
-			var pump := 0.15 * sin(k * 18.0)
+			# Puños que suben y bajan al mismo ritmo dure lo que dure.
+			var pump := 0.25 * sin(_event_t * 9.0)
 			_rotate_bone("upperarm_l", Vector3.RIGHT, (-2.7 + pump) * up)
 			_rotate_bone("upperarm_r", Vector3.RIGHT, (-2.7 - pump) * up)
 			_rotate_bone("lowerarm_l", Vector3.RIGHT, -0.4 * up)

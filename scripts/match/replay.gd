@@ -551,4 +551,4 @@ class Wipe:
 ## "Swoosh" de la cortina.
 func _swoosh() -> void:
 	if _match != null and _match.audio != null:
-		_match.audio.play("swoosh", 0.8, randf_range(0.95, 1.05))
+		_match.audio.play("swoosh", 0.5, randf_range(0.95, 1.05))

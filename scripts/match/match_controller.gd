@@ -272,6 +272,8 @@ func waiting_kickoff(p: Footballer) -> bool:
 
 ## La IA ejecutora puede sacar.
 func restart_ready() -> bool:
+	if not sub_scenes.is_empty():
+		return false # esperando que termine el cambio
 	if phase == Phase.RESTART and restart_type == MatchRules.Restart.GOAL_KICK and goal_kick_stage == GoalKickStage.BACKING:
 		return false # todavía está tomando carrera
 	return phase == Phase.RESTART and _restart_elapsed >= RESTART_AI_DELAY
@@ -450,6 +452,8 @@ func _physics_process(dt: float) -> void:
 		_release_players()
 		if not walk_off.is_empty() and not _break_shown:
 			_drive_walk_off(dt)
+	if not sub_scenes.is_empty():
+		_drive_sub_scenes(dt)
 	var goal_kick := runup_in_progress()
 	if goal_kick:
 		_drive_goal_kick()
@@ -489,7 +493,8 @@ func _physics_process(dt: float) -> void:
 		if training == null:
 			ratings.tick(dt, dt / maxf(Engine.time_scale, 0.01) * clock.rate() / 60.0, teams, ball.owner_player)
 
-	clock.running = training == null and (phase in [Phase.PLAYING, Phase.STOPPED] or (phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF))
+	clock.running = training == null and sub_scenes.is_empty() \
+		and (phase in [Phase.PLAYING, Phase.STOPPED] or (phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF))
 	# El reloj va en tiempo real aunque el juego corra más lento (velocidad).
 	# Grabación para la repetición (el juego y el primer instante del gol).
 	# También con el juego detenido (los segundos después de la falta o de la
@@ -642,7 +647,7 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 			return null
 		_offside = {}
 	if phase == Phase.RESTART:
-		if player != restart_taker or _restart_elapsed < RESTART_HUMAN_DELAY:
+		if player != restart_taker or _restart_elapsed < RESTART_HUMAN_DELAY or not sub_scenes.is_empty():
 			return null
 		if restart_type in RUNUP_TYPES and not _goal_kick_kicking:
 			# La orden se guarda: primero toma carrera hasta la pelota.
@@ -1420,11 +1425,214 @@ func substitute(out: Footballer, in_data: PlayerData, as_keeper := false) -> Foo
 	t.subbed_off.append(out)
 	t.subs_used += 1
 	stats["subs"][t.index] += 1
-	_leave_pitch(out)
+	if _instant_subs or training != null or not phase in [Phase.STOPPED, Phase.RESTART, Phase.GOAL]:
+		_leave_pitch(out)
+	else:
+		_start_sub_scene(out, p)
 	if audio != null:
 		audio.applause()
 	show_toast("CAMBIO %s:  sale %s  -  entra %s" % [t.short_name, out.display_name, p.display_name], 2.5)
 	return p
+
+
+# --- Cambio animado -------------------------------------------------------------
+# El suplente espera en la mitad de cancha, junto a la línea, con el cuarto
+# árbitro (cartel arriba). El que sale camina hasta ahí y lo saluda (choque de
+# manos, apretón o nada); si está lejos sale por la línea más cercana. Después
+# el que entra corre a su puesto. El reloj no corre y no se reanuda hasta que
+# termina (con un tope por si algo se traba).
+
+## [{out, in, stage, t, greet, spot, exit, place}]
+var sub_scenes: Array[Dictionary] = []
+var fourth_official: Referee
+var _sub_board: MeshInstance3D
+var _instant_subs := false
+var _sub_cam := false
+const SUB_GREET_MAX := 25.0
+const SUB_GREET_TIME := 1.2
+const SUB_MAX_TIME := 12.0
+## Hasta dónde corre el que entra antes de que la IA lo tome (m adentro).
+const SUB_ENTER_DEPTH := 3.0
+
+
+## Lugar del cambio (afuera de la línea, en la mitad de cancha, del lado de
+## los bancos), corrido un poco hacia el campo del equipo.
+func sub_spot(t: Team) -> Vector3:
+	return Vector3(-t.attack_dir * 1.4, 0.0, Pitch.HALF_WIDTH + 0.9)
+
+
+func _start_sub_scene(out: Footballer, p: Footballer) -> void:
+	var t := out.team
+	var spot := sub_spot(t)
+	var place := out.flat_pos()
+	if ball.owner_player == out:
+		ball.owner_player = null
+	if ball.intended_receiver == out:
+		ball.intended_receiver = null
+	for h in humans:
+		if h.controlled == out:
+			out.set_human_slot(-1)
+			h.controlled = null
+			h.select(h.nearest_to_ball())
+	out.locked = false
+	out.clear_pass_target()
+	p.teleport(spot, Vector3(0.0, 0.0, -1.0))
+	p.visible = true
+	var greet_point := spot + Vector3(0.0, 0.0, -1.1)
+	var far := out.flat_pos().distance_to(greet_point) > SUB_GREET_MAX
+	# Si está lejos sale por la línea más cercana (sin saludo).
+	var exit := greet_point
+	if far:
+		var z_side := signf(out.global_position.z) if absf(out.global_position.z) > 1.0 else 1.0
+		exit = Vector3(out.global_position.x, 0.0, z_side * (Pitch.HALF_WIDTH + 1.5))
+	var greet := -1
+	if not far:
+		var r := randi() % 3
+		greet = PlayerVisual.Event.HIGH_FIVE if r == 0 else (PlayerVisual.Event.HANDSHAKE if r == 1 else -1)
+	sub_scenes.append({"out": out, "in": p, "stage": "far" if far else "walk", "t": 0.0, "greet": greet,
+		"spot": spot, "exit": exit, "place": place, "greeted": false})
+	_show_fourth_official(spot)
+	# Toma del cambio (si no hay otra toma en curso).
+	if _camera != null and not _camera.cinematic and phase != Phase.REPLAY:
+		_sub_cam = true
+		_camera.set_shot(spot + Vector3(-4.0, 3.2, -11.0), spot + Vector3(0.0, 1.0, -1.5), 38.0)
+		_camera.set_shot(spot + Vector3(4.0, 3.0, -10.0), spot + Vector3(0.0, 1.0, -1.5), 38.0, 0.12)
+
+
+func _show_fourth_official(spot: Vector3) -> void:
+	if fourth_official == null:
+		fourth_official = Referee.new()
+		add_child(fourth_official)
+		# Cartel luminoso de los cambios, en alto.
+		_sub_board = MeshInstance3D.new()
+		var box := BoxMesh.new()
+		box.size = Vector3(0.62, 0.42, 0.05)
+		_sub_board.mesh = box
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.08, 0.08, 0.1)
+		mat.emission_enabled = true
+		mat.emission = Color(0.1, 0.9, 0.3)
+		mat.emission_energy_multiplier = 1.2
+		_sub_board.material_override = mat
+		fourth_official.add_child(_sub_board)
+		_sub_board.position = Vector3(0.0, 2.25, 0.25)
+	var at := Vector3(spot.x + (1.3 if spot.x >= 0.0 else -1.3), 0.0, spot.z + 0.2)
+	fourth_official.visible = true
+	fourth_official.teleport(at)
+	fourth_official.target = at
+	fourth_official.look = Vector3(at.x, 0.0, 0.0)
+	_sub_board.visible = true
+
+
+func _drive_sub_scenes(dt: float) -> void:
+	if fourth_official != null and fourth_official.visible:
+		fourth_official.tick(dt, ball.global_position, false)
+	for sc in sub_scenes.duplicate():
+		sc["t"] += dt
+		sc["total"] = float(sc.get("total", 0.0)) + dt
+		var out: Footballer = sc["out"]
+		var inn: Footballer = sc["in"]
+		var spot: Vector3 = sc["spot"]
+		var greet_point := spot + Vector3(0.0, 0.0, -1.1)
+		# El que sale no está más en el equipo: se lo mueve acá.
+		match String(sc["stage"]):
+			"walk":
+				_sub_move(out, greet_point, 0.55, dt)
+				_sub_wait(inn, spot, out.flat_pos())
+				if out.flat_pos().distance_to(greet_point) < 1.0:
+					sc["stage"] = "greet"
+					sc["t"] = 0.0
+					var g: int = sc["greet"]
+					if g >= 0 and out.visual != null and inn.visual != null:
+						out.visual.play(g, 1.0)
+						inn.visual.play(g, -1.0)
+			"greet":
+				_sub_move(out, out.flat_pos(), 0.0, dt)
+				out.look_at_point(inn.flat_pos())
+				inn.desired_move = Vector3.ZERO
+				inn.look_at_point(out.flat_pos())
+				if sc["t"] >= (SUB_GREET_TIME if int(sc["greet"]) >= 0 else 0.4):
+					sc["stage"] = "enter"
+					sc["t"] = 0.0
+			"far":
+				# Sale por la línea más cercana; el suplente entra enseguida.
+				_sub_move(out, sc["exit"], 0.55, dt)
+				if sc["t"] > 1.0:
+					_sub_enter(sc, inn, dt)
+				else:
+					_sub_wait(inn, spot, Vector3(spot.x, 0.0, 0.0))
+				if out.flat_pos().distance_to(sc["exit"]) < 0.8:
+					_sub_hide_out(sc)
+			"enter":
+				_sub_enter(sc, inn, dt)
+				# El que salió se va caminando al banco.
+				var bench := spot + Vector3(-signf(out.team.attack_dir) * 4.0, 0.0, 3.0)
+				_sub_move(out, bench, 0.3, dt)
+				if out.flat_pos().distance_to(bench) < 0.8 or sc["t"] > 3.0:
+					_sub_hide_out(sc)
+		var done := bool(sc.get("out_gone", false)) and bool(sc.get("in_done", false))
+		if done or float(sc["total"]) > SUB_MAX_TIME:
+			_finish_sub_scene(sc)
+
+
+func _sub_move(p: Footballer, to: Vector3, pace: float, dt: float) -> void:
+	var d := to - p.flat_pos()
+	p.speed_override = 0.0
+	p.wants_sprint = false
+	p.desired_move = d.normalized() * pace if d.length() > 0.3 and pace > 0.0 else Vector3.ZERO
+	if not p.team.players.has(p):
+		p.tick(dt, false)
+
+
+func _sub_wait(p: Footballer, spot: Vector3, look: Vector3) -> void:
+	var d := spot - p.flat_pos()
+	p.desired_move = d.normalized() * 0.3 if d.length() > 0.3 else Vector3.ZERO
+	p.wants_sprint = false
+	if d.length() <= 0.3:
+		p.look_at_point(look)
+
+
+## El que entra corre hacia su puesto hasta estar adentro de la cancha.
+func _sub_enter(sc: Dictionary, inn: Footballer, _dt: float) -> void:
+	var place: Vector3 = sc["place"]
+	var d := place - inn.flat_pos()
+	inn.desired_move = d.normalized() if d.length() > 0.5 else Vector3.ZERO
+	inn.wants_sprint = true
+	if inn.global_position.z < Pitch.HALF_WIDTH - SUB_ENTER_DEPTH or d.length() < 1.0:
+		sc["in_done"] = true
+
+
+func _sub_hide_out(sc: Dictionary) -> void:
+	if sc.get("out_gone", false):
+		return
+	sc["out_gone"] = true
+	var out: Footballer = sc["out"]
+	out.desired_move = Vector3.ZERO
+	out.velocity = Vector3.ZERO
+	var t := out.team
+	out.teleport(Vector3(-8.0 + t.index * 16.0, 0.0, Pitch.HALF_WIDTH + 3.5), Vector3.FORWARD)
+	out.visible = false
+
+
+func _finish_sub_scene(sc: Dictionary) -> void:
+	_sub_hide_out(sc)
+	var inn: Footballer = sc["in"]
+	inn.wants_sprint = false
+	if inn.global_position.z > Pitch.HALF_WIDTH - 1.0:
+		inn.teleport(Vector3(inn.global_position.x, 0.0, Pitch.HALF_WIDTH - 1.5), Vector3(0, 0, -1))
+	sub_scenes.erase(sc)
+	if sub_scenes.is_empty():
+		if fourth_official != null:
+			fourth_official.target = Vector3.INF
+			fourth_official.visible = false
+		if _sub_cam and _camera != null and phase != Phase.REPLAY and not set_piece_cam:
+			_camera.end_cinematic()
+		_sub_cam = false
+
+
+func _finish_sub_scenes() -> void:
+	for sc in sub_scenes.duplicate():
+		_finish_sub_scene(sc)
 
 
 ## Expulsaron al arquero: si quedan cambios y hay arquero suplente, entra él
@@ -2728,8 +2936,13 @@ func _start_walk_off() -> void:
 					walk_off[p] = ["tunnel", tunnel + Vector3(randf_range(-1.5, 1.5), 0, 0), -1]
 				continue
 			if result > 0:
-				walk_off[p] = ["stay", p.flat_pos(),
-					PlayerVisual.Event.CHEER if i % 3 != 2 else PlayerVisual.Event.APPLAUD]
+				# Ganaron: la mitad corre a juntarse y festeja (festejos de
+				# gol); el resto salta con los brazos arriba donde está.
+				if i % 2 == 0 or p.is_keeper():
+					var meet := winners_meeting_point(t) + Vector3(randf_range(-2.5, 2.5), 0.0, randf_range(-2.0, 2.0))
+					walk_off[p] = ["party", meet, Celebrations.pick(p.base_data)]
+				else:
+					walk_off[p] = ["stay", p.flat_pos(), PlayerVisual.Event.CHEER]
 			elif result < 0:
 				var r := i % 5
 				if r == 0 and protest_left > 0:
@@ -2753,23 +2966,85 @@ func _start_walk_off() -> void:
 	for p in walk_off:
 		if p is Footballer and walk_off[p][0] == "stay" and p.visual != null:
 			p.visual.play(walk_off[p][2], _phase_timer)
-	# Cámara: en el entretiempo, hacia el túnel; en el final, la cancha.
+	# Cámara: en el entretiempo, toma aérea de toda la cancha alternada con
+	# la del túnel (ver _update_walk_off_camera); en el final, hacia los que
+	# ganaron (o la cancha, si empataron).
+	_walk_off_cam = -1
 	if _camera != null:
 		if final:
-			_camera.set_shot(Vector3(-28.0, 13.0, 30.0), Vector3(0.0, 0.5, 0.0), 42.0)
-			_camera.set_shot(Vector3(28.0, 11.0, 32.0), Vector3(0.0, 0.5, 0.0), 42.0, 0.12)
+			var focus := Vector3.ZERO
+			if diff != 0:
+				focus = winners_meeting_point(teams[0] if diff > 0 else teams[1])
+			_camera.set_shot(focus + Vector3(-22.0, 11.0, 24.0), focus + Vector3(0.0, 0.8, 0.0), 40.0)
+			_camera.set_shot(focus + Vector3(16.0, 8.0, 20.0), focus + Vector3(0.0, 0.8, 0.0), 40.0, 0.15)
 		else:
-			_camera.set_shot(Vector3(-6.0, 9.0, tunnel.z - 40.0), Vector3(0.0, 1.0, tunnel.z - 6.0), 40.0)
-			_camera.set_shot(Vector3(6.0, 7.0, tunnel.z - 30.0), Vector3(0.0, 1.0, tunnel.z - 4.0), 40.0, 0.12)
+			_update_walk_off_camera()
+
+
+## Dónde se juntan a festejar los que ganaron: en su mitad, del lado de la
+## tribuna principal (la de la cámara).
+func winners_meeting_point(t: Team) -> Vector3:
+	# Cerca de donde está el equipo (así llegan todos), corrido hacia la
+	# tribuna principal.
+	var c := Vector3.ZERO
+	var n := 0
+	for p in t.players:
+		if not p.is_keeper():
+			c += p.flat_pos()
+			n += 1
+	c = c / maxf(n, 1)
+	return Vector3(clampf(c.x, -Pitch.HALF_LENGTH + 12.0, Pitch.HALF_LENGTH - 12.0), 0.0,
+		clampf(c.z + 8.0, -Pitch.HALF_WIDTH + 8.0, Pitch.HALF_WIDTH - 8.0))
+
+
+## Entretiempo: tomas que se alternan (aérea con la cancha completa / desde
+## el túnel viéndolos venir), cada ENTRETIEMPO_SHOT segundos.
+const HALFTIME_SHOT := 3.5
+## Final: lo que corren a juntarse antes de festejar (después, donde estén).
+const PARTY_RUN_TIME := 3.5
+var _walk_off_cam := -1
+
+func _update_walk_off_camera() -> void:
+	if _camera == null or phase != Phase.HALFTIME or walk_off.is_empty():
+		return
+	var elapsed := WALK_OFF_TIME - _phase_timer
+	var shot := int(maxf(elapsed, 0.0) / HALFTIME_SHOT) % 2
+	if shot == _walk_off_cam:
+		return
+	_walk_off_cam = shot
+	var tz := StadiumBuilder.tunnel_z
+	if shot == 0:
+		# Aérea: toda la cancha, bien alta, con un paneo lento.
+		_camera.set_shot(Vector3(-6.0, 88.0, 46.0), Vector3(0.0, 0.0, 3.0), 50.0)
+		_camera.set_shot(Vector3(6.0, 90.0, 48.0), Vector3(0.0, 0.0, 3.0), 50.0, 0.08)
+	else:
+		# Desde adentro del túnel: los jugadores vienen hacia la cámara.
+		_camera.set_shot(Vector3(0.6, 2.2, tz + 3.0), Vector3(0.0, 1.4, tz - 18.0), 55.0)
+		_camera.set_shot(Vector3(-0.6, 2.3, tz + 3.4), Vector3(0.0, 1.4, tz - 18.0), 55.0, 0.1)
 
 
 func _drive_walk_off(_dt: float) -> void:
+	_update_walk_off_camera()
 	for p in walk_off:
 		if not (p is Footballer):
 			continue
 		var w: Array = walk_off[p]
 		var fp: Footballer = p
 		match w[0]:
+			"party":
+				# Corre a juntarse con los compañeros y festeja (y repite).
+				var to_meet: Vector3 = (w[1] as Vector3) - fp.flat_pos()
+				var late := FULLTIME_REACTIONS - _phase_timer > PARTY_RUN_TIME
+				if w.size() < 4 and to_meet.length() > 1.2 and not late:
+					fp.desired_move = to_meet.normalized()
+					fp.wants_sprint = true
+				else:
+					fp.wants_sprint = false
+					fp.desired_move = Vector3.ZERO
+					if fp.celebrate_timer <= 0.0:
+						if w.size() < 4:
+							w.append(true)
+						fp.celebrate(Celebrations.duration(int(w[2])), int(w[2]))
 			"tunnel":
 				# Primero hasta la boca (un poco antes, alineados) y después
 				# adentro del túnel; desaparecen ya adentro.
@@ -2925,7 +3200,11 @@ func _begin_restart(type: int, taker: Footballer) -> void:
 
 
 func _setup_kickoff(kicking_team: int) -> void:
+	# En el saque del medio todos se reubican: el cambio es directo.
+	_instant_subs = true
 	_make_pending_subs()
+	_instant_subs = false
+	_finish_sub_scenes()
 	for t in teams:
 		for p in t.players:
 			var spot := Formation.kickoff_spot(p.base_spot, t.index == kicking_team)

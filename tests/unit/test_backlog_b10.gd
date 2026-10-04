@@ -384,7 +384,7 @@ func test_halftime_walk_off_and_empty_pitch() -> void:
 		assert_true(p.visible, "vuelven para el segundo tiempo")
 
 
-## Final: los que ganaron festejan o aplauden; los que perdieron se tiran al
+## Final: los que ganaron festejan (juntos o donde están); los que perdieron se tiran al
 ## piso, se agarran la cabeza o protestan. Después, la tribuna se vacía.
 func test_fulltime_reactions_and_crowd_leaves() -> void:
 	_start_match()
@@ -404,8 +404,11 @@ func test_fulltime_reactions_and_crowd_leaves() -> void:
 			winners[key] = true
 		else:
 			losers[key] = true
-	assert_true(winners.has("stay:%d" % PlayerVisual.Event.CHEER), "festejan")
-	assert_true(winners.has("stay:%d" % PlayerVisual.Event.APPLAUD), "aplauden")
+	assert_true(winners.has("stay:%d" % PlayerVisual.Event.CHEER), "festejan donde están")
+	var party := false
+	for k: String in winners:
+		party = party or k.begins_with("party:")
+	assert_true(party, "corren a juntarse a festejar (B12)")
 	assert_true(losers.has("down:-1"), "al piso")
 	assert_true(losers.has("ref:%d" % PlayerVisual.Event.PROTEST), "le protestan al árbitro")
 	assert_true(losers.has("stay:%d" % PlayerVisual.Event.HEAD_HOLD) or losers.has("stay:%d" % PlayerVisual.Event.HANDS_HIPS))

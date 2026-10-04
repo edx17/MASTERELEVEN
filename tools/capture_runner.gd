@@ -225,6 +225,10 @@ func _run(action: String) -> void:
 	elif action == "hide_players":
 		for p in _match.all_players():
 			p.visible = false
+		# `--empty=F`: fracción del público que ya se fue (salida por los pasillos).
+		for a in OS.get_cmdline_user_args():
+			if a.begins_with("--empty=") and StadiumBuilder.crowd_material != null:
+				StadiumBuilder.crowd_material.set_shader_parameter("empty", float(a.trim_prefix("--empty=")))
 	elif action.begins_with("cam:"):
 		# cam:x,y,z,mira_x,mira_y,mira_z[,fov]: toma fija para revisar algo.
 		var v := action.trim_prefix("cam:").split(",")

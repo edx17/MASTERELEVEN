@@ -6,8 +6,9 @@ Ver `Claude.md` para visión, criterios y fases.
 ## Dónde estamos (octubre 2026)
 
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
-Eleven 2002. Todo ficticio: equipos, jugadores, estadios y escudos.
-**373 tests automáticos en verde** (corren solos en GitHub en cada push, que
+Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
+llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
+generados, sin logos). **380 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -25,6 +26,8 @@ además arma el `.exe` de Windows).
 | Backlog B10 + infraestructura (CI, .exe, skills) | ✅ | #25 |
 | Backlog B11 pasos 1-2 (assets, correcciones) | ✅ | #26 |
 | Backlog B11 pasos 3-4 (pelota parada, sonidos) | ✅ | #27 |
+| Resumen y regla de un solo PR | ✅ | #28 |
+| Backlog B12 (correcciones de tu prueba) | 🟡 Hecho, **pendiente de tu prueba** | #29 |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -121,14 +124,37 @@ además arma el `.exe` de Windows).
   luz y las sombras se ven distinto.
 
 ### Próximos pasos (en orden)
-1. **Tu prueba** de los pasos 3 y 4 (pelota parada y sonidos).
-2. **Paso 5**: pelo de los jugadores "Detallados" (hoy parece plastilina).
-3. Más festejos en el córner (medialuna, mortal, nuevos) con todos los clips.
-4. Fase 6 — **Liga Master**.
-5. Editor de jugadores.
-6. Voz real del locutor (hoy la presentación sólo emite la señal y el
-   público responde).
-7. Fase 8 — Pulido final.
+1. **Tu prueba** de B12 (correcciones).
+2. **Paso A — Jugabilidad WE2002**: potencia de remate 6–9 en todo el juego,
+   remate en carrera, defensores que leen el pase en profundidad, despeje a
+   fondo, más rebotes jugables y cámara "Lejana" con nombres.
+3. **Paso B — Identidad de cada jugador**: estatura, botines y peinado
+   propios; pelo de los "Detallados".
+4. **Paso C — Base de datos real**: 19 selecciones (con bandera) y las ligas
+   de Inglaterra (4 divisiones), España (2), Italia (2), Portugal, Alemania
+   (2), Países Bajos, México, Argentina (5) y Brasil; hasta 23 jugadores por
+   plantel. Ver la lista en `Claude.md` (Fase 6).
+5. **Paso D — Liga Master** (en varios PR): arranca en 2.ª (más abajo en
+   Argentina e Inglaterra; las ligas de una sola división no se eligen),
+   siempre a elegir entre **Equipo WE** (genérico) o **Club real**.
+6. Editor de jugadores y equipos.
+7. Himno propio, relator y pulido final.
+
+---
+
+## Backlog B12 — correcciones de tu prueba de B11 (PR #29)
+
+| Pedido | Cambio |
+|---|---|
+| Sonido de "fritura" al cobrar una falta | Era el "swoosh" generado de la repetición (cada falta tiene repetición): ruido blanco que se abría a los agudos. Ahora es un "whoosh" de aire grave (pasabanda de 250 a 1200 Hz) y más bajo. |
+| El ganador no festejaba al final | El gesto duraba 3 s de una toma de 7,5 s. Ahora la mitad del equipo (y el arquero) corre a juntarse y hace festejos de gol; el resto salta con los brazos arriba toda la toma, y la cámara los enfoca. |
+| Entretiempo: alejar la cámara | Toma aérea con la cancha completa, alternada cada 3,5 s con una toma desde adentro del túnel viéndolos venir. |
+| Animación de los cambios | El suplente espera en la mitad de cancha junto al **cuarto árbitro** (con el cartel luminoso). El que sale camina hasta ahí y chocan las manos, se dan la mano o nada; si está a más de 25 m sale por la línea más cercana. Después el que entra corre a su puesto. El reloj se detiene y el juego no se reanuda hasta que termina (tope de 12 s). Cámara sobre el cambio. En el saque del medio el cambio sigue siendo directo. |
+| El público desaparecía al irse | Las tribunas tienen **escaleras** (pasillos sin butacas, con medio escalón) y **bocas de salida** (vomitorios) en la mitad de cada bandeja. Cada persona camina por su fila hasta la escalera con boca más cercana, baja o sube hasta la boca y entra. También en el Coloso del Sur (escaleras radiales parejas). |
+
+Tests: `test_backlog_b13.gd` (7). Se actualizaron `test_substitutions` y
+`test_fouls_keeper` (el cambio ahora es animado) y `test_backlog_b10` (el
+ganador festeja corriendo a juntarse).
 
 ---
 

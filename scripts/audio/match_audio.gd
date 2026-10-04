@@ -487,21 +487,37 @@ static func _applause(seconds: float) -> PackedFloat32Array:
 
 ## Cortina de la repetición: ruido que barre de grave a agudo y vuelve.
 static func _swoosh(seconds: float) -> PackedFloat32Array:
+	# "Whoosh" de aire: ruido por un filtro pasabanda (variable de estado) cuyo
+	# centro sube de 250 a 1200 Hz y vuelve, con envolvente suave. El ruido
+	# blanco filtrado con un pasabajos que se abría a 3 kHz sonaba a fritura.
 	var n := int(RATE * seconds)
 	var out := PackedFloat32Array()
 	out.resize(n)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 61
-	var lp := 0.0
-	var lp2 := 0.0
+	var low := 0.0
+	var band := 0.0
+	var pre := 0.0
+	var post := 0.0
+	var peak := 0.0001
 	for i in n:
 		var t := float(i) / n
 		var env := sin(PI * t)
 		env *= env
-		var k := lerpf(0.03, 0.45, sin(PI * t))
-		lp += (rng.randf_range(-1.0, 1.0) - lp) * k
-		lp2 += (lp - lp2) * k
-		out[i] = lp2 * env * 1.4
+		var fc := lerpf(250.0, 1200.0, sin(PI * t))
+		var f := 2.0 * sin(PI * fc / RATE)
+		var q := 0.7 # amortiguación (1/Q): banda ancha, sin silbido
+		# Ruido ya oscuro (pasabajos) antes y después del pasabanda: sin agudos.
+		pre += (rng.randf_range(-1.0, 1.0) - pre) * 0.12
+		low += f * band
+		var high := pre - low - q * band
+		band += f * high
+		post += (band - post) * 0.25
+		out[i] = post * env
+		peak = maxf(peak, absf(out[i]))
+	# Normalizado a un nivel moderado.
+	for i in n:
+		out[i] *= 0.55 / peak
 	return out
 
 

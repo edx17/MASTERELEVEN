@@ -74,7 +74,12 @@ func test_foul_in_the_box_is_a_penalty() -> void:
 	_until_restart() # una falta fuerte demora más (queda en el piso; tarjeta)
 	assert_eq(m.restart_type, MatchRules.Restart.PENALTY)
 	var kicks := m.kick_count
-	_step(120)
+	# La falta fuerte puede lesionar al derribado: la CPU lo cambia y la
+	# escena del cambio (B13) demora el penal.
+	for i in int((MatchController.SUB_MAX_TIME + 3.0) / dt):
+		_step(1)
+		if m.kick_count != kicks:
+			break
 	assert_gt(m.kick_count, kicks, "la CPU patea el penal")
 	assert_eq(m.last_kick.get("kind"), KickActions.Kind.SHOT)
 

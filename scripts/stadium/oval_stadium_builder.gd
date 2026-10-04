@@ -103,13 +103,34 @@ static func _bowl(sectors: Array[Node3D], fans: Dictionary) -> Dictionary:
 	# Muro de la cancha hundida (del césped a la primera fila).
 	_ring_band(steps, 0.0, -0.3, 0.0, FIRST_ROW_Y + 1.0, 0.3, false, StadiumBuilder.TUNNEL_HALF + 0.4)
 	var hole := StadiumBuilder.TUNNEL_HALF + 0.4
+	# Bocas de salida (en la mitad de cada bandeja, una escalera sí y otra no)
+	# y dónde están, para que el público salga por ahí (crowd.gdshader).
+	var dark: Array[SurfaceTool] = []
+	for i in 4:
+		var dst := SurfaceTool.new()
+		dst.begin(Mesh.PRIMITIVE_TRIANGLES)
+		dark.append(dst)
+	var tier_o := [1e5, 1e5, 1e5, 1e5]
+	var vom_o := [1e5, 1e5, 1e5, 1e5]
+	var vom_y := [0.0, 0.0, 0.0, 0.0]
 	for ti in TIERS.size():
 		var rows: int = TIERS[ti][0]
 		var rise: float = TIERS[ti][1]
 		offset += float(TIER_GAPS[ti][0])
 		y += float(TIER_GAPS[ti][1])
+		var vom_r := StadiumBuilder.vomitory_row(rows)
+		tier_o[ti] = offset
+		if vom_r >= 0:
+			vom_o[ti] = offset + vom_r * ROW_DEPTH
+			vom_y[ti] = y + vom_r * rise - rise
 		for r in rows:
 			var pts := _row_points(offset)
+			var in_vom := vom_r >= 0 and r >= vom_r and r < vom_r + StadiumBuilder.VOM_ROWS
+			if in_vom and r == vom_r:
+				for j in STAIRS / 2:
+					var phi := (2 * j + 1) * TAU / STAIRS
+					if not _near_tunnel(polar_point(phi, offset), ti, y, hole):
+						_vomitory(dark, phi, offset, y - rise, rise)
 			# Escalón: pisada y contrahuella.
 			for k in pts.size():
 				var a: Vector3 = pts[k]
@@ -117,6 +138,8 @@ static func _bowl(sectors: Array[Node3D], fans: Dictionary) -> Dictionary:
 				var mid := (a + b) * 0.5
 				# Boca del túnel: sin escalones en la primera bandeja.
 				if ti == 0 and mid.z > 0.0 and absf(mid.x) < hole and y < StadiumBuilder.TUNNEL_H + 0.4:
+					continue
+				if in_vom and _in_vomitory(mid, offset, ti, y, hole):
 					continue
 				var na := _normal_at(offset, a)
 				var nb := _normal_at(offset, b)
@@ -140,14 +163,17 @@ static func _bowl(sectors: Array[Node3D], fans: Dictionary) -> Dictionary:
 					acc += SEAT_PITCH
 					if ti == 0 and p.z > 0.0 and absf(p.x) < hole and y < StadiumBuilder.TUNNEL_H + 0.4:
 						continue
+					if in_vom and _in_vomitory(p, offset, ti, y, hole):
+						continue
 					var n := _normal_at(offset, p)
 					var pos := p + n * (ROW_DEPTH * 0.5) + Vector3.UP * y
 					var basis := Basis.looking_at(-n, Vector3.UP)
 					var sec := sector_of(p)
-					# Escaleras cada ~24 butacas (radiales, más claras).
-					var stair := int(acc / SEAT_PITCH) % 24 == 0
-					(seats[sec] as Array).append([Transform3D(basis, pos), CONCRETE_LIGHT if stair else grey])
-					if not stair and rng.randf() < CROWD_DENSITY:
+					# Escaleras radiales (alineadas fila a fila): sin butaca.
+					if _stair_distance(p, offset) < SEAT_PITCH * 0.55:
+						continue
+					(seats[sec] as Array).append([Transform3D(basis, pos), grey])
+					if rng.randf() < CROWD_DENSITY:
 						var sc := rng.randf_range(0.92, 1.08)
 						var away_end := p.x > A0 * 0.6
 						(people[sec] as Array).append([Transform3D(basis.rotated(Vector3.UP, rng.randf_range(-0.3, 0.3)).scaled(Vector3.ONE * sc), pos),
@@ -155,6 +181,8 @@ static func _bowl(sectors: Array[Node3D], fans: Dictionary) -> Dictionary:
 				acc -= seg
 			offset += ROW_DEPTH
 			y += rise
+	var dark_mat := StadiumBuilder._mat(Color(0.015, 0.015, 0.02), 1.0)
+	dark_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	for i in 4:
 		var st := steps[i]
 		st.generate_normals()
@@ -163,8 +191,23 @@ static func _bowl(sectors: Array[Node3D], fans: Dictionary) -> Dictionary:
 		mi.mesh = st.commit()
 		mi.material_override = StadiumBuilder._concrete_mat()
 		sectors[i].add_child(mi)
+		var dst := dark[i]
+		dst.generate_normals()
+		var vm := MeshInstance3D.new()
+		vm.name = "Vomitories"
+		vm.mesh = dst.commit()
+		vm.material_override = dark_mat
+		vm.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+		sectors[i].add_child(vm)
 		_seats(sectors[i], seats[i])
-		_people(sectors[i], people[i])
+		var crowd := _people(sectors[i], people[i])
+		if crowd != null:
+			crowd.set_instance_shader_parameter("layout_on", 2.0)
+			crowd.set_instance_shader_parameter("tier_z", Vector4(tier_o[0], tier_o[1], tier_o[2], tier_o[3]))
+			crowd.set_instance_shader_parameter("vom_z", Vector4(vom_o[0], vom_o[1], vom_o[2], vom_o[3]))
+			crowd.set_instance_shader_parameter("vom_y", Vector4(vom_y[0], vom_y[1], vom_y[2], vom_y[3]))
+			crowd.set_instance_shader_parameter("vom_step", TAU / STAIRS)
+			crowd.set_instance_shader_parameter("oval", Vector3(A0, B0, SHAPE))
 	# Fachada: del borde de atrás hasta la calle y más arriba (cierra el cuenco).
 	var back := MeshInstance3D.new()
 	back.name = "Facade"
@@ -268,9 +311,9 @@ static func _seats(parent: Node3D, list: Array) -> void:
 	parent.add_child(mi)
 
 
-static func _people(parent: Node3D, list: Array) -> void:
+static func _people(parent: Node3D, list: Array) -> MultiMeshInstance3D:
 	if list.is_empty():
-		return
+		return null
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_custom_data = true
@@ -286,6 +329,68 @@ static func _people(parent: Node3D, list: Array) -> void:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	parent.add_child(mi)
+	return mi
+
+
+## Escaleras radiales alrededor del cuenco (en las impares, bocas de salida).
+const STAIRS := 48
+
+
+## Punto de la fila a `offset` en el ángulo polar `phi` (desde el centro de
+## la cancha). Las escaleras van a ángulos polares fijos: así quedan parejas
+## alrededor del óvalo (el parámetro de ring_point amontona en las esquinas).
+static func polar_point(phi: float, offset: float) -> Vector3:
+	var a := A0 + offset
+	var b := B0 + offset
+	var c := cos(phi)
+	var s := sin(phi)
+	# tan(t) = (tan(phi)·a/b)^(S/2), con el cuadrante de phi.
+	var r := pow(absf(s) * a / maxf(absf(c) * b, 1e-6), SHAPE * 0.5)
+	var t := atan(r)
+	return ring_point(atan2(signf(s) * sin(t), signf(c) * cos(t)) if absf(c) > 1e-6 else signf(s) * PI * 0.5, offset)
+
+
+## Distancia (m) de un punto de la fila a la escalera más cercana.
+static func _stair_distance(p: Vector3, offset: float) -> float:
+	var ds := TAU / STAIRS
+	var c := polar_point(roundf(atan2(p.z, p.x) / ds) * ds, offset)
+	return Vector2(p.x, p.z).distance_to(Vector2(c.x, c.z))
+
+
+## ¿El punto cae en el hueco de una boca de salida?
+static func _in_vomitory(p: Vector3, offset: float, ti: int, y: float, hole: float) -> bool:
+	var ds := TAU / STAIRS
+	var k := roundf(atan2(p.z, p.x) / ds)
+	if int(absf(k)) % 2 == 0:
+		return false
+	var c := polar_point(k * ds, offset)
+	if _near_tunnel(c, ti, y, hole):
+		return false
+	return Vector2(p.x, p.z).distance_to(Vector2(c.x, c.z)) < StadiumBuilder.VOM_HALF
+
+
+static func _near_tunnel(c: Vector3, ti: int, y: float, hole: float) -> bool:
+	return ti == 0 and c.z > 0.0 and absf(c.x) < hole + StadiumBuilder.VOM_HALF + 1.0 and y < StadiumBuilder.TUNNEL_H + 3.0
+
+
+## Boca de salida oscura en el ángulo polar `phi`: VOM_ROWS filas de fondo y de alto.
+static func _vomitory(sts: Array[SurfaceTool], phi: float, offset: float, y0: float, rise: float) -> void:
+	var c := polar_point(phi, offset)
+	var n := _normal_at(offset, c)
+	var tg := Vector3(-n.z, 0.0, n.x)
+	var hw := StadiumBuilder.VOM_HALF
+	var d := StadiumBuilder.VOM_ROWS * ROW_DEPTH
+	var h := StadiumBuilder.VOM_ROWS * rise + 0.4
+	var st := sts[sector_of(c)]
+	var base := c + Vector3.UP * y0
+	var p := [base - tg * hw + n * 0.05, base + tg * hw + n * 0.05, base + tg * hw + n * d, base - tg * hw + n * d]
+	var up := Vector3.UP * h
+	# Fondo, laterales, techo y piso (la boca queda abierta hacia la cancha).
+	_quad(st, p[3], p[2], p[2] + up, p[3] + up)
+	_quad(st, p[0], p[3], p[3] + up, p[0] + up)
+	_quad(st, p[2], p[1], p[1] + up, p[2] + up)
+	_quad(st, p[0] + up, p[3] + up, p[2] + up, p[1] + up)
+	_quad(st, p[0], p[1], p[2], p[3])
 
 
 ## Offset y altura del frente de la bandeja `ti` (antes de su primera fila).

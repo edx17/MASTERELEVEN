@@ -204,6 +204,14 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 	var z := 0.0
 	# Hueco del túnel: sin escalones ni butacas sobre la boca.
 	var hole := TUNNEL_HALF + 0.35
+	# Bocas de salida (vomitorios): en la mitad de cada bandeja, en un pasillo
+	# sí y otro no. Por ahí se va el público al final.
+	var vom := MeshInstance3D.new()
+	var vom_st := SurfaceTool.new()
+	vom_st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var tier_z := [1e5, 1e5, 1e5, 1e5]
+	var vom_z := [1e5, 1e5, 1e5, 1e5]
+	var vom_y := [0.0, 0.0, 0.0, 0.0]
 	for tier_i in tiers.size():
 		var rows: int = tiers[tier_i]
 		var tier_seat := seat_color
@@ -222,29 +230,54 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 		_railing(stand, front_len, y - ROW_RISE, z - 0.1, cut)
 		if not fans.is_empty():
 			_banners(stand, front_len, y - ROW_RISE, z - 0.15, fans, away_end, rng, cut)
+		var vom_r := vomitory_row(rows)
+		if tier_i < 4:
+			tier_z[tier_i] = z
+			if vom_r >= 0:
+				vom_z[tier_i] = z + vom_r * ROW_DEPTH
+				vom_y[tier_i] = y + vom_r * ROW_RISE - ROW_RISE
 		for r in rows:
 			var seats_per_row: int = rows_seats[row_global]
 			var row_len := seats_per_row * SEAT_PITCH
 			var in_hole := tunnel and y - ROW_RISE < TUNNEL_H + 0.3
-			# Escalón de hormigón (partido en dos sobre la boca del túnel).
-			if in_hole:
-				_box(steps, Vector3(-row_len * 0.5, y - ROW_RISE, z), Vector3(-hole, y, z + ROW_DEPTH))
-				_box(steps, Vector3(hole, y - ROW_RISE, z), Vector3(row_len * 0.5, y, z + ROW_DEPTH))
-			else:
-				_box(steps, Vector3(-row_len * 0.5, y - ROW_RISE, z), Vector3(row_len * 0.5, y, z + ROW_DEPTH))
 			var shift := (seats_per_row - base_seats) / 2
+			# Huecos de la fila: la boca del túnel y las de salida.
+			var holes: Array = []
+			if in_hole:
+				holes.append([-hole, hole])
+			var in_vom := vom_r >= 0 and r >= vom_r and r < vom_r + VOM_ROWS
+			if in_vom:
+				for vx in vomitory_xs(seats_per_row, shift):
+					if not (tunnel and absf(vx) < hole + VOM_HALF + 1.0):
+						holes.append([vx - VOM_HALF, vx + VOM_HALF])
+						if r == vom_r:
+							_vomitory(vom_st, steps, vx, y - ROW_RISE, z)
+			# Escalón de hormigón (partido donde hay huecos).
+			holes.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+			var from := -row_len * 0.5
+			for hseg in holes:
+				if hseg[0] > from:
+					_box(steps, Vector3(from, y - ROW_RISE, z), Vector3(hseg[0], y, z + ROW_DEPTH))
+				from = maxf(from, hseg[1])
+			if from < row_len * 0.5:
+				_box(steps, Vector3(from, y - ROW_RISE, z), Vector3(row_len * 0.5, y, z + ROW_DEPTH))
 			for s in seats_per_row:
 				var x := -row_len * 0.5 + (s + 0.5) * SEAT_PITCH
 				var c := tier_seat
-				# Escaleras cada 24 butacas.
-				if (s - shift) % 24 == 0:
-					c = CONCRETE.lightened(0.2)
+				var stair := (s - shift) % 24 == 0
 				# El eje X local de la tribuna mira al revés que la cámara: se invierte.
-				elif tier_i == 0 and letters.has(Vector2i(base_seats - 1 - (s - shift), rows - 1 - r)):
+				if not stair and tier_i == 0 and letters.has(Vector2i(base_seats - 1 - (s - shift), rows - 1 - r)):
 					c = text_color
-				if in_hole and absf(x) < hole:
+				var in_gap := false
+				for hseg in holes:
+					in_gap = in_gap or (x > hseg[0] and x < hseg[1])
+				if in_gap or stair:
 					c = Color(0, 0, 0, 0)
 					mm.set_instance_transform(idx, Transform3D(Basis.IDENTITY.scaled(Vector3.ZERO), Vector3.ZERO))
+					# Escalera: medio escalón en el pasillo (sin butaca).
+					if stair and not in_gap:
+						_box(steps, Vector3(x - SEAT_PITCH * 0.5, y - ROW_RISE * 0.5 - 0.04, z),
+							Vector3(x + SEAT_PITCH * 0.5, y - ROW_RISE * 0.5, z + ROW_DEPTH * 0.5))
 				else:
 					mm.set_instance_transform(idx, Transform3D(Basis.IDENTITY, Vector3(x, y, z + ROW_DEPTH * 0.5)))
 				mm.set_instance_color(idx, c)
@@ -258,6 +291,14 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 			y += ROW_RISE
 			z += ROW_DEPTH
 			row_global += 1
+	vom_st.generate_normals()
+	vom.mesh = vom_st.commit()
+	vom.name = "Vomitories"
+	var dark := _mat(Color(0.015, 0.015, 0.02), 1.0)
+	dark.cull_mode = BaseMaterial3D.CULL_DISABLED
+	vom.material_override = dark
+	vom.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	stand.add_child(vom)
 	steps.generate_normals()
 	var steps_mi := MeshInstance3D.new()
 	steps_mi.mesh = steps.commit()
@@ -290,6 +331,18 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 		# tirones). Escalones, paredes y techos alcanzan para el rebote.
 		crowd.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 		stand.add_child(crowd)
+		# Dónde están los pasillos y las bocas de salida (para que el público
+		# se vaya caminando por ahí: crowd.gdshader).
+		var xf := stand.transform
+		crowd.set_instance_shader_parameter("layout_on", 1.0)
+		crowd.set_instance_shader_parameter("st_origin", xf.origin)
+		crowd.set_instance_shader_parameter("st_x", xf.basis.x.normalized())
+		crowd.set_instance_shader_parameter("st_z", xf.basis.z.normalized())
+		crowd.set_instance_shader_parameter("tier_z", Vector4(tier_z[0], tier_z[1], tier_z[2], tier_z[3]))
+		crowd.set_instance_shader_parameter("vom_z", Vector4(vom_z[0], vom_z[1], vom_z[2], vom_z[3]))
+		crowd.set_instance_shader_parameter("vom_y", Vector4(vom_y[0], vom_y[1], vom_y[2], vom_y[3]))
+		crowd.set_instance_shader_parameter("vom_x0", vomitory_x0(base_seats))
+		crowd.set_instance_shader_parameter("vom_step", VOM_EVERY * SEAT_PITCH)
 
 	var seats := MultiMeshInstance3D.new()
 	seats.multimesh = mm
@@ -688,6 +741,47 @@ static func _seat_mesh() -> ArrayMesh:
 	_box(st, Vector3(-w, 0.36, 0.16), Vector3(w, 0.82, 0.24))
 	st.generate_normals()
 	return st.commit()
+
+
+## Bocas de salida: filas que ocupa el hueco, medio ancho (m) y cada cuántas
+## butacas hay una (un pasillo sí y otro no).
+const VOM_ROWS := 3
+const VOM_HALF := 1.1
+const VOM_EVERY := 48
+
+
+## Fila de la boca de salida en una bandeja de `rows` filas (-1 = sin boca:
+## las bandejas chicas salen por arriba).
+static func vomitory_row(rows: int) -> int:
+	return rows / 2 - 1 if rows >= 8 else -1
+
+
+## X (local de la tribuna) de las bocas de salida en una fila.
+static func vomitory_xs(seats_per_row: int, shift: int) -> Array[float]:
+	var out: Array[float] = []
+	var row_len := seats_per_row * SEAT_PITCH
+	var k := 24
+	while shift + k < seats_per_row - 2:
+		out.append(-row_len * 0.5 + (shift + k + 0.5) * SEAT_PITCH)
+		k += VOM_EVERY
+	return out
+
+
+## X de la primera boca (la misma grilla para todas las filas).
+static func vomitory_x0(base_seats: int) -> float:
+	return -base_seats * SEAT_PITCH * 0.5 + (24 + 0.5) * SEAT_PITCH
+
+
+## Boca de salida: abertura oscura con marco de hormigón, del ancho del
+## pasillo y de VOM_ROWS filas de alto.
+static func _vomitory(dark: SurfaceTool, frame: SurfaceTool, x: float, y0: float, z0: float) -> void:
+	var h := VOM_ROWS * ROW_RISE + 0.4
+	var d := VOM_ROWS * ROW_DEPTH
+	_box(dark, Vector3(x - VOM_HALF, y0 - 0.02, z0 + 0.05), Vector3(x + VOM_HALF, y0 + h, z0 + d))
+	# Marco: dos paredes laterales y el dintel.
+	_box(frame, Vector3(x - VOM_HALF - 0.15, y0, z0), Vector3(x - VOM_HALF, y0 + h, z0 + d))
+	_box(frame, Vector3(x + VOM_HALF, y0, z0), Vector3(x + VOM_HALF + 0.15, y0 + h, z0 + d))
+	_box(frame, Vector3(x - VOM_HALF - 0.15, y0 + h, z0), Vector3(x + VOM_HALF + 0.15, y0 + h + 0.15, z0 + d))
 
 
 ## Banderas colgadas de la baranda (dos franjas con los colores del club).
