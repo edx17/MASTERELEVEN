@@ -262,3 +262,48 @@ func test_lineup_swap_during_warmup_does_not_crash() -> void:
 	if sub_gk != null:
 		assert_eq(intro._keeper_drills[0]["keeper"], sub_gk, "el arquero suplente ataja")
 	GameSettings.play_intro = false
+
+
+## Remate que se va afuera: cuando sale, el arquero deja de correr hacia la
+## pelota y vuelve a su arco.
+func test_keeper_stops_chasing_a_shot_that_went_wide() -> void:
+	_start()
+	var att := m.teams[0]
+	var def := m.teams[1]
+	var gk := def.keeper()
+	var shooter := att.players[9]
+	var goal := def.own_goal()
+	var from := goal - Vector3(def.own_side() * 18.0, 0.0, 0.0) + Vector3(0, 0, 6.0)
+	shooter.teleport(from - Vector3(att.attack_dir * 0.5, 0, 0), Vector3(att.attack_dir, 0, 0))
+	gk.teleport(goal - Vector3(def.own_side() * 1.0, 0, 0), Vector3(-def.own_side(), 0, 0))
+	m.ball.owner_player = null
+	m.ball.state.pos = Vector3(from.x, m.tuning.ball_radius, from.z)
+	# Rasante, bien afuera del palo lejano.
+	var to := Vector3(goal.x, 0.0, -Pitch.GOAL_HALF_WIDTH - 4.0) - from
+	m.ball.kick(to.normalized() * 24.0, Vector3.ZERO, shooter)
+	m.save_plan = {"keeper": gk, "will_save": false, "parry": false, "point": Vector3(goal.x, 0, -Pitch.GOAL_HALF_WIDTH),
+		"save_point": Vector3(goal.x, 0, -Pitch.GOAL_HALF_WIDTH), "time_left": 3.0, "chance": 0.0,
+		"elapsed": 0.0, "react": 0.0, "dive_at": 0.0, "dove": false}
+	for i in 240:
+		_step(1)
+		if m.phase == MatchController.Phase.STOPPED:
+			break
+	assert_eq(m.phase, MatchController.Phase.STOPPED, "se fue afuera")
+	assert_true(m.save_plan.is_empty(), "sin plan de atajada")
+	_step(90)
+	assert_lt(absf(gk.global_position.z), Pitch.GOAL_HALF_WIDTH + 1.0, "no la sigue por el fondo")
+	assert_lt(gk.velocity.length(), m.tuning.run_speed * 0.7, "vuelve caminando")
+
+
+## La red tiembla también en la repetición (se graba el golpe).
+func test_net_hit_is_recorded_for_the_replay() -> void:
+	_start()
+	var pos := Vector3(Pitch.HALF_LENGTH + 1.9, 1.0, 0.5)
+	m.replay.mark_net(pos, 22.0)
+	m.replay.record()
+	var f: Dictionary = m.replay._frames[-1]
+	assert_eq((f["net"] as Array).size(), 2)
+	m.hit_net_at(pos, 22.0)
+	for n in get_tree().get_nodes_in_group(&"goal_net"):
+		if (n as GoalNet).side == 1:
+			assert_gt(absf((n as GoalNet).current_bulge()), 0.2, "se infla")

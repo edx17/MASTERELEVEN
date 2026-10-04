@@ -32,6 +32,13 @@ GitHub → pestaña **Actions** → la última corrida de **CI** → abajo,
 | Cambiar cámara | Select / Back | C |
 | Modo debug | — | F9 |
 
+**Pelota parada**: el pateador toma carrera y lo que tengas apretado al
+llegar decide el remate. Tiro libre: stick derecho = mira; Cuadrado solo =
+normal, atrás + Cuadrado = colocado, adelante + toque = rasante, adelante
+cargado = cañonazo, costado = comba, Círculo = globito / rasante al palo.
+Penal: 5 direcciones con el stick al patear (la fuerza sube la pelota; pasada,
+se va por arriba). Arquero: el stick al momento del remate elige el lado.
+
 Mantené el botón para cargar la barra de potencia. Las combinaciones (globo,
 pared, centros, bicicleta, marsellesa...) están en `Claude.md` y en el menú
 *Opciones → Controles*, donde también se cambian los botones.

@@ -16,7 +16,66 @@ Ver `Claude.md` para visión, criterios y fases.
 | 8 — Pulido | ⬜ |
 | Entrenamiento (Club House) | 🟡 Implementado, **pendiente de tu prueba** |
 | Backlog B1–B9 (tu lista de pendientes) | 🟡 B1–B9 hechos (PR #24) |
-| Backlog B10 (tu prueba de octubre) + infraestructura | 🟡 Hecho en `claude/vibrant-mendel-0ut5bk`, **pendiente de tu prueba** |
+| Backlog B10 (tu prueba de octubre) + infraestructura | ✅ Hecho (PR #25) |
+| Backlog B11 (pasos 1-3: assets, correcciones, pelota parada, sonidos) | 🟡 Pasos 1-2 en PR #26; paso 3 **pendiente de tu prueba** |
+
+---
+
+## Backlog B11 — paso 3: pelota parada a la WE2002, tierra, tela y sonidos
+
+### Pelota parada
+- **Carrera**: en tiros libres, córners y penales el pateador se para atrás
+  de la pelota (no gira en el lugar) y al apretar el botón toma carrera y le
+  pega al llegar. Lo que tengas apretado **en el momento del contacto** decide
+  el remate.
+- **Tiro libre** (en campo rival, cámara atrás del pateador): el **stick
+  derecho gira la mira** (flecha amarilla en el pasto) y la cámara con ella.
+  - Cuadrado solo: remate normal.
+  - Atrás + Cuadrado: colocado, sube por encima de la barrera y cae (ideal
+    potencia de remate 7; con 8 o más sale más recto).
+  - Adelante + toque corto de Cuadrado: rasante por debajo de la barrera.
+  - Adelante + Cuadrado cargado: cañonazo casi recto (rinde con potencia 8+).
+  - Costado (o arriba + costado) + Cuadrado: comba hacia ese lado (según la
+    "curva" del jugador).
+  - Círculo suave: globito al segundo palo; atrás + Círculo a fondo: rasante
+    fuerte al palo del arquero.
+  - Cuentan potencia de remate, precisión y curva; "especialista" erra menos.
+- **Penal**: 5 direcciones con el stick izquierdo al patear (arriba o abajo a
+  cada lado, o al medio sin stick). Más fuerza = más alta; pasada (>92 %) se
+  va por arriba. Los malos pateadores erran más; "penales" ayuda.
+- **Arquero en el penal**: espera sobre la línea (ya no sale a buscar al
+  pateador). Si lo manejás, elegí el lado con el stick al momento del remate;
+  si adivina, la atajada depende de la altura y su atributo.
+- Córners y tiros libres sin cámara: la comba del stick derecho se aplica al
+  patear, después de la carrera.
+
+### Visual
+- **Tierra** en las zonas peladas (frente a los arcos, punto penal y centro)
+  en el Gran Coliseo del Plata, el Club House y con la cancha "Gastada".
+- **Trama de tela** en camisetas, shorts y en los trapos de la tribuna.
+
+### Sonidos (generados por código)
+- Silbidos de la hinchada en las faltas y más fuertes en las tarjetas.
+- Cánticos con bombo de fondo que arrancan cada tanto.
+- Aplausos cuando sale un jugador reemplazado.
+- "Swoosh" en la cortina de la repetición.
+- Música en los menúes (Opciones → *Volumen de la música*).
+
+### Arreglos de tu prueba
+- **Hacer un cambio antes del partido cerraba el juego**: el calentamiento
+  seguía usando al titular que se iba. Ahora el suplente toma su lugar.
+- **La red no se movía en el gol**: en vivo la cámara ya se iba al goleador y
+  la repetición no la hacía temblar. Ahora se graba el golpe en la red y se
+  repite; además la red se infla más y tarda más en volver.
+- **El arquero seguía corriendo la pelota que se fue afuera**: al salir se
+  borra el plan de atajada y, con el juego detenido, vuelve caminando a su arco.
+- Si el tiempo terminaba con una pelota parada armada, el pateador quedaba
+  trabado y no se iba al túnel.
+- Tus archivos de sonido en una carpeta `sonidos/` del proyecto: Godot no
+  importa WAV de 24/32 bits o con más de 2 canales ("Format not supported").
+  Subilos a `assets/_entrada/` y se convierten (paso 4).
+
+Tests: `tests/unit/test_backlog_b12.gd` (14 tests).
 
 ---
 

@@ -8,7 +8,7 @@ render_mode unshaded, cull_disabled;
 uniform vec4 color : source_color = vec4(1.0, 1.0, 1.0, 0.55);
 uniform vec3 hit_pos = vec3(0.0);
 uniform float bulge = 0.0;
-uniform float radius = 0.9;
+uniform float radius = 1.15;
 uniform float side = 1.0;
 uniform float front_x = 52.5;
 uniform float back_x = 54.5;

@@ -3,10 +3,10 @@ extends MeshInstance3D
 ## Red de un arco que reacciona a la pelota: se infla en el punto de impacto
 ## (según la velocidad) y vuelve oscilando, amortiguada.
 
-const MAX_BULGE := 0.5
-const DAMPING := 4.5
+const MAX_BULGE := 0.7
+const DAMPING := 3.2
 const FREQUENCY := 10.0
-const SETTLE_TIME := 2.0
+const SETTLE_TIME := 2.5
 
 var side := 1
 var _t := INF

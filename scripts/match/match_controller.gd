@@ -775,10 +775,19 @@ func _plan_save_for(defenders: Team, extra_reaction: float) -> void:
 func _on_net_hit() -> void:
 	if ball.net_hit_speed < NET_REACT_SPEED:
 		return
+	hit_net_at(ball.global_position, ball.net_hit_speed)
+	# La repetición también la hace temblar (en vivo la cámara ya se fue al
+	# goleador).
+	if replay != null:
+		replay.mark_net(ball.global_position, ball.net_hit_speed)
+
+
+## Infla la red del arco de ese lado en `pos`.
+func hit_net_at(pos: Vector3, speed: float) -> void:
 	for n in get_tree().get_nodes_in_group(&"goal_net"):
 		var net := n as GoalNet
-		if net != null and signf(ball.global_position.x) == float(net.side):
-			net.hit(ball.global_position, ball.net_hit_speed)
+		if net != null and signf(pos.x) == float(net.side):
+			net.hit(pos, speed)
 
 
 const NET_REACT_SPEED := 3.0
@@ -2336,6 +2345,10 @@ func _check_rules() -> void:
 	# Con el juego detenido nadie conserva la pelota en el pie.
 	ball.owner_player = null
 	ball.intended_receiver = null
+	# Se fue afuera: el arquero deja de ir a buscarla (en el gol termina la
+	# estirada).
+	if absf(ball.state.pos.z) > Pitch.GOAL_HALF_WIDTH or ball.state.pos.y > Pitch.GOAL_HEIGHT:
+		save_plan = {}
 	if training != null:
 		training.on_outcome(outcome)
 		return

@@ -44,6 +44,8 @@ var _match: MatchController
 var _frames: Array = []
 ## Gestos pendientes de grabar en el cuadro actual: [jugador, evento, lado].
 var _events: Array = []
+## Golpe de la pelota en la red en este cuadro ([posición, velocidad]).
+var _net_hit: Array = []
 var _players: Array[Footballer] = []
 ## Cuadros grabados en total (índice absoluto del próximo cuadro).
 var _count := 0
@@ -149,8 +151,9 @@ func record() -> void:
 	var ref := _match.referee
 	var ref_state: Array = [ref.global_position, ref.rotation.y, ref.velocity.length()] if ref != null else []
 	_frames.append({"ball": _match.ball.global_position, "spin": _match.ball.spin_pose(), "players": players,
-		"events": _events, "ref": ref_state})
+		"events": _events, "ref": ref_state, "net": _net_hit})
 	_events = []
+	_net_hit = []
 	# La acción empieza cuando un equipo gana la pelota.
 	var owner := _match.ball.owner_player
 	if owner != null and owner.team.index != _holder_team:
@@ -165,6 +168,12 @@ func record() -> void:
 ## Índice absoluto del primer cuadro guardado.
 func _base() -> int:
 	return _count - _frames.size()
+
+
+## La pelota pegó en la red (se repite en la repetición).
+func mark_net(pos: Vector3, speed: float) -> void:
+	if not playing:
+		_net_hit = [pos, speed]
 
 
 ## Se patea la pelota (para el offside: la repetición se congela ahí).
@@ -337,6 +346,9 @@ func tick(dt: float) -> void:
 			var p: Footballer = ev[0]
 			if is_instance_valid(p) and p.visual != null:
 				p.visual.play(ev[1], ev[2])
+		var net: Array = _frames[f].get("net", [])
+		if not net.is_empty():
+			_match.hit_net_at(net[0], net[1])
 	_apply_frame(_cursor, dt * speed)
 	_update_card(k)
 
