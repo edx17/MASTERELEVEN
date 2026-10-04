@@ -57,6 +57,9 @@ func grass_params() -> Dictionary:
 		"snow": SNOW_START if conditions.is_snow() else 0.0,
 		# Césped gastado: opción del partido; en el Club House, siempre.
 		"worn": GameSettings.pitch_wear == 1 or GameSettings.training,
+		# Tierra en las áreas: estadios humildes (campo "dirt" del estilo) o
+		# la cancha gastada.
+		"dirt": maxf(float(StadiumStyles.current.get("dirt", 0.0)), 0.9 if GameSettings.pitch_wear == 1 else 0.0),
 	}
 
 

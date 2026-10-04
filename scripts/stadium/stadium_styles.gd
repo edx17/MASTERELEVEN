@@ -18,6 +18,7 @@ extends RefCounted
 ##   track       pista de atletismo entre la cancha y las tribunas
 ##   towers      torres cilíndricas con rampas en espiral por fuera
 ##   flood       [x desde la línea de fondo, z desde la lateral, altura, mástil]
+##   dirt        tierra en las áreas chicas y el medio (0..1; estadios humildes)
 ##   oval        lo arma OvalStadiumBuilder (cuenco ovalado de 4 bandejas);
 ##               flood es fijo: reflectores colgados del techo
 
@@ -58,6 +59,7 @@ const STYLES := [
 		"seat": null, "tier_colors": [Color(0.86, 0.86, 0.86), Color(0.66, 0.08, 0.1)],
 		"club_text": false, "track": true, "towers": false,
 		"flood": [48.0, 46.0, 58.0, true],
+		"dirt": 0.75,
 	},
 	{
 		# Tres bandejas empinadas, techo sostenido por vigas rojas y torres

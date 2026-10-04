@@ -64,6 +64,16 @@ func tick(p: Footballer, ai: TeamAI, dt: float) -> void:
 		p.debug_state = "estirada" if plan["will_save"] else "no llega"
 		ai.go_to(p, spot, true)
 		return
+	# 1a) Penal en contra: sobre la línea, en el medio, esperando el remate
+	# (no sale a buscar al pateador; se tira cuando le pegan).
+	if _match.phase == MatchController.Phase.RESTART and _match.restart_type == MatchRules.Restart.PENALTY \
+			and _match.restart_taker != null and _match.restart_taker.team != team:
+		p.debug_state = "en la línea"
+		var line := Vector3(goal.x - own * 0.15, 0.0, 0.0)
+		ai.go_to(p, line, p.flat_pos().distance_to(line) > 2.0)
+		p.face_point = bp
+		p.look_at_point(bp)
+		return
 	# 1b) Pedido del humano (Triángulo mantenido): sale a achicar al rival
 	# que lleva la pelota (o a la pelota que acaba de tocar) mientras esté en
 	# campo propio. Fuera del área no puede usar las manos: va a la entrada.

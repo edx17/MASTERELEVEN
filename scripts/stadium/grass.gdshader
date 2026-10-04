@@ -28,6 +28,12 @@ uniform float tex_scale = 0.35;
 // 0 = la textura sólo da el detalle (el tono lo dan las franjas); 1 = manda
 // la foto (césped gastado: se ven las calvas y la tierra).
 uniform float tex_tone : hint_range(0.0, 1.0) = 0.0;
+// Tierra en las partes gastadas (estadios humildes / cancha gastada): 0 = sin
+// tierra; 1 = las áreas chicas, el punto penal y el medio pelados.
+uniform float dirt : hint_range(0.0, 1.0) = 0.0;
+uniform bool use_dirt_tex = false;
+uniform sampler2D dirt_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D dirt_normal_tex : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 // Manchas de nieve (ruido simplex suave, ver PitchBuilder._snow_noise).
 uniform sampler2D snow_noise : hint_default_white, filter_linear_mipmap, repeat_enable;
 
@@ -99,6 +105,16 @@ float wear_mask(vec2 p) {
 	return m * smoothstep(0.35, 0.75, fbm(p * 0.9));
 }
 
+// Pelado de tierra: frente al arco (donde se para el arquero), el punto
+// penal y el círculo central, con borde irregular.
+float dirt_mask(vec2 p) {
+	vec2 q = vec2(abs(p.x), p.y);
+	float m = 1.0 - smoothstep(1.0, 4.5, length((q - vec2(half_length - 2.2, 0.0)) * vec2(1.25, 0.42)));
+	m = max(m, 1.0 - smoothstep(0.4, 1.6, length(q - vec2(half_length - 11.0, 0.0))));
+	m = max(m, 0.75 * (1.0 - smoothstep(1.5, 6.0, length(p * vec2(0.8, 1.0)))));
+	return m * smoothstep(0.3, 0.6, fbm(p * 0.7 + vec2(3.1, 7.7)));
+}
+
 void fragment() {
 	vec2 p = world_pos.xz;
 	float stripe = step(0.5, fract(world_pos.x / (stripe_width * 2.0)));
@@ -123,10 +139,22 @@ void fragment() {
 	}
 	// Desgaste (pasto pisado, algo de tierra).
 	c = mix(c, worn_color, wear * wear_mask(p) * 0.6);
+	// Tierra (textura de suelo) en las zonas peladas.
+	float dm = 0.0;
+	if (dirt > 0.0) {
+		dm = clamp(dirt_mask(p) * dirt * 1.6, 0.0, 1.0);
+		// La foto es oliva oscura: se lleva a tierra marrón seca.
+		vec3 soil = use_dirt_tex ? texture(dirt_tex, p * 0.3).rgb * vec3(1.45, 1.12, 0.92) : worn_color * (0.75 + 0.5 * n);
+		c = mix(c, soil, dm);
+		roughness = mix(roughness, 0.95, dm);
+	}
 	// Relieve fino: normal a partir del gradiente del ruido.
 	vec3 nmap = vec3(0.5, 0.5, 1.0);
 	if (use_textures && use_normal_tex) {
 		nmap = texture(normal_tex, p * tex_scale).rgb;
+		if (use_dirt_tex && dm > 0.0) {
+			nmap = mix(nmap, texture(dirt_normal_tex, p * 0.3).rgb, dm);
+		}
 	} else {
 		float e = 0.04;
 		float h0 = noise(p * 14.0) + 0.5 * noise(p * 40.0);

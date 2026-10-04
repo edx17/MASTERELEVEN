@@ -17,6 +17,7 @@ const STYLE := {
 	"seat": null, "tier_colors": [],
 	"club_text": false, "track": false, "towers": false,
 	"flood": [6.0, 10.0, 22.0, true],
+	"dirt": 1.0,
 }
 ## Cuánto pasto hay alrededor de la cancha y dónde van el alambrado y los
 ## árboles (m desde las líneas).

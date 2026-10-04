@@ -9,6 +9,8 @@ extends RefCounted
 const DIR := "res://assets/textures/grass/"
 ## Césped gastado (Poliigon GrassPatchyGround): mismos nombres de archivo.
 const WORN_DIR := "res://assets/textures/grass_worn/"
+## Tierra para las partes peladas (Poliigon, "ground").
+const DIRT_DIR := "res://assets/textures/ground/"
 
 
 static func _find(base: String, dir: String = DIR) -> Texture2D:
@@ -56,3 +58,18 @@ static func apply(mat: ShaderMaterial, worn: bool = false) -> bool:
 		mat.set_shader_parameter("roughness_tex", rough)
 		mat.set_shader_parameter("use_roughness_tex", true)
 	return true
+
+
+## Tierra en las zonas gastadas (0 = nada; ver grass.gdshader dirt_mask).
+static func apply_dirt(mat: ShaderMaterial, amount: float) -> void:
+	mat.set_shader_parameter("dirt", clampf(amount, 0.0, 1.0))
+	if amount <= 0.0:
+		return
+	var albedo := _find("ground_albedo", DIRT_DIR)
+	if albedo == null:
+		return
+	mat.set_shader_parameter("use_dirt_tex", true)
+	mat.set_shader_parameter("dirt_tex", albedo)
+	var normal := _find("ground_normal", DIRT_DIR)
+	if normal != null:
+		mat.set_shader_parameter("dirt_normal_tex", normal)

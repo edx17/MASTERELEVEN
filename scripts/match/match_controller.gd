@@ -42,6 +42,10 @@ const SET_PIECE_FOV := 40.0
 const SET_PIECE_FOLLOW := 1.2
 ## Dónde se para el que patea el tiro libre respecto de la pelota (m).
 const FK_STAND_BACK := 1.1
+## Carrera de la pelota parada: metros atrás y al costado de la pelota.
+const RUNUP_BACK := 3.4
+const RUNUP_BACK_PK := 3.0
+const RUNUP_SIDE := 1.7
 const FK_STAND_SIDE := 0.8
 const GOAL_DELAY := 3.0
 const HALFTIME_DELAY := 3.0
@@ -151,6 +155,23 @@ enum GoalKickStage { BACKING, READY, RUNNING }
 var goal_kick_stage: int = GoalKickStage.READY
 var _goal_kick_order: Array = []
 var _goal_kick_kicking := false
+## Pelotas paradas con carrera (B11): el que patea toma carrera desde acá y la
+## orden se ejecuta al llegar a la pelota.
+const RUNUP_TYPES: Array[int] = [MatchRules.Restart.GOAL_KICK, MatchRules.Restart.FREE_KICK,
+	MatchRules.Restart.CORNER, MatchRules.Restart.PENALTY]
+var _runup_from := Vector3.ZERO
+## Patada especial que reemplaza a kicks.execute (tiro libre / penal).
+var _custom_kick: Callable = Callable()
+## Comba del stick derecho guardada con la orden (córner, tiro libre lejano).
+var pending_curl := Vector3.ZERO
+## Tiro libre con la cámara atrás: cuánto se giró la mira con el stick
+## derecho (radianes, respecto de la línea al arco).
+var set_piece_aim_yaw := 0.0
+const SET_PIECE_YAW_MAX := 0.55
+const SET_PIECE_YAW_SPEED := 0.9
+## Penal: zona del remate y del arquero (x = lado en z del mundo, y = altura).
+var _pk_shot_zone := Vector2i.ZERO
+var _aim_arrow: MeshInstance3D
 var _pending: MatchRules.Outcome = null
 var _first_half_kicker: int = 0
 var _camera: MatchCamera
@@ -260,6 +281,12 @@ func restart_ready() -> bool:
 ## sea el ejecutor).
 func goal_kick_in_progress() -> bool:
 	return phase == Phase.RESTART and restart_type == MatchRules.Restart.GOAL_KICK and restart_taker != null
+
+
+## Pelota parada con carrera en curso: la pelota queda quieta (el que patea
+## no la lleva) hasta que llega y le pega.
+func runup_in_progress() -> bool:
+	return phase == Phase.RESTART and restart_type in RUNUP_TYPES and restart_taker != null
 
 
 func attack_dirs() -> Array[int]:
@@ -423,9 +450,10 @@ func _physics_process(dt: float) -> void:
 		_release_players()
 		if not walk_off.is_empty() and not _break_shown:
 			_drive_walk_off(dt)
-	var goal_kick := goal_kick_in_progress()
+	var goal_kick := runup_in_progress()
 	if goal_kick:
 		_drive_goal_kick()
+	_update_aim_arrow()
 	_hold_card_offender(dt)
 	for p in all_players():
 		p.tick(dt, ball.owner_player == p and not (goal_kick and p == restart_taker))
@@ -616,11 +644,13 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 	if phase == Phase.RESTART:
 		if player != restart_taker or _restart_elapsed < RESTART_HUMAN_DELAY:
 			return null
-		if restart_type == MatchRules.Restart.GOAL_KICK and not _goal_kick_kicking:
-			# La orden se guarda: primero corre hasta la pelota.
-			if _goal_kick_order.is_empty():
-				_goal_kick_order = [kind, dir, power, receiver_hint, variant]
+		if restart_type in RUNUP_TYPES and not _goal_kick_kicking:
+			# La orden se guarda: primero toma carrera hasta la pelota.
+			if _goal_kick_order.is_empty() and goal_kick_stage != GoalKickStage.BACKING:
+				_goal_kick_order = [kind, dir, power, receiver_hint, variant, _custom_kick, pending_curl]
 				goal_kick_stage = GoalKickStage.RUNNING
+			_custom_kick = Callable()
+			pending_curl = Vector3.ZERO
 			return null
 		player.speed_override = 0.0
 		ball.frozen = false
@@ -643,7 +673,13 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 	_chilena = is_chilena(player, kind)
 	_in_kick = true
 	_kick_kind = kind
-	var receiver := kicks.execute(kind, player, dir, clampf(power, 0.0, 1.0))
+	var receiver: Footballer = null
+	if _custom_kick.is_valid():
+		# Tiro libre / penal a la WE2002 (SetPieceKicks).
+		_custom_kick.call()
+		_custom_kick = Callable()
+	else:
+		receiver = kicks.execute(kind, player, dir, clampf(power, 0.0, 1.0))
 	_in_kick = false
 	_kick_kind = -1
 	if _chilena:
@@ -657,6 +693,8 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 		stats["shots"][player.team.index] += 1
 		ratings.on_shot(player)
 		_plan_save(player)
+		if from_restart == MatchRules.Restart.PENALTY:
+			_resolve_penalty_keeper(player)
 	elif kind != KickActions.Kind.CLEAR:
 		ratings.on_pass(player)
 	last_kick = {"kind": kind, "team": player.team.index, "pos": player.flat_pos(), "keeper": player.is_keeper(), "player": player}
@@ -1113,6 +1151,8 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 	var from_behind := victim.facing.dot((offender.flat_pos() - victim.flat_pos()).normalized()) < -0.3
 	stats["fouls"][offender.team.index] += 1
 	ratings.on_foul(offender)
+	if audio != null:
+		audio.crowd_whistles(0.9 if slide or from_behind else 0.55)
 	# Falta fuerte (barrida o de atrás) o lesión: queda un rato en el piso.
 	var hard := slide or from_behind
 	_maybe_injure(victim, slide, from_behind)
@@ -1372,6 +1412,8 @@ func substitute(out: Footballer, in_data: PlayerData, as_keeper := false) -> Foo
 	t.subs_used += 1
 	stats["subs"][t.index] += 1
 	_leave_pitch(out)
+	if audio != null:
+		audio.applause()
 	show_toast("CAMBIO %s:  sale %s  -  entra %s" % [t.short_name, out.display_name, p.display_name], 2.5)
 	return p
 
@@ -1497,6 +1539,11 @@ func swap_lineup(out: Footballer, in_data: PlayerData) -> Footballer:
 		if h.controlled == out:
 			h.controlled = null
 			h.select(p)
+	if intro != null:
+		intro.replace_player(out, p)
+	if walk_off.has(out):
+		walk_off[p] = walk_off[out]
+		walk_off.erase(out)
 	out.queue_free()
 	return p
 
@@ -1727,6 +1774,130 @@ func apply_set_piece_curl(stick_world: Vector3) -> void:
 	var fwd := clampf(stick_world.dot(along), -1.0, 1.0)
 	var axis := along.cross(Vector3.UP).normalized()
 	ball.state.spin = Vector3(0.0, side * SET_PIECE_CURL, 0.0) - axis * fwd * SET_PIECE_DIP
+
+
+# --- Tiro libre y penal a la WE2002 (B11) -------------------------------------
+
+## Tiro libre con la cámara atrás del pateador (en campo rival).
+func free_kick_camera_active() -> bool:
+	return phase == Phase.RESTART and restart_type == MatchRules.Restart.FREE_KICK and set_piece_cam
+
+
+## Dirección del tiro libre: la línea al arco girada con el stick derecho.
+func set_piece_aim() -> Vector3:
+	if restart_taker == null:
+		return Vector3.ZERO
+	var t := restart_taker.team
+	var to := t.target_goal() - ball.flat_pos()
+	to.y = 0.0
+	return to.normalized().rotated(Vector3.UP, set_piece_aim_yaw)
+
+
+## El stick derecho gira la mira (y la cámara con ella) antes de patear.
+func turn_set_piece_aim(amount: float, dt: float) -> void:
+	if not free_kick_camera_active() or goal_kick_stage == GoalKickStage.RUNNING:
+		return
+	set_piece_aim_yaw = clampf(set_piece_aim_yaw - amount * SET_PIECE_YAW_SPEED * dt, -SET_PIECE_YAW_MAX, SET_PIECE_YAW_MAX)
+	if _camera != null:
+		var aim := set_piece_aim()
+		var spot := ball.flat_pos()
+		_camera.set_shot(spot - aim * SET_PIECE_BACK + Vector3(0.0, SET_PIECE_HEIGHT, 0.0),
+			spot + aim * 20.0 + Vector3(0.0, 1.0, 0.0), SET_PIECE_FOV, 8.0)
+
+
+## Orden de tiro libre del humano: al llegar a la pelota se lee el stick
+## (lo que mantiene al patear) y sale el tiro según SetPieceKicks.
+func order_free_kick(p: Footballer, kind: int, power: float, human: HumanController,
+		cpu_stick: Vector3 = Vector3.ZERO) -> void:
+	var cam_right := _camera.global_basis.x if _camera != null else Vector3.ZERO
+	_custom_kick = func() -> void:
+		var stick := human.input.move_vector() if human != null else cpu_stick
+		var gk := opponents_of(p.team).keeper()
+		SetPieceKicks.free_kick(kicks, p, set_piece_aim(), kind, stick, power,
+			gk.global_position.z if gk != null else 0.0, cam_right)
+	perform_kick(p, KickActions.Kind.SHOT, set_piece_aim(), power)
+
+
+## Orden de penal. Humano: el stick al patear elige una de las 5 zonas; CPU:
+## una al azar. `right_z`: hacia qué z del mundo queda la derecha de la
+## pantalla (la cámara está atrás del pateador).
+func order_penalty(p: Footballer, power: float, human: HumanController = null) -> void:
+	var right_z := signf(_camera.global_basis.x.z) if _camera != null and absf(_camera.global_basis.x.z) > 0.1 else 1.0
+	_custom_kick = func() -> void:
+		var zone := SetPieceKicks.penalty_zone(human.input.move_vector()) if human != null else _cpu_penalty_zone()
+		_pk_shot_zone = Vector2i(int(zone.x * right_z), zone.y)
+		SetPieceKicks.penalty(kicks, p, zone, right_z, power)
+	perform_kick(p, KickActions.Kind.SHOT, Vector3.ZERO, power)
+
+
+func _cpu_penalty_zone() -> Vector2i:
+	var r := randf()
+	if r < 0.14:
+		return Vector2i(0, 0)
+	return Vector2i(-1 if randf() < 0.5 else 1, 1 if randf() < 0.4 else -1)
+
+
+## Penal: el arquero se tira a la zona que eligió (humano: su stick al
+## patear; CPU: al azar) y la atajada depende de si adivinó.
+func _resolve_penalty_keeper(shooter: Footballer) -> void:
+	var defenders := opponents_of(shooter.team)
+	var gk := defenders.keeper()
+	if gk == null:
+		return
+	var keeper_zone := Vector2i(0, 0)
+	var human: HumanController = null
+	for h in humans:
+		if h.team == defenders:
+			human = h
+	if human != null:
+		var st := human.input.move_vector()
+		var right_z := signf(_camera.global_basis.x.z) if _camera != null and absf(_camera.global_basis.x.z) > 0.1 else 1.0
+		var z := SetPieceKicks.penalty_zone(st)
+		keeper_zone = Vector2i(int(z.x * right_z), z.y)
+	else:
+		keeper_zone = _cpu_penalty_zone()
+	var skill := gk.data.goalkeeping if gk.data != null else 60
+	if gk.data != null and gk.data.has_ability("ataja_penales"):
+		skill += 12
+	var chance := SetPieceKicks.penalty_save_chance(_pk_shot_zone, keeper_zone, skill)
+	var goal_x := defenders.own_side() * Pitch.HALF_LENGTH
+	var guess := Vector3(goal_x, 0.0, float(keeper_zone.x) * 2.4)
+	var right_guess := keeper_zone.x == _pk_shot_zone.x
+	if save_plan.is_empty() or not right_guess:
+		# Afuera, o se tiró para el otro lado: vuela a su zona y no llega.
+		save_plan = {"keeper": gk, "will_save": false, "parry": false, "point": guess, "save_point": guess,
+			"time_left": 1.0, "chance": 0.0, "elapsed": 0.0, "react": 0.0, "dive_at": 0.0, "dove": false}
+		return
+	save_plan["will_save"] = randf() < chance
+	save_plan["chance"] = chance
+	save_plan["react"] = 0.0
+	save_plan["dive_at"] = 0.0
+
+
+func _update_aim_arrow() -> void:
+	var show := free_kick_camera_active() and restart_taker != null and restart_taker.is_human() \
+		and goal_kick_stage != GoalKickStage.RUNNING
+	if not show:
+		if _aim_arrow != null:
+			_aim_arrow.visible = false
+		return
+	if _aim_arrow == null:
+		_aim_arrow = MeshInstance3D.new()
+		var pm := PrismMesh.new()
+		pm.size = Vector3(0.9, 5.0, 0.02)
+		_aim_arrow.mesh = pm
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.albedo_color = Color(1.0, 0.9, 0.2, 0.55)
+		_aim_arrow.material_override = mat
+		_aim_arrow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_aim_arrow)
+	var aim := set_piece_aim()
+	_aim_arrow.visible = true
+	# Prisma acostado sobre el pasto, con la punta hacia donde se apunta.
+	var b := Basis.looking_at(Vector3.DOWN, aim)
+	_aim_arrow.global_transform = Transform3D(b, ball.flat_pos() + aim * 3.6 + Vector3(0.0, 0.03, 0.0))
 
 
 func _update_one_two(dt: float) -> void:
@@ -2511,6 +2682,14 @@ var _stands_t := 0.0
 func _start_walk_off() -> void:
 	walk_off = {"_": true}
 	ball.state.vel = Vector3.ZERO
+	# Si terminó con una pelota parada a medio armar, el pateador queda libre
+	# (si no, sigue "trabado" y no camina).
+	restart_taker = null
+	_goal_kick_order = []
+	_custom_kick = Callable()
+	for p in all_players():
+		p.locked = false
+		p.speed_override = 0.0
 	var final := phase == Phase.FULLTIME
 	_phase_timer = FULLTIME_REACTIONS if final else WALK_OFF_TIME
 	var tunnel := Vector3(0.0, 0.0, StadiumBuilder.tunnel_z)
@@ -2793,6 +2972,22 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 			stand = spot + Vector3(0.0, 0.0, signf(spot.z) * 0.5)
 			look = Vector3(0.0, 0.0, -signf(spot.z))
 	ball.place(spot)
+	# Tiro libre, córner y penal: toma carrera (arranca unos metros atrás, en
+	# diagonal del lado de su pierna hábil).
+	if outcome.type in [MatchRules.Restart.FREE_KICK, MatchRules.Restart.CORNER, MatchRules.Restart.PENALTY]:
+		var lf := taker.data != null and taker.data.foot == PlayerData.Foot.LEFT
+		var side_v := Vector3.UP.cross(look).normalized() * (-1.0 if lf else 1.0)
+		var back := RUNUP_BACK_PK if outcome.type == MatchRules.Restart.PENALTY else RUNUP_BACK
+		stand = spot - look * back + side_v * (RUNUP_SIDE * (0.6 if outcome.type == MatchRules.Restart.PENALTY else 1.0))
+		if outcome.type == MatchRules.Restart.CORNER:
+			# Desde afuera de la cancha, detrás del banderín.
+			var out2 := Vector3(signf(spot.x), 0.0, signf(spot.z)).normalized()
+			stand = spot + out2 * RUNUP_BACK * 0.8
+			stand = Vector3(clampf(stand.x, -Pitch.HALF_LENGTH - 2.6, Pitch.HALF_LENGTH + 2.6), 0.0,
+				clampf(stand.z, -Pitch.HALF_WIDTH - 2.6, Pitch.HALF_WIDTH + 2.6))
+		look = (spot - stand).normalized()
+	_runup_from = stand
+	set_piece_aim_yaw = 0.0
 	taker.teleport(stand, look)
 	wall_targets = {}
 	if outcome.type == MatchRules.Restart.FREE_KICK:
@@ -2813,7 +3008,7 @@ func goal_kick_runup_spot() -> Vector3:
 func _drive_goal_kick() -> void:
 	var k := restart_taker
 	var spot := ball.flat_pos()
-	var runup := goal_kick_runup_spot()
+	var runup := goal_kick_runup_spot() if restart_type == MatchRules.Restart.GOAL_KICK else _runup_from
 	k.wants_sprint = false
 	match goal_kick_stage:
 		GoalKickStage.BACKING:
@@ -2825,10 +3020,15 @@ func _drive_goal_kick() -> void:
 				k.speed_override = GOAL_KICK_WALK
 				k.desired_move = d.normalized()
 		GoalKickStage.READY:
+			# Quieto mirando la pelota: el stick no lo hace girar en el lugar
+			# (en el tiro libre el stick es para la pelota).
 			k.desired_move = Vector3.ZERO
 			k.speed_override = 0.0
-			k.facing = (spot - k.flat_pos()).normalized()
+			var to_ball := spot - k.flat_pos()
+			if to_ball.length_squared() > 0.01:
+				k.facing = to_ball.normalized()
 		GoalKickStage.RUNNING:
+			k.locked = false
 			var approach := (spot - runup).normalized()
 			var contact := spot - approach * 0.55
 			var d2 := contact - k.flat_pos()
@@ -2837,7 +3037,12 @@ func _drive_goal_kick() -> void:
 				_goal_kick_kicking = true
 				k.desired_move = Vector3.ZERO
 				k.speed_override = 0.0
+				if o.size() > 5 and (o[5] as Callable).is_valid():
+					_custom_kick = o[5]
+				var before := kick_count
 				perform_kick(k, o[0], o[1], o[2], o[3], o[4])
+				if o.size() > 6 and kick_count != before and (o[6] as Vector3).length() > 0.3:
+					apply_set_piece_curl(o[6])
 				_goal_kick_kicking = false
 				_goal_kick_order = []
 				goal_kick_stage = GoalKickStage.READY

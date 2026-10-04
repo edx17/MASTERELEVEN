@@ -276,6 +276,7 @@ func _begin(p_kind: int, team: int, caption: String, first: int, last: int, even
 	_cursor = float(_first)
 	_rolling = false
 	# Cortina: cuando tapa la pantalla, aparece la repetición.
+	_swoosh()
 	_wipe.run(func() -> void:
 		_tag.visible = true
 		_show_line(kind == Kind.OFFSIDE and is_finite(offside_line))
@@ -360,6 +361,7 @@ func stop() -> void:
 	if not playing or not _rolling:
 		return
 	_rolling = false
+	_swoosh()
 	_wipe.run(func() -> void:
 		playing = false
 		_tag.visible = false
@@ -532,3 +534,9 @@ class Wipe:
 		draw_rect(Rect2(x - skew, size.y * 0.44, w + skew * 2.0, size.y * 0.12), Color(0.42, 0.36, 0.9))
 		var font := get_theme_default_font()
 		draw_string(font, Vector2(x, size.y * 0.5 + 18), "MASTER ELEVEN", HORIZONTAL_ALIGNMENT_CENTER, w, 52, Color(1.0, 0.88, 0.3))
+
+
+## "Swoosh" de la cortina.
+func _swoosh() -> void:
+	if _match != null and _match.audio != null:
+		_match.audio.play("swoosh", 0.8, randf_range(0.95, 1.05))

@@ -707,6 +707,13 @@ static func _banners(stand: Node3D, length: float, y: float, z: float, fans: Dic
 				mi.mesh = q
 				var m := _mat(a if i == 0 else b, 0.9)
 				m.cull_mode = BaseMaterial3D.CULL_DISABLED
+				# Tela (trama de tejido) en los trapos.
+				var fabric := ModelVisual.fabric_texture()
+				if fabric != null:
+					m.normal_enabled = true
+					m.normal_texture = fabric
+					m.normal_scale = 0.8
+					m.uv1_scale = Vector3(w * 1.5, 0.75, 1.0)
 				mi.material_override = m
 				mi.position = Vector3(x + w * 0.5, y + 0.75 - i * 0.5, z)
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

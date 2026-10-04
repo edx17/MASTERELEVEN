@@ -863,15 +863,15 @@ func _restart_taker(p: Footballer) -> void:
 			_match.perform_kick(p, KickActions.Kind.LONG_PASS, team.target_goal() - p.flat_pos(), randf_range(0.3, 0.7))
 			return
 		MatchRules.Restart.PENALTY:
-			# Al palo: a un costado y a media altura, con algo de azar.
-			var aim := Vector3(0.0, 0.0, 1.0 if randf() < 0.5 else -1.0)
-			_match.perform_kick(p, KickActions.Kind.SHOT, aim, randf_range(0.55, 0.8))
+			# Una de las 5 zonas al azar (SetPieceKicks); toma carrera.
+			_match.order_penalty(p, randf_range(0.55, 0.85))
 			return
 		MatchRules.Restart.FREE_KICK:
 			var goal := team.target_goal()
 			if p.flat_pos().distance_to(goal) < 28.0 and absf(p.flat_pos().z) < 18.0 and randf() < 0.6:
-				var aim2 := Vector3(0.0, 0.0, signf(randf() - 0.5))
-				_match.perform_kick(p, KickActions.Kind.SHOT, aim2, randf_range(0.6, 0.85))
+				# Colocado por encima de la barrera o con comba (a la WE2002).
+				var stick := Vector3(0.0, 0.0, 1.0) if randf() < 0.5 else Vector3(signf(randf() - 0.5), 0.0, -0.4)
+				_match.order_free_kick(p, KickActions.Kind.SHOT, randf_range(0.55, 0.8), null, stick)
 				return
 		MatchRules.Restart.GOAL_KICK:
 			var best := _evaluate_passes(p)
