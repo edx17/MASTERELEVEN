@@ -680,7 +680,14 @@ func _plan_save_for(defenders: Team, extra_reaction: float) -> void:
 	var react := SaveModel.reaction_time(reaction, extra_reaction)
 	save_plan = {"keeper": gk, "will_save": will_save, "parry": parry, "point": plan.point,
 		"save_point": plan.save_point, "time_left": plan.time + 0.3, "chance": plan.chance,
-		"elapsed": 0.0, "react": react, "dive_at": maxf(react, plan.save_time - DIVE_LEAD), "dove": false}
+		"elapsed": 0.0, "react": react, "dive_at": dive_time(react, plan.save_time), "dove": false}
+
+
+## Cuándo se tira: cuando la pelota está por llegar (lo que dura el vuelo
+## hasta el contacto), pero nunca después de que pasó: si reacciona tarde,
+## igual se tira (aunque no llegue), no cuando la pelota ya entró.
+static func dive_time(react: float, save_time: float) -> float:
+	return minf(maxf(react, save_time - DIVE_LEAD), maxf(0.0, save_time - DIVE_LATEST))
 
 
 ## Freno con la pelota (R2): pisa la pelota, que queda junto al pie, y el
@@ -700,8 +707,11 @@ func stop_with_ball(p: Footballer) -> void:
 const RUSH_REACTION := 0.2
 
 
-## Lo que dura la estirada del arquero hasta el contacto (s).
-const DIVE_LEAD := 0.3
+## Lo que dura la estirada del arquero hasta el contacto (s): el clip llega
+## al golpe 0,2 s después de arrancar, a la velocidad de la estirada.
+const DIVE_LEAD := 0.2 / ModelVisual.DIVE_SPEED
+## Lo más tarde que se tira antes de que llegue la pelota (s).
+const DIVE_LATEST := 0.08
 
 
 ## Lateral (sólo presentación): el que saca espera con la pelota en las dos
@@ -781,11 +791,27 @@ func _show_dive(gk: Footballer, point: Vector3) -> void:
 		return
 	var rel := point - gk.flat_pos()
 	rel.y = 0.0
+	# Altura de la pelota cuando pasa por donde está el arquero (no en la
+	# línea del arco): si va muy por encima, no hace el gesto de agarrarla.
+	var h := ball_height_at(gk.flat_pos().x, point.y)
+	if h > tuning.keeper_catch_height + 0.5:
+		return
 	if rel.length() < 1.2:
-		gk.visual.play(catch_event(point.y), point.y)
+		gk.visual.play(catch_event(h), h)
 		return
 	var right := gk.global_basis.x
 	gk.visual.play(PlayerVisual.Event.DIVE_RIGHT if right.dot(rel) > 0.0 else PlayerVisual.Event.DIVE_LEFT)
+
+
+## Altura de la pelota (pronóstico) cuando pasa por la x dada.
+func ball_height_at(x: float, fallback: float) -> float:
+	var prev := ball.state.pos
+	for bp in ball_forecast:
+		if (prev.x - x) * (bp.x - x) <= 0.0:
+			var k := (x - prev.x) / (bp.x - prev.x) if absf(bp.x - prev.x) > 0.0001 else 0.0
+			return lerpf(prev.y, bp.y, clampf(k, 0.0, 1.0))
+		prev = bp
+	return fallback
 
 
 ## Toda patada que no pasa por perform_kick (desvío en el cuerpo, rebote del

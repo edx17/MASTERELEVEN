@@ -118,6 +118,8 @@ var _yaw := 0.0
 var _yaw_target := 0.0
 var _touch_side := 1.0
 const TOUCH_TIME := 0.16
+## Velocidad de la estirada (el vuelo dura menos: cae como debe).
+const DIVE_SPEED := 1.3
 
 
 ## Hay modelo y animaciones importados en el proyecto.
@@ -575,6 +577,10 @@ func play(event: int, side: float = 1.0) -> void:
 			clip = "gk_dive_px"
 		Event.DIVE_LEFT:
 			clip = "gk_dive_nx"
+	# Estirada rápida: sube, toca y cae (sin quedar flotando en el aire).
+	if clip.begins_with("gk_dive") and clip != _clip and _play_clip(clip, DIVE_SPEED):
+		_event = -1
+		return
 	# La atajada anticipada y la de contacto son el mismo gesto: no se reinicia.
 	if clip != "" and clip == _clip and clip.begins_with("gk_"):
 		_event = -1

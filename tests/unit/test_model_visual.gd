@@ -100,11 +100,13 @@ func test_mixamo_clips_when_present() -> void:
 	assert_gt(max_z, 0.3, "el pie derecho sale adelante con la animación retargeteada")
 	v.play(PlayerVisual.Event.DIVE_RIGHT)
 	assert_eq(v._clip, "gk_dive_px")
+	var max_x := 0.0
 	for i in 60:
 		_step(v, 0.0, 1)
-	v._skel.force_update_all_bone_transforms()
-	var pelvis := v._skel.get_bone_global_pose(v._skel.find_bone("pelvis")).origin
-	assert_gt(pelvis.x, 0.3, "vuela de costado hacia +X")
+		v._skel.force_update_all_bone_transforms()
+		max_x = maxf(max_x, v._skel.get_bone_global_pose(v._skel.find_bone("pelvis")).origin.x)
+	assert_gt(max_x, 0.3, "vuela de costado hacia +X")
+	assert_eq(v._clip, "", "y la estirada termina rápido (no queda flotando)")
 
 
 func _mixamo_or_skip() -> bool:

@@ -98,8 +98,8 @@ const CLIPS := {
 	# Salta, la agarra y se tira encima (para hacer tiempo; pelota dividida).
 	"gk_smother": {"file": "GoalkeeperReceiver Catch", "face": true, "range": [0.7, 1.0, 3.45]},
 	"gk_catch": {"file": "Goalkeeper Catch stay"},
-	"gk_catch_high": {"file": "Goalkeeper Catch jump"},
-	"gk_catch_low": {"file": "Goalkeeper Scoop"},
+	"gk_catch_high": {"file": "Goalkeeper Catch jump", "range": [0.4, 0.78, 1.5]},
+	"gk_catch_low": {"file": "Goalkeeper Scoop", "range": [0.1, 0.72, 1.4]},
 	"gk_catch_cross": {"file": "Goalkeeper Catch corta centro", "face": true},
 	"gk_block": {"file": "Goalkeeper_Body_Block", "face": true, "range": [0.2, 0.75, 1.9]},
 	"gk_miss": {"file": "Goalkeeper Miss", "face": true},
@@ -110,8 +110,10 @@ const CLIPS := {
 	"gk_side_b": {"file": "Goalkeeper Sidestep achique", "loop": true, "face": true, "mirror": true},
 	# La estirada va hacia -X del modelo (su derecha); hacia +X es la misma,
 	# espejada.
-	"gk_dive_px": {"file": "Goalkeeper Diving Save", "mirror": true, "lateral": 0.6},
-	"gk_dive_nx": {"file": "Goalkeeper Diving Save", "lateral": 0.6},
+	# El vuelo de costado lo hace la simulación (el arquero llega o no al
+	# punto): el clip sólo conserva un poco, para la forma del salto.
+	"gk_dive_px": {"file": "Goalkeeper Diving Save", "mirror": true, "lateral": 0.25},
+	"gk_dive_nx": {"file": "Goalkeeper Diving Save", "lateral": 0.25},
 }
 
 static var _lib: AnimationLibrary
@@ -359,7 +361,7 @@ static func _marks(clip_name: String, anim: Animation, target: Skeleton3D) -> Di
 	var start := maxf(0.0, contact - lead)
 	var end := minf(anim.length, contact + 0.6)
 	if clip_name.begins_with("gk_dive"):
-		end = minf(anim.length, contact + 1.1)
+		end = minf(anim.length, contact + 0.85)
 	return {"start": start, "contact": contact, "end": end}
 
 
