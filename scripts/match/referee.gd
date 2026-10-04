@@ -108,6 +108,12 @@ static func trail_point(ball_pos: Vector3) -> Vector3:
 	return p
 
 
+## Saque del medio: a un costado del círculo central (del lado de enfrente de
+## la cámara, para no tapar), en el campo del equipo que saca.
+static func kickoff_spot(kicking_attack_dir: int) -> Vector3:
+	return Vector3(-kicking_attack_dir * 4.0, 0.0, -(Pitch.CENTER_CIRCLE_RADIUS + 1.5))
+
+
 ## Va hasta el jugador (se para enfrente, a la distancia de amonestar).
 func approach(p: Vector3, from: Vector3) -> void:
 	var dir := from - p

@@ -2,7 +2,8 @@ class_name HalftimeScreen
 extends CanvasLayer
 ## Entretiempo y final (como en el WE): estadísticas de los dos equipos con
 ## barras, un menú (seguir, Dirección del equipo, highlights, salir) y de
-## fondo la cámara recorriendo el estadio en tomas lentas.
+## fondo la cámara recorriendo el estadio en tomas lentas. En el final, en
+## lugar de la Dirección del equipo, los puntajes de cada jugador.
 
 ## Tomas del fondo: [desde, hasta (la cámara se desliza), mira a].
 const SHOTS := [
@@ -21,6 +22,9 @@ var _score: Label
 var _rows: VBoxContainer
 var _menu: VBoxContainer
 var _continue: Button
+var _sheet_btn: Button
+var _ratings_btn: Button
+var _showing_ratings := false
 var _shot := 0
 var _shot_t := 0.0
 var _sheet: TeamSheet
@@ -56,7 +60,8 @@ func setup(m: MatchController) -> void:
 	_menu.add_theme_constant_override("separation", 6)
 	root.add_child(_menu)
 	_continue = _button("Segundo tiempo", func() -> void: _match.start_second_half())
-	_button("Dirección del equipo", _open_sheet)
+	_sheet_btn = _button("Dirección del equipo", _open_sheet)
+	_ratings_btn = _button("Puntajes de los jugadores", _toggle_ratings)
 	_button("Ver highlights", _play_highlights)
 	_button("Salir al menú", func() -> void: _match.exit_to_menu())
 	_sheet = TeamSheet.new()
@@ -80,18 +85,36 @@ func open(final: bool) -> void:
 	_menu.visible = true
 	_title.text = "FINAL DEL PARTIDO" if final else "ENTRETIEMPO"
 	_continue.visible = not final
+	_sheet_btn.visible = not final
+	_ratings_btn.visible = final
+	_showing_ratings = false
+	_ratings_btn.text = "Puntajes de los jugadores"
 	_refresh()
 	_shot = 0
 	_shot_t = 0.0
 	_next_shot()
 	_focus_default()
+	_arm_menu()
+
+
+## Los botones no responden el primer segundo y medio: si se venía apretando
+## X (por ejemplo, para saltear una repetición) no se saltea la pantalla.
+const INPUT_GRACE := 1.5
+
+
+func _arm_menu() -> void:
+	for b in _menu.get_children():
+		(b as Button).disabled = true
+	get_tree().create_timer(INPUT_GRACE, true, false, true).timeout.connect(func() -> void:
+		for b in _menu.get_children():
+			(b as Button).disabled = false)
 
 
 func _focus_default() -> void:
 	if _continue.visible:
 		_continue.grab_focus()
 	else:
-		(_menu.get_child(1) as Control).grab_focus()
+		_ratings_btn.grab_focus()
 
 
 func close() -> void:
@@ -123,12 +146,21 @@ func stat_rows() -> Array:
 	]
 
 
+func _toggle_ratings() -> void:
+	_showing_ratings = not _showing_ratings
+	_ratings_btn.text = "Estadísticas del partido" if _showing_ratings else "Puntajes de los jugadores"
+	_refresh()
+
+
 func _refresh() -> void:
 	var t0 := _match.teams[0]
 	var t1 := _match.teams[1]
 	_score.text = "%s   %d - %d   %s" % [t0.short_name, t0.score, t1.score, t1.short_name]
 	for c in _rows.get_children():
 		c.queue_free()
+	if _showing_ratings:
+		_fill_ratings()
+		return
 	for r in stat_rows():
 		var row := StatRow.new()
 		row.caption = r[0]
@@ -140,6 +172,81 @@ func _refresh() -> void:
 		row.right_color = t1.color
 		row.custom_minimum_size = Vector2(600, 40)
 		_rows.add_child(row)
+
+
+## Filas de puntajes de un equipo: [puesto, número, nombre, puntaje, goles,
+## asistencias, figura]. Primero los que terminaron en la cancha, después los
+## que salieron o fueron expulsados (los que no jugaron no aparecen).
+func rating_rows(t: Team) -> Array:
+	var r := _match.ratings
+	var mvp := r.man_of_the_match()
+	var out: Array = []
+	var seen := {}
+	var order: Array = []
+	for p in t.players:
+		order.append(p)
+	for p in r.players():
+		if p.team == t and not order.has(p):
+			order.append(p)
+	for p in order:
+		if seen.has(p):
+			continue
+		seen[p] = true
+		var s := r.of(p)
+		var code: String = "GK" if p.is_keeper() else TeamSheet.ROLE_CODES[clampi(p.tactical_role, 0, TeamSheet.ROLE_CODES.size() - 1)]
+		out.append([code, p.number, p.display_name, r.rating(p), s["goals"], s["assists"], p == mvp])
+	return out
+
+
+func _fill_ratings() -> void:
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override("separation", 18)
+	_rows.add_child(cols)
+	for t in _match.teams:
+		var col := VBoxContainer.new()
+		col.custom_minimum_size = Vector2(291, 0)
+		col.add_theme_constant_override("separation", 1)
+		cols.add_child(col)
+		var head := WEStyle.label(t.team_name, 18, t.color.lightened(0.35))
+		col.add_child(head)
+		for row in rating_rows(t):
+			var line := HBoxContainer.new()
+			line.add_theme_constant_override("separation", 6)
+			col.add_child(line)
+			var pos := WEStyle.label(row[0], 13, Color(0.75, 0.8, 0.9))
+			pos.custom_minimum_size = Vector2(26, 0)
+			line.add_child(pos)
+			var num := WEStyle.label(str(row[1]), 14, Color(0.85, 0.85, 0.85))
+			num.custom_minimum_size = Vector2(22, 0)
+			num.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			line.add_child(num)
+			var extra := ""
+			if row[4] > 0:
+				extra += "  G%s" % ("x%d" % row[4] if row[4] > 1 else "")
+			if row[5] > 0:
+				extra += "  A%s" % ("x%d" % row[5] if row[5] > 1 else "")
+			var nm := WEStyle.label(String(row[2]) + extra, 14, Color(1.0, 0.9, 0.35) if row[6] else Color.WHITE)
+			nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			nm.clip_text = true
+			line.add_child(nm)
+			var val: float = row[3]
+			var txt := "—" if val < 0.0 else ("%.1f" % val)
+			var c := Color(0.7, 0.7, 0.7)
+			if val >= 7.5:
+				c = Color(0.45, 0.95, 0.5)
+			elif val >= 6.0 or val < 0.0:
+				c = Color.WHITE if val >= 0.0 else Color(0.6, 0.6, 0.6)
+			elif val >= 0.0:
+				c = Color(1.0, 0.5, 0.4)
+			var rl := WEStyle.label(txt, 16, c)
+			rl.custom_minimum_size = Vector2(34, 0)
+			rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			line.add_child(rl)
+	var mvp := _match.ratings.man_of_the_match()
+	if mvp != null:
+		var l := WEStyle.label("Figura del partido: %s (%s)" % [mvp.display_name, mvp.team.short_name], 17, Color(1.0, 0.9, 0.35))
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_rows.add_child(l)
 
 
 func _process(dt: float) -> void:

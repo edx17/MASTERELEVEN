@@ -49,8 +49,11 @@ func test_halftime_coasts_then_shows_the_stats() -> void:
 	_step(int(MatchController.WHISTLE_COAST / dt) + 2)
 	assert_true(m.halftime_screen.visible, "la pantalla de estadísticas")
 	assert_eq(m.halftime_screen.stat_rows().size(), 8)
-	# CPU contra CPU: sigue sola.
+	# Espera al usuario (B10): no sigue sola.
 	_step(int(MatchController.BREAK_AUTO_CONTINUE / dt) + 2)
+	assert_eq(m.clock.half, 1, "espera")
+	assert_true(m.halftime_screen.visible)
+	m.start_second_half()
 	assert_eq(m.clock.half, 2)
 	assert_false(m.halftime_screen.visible)
 	assert_eq(m.phase, MatchController.Phase.RESTART, "saque del medio del segundo tiempo")

@@ -112,6 +112,11 @@ var replay_request := {}
 ## La pelota pegó en el palo desde el último remate.
 var _post_hit := false
 
+## Entretiempo que sigue solo después de BREAK_AUTO_CONTINUE (simulaciones y
+## tests de partido completo). En el juego, la pantalla espera al usuario.
+var break_auto_continue := false
+## Lo que hizo cada jugador y su puntaje (pantalla del final).
+var ratings := PlayerRatings.new()
 var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won": [0, 0],
 	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0], "subs": [0, 0], "injuries": [0, 0], "contacts": [0, 0],
 	"chilenas": [0, 0], "corners": [0, 0], "possession": [0.0, 0.0]}
@@ -445,6 +450,8 @@ func _physics_process(dt: float) -> void:
 		var holder_team := ball.owner_player.team.index if ball.owner_player != null else ball.last_touch_team
 		if holder_team >= 0:
 			stats["possession"][holder_team] += dt
+		if training == null:
+			ratings.tick(dt, dt / maxf(Engine.time_scale, 0.01) * clock.rate() / 60.0, teams, ball.owner_player)
 
 	clock.running = training == null and (phase in [Phase.PLAYING, Phase.STOPPED] or (phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF))
 	# El reloj va en tiempo real aunque el juego corra más lento (velocidad).
@@ -618,7 +625,10 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 	save_plan = {}
 	if kind == KickActions.Kind.SHOT:
 		stats["shots"][player.team.index] += 1
+		ratings.on_shot(player)
 		_plan_save(player)
+	elif kind != KickActions.Kind.CLEAR:
+		ratings.on_pass(player)
 	last_kick = {"kind": kind, "team": player.team.index, "pos": player.flat_pos(), "keeper": player.is_keeper(), "player": player}
 	return receiver
 
@@ -1012,6 +1022,7 @@ func _try_take_loose_ball() -> void:
 			var wide := signf(bp.z) if absf(bp.z) > 0.3 else (1.0 if randf() < 0.5 else -1.0)
 			var parry := Vector3(-v.x * 0.25, absf(v.y) * 0.3 + 3.0, wide * randf_range(5.0, 9.0))
 			stats["saves"][best.team.index] += 1
+			ratings.on_save(best)
 			save_plan = {}
 			ball.kick(parry, Vector3.ZERO, best)
 			best.touch_block = 0.5
@@ -1023,6 +1034,7 @@ func _try_take_loose_ball() -> void:
 		return
 	if best.is_keeper() and ball.last_touch_team != best.team.index and ball.speed() > 12.0:
 		stats["saves"][best.team.index] += 1
+		ratings.on_save(best)
 		# Atajada en las manos: el juego sigue, pero queda para los highlights.
 		var shooter: Footballer = last_kick.get("player")
 		if last_kick.get("kind") == KickActions.Kind.SHOT and shooter != null and replay != null and replay.has_frames():
@@ -1071,6 +1083,7 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 		return
 	var from_behind := victim.facing.dot((offender.flat_pos() - victim.flat_pos()).normalized()) < -0.3
 	stats["fouls"][offender.team.index] += 1
+	ratings.on_foul(offender)
 	# Falta fuerte (barrida o de atrás) o lesión: queda un rato en el piso.
 	var hard := slide or from_behind
 	_maybe_injure(victim, slide, from_behind)
@@ -1097,11 +1110,13 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 		yellow_p = 0.0 # en la práctica no hay tarjetas
 	if red:
 		text += "   -   ROJA: %s" % offender.display_name
+		ratings.on_card(offender, true)
 		send_off(offender)
 		card_shown.emit(offender)
 	elif randf() < yellow_p:
 		offender.yellow_cards += 1
 		stats["yellows"][offender.team.index] += 1
+		ratings.on_card(offender, offender.yellow_cards >= 2)
 		if offender.yellow_cards >= 2:
 			text += "   -   SEGUNDA AMARILLA, ROJA: %s" % offender.display_name
 			send_off(offender)
@@ -1884,6 +1899,7 @@ func _try_steal(dt: float) -> void:
 					o.visual.play(PlayerVisual.Event.BLOCK)
 				ball.give_to(o, false, true)
 				stats["saves"][o.team.index] += 1
+				ratings.on_save(o)
 				return
 			continue
 		if o.state != Footballer.State.NORMAL or ball.state.pos.y > tuning.control_height:
@@ -1952,6 +1968,7 @@ func _resolve_tackle(defender: Footballer, carrier: Footballer) -> bool:
 		carrier.touch_block = tuning.lost_ball_cooldown
 		ball.give_to(defender, true)
 		stats["tackles_won"][defender.team.index] += 1
+		ratings.on_tackle_won(defender)
 		return true
 	defender.stagger(tuning.tackle_fail_stagger)
 	if randf() < foul_chance(defender, carrier, false):
@@ -2113,6 +2130,7 @@ func _check_rules() -> void:
 		return
 	if outcome.type == MatchRules.Restart.GOAL:
 		goal_scorer = ball.last_toucher
+		ratings.on_goal(goal_scorer, outcome.team, teams)
 		_show_goal(outcome.team)
 		teams[outcome.team].score += 1
 		banner_text = "¡GOL!"
@@ -2388,7 +2406,8 @@ func _show_break() -> void:
 	banner_text = ""
 	if halftime_screen != null:
 		halftime_screen.open(phase == Phase.FULLTIME)
-	_phase_timer = BREAK_AUTO_CONTINUE if humans.is_empty() or halftime_screen == null else INF
+	# Con la pantalla, espera a que el usuario elija (también CPU vs CPU).
+	_phase_timer = BREAK_AUTO_CONTINUE if halftime_screen == null or break_auto_continue else INF
 
 
 ## Arranca el segundo tiempo (desde la pantalla del entretiempo o sola).
@@ -2456,6 +2475,10 @@ func _setup_kickoff(kicking_team: int) -> void:
 	taker.teleport(Vector3(-kt.attack_dir * 0.5, 0.0, 0.0), Vector3(kt.attack_dir, 0.0, 0.0))
 	partner.teleport(Vector3(-kt.attack_dir * 0.8, 0.0, 2.5), Vector3(kt.attack_dir, 0.0, 0.0))
 	ball.place(Vector3(0.0, tuning.ball_radius, 0.0))
+	if referee != null:
+		referee.release()
+		referee.teleport(Referee.kickoff_spot(kt.attack_dir))
+		referee.facing = (-referee.global_position).normalized()
 	banner_text = "SAQUE DEL MEDIO" if clock.half == 1 and teams[0].score + teams[1].score == 0 else ""
 	_begin_restart(MatchRules.Restart.KICKOFF, taker)
 
