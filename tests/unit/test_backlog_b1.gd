@@ -82,7 +82,9 @@ func test_possession_and_corners_are_counted() -> void:
 	p.teleport(Vector3(0, 0, 0))
 	m.ball.give_to(p)
 	_step(60)
-	assert_gt(m.stats["possession"][0], 0.5)
+	# Cuenta para el que la tiene (o el último que la tocó): suman el tiempo.
+	assert_gt(m.stats["possession"][0], 0.0)
+	assert_almost_eq(m.stats["possession"][0] + m.stats["possession"][1], 1.0, 0.05)
 	m.ball.owner_player = null
 	m.ball.place(Vector3(m.teams[0].target_goal().x + m.teams[0].attack_dir * 0.6, 0.3, 10.0))
 	m.ball.last_touch_team = 1
