@@ -48,6 +48,8 @@ var _runner_target := Vector3.ZERO
 var _runner_until := 0.0
 var _set_piece_key := ""
 var _set_piece_targets := {}
+## Llegadas al área cuando el compañero está por tirar el centro.
+var _box_runs := {}
 
 
 func _init(p_team: Team, p_match: MatchController, p_difficulty: Difficulty = null) -> void:
@@ -141,6 +143,11 @@ func tick(dt: float) -> void:
 		if _markers.has(p) and not _match.is_ghost_runner(_markers[p]):
 			p.debug_state = "marca"
 			_mark(p, _markers[p])
+			continue
+		if _box_runs.has(p):
+			p.debug_state = "al área"
+			go_to(p, _box_runs[p], true)
+			p.look_at_point(ball.flat_pos())
 			continue
 		if p == _runner:
 			p.debug_state = "desmarque"
@@ -249,12 +256,14 @@ func _assign_roles(ball: Ball) -> void:
 	_chaser = null
 	_markers.clear()
 	_supporters.clear()
+	_box_runs.clear()
 	roles.clear()
 	if _match.is_stopped():
 		_runner = null
 		return
 	var owner := ball.owner_player
 	if owner != null and owner.team == team:
+		_assign_box_runs(owner, ball)
 		_assign_support(owner)
 		_assign_runner(owner, ball)
 	elif owner != null:
@@ -272,6 +281,8 @@ func _assign_roles(ball: Ball) -> void:
 		roles[p] = "apoyo"
 	if _runner != null:
 		roles[_runner] = "desmarque"
+	for p in _box_runs:
+		roles[p] = "al área"
 
 
 func _field_players() -> Array[Footballer]:
@@ -280,6 +291,58 @@ func _field_players() -> Array[Footballer]:
 		if not p.is_keeper() and not p.is_human() and p.state == Footballer.State.NORMAL:
 			out.append(p)
 	return out
+
+
+## Centro en camino (la pelota por la banda en el último tercio): los de
+## arriba ocupan el área. Primer palo, punto penal, segundo palo y uno a la
+## puerta del área para el rebote. Nunca más allá del último defensor
+## (offside) y nunca el que lleva la pelota.
+func _assign_box_runs(carrier: Footballer, ball: Ball) -> void:
+	var bp := ball.flat_pos()
+	if team.progress_of(bp) < CROSS_ZONE_PROGRESS or absf(bp.z) < CROSS_ZONE_WIDTH:
+		return
+	var free: Array[Footballer] = []
+	for p in _field_players():
+		if p == carrier:
+			continue
+		var k := p.tactical_role
+		if TacticalRole.is_forward(k) or k == TacticalRole.Kind.AM or k == TacticalRole.Kind.WM \
+				or k == TacticalRole.Kind.CM:
+			free.append(p)
+	var last_line := minf(_opponent_last_line(), 0.95)
+	for spot in box_spots(bp):
+		var target := spot
+		if team.progress_of(target) > last_line:
+			target.x = team.attack_dir * Pitch.HALF_LENGTH * (2.0 * last_line - 1.0)
+		var best: Footballer = null
+		var best_d := INF
+		for p in free:
+			# Los delanteros primero: un volante sólo si no hay otro.
+			var d := p.flat_pos().distance_to(target) + (0.0 if TacticalRole.is_forward(p.tactical_role) else 8.0)
+			if d < best_d:
+				best_d = d
+				best = p
+		if best == null:
+			break
+		_box_runs[best] = target
+		free.erase(best)
+
+
+const CROSS_ZONE_PROGRESS := 0.68
+const CROSS_ZONE_WIDTH := 12.0
+
+
+## Lugares del área para un centro desde `ball_pos`, en orden de prioridad.
+func box_spots(ball_pos: Vector3) -> Array[Vector3]:
+	var gx := team.target_goal().x
+	var s := float(team.attack_dir)
+	var near := signf(ball_pos.z)
+	return [
+		Vector3(gx - s * 11.0, 0.0, -near * 1.0), # punto penal
+		Vector3(gx - s * 5.5, 0.0, near * 3.0), # primer palo
+		Vector3(gx - s * 6.5, 0.0, -near * 4.5), # segundo palo
+		Vector3(gx - s * 18.5, 0.0, -near * 4.0), # puerta del área
+	]
 
 
 ## Apoyos: triángulos adelante a ambos lados y uno de seguridad atrás.
@@ -294,6 +357,8 @@ func _assign_support(carrier: Footballer) -> void:
 		points.append(cp - fwd * 9.0 + Vector3(0.0, 0.0, -signf(cp.z) * 5.0))
 	var free := _field_players()
 	free.erase(carrier)
+	for p in _box_runs:
+		free.erase(p)
 	for pt in points:
 		var target := _away_from_opponents(Pitch.clamp_to_field(pt, 2.0))
 		var best: Footballer = null
@@ -317,7 +382,8 @@ func _assign_runner(carrier: Footballer, ball: Ball) -> void:
 	if bx < 0.3:
 		_runner = null
 		return
-	if _runner != null and _time < _runner_until and not _supporters.has(_runner) and _runner != carrier:
+	if _runner != null and _time < _runner_until and not _supporters.has(_runner) and not _box_runs.has(_runner) \
+			and _runner != carrier:
 		_runner_target = _runner_spot(_runner, bx)
 		return
 	_runner = null
@@ -326,7 +392,7 @@ func _assign_runner(carrier: Footballer, ball: Ball) -> void:
 	var best: Footballer = null
 	var best_x := -1.0
 	for p in _field_players():
-		if p == carrier or _supporters.has(p):
+		if p == carrier or _supporters.has(p) or _box_runs.has(p):
 			continue
 		var k := p.tactical_role
 		if not (TacticalRole.is_forward(k) or k == TacticalRole.Kind.AM or (state == S.COUNTER_ATTACK and k == TacticalRole.Kind.WM)):
@@ -597,7 +663,9 @@ func _carrier(p: Footballer, ball: Ball) -> void:
 		if state == S.COUNTER_ATTACK:
 			chance *= 1.2
 		if randf() < chance:
-			_match.perform_kick(p, KickActions.Kind.SHOT, Vector3(0.0, 0.0, randf_range(-1.0, 1.0)), randf_range(0.45, 0.85))
+			# De lejos, a veces el cañonazo (remate potente).
+			var v := KickActions.Variant.POWER if dist_goal > 20.0 and randf() < 0.3 else KickActions.Variant.NORMAL
+			_match.perform_kick(p, KickActions.Kind.SHOT, Vector3(0.0, 0.0, randf_range(-1.0, 1.0)), randf_range(0.45, 0.85), null, v)
 			return
 	# Centro desde la banda con gente en el área.
 	if KickActions.is_cross_position(p, ball.flat_pos()) and _mates_in_box() >= 1:

@@ -15,6 +15,21 @@ Ver `Claude.md` para visión, criterios y fases.
 | 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) |
 | 8 — Pulido | ⬜ |
 | Entrenamiento (Club House) | 🟡 Implementado, **pendiente de tu prueba** |
+| Backlog B1–B9 (tu lista de pendientes) | 🟡 B1–B5 hechos, B6–B9 en curso (PR #24) |
+
+---
+
+## Backlog de pulido (PR #24)
+
+| Módulo | Cambio |
+|---|---|
+| B1 Bugs | El foco no se pierde en el menú de cambios; jugadores "retro" de frente; L1 cambia al instante al que va a recibir (o al que llega primero, del lado del arco); el lateral se saca solo a los 6 s (cuenta regresiva en pantalla); entretiempo/final con la jugada que sigue por inercia y después la pantalla de estadísticas (posesión, remates, córners, faltas…) con cámaras que giran y los highlights; la pelota gira en las repeticiones. |
+| B2 Pelota-jugador | Conducción por toques (pie alternado, la pelota sale del botín sin hueco); quien está más cerca domina; las gambetas (ruleta, bicicleta, amague) mueven la pelota de verdad y la bicicleta arranca con un pique. |
+| B3 Animaciones | Zurdos (clips espejados); el cuerpo gira hacia donde va el pase; el gesto del pase depende del tipo; en los centros el que recibe cabecea de primera y el cabezazo se anticipa para llegar a tiempo. |
+| Camisetas | Número, rayas/aros/mitades/banda y escudo pintados en la tela con un shader (se doblan con el cuerpo). Adelante sólo el escudo; atrás el número con contorno. |
+| Cuerpo clásico | Cuerpo low-poly proporcionado al estilo WE98 (por defecto; Jugadores: Clásico / Retro / Detallado). |
+| B4 Arquero | La estirada no flota (clip más rápido y desplazamiento lateral corto); se tira a tiempo (nunca después de que pasó la pelota); no hace el gesto de atajar una pelota que le pasa por arriba; se agacha en las rasantes (rango del clip de recoger); después de su rebote no la persigue en bucle. |
+| B5 Ataque | Con la pelota en la banda en el último tercio, los de arriba ocupan el área: punto penal, primer palo, segundo palo y uno a la puerta del área (nunca en offside). **Remate potente: L1 + R1 + Cuadrado**: la barra carga más lento, el jugador se perfila 0,3 s y le pega 30 % más fuerte con el doble de error. La CPU también lo usa de lejos. |
 
 ---
 

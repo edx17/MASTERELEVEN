@@ -14,8 +14,10 @@ enum Kind { SHORT_PASS, THROUGH_PASS, LONG_PASS, SHOT, CLEAR }
 ## LONG_PASS: LOW = centro raso (doble Círculo), HIGH = centro alto (L1 + Círculo).
 ## Variantes (WE): LOW = rasante (doble toque; centro: triple toque al primer
 ## palo), HIGH = con L1 (globo, centro bombeado), MID = centro a media altura
-## (doble Círculo), PLACED = tiro colocado (R2 tras cargar el remate).
-enum Variant { NORMAL, LOW, HIGH, MID, PLACED }
+## (doble Círculo), PLACED = tiro colocado (R2 tras cargar el remate),
+## POWER = remate potente (L1 + R1 + Cuadrado: mucha más fuerza, mucho menos
+## preciso).
+enum Variant { NORMAL, LOW, HIGH, MID, PLACED, POWER }
 
 ## Altura desde la que se hace un lateral (manos).
 const THROW_IN_HEIGHT := 1.8
@@ -76,7 +78,7 @@ func execute(kind: int, player: Footballer, dir: Vector3, power: float) -> Footb
 			if v == Variant.HIGH:
 				chip(player, dir, power)
 			else:
-				shoot(player, dir, power, v == Variant.LOW, v == Variant.PLACED)
+				shoot(player, dir, power, v == Variant.LOW, v == Variant.PLACED, v == Variant.POWER)
 		Kind.CLEAR:
 			clearance(player, dir, power)
 	return null
@@ -321,7 +323,8 @@ func _best_in_box(player: Footballer) -> Footballer:
 var set_piece := false
 
 
-func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, placed: bool = false) -> void:
+func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, placed: bool = false,
+		power_shot: bool = false) -> void:
 	var side := player.team.attack_dir
 	var aim_z := 0.0
 	if absf(dir.z) > 0.2:
@@ -351,6 +354,8 @@ func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, pl
 		err *= 1.5
 	if placed:
 		err *= PLACED_ERROR
+	if power_shot and not header:
+		err *= POWER_ERROR
 	# Pierna mala: con la pelota del lado de la pierna menos hábil sale mordido.
 	var weak := not header and uses_weak_foot(player, ball.flat_pos())
 	if weak:
@@ -372,6 +377,8 @@ func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, pl
 		speed *= 0.6
 	elif placed:
 		speed *= PLACED_SPEED
+	elif power_shot:
+		speed *= POWER_SPEED
 	if weak:
 		speed *= WEAK_FOOT_SPEED
 	# La potencia define a qué altura llega al arco: floja = rasante, fuerte =
@@ -418,6 +425,11 @@ static func uses_weak_foot(player: Footballer, ball_pos: Vector3) -> bool:
 		return false
 	var left := off > 0.0
 	return left == (player.data.foot == PlayerData.Foot.RIGHT)
+
+
+## Remate potente: mucho más rápido y mucho menos preciso (y algo más alto).
+const POWER_ERROR := 2.2
+const POWER_SPEED := 1.3
 
 
 ## Tiro colocado: menos error y menos velocidad que el remate normal.
