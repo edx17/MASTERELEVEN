@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cjfvjjiar4wy4"
-path="res://.godot/imported/Goalkeeper hand short Pass.fbx-505d9fc6fa7c3d7e303c9ccfdcbb7c96.scn"
+path="res://.godot/imported/Goalkeeper hand short Pass.fbx-f1684279d972225109475a9043a96037.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Goalkeeper hand short Pass.fbx"
-dest_files=["res://.godot/imported/Goalkeeper hand short Pass.fbx-505d9fc6fa7c3d7e303c9ccfdcbb7c96.scn"]
+source_file="res://assets/animations/Goalkeeper hand short Pass.fbx"
+dest_files=["res://.godot/imported/Goalkeeper hand short Pass.fbx-f1684279d972225109475a9043a96037.scn"]
 
 [params]
 

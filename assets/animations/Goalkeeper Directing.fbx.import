@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cxxh4o03evovv"
-path="res://.godot/imported/Goalkeeper Directing.fbx-d277ad2e5ff5c73e16d785849aaa3250.scn"
+path="res://.godot/imported/Goalkeeper Directing.fbx-0eac62b46baed541f4cc2a9e94c85793.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Goalkeeper Directing.fbx"
-dest_files=["res://.godot/imported/Goalkeeper Directing.fbx-d277ad2e5ff5c73e16d785849aaa3250.scn"]
+source_file="res://assets/animations/Goalkeeper Directing.fbx"
+dest_files=["res://.godot/imported/Goalkeeper Directing.fbx-0eac62b46baed541f4cc2a9e94c85793.scn"]
 
 [params]
 

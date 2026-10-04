@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://c3sbnkxi12i4i"
-path="res://.godot/imported/Goalkeeper Catch corta centro.fbx-cfadfd550115e278cb9571288f6d3689.scn"
+path="res://.godot/imported/Goalkeeper Catch corta centro.fbx-6c51c0621fd5796ab405c8cb5ce76720.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Goalkeeper Catch corta centro.fbx"
-dest_files=["res://.godot/imported/Goalkeeper Catch corta centro.fbx-cfadfd550115e278cb9571288f6d3689.scn"]
+source_file="res://assets/animations/Goalkeeper Catch corta centro.fbx"
+dest_files=["res://.godot/imported/Goalkeeper Catch corta centro.fbx-6c51c0621fd5796ab405c8cb5ce76720.scn"]
 
 [params]
 

@@ -431,7 +431,15 @@ static func _color_number(label: Label3D, shirt: Color) -> void:
 	label.outline_modulate = Color(0.97, 0.97, 0.97, 0.6) if light_shirt else Color(0.05, 0.05, 0.08, 0.6)
 
 
+func freeze_pose() -> void:
+	if _anim != null:
+		_anim.speed_scale = 0.0
+
+
 func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: float) -> void:
+	# Sale de la pose congelada (si quedó en 0, los gestos no avanzarían).
+	if _anim != null and _anim.speed_scale == 0.0 and dt > 0.0:
+		_anim.speed_scale = 1.0
 	_touch_t = maxf(0.0, _touch_t - dt)
 	# Giro del cuerpo hacia el pase: entra durante el gesto y vuelve después.
 	if _clip == "" or not (_clip.begins_with("pass") or _clip.begins_with("shot") or _clip.begins_with("kick")):

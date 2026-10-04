@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://b5wjj0j65wkgy"
-path="res://.godot/imported/Festejo2 Golf Putt.fbx-243271ea1a9433b0053070ac70d11fa2.scn"
+path="res://.godot/imported/Festejo2 Golf Putt.fbx-9facf8304d4144acb46f2ebb9bb283a6.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Festejo2 Golf Putt.fbx"
-dest_files=["res://.godot/imported/Festejo2 Golf Putt.fbx-243271ea1a9433b0053070ac70d11fa2.scn"]
+source_file="res://assets/animations/Festejo2 Golf Putt.fbx"
+dest_files=["res://.godot/imported/Festejo2 Golf Putt.fbx-9facf8304d4144acb46f2ebb9bb283a6.scn"]
 
 [params]
 

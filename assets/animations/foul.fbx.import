@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://d2mo7toonuwlq"
-path="res://.godot/imported/foul.fbx-3d0e6c7c86b2eeb5f3b2cd319b71c852.scn"
+path="res://.godot/imported/foul.fbx-14fc63a8785a4eb17e743b1fe50322b1.scn"
 
 [deps]
 
-source_file="res://Animation Pro/foul.fbx"
-dest_files=["res://.godot/imported/foul.fbx-3d0e6c7c86b2eeb5f3b2cd319b71c852.scn"]
+source_file="res://assets/animations/foul.fbx"
+dest_files=["res://.godot/imported/foul.fbx-14fc63a8785a4eb17e743b1fe50322b1.scn"]
 
 [params]
 

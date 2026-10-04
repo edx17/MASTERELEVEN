@@ -7,11 +7,13 @@ extends RefCounted
 ## versión 1K o 2K; ver assets/CREDITS.md).
 
 const DIR := "res://assets/textures/grass/"
+## Césped gastado (Poliigon GrassPatchyGround): mismos nombres de archivo.
+const WORN_DIR := "res://assets/textures/grass_worn/"
 
 
-static func _find(base: String) -> Texture2D:
+static func _find(base: String, dir: String = DIR) -> Texture2D:
 	for ext in ["png", "jpg", "jpeg", "webp"]:
-		var path: String = DIR + base + "." + ext
+		var path: String = dir + base + "." + ext
 		if ResourceLoader.exists(path):
 			return _with_mipmaps(load(path) as Texture2D)
 	return null
@@ -33,18 +35,23 @@ static func _with_mipmaps(tex: Texture2D) -> Texture2D:
 
 
 ## Configura el material del césped: con textura si hay, si no procedural.
-static func apply(mat: ShaderMaterial) -> bool:
-	var albedo := _find("grass_albedo")
+static func apply(mat: ShaderMaterial, worn: bool = false) -> bool:
+	var dir := WORN_DIR if worn and _find("grass_albedo", WORN_DIR) != null else DIR
+	var albedo := _find("grass_albedo", dir)
 	if albedo == null:
 		mat.set_shader_parameter("use_textures", false)
 		return false
 	mat.set_shader_parameter("use_textures", true)
+	# Gastado: manda el color de la foto (calvas, tierra) y un poco más grande.
+	mat.set_shader_parameter("tex_tone", 0.85 if dir == WORN_DIR else 0.0)
+	if dir == WORN_DIR:
+		mat.set_shader_parameter("tex_scale", 0.2)
 	mat.set_shader_parameter("albedo_tex", albedo)
-	var normal := _find("grass_normal")
+	var normal := _find("grass_normal", dir)
 	if normal != null:
 		mat.set_shader_parameter("normal_tex", normal)
 		mat.set_shader_parameter("use_normal_tex", true)
-	var rough := _find("grass_roughness")
+	var rough := _find("grass_roughness", dir)
 	if rough != null:
 		mat.set_shader_parameter("roughness_tex", rough)
 		mat.set_shader_parameter("use_roughness_tex", true)

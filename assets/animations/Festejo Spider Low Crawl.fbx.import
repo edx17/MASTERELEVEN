@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://lcels5qb63jk"
-path="res://.godot/imported/Festejo Spider Low Crawl.fbx-850236737c77d05b6534a9198f328dbe.scn"
+path="res://.godot/imported/Festejo Spider Low Crawl.fbx-37886245ed436d81655eed06bd5f94eb.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Festejo Spider Low Crawl.fbx"
-dest_files=["res://.godot/imported/Festejo Spider Low Crawl.fbx-850236737c77d05b6534a9198f328dbe.scn"]
+source_file="res://assets/animations/Festejo Spider Low Crawl.fbx"
+dest_files=["res://.godot/imported/Festejo Spider Low Crawl.fbx-37886245ed436d81655eed06bd5f94eb.scn"]
 
 [params]
 

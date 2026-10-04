@@ -7,6 +7,8 @@ shader_type spatial;
 uniform float cheer = 0.0;
 // Fracción del público que ya se fue (final del partido): esos no se dibujan.
 uniform float empty = 0.0;
+// Qué parte del vaciado dura la salida de cada persona (≈7 s de 90).
+const float LEAVE_WINDOW = 0.08;
 uniform vec3 skin_light : source_color = vec3(0.93, 0.76, 0.63);
 uniform vec3 skin_dark : source_color = vec3(0.4, 0.27, 0.19);
 
@@ -23,8 +25,20 @@ void vertex() {
 	float idle = sin(TIME * 1.3 + seed * 17.0) * 0.012;
 	float jump = max(0.0, sin(TIME * (7.0 + seed * 3.0) + seed * 31.0)) * 0.3 * cheer;
 	VERTEX.y += (idle + jump) * step(0.45, VERTEX.y);
-	if (seed < empty) {
+	// Se van del estadio: cuando `empty` pasa su turno, se paran, caminan por
+	// la fila hasta el pasillo y suben por la tribuna hacia la salida (+Z
+	// local, de espaldas a la cancha); recién arriba desaparecen.
+	float p = clamp((empty - seed) / LEAVE_WINDOW, 0.0, 1.0);
+	if (p >= 1.0) {
 		VERTEX = vec3(0.0);
+	} else if (p > 0.0) {
+		float aisle = (0.6 + fract(seed * 13.7) * 3.0) * (fract(seed * 7.3) < 0.5 ? -1.0 : 1.0);
+		float along = smoothstep(0.0, 0.4, p);
+		float up = smoothstep(0.4, 1.0, p);
+		VERTEX.y += 0.22 * smoothstep(0.0, 0.08, p);
+		VERTEX.x += aisle * along;
+		VERTEX.z += up * 7.0;
+		VERTEX.y += up * 3.5 + abs(sin(TIME * 7.0 + seed * 20.0)) * 0.05;
 	}
 }
 

@@ -55,6 +55,8 @@ func grass_params() -> Dictionary:
 	return {
 		"wetness": conditions.wetness,
 		"snow": SNOW_START if conditions.is_snow() else 0.0,
+		# Césped gastado: opción del partido; en el Club House, siempre.
+		"worn": GameSettings.pitch_wear == 1 or GameSettings.training,
 	}
 
 

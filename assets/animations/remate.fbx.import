@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dfaswq63yqqba"
-path="res://.godot/imported/remate.fbx-552dba39157faee3b404ca3ed1a824ec.scn"
+path="res://.godot/imported/remate.fbx-9682bfe951e4d8a4a9687cfadf08cde8.scn"
 
 [deps]
 
-source_file="res://Animation Pro/remate.fbx"
-dest_files=["res://.godot/imported/remate.fbx-552dba39157faee3b404ca3ed1a824ec.scn"]
+source_file="res://assets/animations/remate.fbx"
+dest_files=["res://.godot/imported/remate.fbx-9682bfe951e4d8a4a9687cfadf08cde8.scn"]
 
 [params]
 

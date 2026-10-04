@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://ko2comn1eeia"
-path="res://.godot/imported/Festejo Backflip.fbx-0f708dc5c2a4358b1e0534e07dbd908e.scn"
+path="res://.godot/imported/Festejo Backflip.fbx-61568572b9c40779d9a32801023fe607.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Festejo Backflip.fbx"
-dest_files=["res://.godot/imported/Festejo Backflip.fbx-0f708dc5c2a4358b1e0534e07dbd908e.scn"]
+source_file="res://assets/animations/Festejo Backflip.fbx"
+dest_files=["res://.godot/imported/Festejo Backflip.fbx-61568572b9c40779d9a32801023fe607.scn"]
 
 [params]
 

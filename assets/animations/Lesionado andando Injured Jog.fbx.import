@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://c6bh72exkhbwy"
-path="res://.godot/imported/Lesionado andando Injured Jog.fbx-1c8639f6a57a9dca983838e90285be2c.scn"
+path="res://.godot/imported/Lesionado andando Injured Jog.fbx-61d85c17010e278099a768b1ae96b8e8.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Lesionado andando Injured Jog.fbx"
-dest_files=["res://.godot/imported/Lesionado andando Injured Jog.fbx-1c8639f6a57a9dca983838e90285be2c.scn"]
+source_file="res://assets/animations/Lesionado andando Injured Jog.fbx"
+dest_files=["res://.godot/imported/Lesionado andando Injured Jog.fbx-61d85c17010e278099a768b1ae96b8e8.scn"]
 
 [params]
 

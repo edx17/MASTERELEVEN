@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bdlrgsaqu3st4"
-path="res://.godot/imported/Stand Up.fbx-f9b2044d2a436fa02ea4427cf93d9337.scn"
+path="res://.godot/imported/Stand Up.fbx-7e69cfcb36fbfac4d85c9897ca53ad6e.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Stand Up.fbx"
-dest_files=["res://.godot/imported/Stand Up.fbx-f9b2044d2a436fa02ea4427cf93d9337.scn"]
+source_file="res://assets/animations/Stand Up.fbx"
+dest_files=["res://.godot/imported/Stand Up.fbx-7e69cfcb36fbfac4d85c9897ca53ad6e.scn"]
 
 [params]
 

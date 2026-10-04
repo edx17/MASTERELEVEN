@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bwbvg4u3x440x"
-path="res://.godot/imported/Goalkeeper Drop Kick.fbx-70489d03af87e73945df994903651c27.scn"
+path="res://.godot/imported/Goalkeeper Drop Kick.fbx-542871fffb3e730b3dc8545043f3b454.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Goalkeeper Drop Kick.fbx"
-dest_files=["res://.godot/imported/Goalkeeper Drop Kick.fbx-70489d03af87e73945df994903651c27.scn"]
+source_file="res://assets/animations/Goalkeeper Drop Kick.fbx"
+dest_files=["res://.godot/imported/Goalkeeper Drop Kick.fbx-542871fffb3e730b3dc8545043f3b454.scn"]
 
 [params]
 

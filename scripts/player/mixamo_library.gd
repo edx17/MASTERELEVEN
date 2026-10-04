@@ -1,10 +1,9 @@
 class_name MixamoLibrary
 extends RefCounted
 ## Animaciones de fútbol de Mixamo pasadas (retarget) al esqueleto de nuestros
-## jugadores. Los FBX NO van en el repositorio (licencia de Mixamo: se pueden
-## usar en el juego, no redistribuir sueltos): se leen de
-## res://assets/animations/mixamo/ si están en la copia local. Sin ellos, el
-## juego usa los gestos armados por código.
+## jugadores. Los FBX van en el repo, en res://assets/animations/ (o en la
+## subcarpeta mixamo/, como antes). Si falta alguno, ese gesto se hace por
+## código.
 ##
 ## Retarget: para cada hueso mapeado se toma cuánto giró (en el espacio del
 ## modelo) respecto de su pose de reposo en Mixamo y se aplica ese mismo giro
@@ -12,7 +11,7 @@ extends RefCounted
 ## mirando a +Z). El desplazamiento horizontal de la cadera se descarta (al
 ## jugador lo mueve la simulación); la altura se escala a nuestro modelo.
 
-const DIR := "res://assets/animations/mixamo/"
+const DIRS: Array[String] = ["res://assets/animations/", "res://assets/animations/mixamo/"]
 const FPS := 30.0
 const PREFIX := "mixamorig_"
 
@@ -144,7 +143,10 @@ static func library(body_scene: PackedScene) -> AnimationLibrary:
 	if _checked:
 		return _lib
 	_checked = true
-	if not DirAccess.dir_exists_absolute(DIR):
+	var any := false
+	for d in DIRS:
+		any = any or DirAccess.dir_exists_absolute(d)
+	if not any:
 		return null
 	var body := body_scene.instantiate()
 	var target := body.find_child("Skeleton3D", true, false) as Skeleton3D
@@ -184,10 +186,11 @@ static func library(body_scene: PackedScene) -> AnimationLibrary:
 ## numera Windows al bajar varias versiones ("Goalkeeper Catch (1)").
 ## Vacío si no está.
 static func file_path(file: String) -> String:
-	for candidate in file_candidates(file):
-		var path: String = DIR + candidate + ".fbx"
-		if ResourceLoader.exists(path):
-			return path
+	for dir in DIRS:
+		for candidate in file_candidates(file):
+			var path: String = dir + candidate + ".fbx"
+			if ResourceLoader.exists(path):
+				return path
 	return ""
 
 

@@ -25,6 +25,9 @@ uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, r
 uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D roughness_tex : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform float tex_scale = 0.35;
+// 0 = la textura sólo da el detalle (el tono lo dan las franjas); 1 = manda
+// la foto (césped gastado: se ven las calvas y la tierra).
+uniform float tex_tone : hint_range(0.0, 1.0) = 0.0;
 // Manchas de nieve (ruido simplex suave, ver PitchBuilder._snow_noise).
 uniform sampler2D snow_noise : hint_default_white, filter_linear_mipmap, repeat_enable;
 
@@ -109,7 +112,9 @@ void fragment() {
 	if (use_textures) {
 		vec3 t = texture(albedo_tex, p * tex_scale).rgb;
 		// La textura aporta el detalle; el tono lo siguen dando las franjas.
-		c *= t / max(dot(t, vec3(0.333)), 0.05) * 0.9;
+		vec3 detail = c * t / max(dot(t, vec3(0.333)), 0.05) * 0.9;
+		vec3 photo = t * mix(1.0, 0.9, stripe) * (0.9 + 0.2 * n);
+		c = mix(detail, photo, tex_tone);
 		if (use_roughness_tex) {
 			// Nunca por debajo de 0,85: el pasto seco no brilla (si no, se ve
 			// de plástico).

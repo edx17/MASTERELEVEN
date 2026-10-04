@@ -137,20 +137,30 @@ func test_tripped_player_falls_and_gets_up_in_time() -> void:
 	assert_eq(v._clip, "", "al volver a jugar, vuelve la locomoción")
 
 
+func _has_clip(clip: String) -> bool:
+	return MixamoLibrary.file_path(MixamoLibrary.CLIPS[clip]["file"]) != ""
+
+
 func test_new_gestures_use_their_clips() -> void:
 	if not _mixamo_or_skip():
 		return
 	var v := _visual()
 	_step(v, 0.0, 5)
-	v.play(PlayerVisual.Event.TACKLE)
-	assert_eq(v._clip, "tackle", "entrada de pie")
-	_step(v, 0.0, 60)
-	v.play(PlayerVisual.Event.RECEIVE)
-	assert_eq(v._clip, "receive", "control con la suela")
+	# Sólo se exigen los clips cuyos archivos están (si falta uno, ese gesto
+	# se hace por código).
+	if _has_clip("tackle"):
+		v.play(PlayerVisual.Event.TACKLE)
+		assert_eq(v._clip, "tackle", "entrada de pie")
+		_step(v, 0.0, 60)
+	if _has_clip("receive"):
+		v.play(PlayerVisual.Event.RECEIVE)
+		assert_eq(v._clip, "receive", "control con la suela")
 	_step(v, 0.0, 60)
 	v.keeper = true
 	for ev in [[PlayerVisual.Event.CATCH_HIGH, "gk_catch_high"], [PlayerVisual.Event.CATCH_LOW, "gk_catch_low"],
 			[PlayerVisual.Event.BLOCK, "gk_block"], [PlayerVisual.Event.ROLL, "gk_roll"]]:
+		if not _has_clip(ev[1]):
+			continue
 		v.play(ev[0])
 		assert_eq(v._clip, ev[1])
 		_step(v, 0.0, 150)

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cjcb8yjfnxnap"
-path="res://.godot/imported/Jog Backward.fbx-a3c1165705fa19b04adfa68b7ff8561c.scn"
+path="res://.godot/imported/Jog Backward.fbx-562ca011901af0b50e5654545b663dc0.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Jog Backward.fbx"
-dest_files=["res://.godot/imported/Jog Backward.fbx-a3c1165705fa19b04adfa68b7ff8561c.scn"]
+source_file="res://assets/animations/Jog Backward.fbx"
+dest_files=["res://.godot/imported/Jog Backward.fbx-562ca011901af0b50e5654545b663dc0.scn"]
 
 [params]
 

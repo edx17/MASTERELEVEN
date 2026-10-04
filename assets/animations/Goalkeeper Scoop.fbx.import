@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dm3k1k6fnaxem"
-path="res://.godot/imported/Goalkeeper Scoop.fbx-672c656fe54b0d45eb45e57c15089183.scn"
+path="res://.godot/imported/Goalkeeper Scoop.fbx-c85625c1f01141ffc4c3ee8a9bf59fa1.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Goalkeeper Scoop.fbx"
-dest_files=["res://.godot/imported/Goalkeeper Scoop.fbx-672c656fe54b0d45eb45e57c15089183.scn"]
+source_file="res://assets/animations/Goalkeeper Scoop.fbx"
+dest_files=["res://.godot/imported/Goalkeeper Scoop.fbx-c85625c1f01141ffc4c3ee8a9bf59fa1.scn"]
 
 [params]
 

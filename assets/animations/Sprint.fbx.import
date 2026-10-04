@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bgmnfvptqarbn"
-path="res://.godot/imported/Sprint.fbx-ece70be98946431fcdbd9cbef7c7a187.scn"
+path="res://.godot/imported/Sprint.fbx-41f2d8c695e1079dee1a8670d838cc50.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Sprint.fbx"
-dest_files=["res://.godot/imported/Sprint.fbx-ece70be98946431fcdbd9cbef7c7a187.scn"]
+source_file="res://assets/animations/Sprint.fbx"
+dest_files=["res://.godot/imported/Sprint.fbx-41f2d8c695e1079dee1a8670d838cc50.scn"]
 
 [params]
 

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cp3a488qeaavb"
-path="res://.godot/imported/Scissor chilena Kick.fbx-9814374ec7bb595fc4f34ade83825f21.scn"
+path="res://.godot/imported/Scissor chilena Kick.fbx-6960dba597c34485a71a8862208bd130.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Scissor chilena Kick.fbx"
-dest_files=["res://.godot/imported/Scissor chilena Kick.fbx-9814374ec7bb595fc4f34ade83825f21.scn"]
+source_file="res://assets/animations/Scissor chilena Kick.fbx"
+dest_files=["res://.godot/imported/Scissor chilena Kick.fbx-6960dba597c34485a71a8862208bd130.scn"]
 
 [params]
 

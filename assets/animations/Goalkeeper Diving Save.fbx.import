@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bw3usdab2euyy"
-path="res://.godot/imported/Goalkeeper Diving Save.fbx-75418e47c4bd69fa480aaa8475c450d2.scn"
+path="res://.godot/imported/Goalkeeper Diving Save.fbx-f641949d0a5da088ee1ec00ac80909a2.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Goalkeeper Diving Save.fbx"
-dest_files=["res://.godot/imported/Goalkeeper Diving Save.fbx-75418e47c4bd69fa480aaa8475c450d2.scn"]
+source_file="res://assets/animations/Goalkeeper Diving Save.fbx"
+dest_files=["res://.godot/imported/Goalkeeper Diving Save.fbx-f641949d0a5da088ee1ec00ac80909a2.scn"]
 
 [params]
 

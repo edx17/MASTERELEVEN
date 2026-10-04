@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://h6o4n63h6s3d"
-path="res://.godot/imported/GoalkeeperReceiver Catch.fbx-ab714b537a38ca3642288d8a371450b0.scn"
+path="res://.godot/imported/GoalkeeperReceiver Catch.fbx-902af244f5386f272a1da28e2a7c347a.scn"
 
 [deps]
 
-source_file="res://Animation Pro/GoalkeeperReceiver Catch.fbx"
-dest_files=["res://.godot/imported/GoalkeeperReceiver Catch.fbx-ab714b537a38ca3642288d8a371450b0.scn"]
+source_file="res://assets/animations/GoalkeeperReceiver Catch.fbx"
+dest_files=["res://.godot/imported/GoalkeeperReceiver Catch.fbx-902af244f5386f272a1da28e2a7c347a.scn"]
 
 [params]
 

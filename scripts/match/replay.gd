@@ -70,6 +70,9 @@ var _side_shot := []
 var _ui: CanvasLayer
 var _card: PanelContainer
 var _card_text: Label
+var _card_icon: ColorRect
+## Tarjeta del cartel: 0 ninguna, 1 amarilla, 2 roja.
+var _card_kind := 0
 var _tag: Control
 var _wipe: Wipe
 
@@ -106,8 +109,16 @@ func setup(m: MatchController) -> void:
 	_card.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_card.position.y -= 50
 	_ui.add_child(_card)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	_card.add_child(row)
+	# Tarjeta (amarilla o roja) delante del nombre del amonestado / expulsado.
+	_card_icon = ColorRect.new()
+	_card_icon.custom_minimum_size = Vector2(20, 28)
+	_card_icon.visible = false
+	row.add_child(_card_icon)
 	_card_text = WEStyle.label("", 26)
-	_card.add_child(_card_text)
+	row.add_child(_card_text)
 	_tag.visible = false
 	_card.visible = false
 	_wipe = Wipe.new()
@@ -258,6 +269,7 @@ func _begin(p_kind: int, team: int, caption: String, first: int, last: int, even
 	_event_local = event
 	_freeze_left = OFFSIDE_FREEZE if kind == Kind.OFFSIDE and event >= 0 else 0.0
 	_focus_player = extra.get("focus")
+	_card_kind = int(extra.get("card", 0))
 	_side_shot = _offside_shot(extra) if kind == Kind.OFFSIDE else []
 	if extra.has("line"):
 		offside_line = extra["line"]
@@ -305,6 +317,12 @@ func tick(dt: float) -> void:
 		_cursor = float(_event_local)
 		_freeze_left -= dt
 		_apply_frame(_cursor, 0.0)
+		# Todos quietos en ese instante (antes seguían con el gesto de correr).
+		for p in _match.all_players():
+			if p.visual != null:
+				p.visual.freeze_pose()
+		if _match.referee != null and _match.referee.visual != null:
+			_match.referee.visual.freeze_pose()
 		_update_card(k)
 		return
 	var prev := int(_cursor)
@@ -327,6 +345,8 @@ func _update_card(k: float) -> void:
 	var show_from := 0.0 if kind == Kind.OFFSIDE else 0.35
 	_card.visible = k > show_from and _caption != ""
 	_card_text.text = _caption
+	_card_icon.visible = _card_kind > 0
+	_card_icon.color = Color(1.0, 0.86, 0.1) if _card_kind == 1 else Color(0.9, 0.08, 0.08)
 
 
 ## Fuera de la fase de repetición la cortina avanza con el reloj de pantalla
@@ -376,6 +396,11 @@ func _show_line(on: bool) -> void:
 
 
 ## Cartel del gol: "GOL   CF  10  F. Acosta   173 cm   29 años".
+## Cartel de las repeticiones: sólo número y nombre ("10   F. Acosta").
+static func player_line(p: Footballer) -> String:
+	return "" if p == null else "%d   %s" % [p.number, p.display_name]
+
+
 static func scorer_line(p: Footballer, own_goal: bool) -> String:
 	var d := p.base_data if p.base_data != null else p.data
 	var code: String = "GK" if p.is_keeper() else TeamSheet.ROLE_CODES[clampi(p.tactical_role, 0, TeamSheet.ROLE_CODES.size() - 1)]

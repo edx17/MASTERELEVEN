@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://brbughdytvgu0"
-path="res://.godot/imported/Festejo Running Crawl.fbx-04e16758c8186878be93055e5d392137.scn"
+path="res://.godot/imported/Festejo Running Crawl.fbx-a1f8daadd5a5a24be4cb2560972a658f.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Festejo Running Crawl.fbx"
-dest_files=["res://.godot/imported/Festejo Running Crawl.fbx-04e16758c8186878be93055e5d392137.scn"]
+source_file="res://assets/animations/Festejo Running Crawl.fbx"
+dest_files=["res://.godot/imported/Festejo Running Crawl.fbx-a1f8daadd5a5a24be4cb2560972a658f.scn"]
 
 [params]
 

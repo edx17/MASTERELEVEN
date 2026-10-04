@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://sba8igsh4ebg"
-path="res://.godot/imported/Goalkeeper Idle.fbx-0ad62e8b6554ae40b01fa43948a9c107.scn"
+path="res://.godot/imported/Goalkeeper Idle.fbx-e923dced6ee7b5642622b82e0bd08d7f.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Goalkeeper Idle.fbx"
-dest_files=["res://.godot/imported/Goalkeeper Idle.fbx-0ad62e8b6554ae40b01fa43948a9c107.scn"]
+source_file="res://assets/animations/Goalkeeper Idle.fbx"
+dest_files=["res://.godot/imported/Goalkeeper Idle.fbx-e923dced6ee7b5642622b82e0bd08d7f.scn"]
 
 [params]
 

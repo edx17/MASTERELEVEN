@@ -95,6 +95,8 @@ func test_square_pass_arrives() -> void:
 
 
 func test_long_pass_is_controlled_in_the_air() -> void:
+	# Semilla fija: con 24 pases el porcentaje varía con el azar (67-92 %).
+	seed(20261004)
 	var rate := _success_rate(&"pass_long", Vector3(1, 0, 0.3), 24)
 	gut.p("pase largo controlado: %.0f %%" % (rate * 100.0))
 	assert_gte(rate, 0.75)

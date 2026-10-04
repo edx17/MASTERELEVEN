@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dw4y31vvtly4h"
-path="res://.godot/imported/Festejo Final Running To Turn.fbx-b73e561f81c1b14faa797c3614f4f383.scn"
+path="res://.godot/imported/Festejo Final Running To Turn.fbx-4f67ed3c49ddd0aed197cdae5bd844d4.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Festejo Final Running To Turn.fbx"
-dest_files=["res://.godot/imported/Festejo Final Running To Turn.fbx-b73e561f81c1b14faa797c3614f4f383.scn"]
+source_file="res://assets/animations/Festejo Final Running To Turn.fbx"
+dest_files=["res://.godot/imported/Festejo Final Running To Turn.fbx-4f67ed3c49ddd0aed197cdae5bd844d4.scn"]
 
 [params]
 

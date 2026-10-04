@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://c8xbye2dhqco"
-path="res://.godot/imported/Festejo1 Catwheel.fbx-418867ce4bb03bd04c0000b60752ed91.scn"
+path="res://.godot/imported/Festejo1 Catwheel.fbx-2bbb4df1f0434db815310520fc8bbc20.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Festejo1 Catwheel.fbx"
-dest_files=["res://.godot/imported/Festejo1 Catwheel.fbx-418867ce4bb03bd04c0000b60752ed91.scn"]
+source_file="res://assets/animations/Festejo1 Catwheel.fbx"
+dest_files=["res://.godot/imported/Festejo1 Catwheel.fbx-2bbb4df1f0434db815310520fc8bbc20.scn"]
 
 [params]
 

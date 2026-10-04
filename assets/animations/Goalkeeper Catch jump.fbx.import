@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dfbtkomcano3v"
-path="res://.godot/imported/Goalkeeper Catch jump.fbx-cf36b3888f98e4aaf147ab121c78d5a2.scn"
+path="res://.godot/imported/Goalkeeper Catch jump.fbx-c8a9664f1efa89b245dd9c3594aaa40c.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Goalkeeper Catch jump.fbx"
-dest_files=["res://.godot/imported/Goalkeeper Catch jump.fbx-cf36b3888f98e4aaf147ab121c78d5a2.scn"]
+source_file="res://assets/animations/Goalkeeper Catch jump.fbx"
+dest_files=["res://.godot/imported/Goalkeeper Catch jump.fbx-c8a9664f1efa89b245dd9c3594aaa40c.scn"]
 
 [params]
 
