@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bhrk6c2mfnk4w"
-path="res://.godot/imported/Goalkeeper Miss.fbx-fd4b9d502ded349d3a6c6845f169fe52.scn"
+path="res://.godot/imported/Goalkeeper Miss.fbx-2e7bab2e0a17c743067b620d0cfb4530.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Goalkeeper Miss.fbx"
-dest_files=["res://.godot/imported/Goalkeeper Miss.fbx-fd4b9d502ded349d3a6c6845f169fe52.scn"]
+source_file="res://assets/animations/Goalkeeper Miss.fbx"
+dest_files=["res://.godot/imported/Goalkeeper Miss.fbx-2e7bab2e0a17c743067b620d0cfb4530.scn"]
 
 [params]
 

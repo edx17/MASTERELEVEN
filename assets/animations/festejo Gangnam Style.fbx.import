@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bj5v8ic08yyts"
-path="res://.godot/imported/festejo Gangnam Style.fbx-5bea5d7f599fd0258279c518fa686d68.scn"
+path="res://.godot/imported/festejo Gangnam Style.fbx-344c1ba97dbc420da83bc0d51387781c.scn"
 
 [deps]
 
-source_file="res://Animation Pro/festejo Gangnam Style.fbx"
-dest_files=["res://.godot/imported/festejo Gangnam Style.fbx-5bea5d7f599fd0258279c518fa686d68.scn"]
+source_file="res://assets/animations/festejo Gangnam Style.fbx"
+dest_files=["res://.godot/imported/festejo Gangnam Style.fbx-344c1ba97dbc420da83bc0d51387781c.scn"]
 
 [params]
 

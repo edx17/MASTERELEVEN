@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bf48aqpwawhjb"
-path="res://.godot/imported/XCuadrado Chip.fbx-e9364cce75fd44e3af4930e4d69c1276.scn"
+path="res://.godot/imported/XCuadrado Chip.fbx-d7158f64ed7a7992254f39f600f0b44d.scn"
 
 [deps]
 
-source_file="res://Animation Pro/XCuadrado Chip.fbx"
-dest_files=["res://.godot/imported/XCuadrado Chip.fbx-e9364cce75fd44e3af4930e4d69c1276.scn"]
+source_file="res://assets/animations/XCuadrado Chip.fbx"
+dest_files=["res://.godot/imported/XCuadrado Chip.fbx-d7158f64ed7a7992254f39f600f0b44d.scn"]
 
 [params]
 

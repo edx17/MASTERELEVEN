@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://4joj4ak2dn0d"
-path="res://.godot/imported/festejo Flair.fbx-95d9923d64b37bc2dc3bfc9fe2bd8569.scn"
+path="res://.godot/imported/festejo Flair.fbx-95ada1ec1d2402c933fdb8f28896d4dd.scn"
 
 [deps]
 
-source_file="res://Animation Pro/festejo Flair.fbx"
-dest_files=["res://.godot/imported/festejo Flair.fbx-95d9923d64b37bc2dc3bfc9fe2bd8569.scn"]
+source_file="res://assets/animations/festejo Flair.fbx"
+dest_files=["res://.godot/imported/festejo Flair.fbx-95ada1ec1d2402c933fdb8f28896d4dd.scn"]
 
 [params]
 

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://w5ely5epft8u"
-path="res://.godot/imported/Goalkeeper sque rapido.fbx-4cd557bcddfdd7f5e2b45102360676c4.scn"
+path="res://.godot/imported/Goalkeeper sque rapido.fbx-f74de5fa4a4d1e682c1664731609054f.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Goalkeeper sque rapido.fbx"
-dest_files=["res://.godot/imported/Goalkeeper sque rapido.fbx-4cd557bcddfdd7f5e2b45102360676c4.scn"]
+source_file="res://assets/animations/Goalkeeper sque rapido.fbx"
+dest_files=["res://.godot/imported/Goalkeeper sque rapido.fbx-f74de5fa4a4d1e682c1664731609054f.scn"]
 
 [params]
 

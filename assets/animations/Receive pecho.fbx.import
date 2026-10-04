@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://b366oc0epsp63"
-path="res://.godot/imported/Receive pecho.fbx-35409b11d9f07cf38d81edd800370e58.scn"
+path="res://.godot/imported/Receive pecho.fbx-1f55a764d5ede548e171df5dc6493597.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Receive pecho.fbx"
-dest_files=["res://.godot/imported/Receive pecho.fbx-35409b11d9f07cf38d81edd800370e58.scn"]
+source_file="res://assets/animations/Receive pecho.fbx"
+dest_files=["res://.godot/imported/Receive pecho.fbx-1f55a764d5ede548e171df5dc6493597.scn"]
 
 [params]
 

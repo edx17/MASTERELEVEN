@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cu8c2sfx1pviw"
-path="res://.godot/imported/Fallen Idle.fbx-ec02a5d36dc74ee3c6d493d73998184d.scn"
+path="res://.godot/imported/Fallen Idle.fbx-4c64491c6f5f202e508483fcb9487d4a.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Fallen Idle.fbx"
-dest_files=["res://.godot/imported/Fallen Idle.fbx-ec02a5d36dc74ee3c6d493d73998184d.scn"]
+source_file="res://assets/animations/Fallen Idle.fbx"
+dest_files=["res://.godot/imported/Fallen Idle.fbx-4c64491c6f5f202e508483fcb9487d4a.scn"]
 
 [params]
 

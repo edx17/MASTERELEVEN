@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://d2kngl1507m6"
-path="res://.godot/imported/Soccer Tackle.fbx-55ef5b6ebb0a11a2f3cb3c4cbd6a1363.scn"
+path="res://.godot/imported/Soccer Tackle.fbx-6e5b83c2ba835a567c24101f06351d25.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Soccer Tackle.fbx"
-dest_files=["res://.godot/imported/Soccer Tackle.fbx-55ef5b6ebb0a11a2f3cb3c4cbd6a1363.scn"]
+source_file="res://assets/animations/Soccer Tackle.fbx"
+dest_files=["res://.godot/imported/Soccer Tackle.fbx-6e5b83c2ba835a567c24101f06351d25.scn"]
 
 [params]
 

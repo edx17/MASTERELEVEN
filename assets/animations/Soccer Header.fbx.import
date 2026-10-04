@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://blc55kq278ee"
-path="res://.godot/imported/Soccer Header.fbx-870917c2b6a0ab02bf968253837af0f9.scn"
+path="res://.godot/imported/Soccer Header.fbx-feb87fcb91191dda7cc2d2d439301913.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Soccer Header.fbx"
-dest_files=["res://.godot/imported/Soccer Header.fbx-870917c2b6a0ab02bf968253837af0f9.scn"]
+source_file="res://assets/animations/Soccer Header.fbx"
+dest_files=["res://.godot/imported/Soccer Header.fbx-feb87fcb91191dda7cc2d2d439301913.scn"]
 
 [params]
 

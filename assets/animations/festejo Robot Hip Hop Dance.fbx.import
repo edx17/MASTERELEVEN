@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bpquq1seeyib0"
-path="res://.godot/imported/festejo Robot Hip Hop Dance.fbx-ff375e384d948ec2402b2ea376a39a1a.scn"
+path="res://.godot/imported/festejo Robot Hip Hop Dance.fbx-89a934560f1ce47db90dc10fbffc842e.scn"
 
 [deps]
 
-source_file="res://Animation Pro/festejo Robot Hip Hop Dance.fbx"
-dest_files=["res://.godot/imported/festejo Robot Hip Hop Dance.fbx-ff375e384d948ec2402b2ea376a39a1a.scn"]
+source_file="res://assets/animations/festejo Robot Hip Hop Dance.fbx"
+dest_files=["res://.godot/imported/festejo Robot Hip Hop Dance.fbx-89a934560f1ce47db90dc10fbffc842e.scn"]
 
 [params]
 

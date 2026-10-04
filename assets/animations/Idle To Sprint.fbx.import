@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://b7fn6xdbcla0b"
-path="res://.godot/imported/Idle To Sprint.fbx-b93d15f1552935d0d05f90af7c5fa988.scn"
+path="res://.godot/imported/Idle To Sprint.fbx-7495b7acbe32dbe8893300d022f7b41b.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Idle To Sprint.fbx"
-dest_files=["res://.godot/imported/Idle To Sprint.fbx-b93d15f1552935d0d05f90af7c5fa988.scn"]
+source_file="res://assets/animations/Idle To Sprint.fbx"
+dest_files=["res://.godot/imported/Idle To Sprint.fbx-7495b7acbe32dbe8893300d022f7b41b.scn"]
 
 [params]
 

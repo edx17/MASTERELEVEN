@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://j38icknqxyq5"
-path="res://.godot/imported/Throw In.fbx-c8861205ab3647fe7e24270700ec8160.scn"
+path="res://.godot/imported/Throw In.fbx-5301d28665070f648156af9a03d757f5.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Throw In.fbx"
-dest_files=["res://.godot/imported/Throw In.fbx-c8861205ab3647fe7e24270700ec8160.scn"]
+source_file="res://assets/animations/Throw In.fbx"
+dest_files=["res://.godot/imported/Throw In.fbx-5301d28665070f648156af9a03d757f5.scn"]
 
 [params]
 

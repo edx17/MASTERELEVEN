@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://deef44kfdxdya"
-path="res://.godot/imported/festejo Moonwalk.fbx-b7b9f2790d0bbc2c1513b936f1d77203.scn"
+path="res://.godot/imported/festejo Moonwalk.fbx-94477fb5643f967e796aa61300ef7bf8.scn"
 
 [deps]
 
-source_file="res://Animation Pro/festejo Moonwalk.fbx"
-dest_files=["res://.godot/imported/festejo Moonwalk.fbx-b7b9f2790d0bbc2c1513b936f1d77203.scn"]
+source_file="res://assets/animations/festejo Moonwalk.fbx"
+dest_files=["res://.godot/imported/festejo Moonwalk.fbx-94477fb5643f967e796aa61300ef7bf8.scn"]
 
 [params]
 

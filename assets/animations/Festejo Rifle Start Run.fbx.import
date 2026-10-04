@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bsf5v1xkjelqx"
-path="res://.godot/imported/Festejo Rifle Start Run.fbx-a3e635beee1cacd2053926eafb4d58d0.scn"
+path="res://.godot/imported/Festejo Rifle Start Run.fbx-61106dffd9392ec08fe3924ed597a979.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Festejo Rifle Start Run.fbx"
-dest_files=["res://.godot/imported/Festejo Rifle Start Run.fbx-a3e635beee1cacd2053926eafb4d58d0.scn"]
+source_file="res://assets/animations/Festejo Rifle Start Run.fbx"
+dest_files=["res://.godot/imported/Festejo Rifle Start Run.fbx-61106dffd9392ec08fe3924ed597a979.scn"]
 
 [params]
 

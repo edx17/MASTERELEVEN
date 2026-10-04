@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://qhu0kv0eaaqj"
-path="res://.godot/imported/No jump Header.fbx-39e4ba92628df67d9d50d640b185f8b5.scn"
+path="res://.godot/imported/No jump Header.fbx-9cd22ed81683c991b33dec682a2dc215.scn"
 
 [deps]
 
-source_file="res://Animation Pro/No jump Header.fbx"
-dest_files=["res://.godot/imported/No jump Header.fbx-39e4ba92628df67d9d50d640b185f8b5.scn"]
+source_file="res://assets/animations/No jump Header.fbx"
+dest_files=["res://.godot/imported/No jump Header.fbx-9cd22ed81683c991b33dec682a2dc215.scn"]
 
 [params]
 

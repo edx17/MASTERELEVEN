@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cex48a2etoo8k"
-path="res://.godot/imported/Festejo Capoeira.fbx-de780c18f0a13d6c999ca4cc310d4b19.scn"
+path="res://.godot/imported/Festejo Capoeira.fbx-de93e6e9d04f740fc71d8479d2e90fd2.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Festejo Capoeira.fbx"
-dest_files=["res://.godot/imported/Festejo Capoeira.fbx-de780c18f0a13d6c999ca4cc310d4b19.scn"]
+source_file="res://assets/animations/Festejo Capoeira.fbx"
+dest_files=["res://.godot/imported/Festejo Capoeira.fbx-de93e6e9d04f740fc71d8479d2e90fd2.scn"]
 
 [params]
 

@@ -35,6 +35,10 @@ var weather_choice: int = MatchConditions.Weather.CLEAR
 var wind_choice: int = 0
 ## Césped: 0 seco, 1 húmedo, 2 mojado, -1 según el clima.
 var pitch_choice: int = -1
+## Estado del césped: 0 = en buen estado, 1 = gastado (pozos y calvas; en el
+## Club House siempre gastado).
+var pitch_wear: int = 0
+const PITCH_WEAR_NAMES := ["En buen estado", "Gastado"]
 ## Offside (como la opción del WE).
 var offside: bool = true
 ## Estadio (StadiumStyles.STYLES); -1 = al azar.
@@ -74,7 +78,7 @@ var stick_directions: int = 8
 ## Configuración guardada entre sesiones (las opciones del menú y de la pausa).
 const SETTINGS_PATH := "user://settings.cfg"
 const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", "wind_choice",
-	"pitch_choice", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
+	"pitch_choice", "pitch_wear", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
 	"stick_directions", "camera_preset", "show_pass_target", "offside", "home_team_path", "away_team_path",
 	"home_kit", "away_kit", "show_replays", "replay_chances", "player_style", "sfx_volume", "crowd_volume"]
 ## Falso en los tests y las herramientas: no leen ni pisan la configuración
@@ -170,6 +174,7 @@ func load_settings(path: String = SETTINGS_PATH) -> void:
 	weather_choice = clampi(weather_choice, -1, MatchConditions.WEATHER_NAMES.size() - 1)
 	wind_choice = clampi(wind_choice, -1, WIND_NAMES.size() - 1)
 	pitch_choice = clampi(pitch_choice, -1, PITCH_NAMES.size() - 1)
+	pitch_wear = clampi(pitch_wear, 0, PITCH_WEAR_NAMES.size() - 1)
 	stadium_choice = clampi(stadium_choice, -1, StadiumStyles.STYLES.size() - 1)
 	game_speed = clampi(game_speed, -2, 2)
 	player_label = clampi(player_label, 0, PLAYER_LABEL_NAMES.size() - 1)

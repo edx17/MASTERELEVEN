@@ -32,8 +32,10 @@ Desde B10 van en el repo (ya no están en el `.gitignore`), así los tests, las
 capturas y el .exe de prueba usan lo mismo que se ve en el editor. La licencia
 de Mixamo permite usarlas en el juego pero no redistribuir los archivos
 sueltos: **conviene que el repositorio sea privado** (GitHub → Settings →
-Danger Zone → Change visibility). Van en `assets/animations/mixamo/` (FBX,
-"Without Skin" o "With Skin"):
+Danger Zone → Change visibility). Van en `assets/animations/` (o en la
+subcarpeta `mixamo/`), FBX "Without Skin" o "With Skin". Hoy están 53 de los 58
+clips; faltan `Kick Soccerball`, `Soccer Tackle 1`, `Receive Soccerball` y
+`Goalkeeper Body Block` (esos gestos se hacen por código). Lista completa:
 `Kick Soccerball`, `Soccer Penalty Kick`, `Soccer Pass`, `Soccer Header`,
 `Soccer Tackle`, `Soccer Tackle 1`, `Receive Soccerball`, `Soccer Trip`,
 `Standing Up`, `Cartwheel`, `Dribble`, `Goalkeeper Idle`, `Goalkeeper Catch`,
@@ -60,6 +62,15 @@ descargar, así que se ponen a mano (son CC0: se pueden subir al repo):
 Sirve cualquier césped corto CC0 con esos tres mapas (por ejemplo Grass001 o
 Grass005 de ambientCG). Las franjas de corte y el desgaste los sigue poniendo
 el shader.
+
+## Texturas y cielos procesados (B11)
+
+| Asset | Ubicación | Origen | Licencia |
+|-------|-----------|--------|----------|
+| Cielos: despejado, amanecer_invierno, atardecer, nublado, nublado2, nieve | `assets/skies/*.jpg` (versión JPG 2K) | ambientCG: HdrOutdoorFieldBaseballDayClear001, HdrOutdoorSoccerFieldWinterDayClear001, HdrSkySunset007, HdrSkyOvercast001, HdrOutdoorFieldDayOvercast004, HdrOutdoorSnowMountainsEveningClear001 | CC0 |
+| Césped gastado (color 2K, normal y rugosidad 1K) | `assets/textures/grass_worn/` | Poliigon GrassPatchyGround 4585 | Licencia Poliigon (uso en proyectos; no redistribuir suelto) |
+| Tierra / campo (1K) | `assets/textures/ground/` | Poliigon GroundFieldAgriculture 12105 | Licencia Poliigon |
+| Trama de tela (normal 512) | `assets/textures/fabric/` | ambientCG FabricPlainNaturalSheer009 | CC0 |
 
 ## Cielos HDRI (opcionales, CC0)
 

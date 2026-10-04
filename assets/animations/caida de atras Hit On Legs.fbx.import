@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://ci5lm3gug1bhp"
-path="res://.godot/imported/caida de atras Hit On Legs.fbx-37e76d7c0d37a1ad81698c4c2c52408d.scn"
+path="res://.godot/imported/caida de atras Hit On Legs.fbx-011bec705576bd38dc5581734ccb9447.scn"
 
 [deps]
 
-source_file="res://Animation Pro/caida de atras Hit On Legs.fbx"
-dest_files=["res://.godot/imported/caida de atras Hit On Legs.fbx-37e76d7c0d37a1ad81698c4c2c52408d.scn"]
+source_file="res://assets/animations/caida de atras Hit On Legs.fbx"
+dest_files=["res://.godot/imported/caida de atras Hit On Legs.fbx-011bec705576bd38dc5581734ccb9447.scn"]
 
 [params]
 

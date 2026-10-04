@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bwrn6r4a48m43"
-path="res://.godot/imported/Goalkeeper Sidestep achique.fbx-82a5069cb4073bcac076f91d2c9f1536.scn"
+path="res://.godot/imported/Goalkeeper Sidestep achique.fbx-2f0b82a5ab5c8f3041e592043f5f67e0.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Goalkeeper Sidestep achique.fbx"
-dest_files=["res://.godot/imported/Goalkeeper Sidestep achique.fbx-82a5069cb4073bcac076f91d2c9f1536.scn"]
+source_file="res://assets/animations/Goalkeeper Sidestep achique.fbx"
+dest_files=["res://.godot/imported/Goalkeeper Sidestep achique.fbx-2f0b82a5ab5c8f3041e592043f5f67e0.scn"]
 
 [params]
 

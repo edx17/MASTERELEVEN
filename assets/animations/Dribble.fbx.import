@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://c867ds1ap8tja"
-path="res://.godot/imported/Dribble.fbx-3b1003ceb0f1c9c2a9385f08929c5875.scn"
+path="res://.godot/imported/Dribble.fbx-748653e173fd66e22de7f6f73365bab2.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Dribble.fbx"
-dest_files=["res://.godot/imported/Dribble.fbx-3b1003ceb0f1c9c2a9385f08929c5875.scn"]
+source_file="res://assets/animations/Dribble.fbx"
+dest_files=["res://.godot/imported/Dribble.fbx-748653e173fd66e22de7f6f73365bab2.scn"]
 
 [params]
 

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://c63asteui400t"
-path="res://.godot/imported/Soccer Pass.fbx-c198b450a943680ad98f94971e7a2abb.scn"
+path="res://.godot/imported/Soccer Pass.fbx-eb95bd0536a3ca4f6590aa7f0828bd8f.scn"
 
 [deps]
 
-source_file="res://Animation Pro/Soccer Pass.fbx"
-dest_files=["res://.godot/imported/Soccer Pass.fbx-c198b450a943680ad98f94971e7a2abb.scn"]
+source_file="res://assets/animations/Soccer Pass.fbx"
+dest_files=["res://.godot/imported/Soccer Pass.fbx-eb95bd0536a3ca4f6590aa7f0828bd8f.scn"]
 
 [params]
 

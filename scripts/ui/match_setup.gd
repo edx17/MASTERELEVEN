@@ -34,6 +34,8 @@ func _ready() -> void:
 		_cycle.bind("wind_choice", GameSettings.WIND_NAMES.size()), "El viento desvía la pelota en el aire.")
 	_add(list, "Césped", func() -> String: return "según el clima" if GameSettings.pitch_choice < 0 else GameSettings.PITCH_NAMES[GameSettings.pitch_choice],
 		_cycle.bind("pitch_choice", GameSettings.PITCH_NAMES.size()), "Mojado: la pelota corre más y los jugadores pueden resbalar.")
+	_add(list, "Estado", func() -> String: return GameSettings.PITCH_WEAR_NAMES[GameSettings.pitch_wear],
+		_cycle.bind("pitch_wear", GameSettings.PITCH_WEAR_NAMES.size()), "Gastado: césped con calvas y tierra (textura de cancha de barrio).")
 	_add(list, "Duración", func() -> String: return "%d min" % GameSettings.match_minutes, _step_duration,
 		"Minutos reales que dura el partido (los 90 del reloj pasan en ese tiempo).")
 	_add(list, "Nivel CPU", func() -> String: return Difficulty.NAMES[GameSettings.difficulty], _step_difficulty,
