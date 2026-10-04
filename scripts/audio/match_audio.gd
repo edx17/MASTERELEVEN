@@ -41,6 +41,11 @@ func setup(m: MatchController) -> void:
 	m.ball.hit_net.connect(func() -> void: play("net", 0.7))
 	m.goal_scored.connect(func(_t: int) -> void: cheer("goal"))
 	m.phase_changed.connect(_on_phase)
+	# Presentación: el público responde a cada nombre que dice el locutor.
+	if m.intro != null:
+		m.intro.player_announced.connect(func(_p: Footballer) -> void:
+			if not _training:
+				play("ooh", 0.45, randf_range(0.95, 1.1), true))
 	_crowd.play()
 
 

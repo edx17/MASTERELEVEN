@@ -158,19 +158,20 @@ func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--stadium="):
 			GameSettings.stadium_choice = int(arg.trim_prefix("--stadium="))
-	# `--intro`: la presentación previa (menú, calentamiento, túnel, saludo...).
+	# `--intro`: la presentación previa (menú, calentamiento, túnel, presentación...).
 	if "--intro" in OS.get_cmdline_user_args():
 		GameSettings.play_intro = true
 		_script = [[5, "freeze"], [30, "shot:intro_menu.png"],
-			[35, "intro:1"], [36, "simulate:4"], [50, "shot:intro_warmup.png"],
+			[35, "intro:1"], [36, "simulate:1.5"], [42, "shot:intro_warmup.png"],
+			[43, "simulate:2.6"], [50, "shot:intro_warmup_keeper.png"],
 			[55, "intro:2"], [56, "simulate:2.5"], [62, "shot:intro_tunnel_mouth.png"],
 			[63, "simulate:6"], [70, "shot:intro_tunnel.png"],
 			[75, "intro:3"], [76, "simulate:1"], [84, "shot:intro_lineup.png"],
 			[85, "simulate:2"], [92, "shot:intro_lineup2.png"],
-			[95, "intro:4"], [96, "simulate:3.5"], [110, "shot:intro_handshake.png"],
-			[111, "simulate:3"], [118, "shot:intro_handshake2.png"],
-			[119, "simulate:3"], [126, "shot:intro_handshake3.png"],
-			[135, "intro:5"], [136, "simulate:0.3"], [145, "shot:intro_formation.png"], [150, "quit"]]
+			[95, "intro:4"], [96, "simulate:1.5"], [110, "shot:intro_present.png"],
+			[111, "simulate:4"], [118, "shot:intro_present2.png"],
+			[119, "intro:5"], [120, "simulate:6"], [126, "shot:intro_present_away.png"],
+			[135, "intro:6"], [136, "simulate:0.3"], [145, "shot:intro_formation.png"], [150, "quit"]]
 	GameSettings.set_mode(GameSettings.Mode.VS_CPU)
 	GameSettings.camera_preset = 0
 	_match = load("res://scenes/match/match.tscn").instantiate()

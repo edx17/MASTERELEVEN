@@ -107,3 +107,24 @@ func test_replay_keeps_the_ball_spin_and_highlights() -> void:
 	m.ball.replay_pose(Vector3(3, 0.11, 0), Quaternion.IDENTITY)
 	m.ball.replay_pose(last["ball"], last["spin"])
 	assert_true(m.ball.spin_pose().is_equal_approx(last["spin"]))
+
+
+func test_offside_gets_a_replay_with_the_line() -> void:
+	var t := m.teams[0]
+	var p: Footballer = t.players[9]
+	for i in 200:
+		m._physics_process(dt) # para que haya cuadros grabados
+	var line := m.offside_line(t)
+	assert_true(is_finite(line))
+	m.phase = MatchController.Phase.PLAYING
+	m.call_offside(p, line)
+	assert_eq(m.replay_request.get("kind"), Replay.Kind.OFFSIDE)
+	assert_almost_eq(float(m.replay_request.get("line")), line, 0.001)
+	GameSettings.replay_chances = true
+	m._phase_timer = 0.0
+	m._physics_process(dt)
+	assert_eq(m.phase, MatchController.Phase.REPLAY, "se muestra la repetición")
+	assert_almost_eq(m.replay.offside_line, line, 0.001)
+	m.replay._wipe.advance(1.0)
+	assert_true(m.replay._line_mesh != null and m.replay._line_mesh.visible, "la línea en el césped")
+	assert_almost_eq(m.replay._line_mesh.position.x, line, 0.001)

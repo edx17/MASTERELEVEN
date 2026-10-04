@@ -15,7 +15,7 @@ Ver `Claude.md` para visión, criterios y fases.
 | 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) |
 | 8 — Pulido | ⬜ |
 | Entrenamiento (Club House) | 🟡 Implementado, **pendiente de tu prueba** |
-| Backlog B1–B9 (tu lista de pendientes) | 🟡 B1–B6 hechos, B7–B9 en curso (PR #24) |
+| Backlog B1–B9 (tu lista de pendientes) | 🟡 B1–B7 hechos, B8–B9 en curso (PR #24) |
 
 ---
 
@@ -31,6 +31,7 @@ Ver `Claude.md` para visión, criterios y fases.
 | B4 Arquero | La estirada no flota (clip más rápido y desplazamiento lateral corto); se tira a tiempo (nunca después de que pasó la pelota); no hace el gesto de atajar una pelota que le pasa por arriba; se agacha en las rasantes (rango del clip de recoger); después de su rebote no la persigue en bucle. |
 | B5 Ataque | Con la pelota en la banda en el último tercio, los de arriba ocupan el área: punto penal, primer palo, segundo palo y uno a la puerta del área (nunca en offside). **Remate potente: L1 + R1 + Cuadrado**: la barra carga más lento, el jugador se perfila 0,3 s y le pega 30 % más fuerte con el doble de error. La CPU también lo usa de lejos. |
 | B6 Gráficos | Césped mate (rugosidad mínima 0,85 y casi sin especular: no se ve de plástico); túnel con paredes claras y cuatro paneles de luz (ya no es una cueva); vincha de tela mate sin brillo; **la red se infla donde pega la pelota** (según la velocidad) y vuelve oscilando; la pelota gira en las repeticiones (de B1). |
+| B7 Cinemáticas | Calentamiento: en cada mitad dos **rondos 4 contra 1** (la pelota de utilería circula de pie en pie y el del medio la persigue) y **los arqueros en su área atajando** remates (estirada, en el aire o agachado). Presentación: cada equipo en su fila (ya no pasa uno por delante del otro) y **dolly frontal** por los 11 de cada equipo; al llegar a cada jugador aparece su cartel (número, nombre, puesto) y el público responde (señal `player_announced` para el locutor). **Repetición del offside** con la línea del penúltimo defensor sobre el césped; las atajadas en las manos quedan en los highlights; los remates cerca/al palo ya tenían repetición. |
 
 ---
 

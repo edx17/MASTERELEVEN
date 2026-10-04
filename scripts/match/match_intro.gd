@@ -2,45 +2,62 @@ class_name MatchIntro
 extends Node
 ## Presentación previa al partido, al estilo WE:
 ##   1. Menú previo con el estadio de fondo (la cámara gira alrededor) y los
-##      jugadores calentando.
+##      jugadores calentando: rondos 4 contra 1 en cada mitad y los arqueros
+##      en su área atajando remates.
 ##   2. Calentamiento: un par de tomas cerca de los jugadores.
 ##   3. Salida por el túnel: dos filas que caminan hasta la mitad de la cancha.
-##   4. Formación protocolar frente a la tribuna y saludo: el visitante pasa
-##      saludando frente a la fila del local.
-##   5. Pantalla con las formaciones de los dos equipos.
+##   4. Formación protocolar frente a la tribuna (cada equipo en su fila; nadie
+##      pasa por delante del otro).
+##   5. Presentación: la cámara recorre de frente a los 11 de cada equipo y el
+##      locutor los nombra uno por uno (señal `player_announced`).
+##   6. Pantalla con las formaciones de los dos equipos.
 ## X / Start saltea la etapa (en el menú previo, X elige la opción).
 ## Sólo presentación: no toca la pelota ni el reloj; al terminar, el partido
 ## arranca con el saque del medio.
 
 signal finished
+## La cámara de la presentación llega a `player` (el locutor lo nombra).
+signal player_announced(player: Footballer)
 
-enum Step { MENU, WARMUP, TUNNEL, LINEUP, HANDSHAKE, FORMATION, DONE }
+enum Step { MENU, WARMUP, TUNNEL, LINEUP, PRESENT_HOME, PRESENT_AWAY, FORMATION, DONE }
 
 ## Velocidades (m/s) iguales para todos: así las filas no se desarman.
 const WALK := 1.9
 ## Paso firme de la salida del túnel (la fila tiene que llegar a formarse).
 const WALK_IN := 2.3
 const JOG := 4.2
-## Fila del local en el saludo y carril (1 m adelante) por donde pasa el visitante.
+## Fila de los dos equipos en la formación protocolar.
 const ROW_Z := 3.0
-const LANE_Z := ROW_Z + 1.0
+## Presentación: segundos de cámara por jugador y distancia de la toma.
+const PER_PLAYER := 0.8
+const DOLLY_DIST := 3.4
 ## Momento del corte a la toma lateral (la boca del túnel depende del
 ## estadio: StadiumBuilder.tunnel_z).
 const TUNNEL_CUT := 4.5
 ## Duración de cada etapa (s); el menú espera al jugador.
-const DURATION := {Step.WARMUP: 6.0, Step.TUNNEL: 9.0, Step.LINEUP: 4.0, Step.HANDSHAKE: 12.0, Step.FORMATION: 5.0}
+const DURATION := {Step.WARMUP: 6.0, Step.TUNNEL: 9.0, Step.LINEUP: 4.0,
+		Step.PRESENT_HOME: PER_PLAYER * 11.0 + 0.6, Step.PRESENT_AWAY: PER_PLAYER * 11.0 + 0.6, Step.FORMATION: 5.0}
+## Rondo: radio de la ronda y velocidad del pase (m/s).
+const RONDO_RADIUS := 4.5
+const RONDO_PASS_SPEED := 9.0
+## Arqueros: cada cuánto les patean y cuánto tarda la pelota.
+const KEEPER_SHOT_EVERY := 2.4
+const KEEPER_SHOT_FLIGHT := 0.7
 
 var step: int = Step.MENU
 var _t := 0.0
 var _match: MatchController
 var _cam: MatchCamera
 var _targets := {}
-## Punto de paso antes del destino (el visitante sale al carril del saludo).
-var _via := {}
 ## Cabeza: [giro buscado, tiempo hasta cambiarlo] por jugador.
 var _looks := {}
-## Choques de manos ya hechos (visitante, local).
-var _fives := {}
+## Rondos del calentamiento ({center, ring, mid, ball, from, to, t, dur, hold}).
+var _rondos: Array[Dictionary] = []
+## Arqueros atajando en el calentamiento ({keeper, ball, home, t, from, to, dive}).
+var _keeper_drills: Array[Dictionary] = []
+## Jugador que se está presentando (índice en la fila).
+var _announced := -1
+var _caption: PanelContainer
 var _ui: CanvasLayer
 var _menu: VBoxContainer
 var _hint: Label
@@ -81,17 +98,22 @@ func tick(dt: float) -> void:
 			# baja (de fondo del menú, como en el WE).
 			var a := 0.6 + _t * 0.08
 			_cam.set_shot(Vector3(cos(a) * 58.0, 16.0, sin(a) * 40.0), Vector3(0, 3, 0), 50.0)
-			_warmup_moves()
+			_warmup_tick(dt)
 		Step.WARMUP:
-			_warmup_moves()
+			_warmup_tick(dt)
 			if _t > 3.0 and _t - dt <= 3.0:
-				_cut_close_on(_match.teams[1].players[_rng.randi_range(5, 10)])
-		Step.TUNNEL, Step.HANDSHAKE:
+				# Segunda toma: el arquero atajando.
+				var gk := _match.teams[1].keeper()
+				if gk != null:
+					_cam.set_shot(gk.flat_pos() + Vector3(gk.team.attack_dir * 9.0, 2.0, 4.0), gk.flat_pos() + Vector3(0, 1.0, 0), 34.0)
+		Step.PRESENT_HOME, Step.PRESENT_AWAY:
 			_walk_to_targets()
 			_update_looks(dt)
-			if step == Step.HANDSHAKE:
-				_high_fives()
-			if step == Step.TUNNEL:
+			_dolly(_match.teams[0 if step == Step.PRESENT_HOME else 1])
+		Step.TUNNEL:
+			_walk_to_targets()
+			_update_looks(dt)
+			if true:
 				if _t < TUNNEL_CUT:
 					# Salen del túnel: cámara en la cancha, mirando la boca.
 					_cam.set_shot(Vector3(7.0, 2.0, StadiumBuilder.tunnel_z - 9.0), Vector3(0.0, 1.4, StadiumBuilder.tunnel_z), 38.0)
@@ -100,9 +122,6 @@ func tick(dt: float) -> void:
 						_skip_ahead_on_pitch()
 					var lead: Footballer = _match.teams[0].players[0]
 					_cam.set_shot(lead.flat_pos() + Vector3(-9.0, 3.0, 6.0), lead.flat_pos() + Vector3(2.0, 1.2, -3.0), 35.0, 1.5)
-			else:
-				var walker := _match.teams[1].players[5]
-				_cam.set_shot(walker.flat_pos() + Vector3(2.0, 2.2, 7.5), walker.flat_pos() + Vector3(-2.0, 1.3, 0.0), 35.0, 1.5)
 		Step.LINEUP:
 			_walk_to_targets()
 			_update_looks(dt)
@@ -124,10 +143,14 @@ func _enter(s: int) -> void:
 	if s != Step.LINEUP:
 		_lineup.visible = false
 		_lineup_team = -1
+	_caption.visible = false
+	_announced = -1
+	if s >= Step.TUNNEL:
+		_clear_warmup()
 	_hint.visible = s != Step.MENU and s != Step.DONE
 	match s:
 		Step.MENU:
-			_scatter_for_warmup()
+			_setup_warmup()
 			(_menu.get_child(1) as Button).grab_focus()
 		Step.WARMUP:
 			_cut_wide()
@@ -136,8 +159,6 @@ func _enter(s: int) -> void:
 			_assign_stances()
 		Step.LINEUP:
 			_set_lineup_targets()
-		Step.HANDSHAKE:
-			_set_handshake_targets()
 		Step.FORMATION:
 			_formation.queue_redraw()
 			_cam.set_shot(Vector3(0, 60, 40), Vector3(0, 0, 0), 45.0)
@@ -156,23 +177,186 @@ func _enter(s: int) -> void:
 
 # --- Movimiento de los jugadores ------------------------------------------------
 
-func _scatter_for_warmup() -> void:
+## Calentamiento: en cada mitad, dos rondos 4 contra 1 con los diez de
+## campo y el arquero en su área atajando remates. Las pelotas son de
+## utilería (la del partido no se toca).
+func _setup_warmup() -> void:
+	_clear_warmup()
 	for t in _match.teams:
+		var field: Array[Footballer] = []
 		for p in t.players:
-			var spot := t.to_world(Vector2(_rng.randf_range(0.1, 0.45), _rng.randf_range(-0.8, 0.8)))
-			p.teleport(spot, Vector3(t.attack_dir, 0, 0))
-			_targets[p] = spot
+			if not p.is_keeper():
+				field.append(p)
+		var groups := [field.slice(0, 5), field.slice(5, 10)]
+		for g in groups.size():
+			var group: Array = groups[g]
+			if group.size() < 3:
+				continue
+			var center := t.to_world(Vector2(0.3, -0.35 if g == 0 else 0.35))
+			var ring: Array[Footballer] = []
+			for i in group.size() - 1:
+				ring.append(group[i])
+			var mid: Footballer = group[group.size() - 1]
+			for i in ring.size():
+				var ang := TAU * i / ring.size() + 0.4 * g
+				var spot := center + Vector3(cos(ang), 0.0, sin(ang)) * RONDO_RADIUS
+				ring[i].teleport(spot, (center - spot).normalized())
+			mid.teleport(center, Vector3(t.attack_dir, 0, 0))
+			var r := {"center": center, "ring": ring, "mid": mid, "ball": _prop_ball(),
+				"from": 0, "to": 1, "t": 0.0, "dur": 0.5, "hold": 0.0}
+			_rondos.append(r)
+		var gk := t.keeper()
+		if gk != null:
+			var home := t.own_goal() + Vector3(t.attack_dir * 0.9, 0.0, 0.0)
+			gk.teleport(home, Vector3(t.attack_dir, 0, 0))
+			_keeper_drills.append({"keeper": gk, "ball": _prop_ball(), "home": home,
+				"t": -_rng.randf_range(0.2, 1.2), "from": Vector3.ZERO, "to": Vector3.ZERO, "dive": -1})
 
 
-## Calentamiento: trotan entre puntos de su campo.
-func _warmup_moves() -> void:
-	for t in _match.teams:
-		for p in t.players:
-			var tgt: Vector3 = _targets.get(p, p.flat_pos())
-			if p.flat_pos().distance_to(tgt) < 1.0:
-				tgt = t.to_world(Vector2(_rng.randf_range(0.08, 0.46), _rng.randf_range(-0.85, 0.85)))
-				_targets[p] = tgt
-			_move(p, tgt, JOG)
+func _prop_ball() -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.11
+	sm.height = 0.22
+	sm.radial_segments = 12
+	sm.rings = 6
+	mi.mesh = sm
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.95, 0.95, 0.95)
+	mat.roughness = 0.6
+	mi.material_override = mat
+	mi.visible = false
+	_match.add_child(mi)
+	return mi
+
+
+func _clear_warmup() -> void:
+	for r in _rondos:
+		(r["ball"] as Node).queue_free()
+	for d in _keeper_drills:
+		(d["ball"] as Node).queue_free()
+	_rondos.clear()
+	_keeper_drills.clear()
+
+
+func _warmup_tick(dt: float) -> void:
+	for r in _rondos:
+		_rondo_tick(r, dt)
+	for d in _keeper_drills:
+		_keeper_drill_tick(d, dt)
+
+
+## Rondo: la pelota va de pie en pie por la ronda; el del medio la persigue.
+func _rondo_tick(r: Dictionary, dt: float) -> void:
+	var ring: Array[Footballer] = r["ring"]
+	var center: Vector3 = r["center"]
+	var ball := r["ball"] as MeshInstance3D
+	ball.visible = true
+	var from: Footballer = ring[r["from"]]
+	var to: Footballer = ring[r["to"]]
+	var bpos: Vector3
+	if r["hold"] > 0.0:
+		# La pelota en el pie del que la recibió (un toque y la pasa).
+		r["hold"] -= dt
+		bpos = to.flat_pos() + to.facing * 0.4
+		if r["hold"] <= 0.0:
+			r["from"] = r["to"]
+			var next: int = r["to"]
+			while next == r["to"]:
+				next = _rng.randi() % ring.size()
+			r["to"] = next
+			r["t"] = 0.0
+			r["dur"] = maxf(0.3, ring[next].flat_pos().distance_to(to.flat_pos()) / RONDO_PASS_SPEED)
+			to.visual.play(PlayerVisual.Event.PASS)
+	else:
+		r["t"] += dt
+		var k: float = clampf(r["t"] / r["dur"], 0.0, 1.0)
+		bpos = (from.flat_pos() + from.facing * 0.4).lerp(to.flat_pos() + to.facing * 0.4, k)
+		if k >= 1.0:
+			r["hold"] = _rng.randf_range(0.25, 0.5)
+	ball.global_position = bpos + Vector3.UP * 0.11
+	# La ronda mira la pelota; cada uno vuelve a su lugar si se corrió.
+	for i in ring.size():
+		var p := ring[i]
+		var ang := TAU * i / ring.size()
+		var spot := center + (p.flat_pos() - center).normalized() * RONDO_RADIUS
+		if p.flat_pos().distance_to(center) < 0.5:
+			spot = center + Vector3(cos(ang), 0.0, sin(ang)) * RONDO_RADIUS
+		if p.flat_pos().distance_to(spot) > 0.4:
+			_move(p, spot, WALK)
+		else:
+			p.desired_move = Vector3.ZERO
+			var look := Vector3(bpos.x - p.flat_pos().x, 0.0, bpos.z - p.flat_pos().z)
+			if look.length() > 0.2:
+				p.facing = look.normalized()
+	# El del medio va a la pelota (sin salir de la ronda).
+	var mid: Footballer = r["mid"]
+	var chase := center + (bpos - center).limit_length(RONDO_RADIUS * 0.6)
+	if mid.flat_pos().distance_to(chase) > 0.3:
+		_move(mid, chase, JOG * 0.6)
+	else:
+		mid.desired_move = Vector3.ZERO
+
+
+## Arquero: le patean desde el punto penal a un costado, arriba o abajo, y
+## él ataja (estirada, en el aire o agachado) y vuelve al medio del arco.
+func _keeper_drill_tick(d: Dictionary, dt: float) -> void:
+	var gk: Footballer = d["keeper"]
+	var ball := d["ball"] as MeshInstance3D
+	var home: Vector3 = d["home"]
+	d["t"] += dt
+	var t: float = d["t"]
+	if t < 0.0:
+		ball.visible = false
+		_move_or_stop(gk, home, WALK)
+		return
+	if d["dive"] < 0:
+		# Nuevo remate.
+		var side := gk.team.attack_dir
+		d["from"] = home + Vector3(side * 10.0, 0.11, _rng.randf_range(-2.0, 2.0))
+		var kind := _rng.randi() % 4
+		var z := 0.0
+		var h := 1.0
+		match kind:
+			0:
+				z = 2.0
+				d["dive"] = PlayerVisual.Event.DIVE_LEFT if side > 0 else PlayerVisual.Event.DIVE_RIGHT
+			1:
+				z = -2.0
+				d["dive"] = PlayerVisual.Event.DIVE_RIGHT if side > 0 else PlayerVisual.Event.DIVE_LEFT
+			2:
+				h = 2.1
+				d["dive"] = PlayerVisual.Event.CATCH_HIGH
+			_:
+				h = 0.15
+				d["dive"] = PlayerVisual.Event.CATCH_LOW
+		d["to"] = home + Vector3(0.0, h, z)
+		d["played"] = false
+	ball.visible = true
+	var k := clampf(t / KEEPER_SHOT_FLIGHT, 0.0, 1.0)
+	var from: Vector3 = d["from"]
+	var to: Vector3 = d["to"]
+	ball.global_position = from.lerp(to, k) + Vector3.UP * sin(k * PI) * 0.6
+	gk.desired_move = Vector3.ZERO
+	gk.facing = Vector3(gk.team.attack_dir, 0, 0)
+	if not d["played"] and t > KEEPER_SHOT_FLIGHT - 0.35:
+		d["played"] = true
+		gk.visual.play(d["dive"], to.y)
+	if t > KEEPER_SHOT_FLIGHT:
+		# La ataja: la pelota queda en las manos un momento y se va.
+		ball.global_position = to
+		if t > KEEPER_SHOT_FLIGHT + 0.5:
+			ball.visible = false
+			d["dive"] = -1
+			d["t"] = -(KEEPER_SHOT_EVERY - KEEPER_SHOT_FLIGHT)
+
+
+func _move_or_stop(p: Footballer, tgt: Vector3, speed: float) -> void:
+	if p.flat_pos().distance_to(tgt) > 0.3:
+		_move(p, tgt, speed)
+	else:
+		p.desired_move = Vector3.ZERO
+		p.facing = Vector3(p.team.attack_dir, 0, 0)
 
 
 func _line_up_in_tunnel() -> void:
@@ -203,40 +387,50 @@ func _set_lineup_targets() -> void:
 		p.desired_move = Vector3.ZERO
 
 
-## Saludo protocolar: la fila visitante da un paso al frente y pasa en fila,
-## 1 m por delante de la fila local (sin atravesarla), de derecha a izquierda,
-## chocando los cinco con cada uno.
-func _set_handshake_targets() -> void:
-	var away := _match.teams[1]
-	_fives.clear()
-	for n in away.players.size():
-		var p: Footballer = away.players[n]
-		_via[p] = Vector3(p.flat_pos().x, 0.0, LANE_Z)
-		# El primero de la fila es el que llega más lejos (nadie lo atraviesa).
-		_targets[p] = Vector3(-14.0 - (away.players.size() - 1 - n) * 1.05, 0.0, LANE_Z)
+## Presentación: dolly de frente a la fila de `t`, de punta a punta; al
+## llegar a cada jugador el locutor lo nombra (cartel con número, puesto y
+## nombre).
+func _dolly(t: Team) -> void:
+	var row := _row_order(t)
+	var k := clampf((_t - 0.3) / PER_PLAYER, 0.0, row.size() - 1.0)
+	var i0 := floori(k)
+	var i1 := mini(i0 + 1, row.size() - 1)
+	var f := smoothstep(0.0, 1.0, k - i0)
+	var at := row[i0].flat_pos().lerp(row[i1].flat_pos(), f)
+	# Primer cuadro: corte directo; después la cámara se desliza (dolly).
+	_cam.set_shot(at + Vector3(0.2, 1.55, DOLLY_DIST), at + Vector3(0.0, 1.35, 0.0), 26.0, 0.0 if _announced < 0 else 6.0)
+	var who := clampi(roundi(k), 0, row.size() - 1)
+	if who != _announced:
+		_announced = who
+		_announce(row[who])
 
 
-## El visitante que pasa frente a un local: se dan la mano. Los dos estiran
-## la derecha a la vez (un poco antes de quedar enfrentados, así las manos se
-## juntan en el medio) y el local gira el cuerpo hacia el que llega.
-const GREET_AHEAD := 0.7
-var _greeting := {} # local -> [visitante, tiempo que le queda]
+## Fila de `t` en el orden en que la recorre la cámara (de afuera hacia el
+## centro de la cancha).
+func _row_order(t: Team) -> Array[Footballer]:
+	var row: Array[Footballer] = t.players.duplicate()
+	row.sort_custom(func(a: Footballer, b: Footballer) -> bool: return absf(a.flat_pos().x) > absf(b.flat_pos().x))
+	return row
 
-func _high_fives() -> void:
-	for h: Footballer in _greeting.keys():
-		_greeting[h][1] -= get_physics_process_delta_time()
-		if _greeting[h][1] <= 0.0:
-			_greeting.erase(h)
-	for w: Footballer in _match.teams[1].players:
-		if _via.has(w) or w.flat_pos().z < LANE_Z - 0.2:
-			continue
-		for h: Footballer in _match.teams[0].players:
-			var dx := w.flat_pos().x - h.flat_pos().x
-			if dx > 0.0 and dx < GREET_AHEAD and not _fives.has([w, h]):
-				_fives[[w, h]] = true
-				w.visual.play(PlayerVisual.Event.HANDSHAKE, -1.0)
-				h.visual.play(PlayerVisual.Event.HANDSHAKE, 1.0)
-				_greeting[h] = [w, 0.75]
+
+func _announce(p: Footballer) -> void:
+	for c in _caption.get_children():
+		_caption.remove_child(c)
+		c.queue_free()
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	_caption.add_child(row)
+	var num := WEStyle.label(str(p.number), 40, Color.WHITE)
+	num.custom_minimum_size = Vector2(64, 0)
+	num.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	row.add_child(num)
+	var box := VBoxContainer.new()
+	row.add_child(box)
+	box.add_child(WEStyle.label(p.display_name, 30, Color.WHITE))
+	var pos: String = "ARQUERO" if p.is_keeper() else TeamSheet.ROLE_CODES[clampi(p.tactical_role, 0, TeamSheet.ROLE_CODES.size() - 1)]
+	box.add_child(WEStyle.label("%s · %s" % [pos, p.team.team_name], 18, Color(0.85, 0.88, 0.95)))
+	_caption.visible = true
+	player_announced.emit(p)
 
 
 ## Cada uno parado a su manera en la formación: brazos al costado, mano en el
@@ -264,43 +458,23 @@ func _update_looks(dt: float) -> void:
 			look[0] = 0.0 if r < 0.45 else (0.75 if r < 0.72 else -0.75)
 			look[1] = _rng.randf_range(1.2, 3.5)
 		var want: float = look[0]
-		if step == Step.HANDSHAKE and p.team.index == 0:
-			var near := _nearest_walker(p)
-			if near != null:
-				var off := near.flat_pos() - p.flat_pos()
-				want = clampf(atan2(off.x, off.z), -1.1, 1.1)
+		# El que presenta la cámara mira al frente.
+		if _announced >= 0 and step in [Step.PRESENT_HOME, Step.PRESENT_AWAY]:
+			var row := _row_order(_match.teams[0 if step == Step.PRESENT_HOME else 1])
+			if row[_announced] == p:
+				want = 0.0
 		mv.look_yaw = lerpf(mv.look_yaw, want, 1.0 - exp(-4.0 * dt))
-
-
-func _nearest_walker(h: Footballer) -> Footballer:
-	var best: Footballer = null
-	var best_d := 3.5
-	for w: Footballer in _match.teams[1].players:
-		var d := w.flat_pos().distance_to(h.flat_pos())
-		if d < best_d and w.flat_pos().x > h.flat_pos().x - 0.6:
-			best = w
-			best_d = d
-	return best
 
 
 func _walk_to_targets() -> void:
 	for p: Footballer in _targets:
-		var tgt: Vector3 = _via.get(p, _targets[p])
-		if _via.has(p) and p.flat_pos().distance_to(tgt) < 0.35:
-			_via.erase(p)
-			tgt = _targets[p]
+		var tgt: Vector3 = _targets[p]
 		if p.flat_pos().distance_to(tgt) < 0.3:
 			p.desired_move = Vector3.ZERO
-			# En la fila, mirando a la tribuna principal (la cámara); el que
-			# saluda gira hacia el visitante que le da la mano.
-			if _greeting.has(p):
-				var w: Footballer = _greeting[p][0]
-				var to_w := w.flat_pos() - p.flat_pos()
-				p.facing = (Vector3.BACK + to_w.normalized() * 0.8).normalized()
-			elif step != Step.HANDSHAKE or p.team.index == 0:
-				p.facing = Vector3.BACK
+			# En la fila, mirando a la tribuna principal (la cámara).
+			p.facing = Vector3.BACK
 		else:
-			_move(p, tgt, WALK if step == Step.HANDSHAKE else WALK_IN)
+			_move(p, tgt, WALK_IN)
 
 
 ## Todos a la misma velocidad (m/s), sin importar sus atributos.
@@ -316,10 +490,6 @@ func _move(p: Footballer, tgt: Vector3, speed: float) -> void:
 
 func _cut_wide() -> void:
 	_cam.set_shot(Vector3(-30.0, 12.0, 45.0), Vector3(-10.0, 0.0, 0.0), 40.0)
-
-
-func _cut_close_on(p: Footballer) -> void:
-	_cam.set_shot(p.flat_pos() + Vector3(3.0, 1.6, 6.0), p.flat_pos() + Vector3(0, 1.2, 0), 32.0)
 
 
 # --- Interfaz -------------------------------------------------------------------
@@ -374,6 +544,14 @@ func _build_ui() -> void:
 	_lineup.position = Vector2(40, 70)
 	_lineup.visible = false
 	_ui.add_child(_lineup)
+	# Cartel del jugador presentado (abajo a la izquierda, como en la TV).
+	_caption = PanelContainer.new()
+	var csb := lsb.duplicate() as StyleBoxFlat
+	csb.set_content_margin_all(12)
+	_caption.add_theme_stylebox_override("panel", csb)
+	_caption.position = Vector2(60, 540)
+	_caption.visible = false
+	_ui.add_child(_caption)
 	_formation = FormationBoard.new()
 	(_formation as FormationBoard).match_ref = _match
 	_formation.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

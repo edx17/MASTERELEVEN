@@ -514,6 +514,7 @@ func _update_phase(dt: float) -> void:
 					banner_text = ""
 					_set_phase(Phase.REPLAY)
 					highlights.append(replay.snapshot(req["kind"], req["team"], req["caption"]))
+					replay.offside_line = req.get("line", NAN)
 					replay.start(req["kind"], req["team"], req["caption"])
 				else:
 					replay_request = {}
@@ -572,7 +573,7 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 	# en offside: se cobra antes de que su patada cuente.
 	if phase == Phase.PLAYING and not _offside.is_empty() and player != _offside["kicker"]:
 		if (_offside["flagged"] as Array).has(player):
-			call_offside(player)
+			call_offside(player, _offside.get("line", NAN))
 			_offside = {}
 			return null
 		_offside = {}
@@ -1016,6 +1017,11 @@ func _try_take_loose_ball() -> void:
 		return
 	if best.is_keeper() and ball.last_touch_team != best.team.index and ball.speed() > 12.0:
 		stats["saves"][best.team.index] += 1
+		# Atajada en las manos: el juego sigue, pero queda para los highlights.
+		var shooter: Footballer = last_kick.get("player")
+		if last_kick.get("kind") == KickActions.Kind.SHOT and shooter != null and replay != null and replay.has_frames():
+			highlights.append(replay.snapshot(Replay.Kind.CHANCE, shooter.team.index,
+				"¡Atajada de %s!   Remate de %s" % [best.display_name, shooter.display_name]))
 	var receiver := ball.intended_receiver
 	if receiver != null and receiver != best:
 		receiver.clear_pass_target()
@@ -1139,7 +1145,18 @@ func _snapshot_offside(kicker: Footballer, from_restart: int) -> void:
 		return
 	var flagged := offside_positions(kicker, ball.flat_pos())
 	if not flagged.is_empty():
-		_offside = {"team": kicker.team.index, "kicker": kicker, "flagged": flagged}
+		_offside = {"team": kicker.team.index, "kicker": kicker, "flagged": flagged,
+			"line": offside_line(kicker.team)}
+
+
+## X del penúltimo rival de `team` (la línea del offside).
+func offside_line(team: Team) -> float:
+	var dir := float(team.attack_dir)
+	var depths: Array[float] = []
+	for o in opponents_of(team).players:
+		depths.append(o.flat_pos().x * dir)
+	depths.sort()
+	return (depths[depths.size() - 2] if depths.size() >= 2 else 0.0) * dir
 
 
 ## Compañeros de `kicker` en posición adelantada con la pelota en `ball_pos`.
@@ -1175,12 +1192,14 @@ func _check_offside() -> void:
 		return
 	var flagged: Array = _offside["flagged"]
 	if t.team.index == _offside["team"] and flagged.has(t):
-		call_offside(t)
+		call_offside(t, _offside.get("line", NAN))
 	_offside = {}
 
 
 ## Offside: tiro libre para el que defiende donde estaba el adelantado.
-func call_offside(p: Footballer) -> void:
+## `line`: x de la línea del offside al momento del pase (se dibuja en la
+## repetición).
+func call_offside(p: Footballer, line: float = NAN) -> void:
 	if phase != Phase.PLAYING:
 		return
 	stats["offsides"][p.team.index] += 1
@@ -1193,6 +1212,7 @@ func call_offside(p: Footballer) -> void:
 	banner_text = "FUERA DE JUEGO: %s" % p.display_name
 	_phase_timer = FOUL_DELAY
 	_set_phase(Phase.STOPPED)
+	request_replay(Replay.Kind.OFFSIDE, p.team.index, "Fuera de juego: %s" % p.display_name, {"line": line})
 
 
 ## Probabilidad de roja directa en una barrida que es falta de atrás.
@@ -2324,8 +2344,9 @@ func _update_set_piece_camera(dt: float) -> void:
 		_camera.end_cinematic()
 
 
-func request_replay(kind: int, team: int, caption: String) -> void:
+func request_replay(kind: int, team: int, caption: String, extra: Dictionary = {}) -> void:
 	replay_request = {"kind": kind, "team": team, "caption": caption}
+	replay_request.merge(extra)
 
 
 func camera() -> MatchCamera:

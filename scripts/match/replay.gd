@@ -10,7 +10,7 @@ extends Node
 
 signal finished
 
-enum Kind { GOAL, CHANCE, FOUL }
+enum Kind { GOAL, CHANCE, FOUL, OFFSIDE }
 
 ## Segundos que se guardan y que se muestran según el tipo de jugada.
 const SECONDS := 6.0
@@ -23,6 +23,10 @@ const SLOW_SPEED := 0.55
 const WIPE_TIME := 0.55
 
 var playing := false
+## Repetición de un offside: x de la línea (NAN = sin línea). Se dibuja una
+## franja a lo ancho de la cancha mientras dura.
+var offside_line := NAN
+var _line_mesh: MeshInstance3D
 var kind: int = Kind.GOAL
 var _match: MatchController
 var _frames: Array = []
@@ -151,6 +155,7 @@ func start(p_kind: int, team: int, caption: String) -> void:
 	# Cortina: cuando tapa la pantalla, aparece la repetición.
 	_wipe.run(func() -> void:
 		_tag.visible = true
+		_show_line(kind == Kind.OFFSIDE and is_finite(offside_line))
 		for p in _match.all_players():
 			p.set_presenting(true)
 		_apply_frame(_first, 0.0)
@@ -198,10 +203,34 @@ func stop() -> void:
 		playing = false
 		_tag.visible = false
 		_card.visible = false
+		_show_line(false)
+		offside_line = NAN
 		for p in _match.all_players():
 			p.set_presenting(false)
 		clear()
 		finished.emit())
+
+
+## Línea del offside sobre el césped (franja amarilla a lo ancho).
+func _show_line(on: bool) -> void:
+	if not on:
+		if _line_mesh != null:
+			_line_mesh.visible = false
+		return
+	if _line_mesh == null:
+		_line_mesh = MeshInstance3D.new()
+		var pm := PlaneMesh.new()
+		pm.size = Vector2(0.14, Pitch.HALF_WIDTH * 2.0)
+		_line_mesh.mesh = pm
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(1.0, 0.85, 0.1, 0.85)
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_line_mesh.material_override = mat
+		_line_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_match.add_child(_line_mesh)
+	_line_mesh.position = Vector3(offside_line, 0.03, 0.0)
+	_line_mesh.visible = true
 
 
 ## Cartel del gol: "GOL   CF  10  F. Acosta   173 cm   29 años".
