@@ -1,0 +1,92 @@
+# Tests de GUT en cada push y PR, y el .exe de prueba para Windows.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2
+  GODOT_RELEASE: 4.7.2-stable
+
+jobs:
+  tests:
+    name: Tests (GUT)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Godot (caché)
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: ~/godot
+          key: godot-${{ env.GODOT_RELEASE }}
+
+      - name: Bajar Godot
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot
+          curl -sSfL -o ~/godot/godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          unzip -q ~/godot/godot.zip -d ~/godot && rm ~/godot/godot.zip
+          mv ~/godot/Godot_v${GODOT_RELEASE}_linux.x86_64 ~/godot/godot
+
+      - name: Importar el proyecto
+        run: timeout 600 ~/godot/godot --headless --import || true
+
+      - name: Correr los tests
+        run: |
+          set -o pipefail
+          ~/godot/godot --headless -s addons/gut/gut_cmdln.gd -gconfig=.gutconfig.json -gexit 2>&1 | tee gut.log
+          grep -q "All tests passed" gut.log
+
+  windows:
+    name: Build de Windows (.exe)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Godot y plantillas (caché)
+        id: cache-tpl
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-export-${{ env.GODOT_RELEASE }}
+
+      - name: Bajar Godot y la plantilla de Windows
+        if: steps.cache-tpl.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot
+          curl -sSfL -o ~/godot/godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          unzip -q ~/godot/godot.zip -d ~/godot && rm ~/godot/godot.zip
+          mv ~/godot/Godot_v${GODOT_RELEASE}_linux.x86_64 ~/godot/godot
+          TPL=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mkdir -p "$TPL"
+          curl -sSfL -o tpl.tpz "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          unzip -o -j tpl.tpz templates/windows_release_x86_64.exe templates/windows_debug_x86_64.exe templates/version.txt -d "$TPL"
+          rm tpl.tpz
+
+      - name: Importar y exportar
+        run: |
+          timeout 600 ~/godot/godot --headless --import || true
+          mkdir -p build/windows
+          ~/godot/godot --headless --export-release "Windows Desktop" build/windows/MasterEleven.exe
+          ls -la build/windows
+          test -s build/windows/MasterEleven.exe
+
+      - name: Nombre del build
+        id: name
+        run: echo "name=MasterEleven-windows-$(date -u +%Y%m%d)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Subir el .exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.name.outputs.name }}
+          path: build/windows/
+          retention-days: 30
