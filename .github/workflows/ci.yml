@@ -7,6 +7,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Un push nuevo cancela la corrida anterior de la misma rama.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   GODOT_VERSION: 4.7.2
   GODOT_RELEASE: 4.7.2-stable

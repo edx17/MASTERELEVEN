@@ -19,7 +19,9 @@ const S := TeamShape.State
 const STATE_INTERVAL := 0.25
 const CARRIER_INTERVAL := 0.2
 const ARRIVE_RADIUS := 0.8
-const SHOOT_DISTANCE := 26.0
+const SHOOT_DISTANCE := 27.0
+## Desde acá (progreso 0..1) el que lleva la pelota encara hacia el área.
+const FINAL_THIRD := 0.68
 const RUNNER_HOLD := 2.0
 
 var team: Team
@@ -237,7 +239,7 @@ func _own_players_ahead(bx: float) -> int:
 func _update_shape() -> void:
 	var f := team.formation if team.formation != null else FormationLibrary.build("4-4-2")
 	var bp := _match.ball.flat_pos() if _match.ball != null else Vector3.ZERO
-	shape = TeamShape.compute(f, state, Vector2(team.progress_of(bp), team.lateral_of(bp)), team.strategy)
+	shape = TeamShape.compute(f, state, Vector2(team.progress_of(bp), team.lateral_of(bp)), team.strategy, team.mentality)
 
 
 ## Objetivo de forma de un jugador (mundo).
@@ -306,11 +308,21 @@ func _assign_box_runs(carrier: Footballer, ball: Ball) -> void:
 		if p == carrier:
 			continue
 		var k := p.tactical_role
-		if TacticalRole.is_forward(k) or k == TacticalRole.Kind.AM or k == TacticalRole.Kind.WM \
-				or k == TacticalRole.Kind.CM:
+		var joins := TacticalRole.is_forward(k) or k == TacticalRole.Kind.AM or k == TacticalRole.Kind.WM
+		# Equilibrada: también los volantes centrales; ofensiva: además el
+		# volante defensivo y el lateral del otro lado.
+		if team.mentality >= 0 and k == TacticalRole.Kind.CM:
+			joins = true
+		if team.mentality > 0 and (k == TacticalRole.Kind.DM \
+				or (k == TacticalRole.Kind.FB and signf(p.global_position.z) != signf(bp.z))):
+			joins = true
+		if joins:
 			free.append(p)
 	var last_line := minf(_opponent_last_line(), 0.95)
-	for spot in box_spots(bp):
+	var spots := box_spots(bp)
+	if team.mentality < 0:
+		spots = spots.slice(0, 2)
+	for spot in spots:
 		var target := spot
 		if team.progress_of(target) > last_line:
 			target.x = team.attack_dir * Pitch.HALF_LENGTH * (2.0 * last_line - 1.0)
@@ -353,7 +365,10 @@ func _assign_support(carrier: Footballer) -> void:
 		cp + fwd.rotated(Vector3.UP, deg_to_rad(40.0)) * 13.0,
 		cp + fwd.rotated(Vector3.UP, deg_to_rad(-40.0)) * 13.0,
 	]
-	if state == S.BUILD_UP or state == S.ATTACKING:
+	if team.mentality > 0 and state in [S.ATTACKING, S.COUNTER_ATTACK]:
+		# Ofensiva: uno más pasa por afuera, al espacio.
+		points.append(cp + fwd.rotated(Vector3.UP, deg_to_rad(-signf(cp.z) * 25.0 if absf(cp.z) > 1.0 else 25.0)) * 20.0)
+	elif state == S.BUILD_UP or state == S.ATTACKING:
 		points.append(cp - fwd * 9.0 + Vector3(0.0, 0.0, -signf(cp.z) * 5.0))
 	var free := _field_players()
 	free.erase(carrier)
@@ -387,7 +402,7 @@ func _assign_runner(carrier: Footballer, ball: Ball) -> void:
 		_runner_target = _runner_spot(_runner, bx)
 		return
 	_runner = null
-	if randf() > difficulty.run_rate:
+	if randf() > difficulty.run_rate * (1.0 + 0.35 * team.mentality):
 		return
 	var best: Footballer = null
 	var best_x := -1.0
@@ -395,7 +410,10 @@ func _assign_runner(carrier: Footballer, ball: Ball) -> void:
 		if p == carrier or _supporters.has(p) or _box_runs.has(p):
 			continue
 		var k := p.tactical_role
-		if not (TacticalRole.is_forward(k) or k == TacticalRole.Kind.AM or (state == S.COUNTER_ATTACK and k == TacticalRole.Kind.WM)):
+		var may_run := TacticalRole.is_forward(k) or k == TacticalRole.Kind.AM \
+			or (state == S.COUNTER_ATTACK and k == TacticalRole.Kind.WM) \
+			or (team.mentality > 0 and (k == TacticalRole.Kind.WM or k == TacticalRole.Kind.CM))
+		if not may_run:
 			continue
 		var x := team.progress_of(p.flat_pos())
 		if x > best_x:
@@ -644,6 +662,10 @@ func _carrier(p: Footballer, ball: Ball) -> void:
 
 	# Conducción: hacia el arco esquivando al rival más cercano, sin irse por la raya.
 	var dir := to_goal.normalized()
+	if team.progress_of(p.flat_pos()) > FINAL_THIRD and absf(p.global_position.z) > Pitch.PENALTY_AREA_HALF_WIDTH - 4.0:
+		# Por la banda en el último tercio: hacia adentro, a la puerta del área.
+		var edge := goal - Vector3(team.attack_dir * 14.0, 0.0, -signf(p.global_position.z) * 8.0)
+		dir = (edge - p.flat_pos()).normalized()
 	if state == S.BUILD_UP:
 		# En la salida se progresa por afuera, sin apurarse.
 		dir = (dir + Vector3(0.0, 0.0, signf(p.global_position.z) * 0.4)).normalized()
@@ -662,17 +684,16 @@ func _carrier(p: Footballer, ball: Ball) -> void:
 		return
 	_carrier_timer = CARRIER_INTERVAL
 
-	# Remate.
-	if dist_goal < SHOOT_DISTANCE and absf(p.global_position.z) < 20.0:
-		var chance := clampf(remap(dist_goal, SHOOT_DISTANCE, 10.0, 0.06, 0.9), 0.06, 0.9) * difficulty.shot_eagerness
-		if not _lane_clear(p.flat_pos(), goal, 1.6):
-			chance *= 0.35
-		if state == S.COUNTER_ATTACK:
-			chance *= 1.2
+	# Remate. Dentro del área casi siempre (antes se la pasaba a un costado y
+	# la pelota se iba al lateral); de afuera, según la distancia.
+	var in_box := Pitch.in_penalty_area(p.flat_pos(), int(signf(goal.x)))
+	if in_box or (dist_goal < SHOOT_DISTANCE and absf(p.global_position.z) < 20.0):
+		var chance := shot_chance(p, dist_goal, in_box, _lane_clear(p.flat_pos(), goal, 1.6))
 		if randf() < chance:
 			# De lejos, a veces el cañonazo (remate potente).
 			var v := KickActions.Variant.POWER if dist_goal > 20.0 and randf() < 0.3 else KickActions.Variant.NORMAL
-			_match.perform_kick(p, KickActions.Kind.SHOT, Vector3(0.0, 0.0, randf_range(-1.0, 1.0)), randf_range(0.45, 0.85), null, v)
+			var power := randf_range(0.5, 0.85) if not in_box else randf_range(0.4, 0.7)
+			_match.perform_kick(p, KickActions.Kind.SHOT, _shot_aim(p), power, null, v)
 			return
 	# Centro desde la banda con gente en el área.
 	if KickActions.is_cross_position(p, ball.flat_pos()) and _mates_in_box() >= 1:
@@ -680,6 +701,13 @@ func _carrier(p: Footballer, ball: Ball) -> void:
 			_match.perform_kick(p, KickActions.Kind.LONG_PASS, goal - p.flat_pos(), randf_range(0.2, 0.55))
 			return
 	var best := _evaluate_passes(p)
+	# Cerca del arco no se devuelve la pelota hacia atrás ni al costado: sólo
+	# se pasa a un compañero mejor ubicado (más cerca del arco y con el arco
+	# libre); si no, sigue encarando y remata en el próximo intento.
+	if in_box or dist_goal < SHOOT_DISTANCE * 0.8:
+		var mate: Footballer = best.get("mate")
+		if mate != null and not _better_finisher(mate, p, goal):
+			best = {}
 	var pressured := opp_dist < 3.0
 	var space_ahead := _space_ahead(p, dir)
 	var do_pass := false
@@ -690,12 +718,53 @@ func _carrier(p: Footballer, ball: Ball) -> void:
 			do_pass = pressured or (best.get("kind", -1) == KickActions.Kind.THROUGH_PASS and best["score"] > 0.3) \
 				or space_ahead < 7.0
 		_:
-			do_pass = pressured or (space_ahead < 9.0 and best.get("score", -INF) > 0.1) \
-				or best.get("score", -INF) > 0.45 or p.possession_time > 2.5
+			if team.progress_of(p.flat_pos()) > FINAL_THIRD:
+				# Último tercio: encarar hacia el área. Sólo se pasa si lo
+				# apuran, si hay un pase al hueco claro o si ya no hay espacio.
+				do_pass = (pressured and best.get("score", -INF) > -0.2) \
+					or (best.get("kind", -1) == KickActions.Kind.THROUGH_PASS and best["score"] > 0.3) \
+					or (space_ahead < 4.0 and best.get("score", -INF) > 0.1) or p.possession_time > 3.5
+			else:
+				do_pass = pressured or (space_ahead < 9.0 and best.get("score", -INF) > 0.1) \
+					or best.get("score", -INF) > 0.45 or p.possession_time > 2.5
 	if do_pass and best.has("mate"):
 		var mate: Footballer = best["mate"]
 		var target: Vector3 = best["target"]
 		_match.perform_kick(p, best["kind"], target - p.flat_pos(), best["power"], mate)
+
+
+## Probabilidad de rematar en un intento (cada CARRIER_INTERVAL).
+func shot_chance(p: Footballer, dist_goal: float, in_box: bool, lane_clear: bool) -> float:
+	var chance := clampf(remap(dist_goal, SHOOT_DISTANCE, 10.0, 0.08, 0.9), 0.08, 0.9)
+	if in_box:
+		chance = maxf(chance, 0.8)
+	if not lane_clear:
+		chance *= 0.6 if in_box else 0.35
+	if state == S.COUNTER_ATTACK:
+		chance *= 1.2
+	if p.data != null and p.data.has_ability("goleador"):
+		chance *= 1.15
+	return clampf(chance * difficulty.shot_eagerness, 0.0, 0.97)
+
+
+## Adónde apunta el remate (stick del remate: z = palo): al palo contrario
+## al que cubre el arquero; con poca puntería, más al medio.
+func _shot_aim(p: Footballer) -> Vector3:
+	var keeper := _match.opponents_of(team).keeper()
+	var side := -signf(keeper.global_position.z - p.global_position.z * 0.15) if keeper != null else 0.0
+	if side == 0.0:
+		side = 1.0 if randf() < 0.5 else -1.0
+	var skill := float(p.data.shooting if p.data != null else 60) / 100.0
+	var mag := clampf(randf_range(0.25, 1.0) * (0.6 + 0.5 * skill) - difficulty.decision_noise * 0.3, 0.0, 1.0)
+	return Vector3(0.0, 0.0, side * mag)
+
+
+## `mate` está en mejor posición que `p` para definir.
+func _better_finisher(mate: Footballer, p: Footballer, goal: Vector3) -> bool:
+	var dm := mate.flat_pos().distance_to(goal)
+	var dp := p.flat_pos().distance_to(goal)
+	return dm < dp - 3.0 and absf(mate.global_position.z) < Pitch.PENALTY_AREA_HALF_WIDTH \
+		and _lane_clear(mate.flat_pos(), goal, 1.6) and _lane_clear(p.flat_pos(), mate.flat_pos(), 1.2)
 
 
 ## Mejor opción de pase: {mate, target, kind, power, score} (vacío si no hay).

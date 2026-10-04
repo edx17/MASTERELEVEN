@@ -294,6 +294,8 @@ func _on_clip_done() -> void:
 		return
 	_menu.visible = true
 	_rows.get_parent().get_parent().visible = true
+	# La repetición mostró a los jugadores: la cancha vuelve a quedar vacía.
+	_match.hide_players_for_break()
 	_next_shot()
 	_focus_default()
 

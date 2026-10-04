@@ -135,6 +135,9 @@ func _process(_dt: float) -> void:
 	for t in _match.teams:
 		if t.strategy != Strategy.Kind.NONE:
 			lines.append("%s: %s" % [t.short_name, Strategy.NAMES[t.strategy]])
+		# Mentalidad del humano (si no es la equilibrada): una flecha.
+		if t.mentality != 0 and _match.training == null and _match.humans.any(func(h: HumanController) -> bool: return h.team == t):
+			lines.append("%s: %s" % [t.short_name, ("▲ ofensiva" if t.mentality > 0 else "▼ defensiva")])
 	_strategy.text = "\n".join(lines)
 	_banner.text = _match.banner_text
 	if _match.phase == MatchController.Phase.FULLTIME:

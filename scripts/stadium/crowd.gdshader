@@ -5,6 +5,8 @@ shader_type spatial;
 // r = piel, g = pelo, b = pantalón. `cheer` los hace saltar en los goles.
 
 uniform float cheer = 0.0;
+// Fracción del público que ya se fue (final del partido): esos no se dibujan.
+uniform float empty = 0.0;
 uniform vec3 skin_light : source_color = vec3(0.93, 0.76, 0.63);
 uniform vec3 skin_dark : source_color = vec3(0.4, 0.27, 0.19);
 
@@ -21,6 +23,9 @@ void vertex() {
 	float idle = sin(TIME * 1.3 + seed * 17.0) * 0.012;
 	float jump = max(0.0, sin(TIME * (7.0 + seed * 3.0) + seed * 31.0)) * 0.3 * cheer;
 	VERTEX.y += (idle + jump) * step(0.45, VERTEX.y);
+	if (seed < empty) {
+		VERTEX = vec3(0.0);
+	}
 }
 
 void fragment() {

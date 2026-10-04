@@ -174,6 +174,11 @@ func _strategy_buttons() -> void:
 		for i in STRATEGY_BUTTONS.size():
 			if input.just_pressed(STRATEGY_BUTTONS[i]):
 				_match.toggle_strategy(team, i)
+		# L2 + cruceta izquierda / derecha: mentalidad más defensiva / ofensiva.
+		if input.just_pressed(&"mentality_down"):
+			_match.set_mentality(team, team.mentality - 1)
+		if input.just_pressed(&"mentality_up"):
+			_match.set_mentality(team, team.mentality + 1)
 	if held or _strategy_mute:
 		_strategy_mute = false
 		for b in STRATEGY_BUTTONS:

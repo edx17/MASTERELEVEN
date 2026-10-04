@@ -14,6 +14,7 @@ const BASE_ACTIONS: Array[StringName] = [
 	&"move_left", &"move_right", &"move_up", &"move_down",
 	&"pass_short", &"shoot", &"pass_long", &"pass_through",
 	&"sprint", &"special", &"brake", &"strategy", &"rs_left", &"rs_right", &"rs_up", &"rs_down", &"pause",
+	&"mentality_down", &"mentality_up",
 ]
 
 const MAX_SLOTS := 2
