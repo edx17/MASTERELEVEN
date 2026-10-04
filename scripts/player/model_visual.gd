@@ -109,6 +109,13 @@ var _down_t := 0.0
 var _carry_hand := -1
 ## Toque de conducción en curso (s que le quedan) y con qué pie.
 var _touch_t := 0.0
+## Zurdo (le pega con la izquierda): lo fija el Footballer.
+var left_footed := false
+## Hacia dónde sale la patada respecto de hacia dónde mira (rad, + = a su
+## izquierda): lo fija el partido antes del gesto. El cuerpo gira de a poco.
+var aim_yaw := 0.0
+var _yaw := 0.0
+var _yaw_target := 0.0
 var _touch_side := 1.0
 const TOUCH_TIME := 0.16
 
@@ -412,6 +419,10 @@ static func _color_number(label: Label3D, shirt: Color) -> void:
 
 func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: float) -> void:
 	_touch_t = maxf(0.0, _touch_t - dt)
+	# Giro del cuerpo hacia el pase: entra durante el gesto y vuelve después.
+	if _clip == "" or not (_clip.begins_with("pass") or _clip.begins_with("shot") or _clip.begins_with("kick")):
+		_yaw_target = 0.0
+	_yaw = lerpf(_yaw, _yaw_target, 1.0 - exp(-10.0 * dt))
 	_pose = pose
 	_speed = speed
 	_run = clampf(speed / maxf(sprint_speed, 0.1), 0.0, 1.0)
@@ -459,7 +470,7 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 		_play_locomotion(speed)
 		_place_model()
 	else:
-		_model.transform = Transform3D(Basis.from_scale(Vector3.ONE * _height), Vector3.ZERO)
+		_model.transform = Transform3D(Basis(Vector3.UP, _yaw) * Basis.from_scale(Vector3.ONE * _height), Vector3.ZERO)
 
 
 ## Gestos: con animación de Mixamo si está disponible; si no, por código.
@@ -478,17 +489,18 @@ func play(event: int, side: float = 1.0) -> void:
 	var clip := ""
 	match event:
 		Event.KICK:
-			# Remate (la patada vieja queda de respaldo).
-			clip = "gk_kick" if keeper else ("shot" if _mx != null and _mx.has_animation("shot") else "kick")
+			# Remate (la patada vieja queda de respaldo); los zurdos, espejado.
+			clip = "gk_kick" if keeper else _footed("shot" if _mx != null and _mx.has_animation("shot") else "kick")
+			_aim_body()
 		Event.PASS:
-			clip = "gk_kick" if keeper else "pass"
+			clip = "gk_kick" if keeper else _footed("pass")
+			_aim_body()
 		Event.HEADER:
-			# `side` trae la altura de la pelota: sin salto, normal o con saltito.
-			clip = "header"
-			if side < 1.85 and _mx != null and _mx.has_animation("header_stand"):
-				clip = "header_stand"
-			elif side > 2.15 and _mx != null and _mx.has_animation("header_jump"):
-				clip = "header_jump"
+			# Si ya saltó anticipando el centro, el cabezazo sigue ese salto.
+			if _clip.begins_with("header") and _clip_left > 0.0:
+				_event = -1
+				return
+			clip = header_clip(side)
 		Event.THROW:
 			clip = "gk_throw" if keeper else "throw_in"
 		Event.CATCH:
@@ -621,6 +633,42 @@ func throw_point() -> Vector3:
 	return _skel.global_transform * mid + Vector3(0, 0.06, 0)
 
 
+## Gesto del pie hábil: el zurdo usa el clip espejado si está.
+func _footed(clip: String) -> String:
+	if left_footed and _mx != null and _mx.has_animation(clip + "_l"):
+		return clip + "_l"
+	return clip
+
+
+## Cabezazo según la altura de la pelota: sin salto, normal o con saltito.
+func header_clip(height: float) -> String:
+	if height < 1.85 and _mx != null and _mx.has_animation("header_stand"):
+		return "header_stand"
+	if height > 2.15 and _mx != null and _mx.has_animation("header_jump"):
+		return "header_jump"
+	return "header"
+
+
+## El cuerpo se abre hacia donde sale el pase o el remate (aim_yaw, lo fija
+## el partido): sin girar de golpe, se acomoda durante el gesto.
+func _aim_body() -> void:
+	_yaw_target = clampf(aim_yaw * 0.8, -1.2, 1.2)
+
+
+## Salto anticipado al cabezazo: el clip arranca para que el golpe coincida
+## con la llegada de la pelota (en `seconds`). false si no hay clip.
+func anticipate_header(seconds: float, height: float) -> bool:
+	if _mx == null or _clip.begins_with("header") or _clip in UNINTERRUPTIBLE:
+		return false
+	var clip := header_clip(height)
+	if not _mx.has_animation(clip):
+		return false
+	var m: Dictionary = MixamoLibrary.marks.get(clip, {})
+	var contact: float = m.get("contact", 0.3)
+	var end: float = m.get("end", contact + 0.6)
+	return _play_clip(clip, 1.0, false, maxf(0.0, contact - seconds), end)
+
+
 ## Punta del botín (+1 derecho / -1 izquierdo) en la pose actual, a la altura
 ## de la pelota.
 func foot_position(side: float) -> Vector3:
@@ -633,7 +681,7 @@ func foot_position(side: float) -> Vector3:
 
 ## Pie (punta del botín) o cabeza en la pose actual del gesto.
 func contact_point(event: int) -> Vector3:
-	var bones: Array = ["Head"] if event == Event.HEADER else ["foot_r", "ball_r"]
+	var bones: Array = ["Head"] if event == Event.HEADER else (["foot_l", "ball_l"] if left_footed else ["foot_r", "ball_r"])
 	var sum := Vector3.ZERO
 	var n := 0
 	for bn in bones:

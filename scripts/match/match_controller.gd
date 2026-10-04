@@ -61,6 +61,10 @@ const PLAYER_SEPARATION := 0.85
 const KICK_REACH := 1.25
 ## Desde esta altura un toque es de cabeza (más abajo, pecho / muslo / pie).
 const HEADER_MIN_HEIGHT := 1.3
+## Centro: distancia al arco rival desde la que se cabecea de primera.
+const CROSS_HEADER_DIST := 20.0
+## Puntos del pronóstico (de FORECAST_STEP s) en los que se anticipa el salto.
+const HEADER_ANTICIPATE_POINTS := 4
 ## Duración de la marsellesa y de la bicicleta (s) y espera máxima de la pared.
 const ROULETTE_TIME := 0.7
 const STEPOVER_TIME := 0.6
@@ -388,6 +392,8 @@ func _physics_process(dt: float) -> void:
 		return
 	_update_phase(dt)
 	_update_forecast()
+	if phase == Phase.PLAYING:
+		_anticipate_headers()
 
 	keeper_rush = [false, false]
 	support_press = [false, false]
@@ -750,8 +756,14 @@ func _show_kick(kicker: Footballer) -> void:
 		ev = PlayerVisual.Event.HEADER
 	elif kicker.is_keeper() and ball.state.pos.y > 0.5:
 		ev = PlayerVisual.Event.KICK
-	elif _in_kick and ball.speed() < 16.0:
+	elif _in_kick and _kick_kind in [KickActions.Kind.SHORT_PASS, KickActions.Kind.THROUGH_PASS]:
+		# Pase: el gesto de pase (no el de remate), aunque salga fuerte.
 		ev = PlayerVisual.Event.PASS
+	elif _in_kick and _kick_kind == -1 and ball.speed() < 16.0:
+		ev = PlayerVisual.Event.PASS
+	# Hacia dónde sale respecto de hacia dónde mira: el cuerpo se abre.
+	var out := Vector3(ball.state.vel.x, 0.0, ball.state.vel.z)
+	kicker.visual.aim_yaw = kicker.facing.signed_angle_to(out.normalized(), Vector3.UP) if out.length() > 0.5 else 0.0
 	# Cabezazo: la altura de la pelota elige con o sin salto.
 	kicker.visual.play(ev, ball.state.pos.y if ev == PlayerVisual.Event.HEADER else 1.0)
 	# Patada o pase a propósito: frena un instante mientras hace el gesto.
@@ -1703,12 +1715,60 @@ func _wants_header(p: Footballer, h: float) -> bool:
 	# Atacante de la CPU cerca del arco: la cabecea aunque la pudiera bajar.
 	if not p.is_human() and p.team.progress_of(p.flat_pos()) > 0.75 and p.flat_pos().distance_to(p.team.target_goal()) < 18.0:
 		return true
+	# Centro al área: el que lo recibe cerca del arco cabecea de primera (no
+	# la baja al piso).
+	var recv := ball.intended_receiver
+	if recv == p and last_kick.get("kind") == KickActions.Kind.LONG_PASS and in_cross_zone(p):
+		return true
 	# El destinatario de un pase la deja bajar y la controla, y sus
 	# compañeros no se la "roban" de cabeza.
-	var recv := ball.intended_receiver
 	if recv != null and recv.team == p.team:
 		return false
 	return h > control_height_for(p)
+
+
+## Zona de cabezazo en un centro: dentro del área rival (o casi).
+func in_cross_zone(p: Footballer) -> bool:
+	return p.flat_pos().distance_to(p.team.target_goal()) < CROSS_HEADER_DIST
+
+
+## Salto anticipado: el que va a cabecear un centro (o una pelota alta que le
+## llega) arranca el salto antes, para que el golpe coincida con la pelota.
+func _anticipate_headers() -> void:
+	if not ball.is_loose() or ball_forecast.is_empty() or ball.state.vel.y > 3.0:
+		return
+	for i in mini(ball_forecast.size(), HEADER_ANTICIPATE_POINTS):
+		var bp: Vector3 = ball_forecast[i]
+		if bp.y < HEADER_MIN_HEIGHT or bp.y > tuning.header_max_height:
+			continue
+		var t := (i + 1) * FORECAST_STEP
+		var best: Footballer = null
+		var best_d := tuning.header_reach
+		for p in all_players():
+			if p.is_keeper() or p.state != Footballer.State.NORMAL or not p.can_touch_ball():
+				continue
+			var d := p.flat_pos().distance_to(Vector3(bp.x, 0.0, bp.z))
+			if d < best_d:
+				best_d = d
+				best = p
+		if best != null and best.visual is ModelVisual and _will_head(best, bp.y):
+			(best.visual as ModelVisual).anticipate_header(t, bp.y)
+		return
+
+
+## Si el que está debajo de la pelota la va a cabecear (y no bajarla).
+func _will_head(p: Footballer, h: float) -> bool:
+	if p.is_human():
+		var hc := _human_for(p)
+		return hc != null and hc.has_order()
+	return _wants_header(p, h)
+
+
+func _human_for(p: Footballer) -> HumanController:
+	for h in humans:
+		if h.controlled == p:
+			return h
+	return null
 
 
 func _header_by(p: Footballer, kind: int, dir: Vector3) -> void:

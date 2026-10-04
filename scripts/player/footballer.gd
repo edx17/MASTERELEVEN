@@ -396,6 +396,7 @@ func _update_visual(dt: float) -> void:
 		mv.directing = directing and is_keeper()
 		mv.trip_back = trip_back
 		mv.injured = injury != Injury.NONE
+		mv.left_footed = data != null and data.foot == PlayerData.Foot.LEFT
 	visual.update(dt, spd, _tuning.sprint_speed, pose, accel)
 
 

@@ -37,6 +37,10 @@ const CLIPS := {
 	"kick": {"file": "Kick_Soccerball"},
 	"shot": {"file": "remate"},
 	"pass": {"file": "Soccer Pass"},
+	# Zurdos: los mismos gestos espejados (pegan con la izquierda).
+	"kick_l": {"file": "Kick_Soccerball", "mirror": true},
+	"shot_l": {"file": "remate", "mirror": true},
+	"pass_l": {"file": "Soccer Pass", "mirror": true},
 	"header": {"file": "Soccer Header"},
 	# Carrera: trote, sprint y trote hacia atrás. La velocidad natural de cada
 	# uno sale de cuánto avanza la cadera en un ciclo.
@@ -327,6 +331,12 @@ static func _marks(clip_name: String, anim: Animation, target: Skeleton3D) -> Di
 	match clip_name:
 		"kick", "shot", "pass", "gk_kick":
 			contact = _fastest_time(anim, target, "foot_r")
+		"kick_l", "shot_l", "pass_l":
+			contact = _fastest_time(anim, target, "foot_l")
+		"header_jump":
+			contact = _highest_hips_time(anim, target)
+		"header_stand":
+			contact = _fastest_time(anim, target, "Head")
 		"gk_throw":
 			contact = _fastest_time(anim, target, "hand_r")
 		"header":
@@ -342,7 +352,8 @@ static func _marks(clip_name: String, anim: Animation, target: Skeleton3D) -> Di
 	# anticipación.
 	# La pelota sale en el instante de la orden (como en WE): el clip arranca
 	# justo en el golpe para que el pie (o la cabeza) esté en la pelota.
-	var lead := 0.03 if clip_name in ["kick", "shot", "pass", "gk_kick", "header"] else 0.3
+	var lead := 0.03 if clip_name in ["kick", "shot", "pass", "gk_kick", "header", "header_stand", "header_jump",
+		"kick_l", "shot_l", "pass_l"] else 0.3
 	if clip_name.begins_with("gk_dive"):
 		lead = 0.2 # el remate ya salió: el vuelo arranca enseguida
 	var start := maxf(0.0, contact - lead)
