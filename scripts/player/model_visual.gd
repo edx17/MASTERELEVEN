@@ -58,6 +58,8 @@ var keeper := false
 var _body_mat: ShaderMaterial
 ## Cuerpo del modo retro (o null) y su piel / pelo.
 var _retro: MeshInstance3D
+## Cuerpo clásico (o null).
+var _classic: MeshInstance3D
 var _retro_colors := {}
 var _number_label: Label3D
 var carrying := false
@@ -105,6 +107,19 @@ var injured := false
 var directing := false
 var _down_t := 0.0
 var _carry_hand := -1
+## Toque de conducción en curso (s que le quedan) y con qué pie.
+var _touch_t := 0.0
+## Zurdo (le pega con la izquierda): lo fija el Footballer.
+var left_footed := false
+## Hacia dónde sale la patada respecto de hacia dónde mira (rad, + = a su
+## izquierda): lo fija el partido antes del gesto. El cuerpo gira de a poco.
+var aim_yaw := 0.0
+var _yaw := 0.0
+var _yaw_target := 0.0
+var _touch_side := 1.0
+const TOUCH_TIME := 0.16
+## Velocidad de la estirada (el vuelo dura menos: cae como debe).
+const DIVE_SPEED := 1.3
 
 
 ## Hay modelo y animaciones importados en el proyecto.
@@ -163,10 +178,24 @@ func setup(colors: Dictionary, seed: int) -> void:
 		_add_hair(hair_style, hair_color, colors.get("shirt", Color.WHITE))
 		mat.set_shader_parameter("hands", colors.get("gloves", skin))
 		mat.set_shader_parameter("trim", _trim_for(shirt, colors.get("shorts", Color.WHITE)))
+		_apply_kit(mat, colors)
 		body.material_override = mat
 		_body_mat = mat
+	# Cuerpo clásico (por defecto): pocos polígonos y proporciones normales,
+	# con la misma ropa (diseño, número y escudo en la tela).
+	if GameSettings.player_style == GameSettings.PlayerStyle.CLASSIC and body != null and _body_mat != null:
+		# Caras planas separadas: la ropa no se "infla" (si no, se abren).
+		_body_mat.set_shader_parameter("cloth_inflate", 0.0)
+		_classic = ClassicBody.build(_skel, _body_mat)
+		body.visible = false
+		if hair_node != null:
+			hair_node.visible = false
+		for extra in ["Eyebrows", "Eyes"]:
+			var em := _skel.find_child(extra, false, false) as Node3D
+			if em != null:
+				em.visible = false
 	# Modo retro (beta): el modelo de pocos polígonos sobre el mismo esqueleto.
-	if GameSettings.player_style == 1 and RetroBody.available() and body != null:
+	if GameSettings.player_style == GameSettings.PlayerStyle.RETRO and RetroBody.available() and body != null:
 		_retro_colors = {"skin": SKIN_TONES[rng.randi() % SKIN_TONES.size()], "hair": HAIR_TONES[rng.randi() % HAIR_TONES.size()]}
 		var rc := colors.duplicate()
 		rc.merge(_retro_colors)
@@ -179,7 +208,9 @@ func setup(colors: Dictionary, seed: int) -> void:
 				var em := _skel.find_child(extra, false, false) as Node3D
 				if em != null:
 					em.visible = false
-	if colors.has("number"):
+	# El número va pintado en la camiseta (shader); sólo el modelo retro usa
+	# el número aparte.
+	if colors.has("number") and _retro != null:
 		_add_back_number(int(colors["number"]), colors.get("shirt", Color.WHITE))
 	var dark := _mat(Color(0.05, 0.04, 0.04))
 	for extra in ["Eyebrows", "Eyes"]:
@@ -196,6 +227,72 @@ func setup(colors: Dictionary, seed: int) -> void:
 		_anim.add_animation_library(&"mx", _mx)
 	_anim.mixer_applied.connect(_apply_gestures)
 	_play_locomotion(0.0)
+
+
+## Diseño, número y escudo de la camiseta (pintados en la tela por el shader).
+func _apply_kit(mat: ShaderMaterial, colors: Dictionary) -> void:
+	var shirt: Color = colors.get("shirt", Color.WHITE)
+	var shirt2: Color = colors.get("shirt2", colors.get("shorts", Color.BLACK))
+	mat.set_shader_parameter("pattern", int(colors.get("pattern", 0)))
+	mat.set_shader_parameter("shirt2", shirt2)
+	mat.set_shader_parameter("number", int(colors.get("number", 0)))
+	mat.set_shader_parameter("digits", digit_atlas())
+	# Número que se lea sobre la camiseta (y sobre las rayas): claro u oscuro,
+	# con contorno del color contrario.
+	var base := shirt.lerp(shirt2, 0.5) if int(colors.get("pattern", 0)) > 0 else shirt
+	var light := base.get_luminance() > 0.55
+	mat.set_shader_parameter("number_color", Color(0.08, 0.08, 0.1) if light else Color(0.97, 0.97, 0.97))
+	mat.set_shader_parameter("number_outline", Color(0.97, 0.97, 0.97) if light else Color(0.06, 0.06, 0.08))
+	mat.set_shader_parameter("crest", not colors.has("gloves"))
+
+
+## Tipografía de los números (píxeles 5x7, como las camisetas de la PS1):
+## atlas de 10 dígitos; rojo = relleno, verde = contorno.
+const DIGIT_ROWS := [
+	["01110", "10001", "10011", "10101", "11001", "10001", "01110"],
+	["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
+	["01110", "10001", "00001", "00110", "01000", "10000", "11111"],
+	["11110", "00001", "00001", "01110", "00001", "00001", "11110"],
+	["00010", "00110", "01010", "10010", "11111", "00010", "00010"],
+	["11111", "10000", "11110", "00001", "00001", "10001", "01110"],
+	["00110", "01000", "10000", "11110", "10001", "10001", "01110"],
+	["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
+	["01110", "10001", "10001", "01110", "10001", "10001", "01110"],
+	["01110", "10001", "10001", "01111", "00001", "00010", "01100"],
+]
+static var _digits: ImageTexture
+
+
+static func digit_atlas() -> ImageTexture:
+	if _digits != null:
+		return _digits
+	# Cada dígito: 5x7 píxeles agrandados x6, con margen; el contorno es un
+	# borde fino (2 px) alrededor del relleno.
+	const K := 6
+	var cw := 7 * K
+	var ch := 9 * K
+	var img := Image.create(cw * 10, ch, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var fill := {}
+	for d in 10:
+		var rows: Array = DIGIT_ROWS[d]
+		for y in 7:
+			for x in 5:
+				if String(rows[y])[x] != "1":
+					continue
+				for sy in K:
+					for sx in K:
+						fill[Vector2i(d * cw + (x + 1) * K + sx, (y + 1) * K + sy)] = true
+	for px: Vector2i in fill:
+		for oy in range(-2, 3):
+			for ox in range(-2, 3):
+				var q := px + Vector2i(ox, oy)
+				if not fill.has(q):
+					img.set_pixelv(q, Color(0, 1, 0, 1))
+	for px: Vector2i in fill:
+		img.set_pixelv(px, Color(1, 1, 0, 1))
+	_digits = ImageTexture.create_from_image(img)
+	return _digits
 
 
 ## Vivos de la camiseta: el color del short, o la camiseta más oscura si se
@@ -222,6 +319,7 @@ func recolor(colors: Dictionary) -> void:
 		if colors.has("gloves"):
 			_body_mat.set_shader_parameter("hands", colors["gloves"])
 		_body_mat.set_shader_parameter("trim", _trim_for(shirt, colors.get("shorts", Color.WHITE)))
+		_apply_kit(_body_mat, colors)
 	if _number_label != null:
 		_color_number(_number_label, colors.get("shirt", Color.WHITE))
 		if colors.has("number"):
@@ -269,6 +367,18 @@ func _chain(bone: String, parent_visible: Vector3, visible: Vector3) -> void:
 
 ## Pelo: la malla de HairBuilder sigue al hueso de la cabeza. Está armada en el
 ## espacio de reposo del esqueleto, así que se compensa la pose de reposo.
+## Vincha: tela mate, sin brillo ni emisión; el color se baja un poco para
+## que con la luz de los estadios no "irradie" (la tela blanca pura con el
+## glow quedaba fosforescente).
+static func _band_material(c: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color.from_hsv(c.h, c.s * 0.85, minf(c.v, 0.78))
+	m.roughness = 0.95
+	m.metallic_specular = 0.15
+	m.emission_enabled = false
+	return m
+
+
 func _add_hair(style: int, color: Color, band_color: Color) -> void:
 	var m := HairBuilder.mesh(style)
 	if m == null:
@@ -284,7 +394,7 @@ func _add_hair(style: int, color: Color, band_color: Color) -> void:
 	mi.set_surface_override_material(0, HairBuilder.material(color))
 	if m.get_surface_count() > 1:
 		var b := band_color if band_color.get_luminance() > 0.2 else Color(0.95, 0.95, 0.95)
-		mi.set_surface_override_material(1, _mat(b))
+		mi.set_surface_override_material(1, _band_material(b))
 	att.add_child(mi)
 	hair_node = mi
 
@@ -322,6 +432,11 @@ static func _color_number(label: Label3D, shirt: Color) -> void:
 
 
 func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: float) -> void:
+	_touch_t = maxf(0.0, _touch_t - dt)
+	# Giro del cuerpo hacia el pase: entra durante el gesto y vuelve después.
+	if _clip == "" or not (_clip.begins_with("pass") or _clip.begins_with("shot") or _clip.begins_with("kick")):
+		_yaw_target = 0.0
+	_yaw = lerpf(_yaw, _yaw_target, 1.0 - exp(-10.0 * dt))
 	_pose = pose
 	_speed = speed
 	_run = clampf(speed / maxf(sprint_speed, 0.1), 0.0, 1.0)
@@ -369,7 +484,7 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 		_play_locomotion(speed)
 		_place_model()
 	else:
-		_model.transform = Transform3D(Basis.from_scale(Vector3.ONE * _height), Vector3.ZERO)
+		_model.transform = Transform3D(Basis(Vector3.UP, _yaw) * Basis.from_scale(Vector3.ONE * _height), Vector3.ZERO)
 
 
 ## Gestos: con animación de Mixamo si está disponible; si no, por código.
@@ -388,17 +503,18 @@ func play(event: int, side: float = 1.0) -> void:
 	var clip := ""
 	match event:
 		Event.KICK:
-			# Remate (la patada vieja queda de respaldo).
-			clip = "gk_kick" if keeper else ("shot" if _mx != null and _mx.has_animation("shot") else "kick")
+			# Remate (la patada vieja queda de respaldo); los zurdos, espejado.
+			clip = "gk_kick" if keeper else _footed("shot" if _mx != null and _mx.has_animation("shot") else "kick")
+			_aim_body()
 		Event.PASS:
-			clip = "gk_kick" if keeper else "pass"
+			clip = "gk_kick" if keeper else _footed("pass")
+			_aim_body()
 		Event.HEADER:
-			# `side` trae la altura de la pelota: sin salto, normal o con saltito.
-			clip = "header"
-			if side < 1.85 and _mx != null and _mx.has_animation("header_stand"):
-				clip = "header_stand"
-			elif side > 2.15 and _mx != null and _mx.has_animation("header_jump"):
-				clip = "header_jump"
+			# Si ya saltó anticipando el centro, el cabezazo sigue ese salto.
+			if _clip.begins_with("header") and _clip_left > 0.0:
+				_event = -1
+				return
+			clip = header_clip(side)
 		Event.THROW:
 			clip = "gk_throw" if keeper else "throw_in"
 		Event.CATCH:
@@ -439,6 +555,11 @@ func play(event: int, side: float = 1.0) -> void:
 			clip = "gk_smother" if _mx != null and _mx.has_animation("gk_smother") else "gk_catch"
 		Event.SPRINT_START:
 			clip = "sprint_start"
+		Event.TOUCH:
+			# Toque de conducción: un golpecito con el pie (encima de la carrera).
+			_touch_t = TOUCH_TIME
+			_touch_side = side
+			return
 		Event.SPRINT_TURN:
 			# El clip sin espejar gira hacia MixamoLibrary.turn_sign.
 			clip = "sprint_turn" if signf(side) == MixamoLibrary.turn_sign else "sprint_turn_m"
@@ -468,6 +589,10 @@ func play(event: int, side: float = 1.0) -> void:
 			clip = "gk_dive_px"
 		Event.DIVE_LEFT:
 			clip = "gk_dive_nx"
+	# Estirada rápida: sube, toca y cae (sin quedar flotando en el aire).
+	if clip.begins_with("gk_dive") and clip != _clip and _play_clip(clip, DIVE_SPEED):
+		_event = -1
+		return
 	# La atajada anticipada y la de contacto son el mismo gesto: no se reinicia.
 	if clip != "" and clip == _clip and clip.begins_with("gk_"):
 		_event = -1
@@ -526,9 +651,55 @@ func throw_point() -> Vector3:
 	return _skel.global_transform * mid + Vector3(0, 0.06, 0)
 
 
+## Gesto del pie hábil: el zurdo usa el clip espejado si está.
+func _footed(clip: String) -> String:
+	if left_footed and _mx != null and _mx.has_animation(clip + "_l"):
+		return clip + "_l"
+	return clip
+
+
+## Cabezazo según la altura de la pelota: sin salto, normal o con saltito.
+func header_clip(height: float) -> String:
+	if height < 1.85 and _mx != null and _mx.has_animation("header_stand"):
+		return "header_stand"
+	if height > 2.15 and _mx != null and _mx.has_animation("header_jump"):
+		return "header_jump"
+	return "header"
+
+
+## El cuerpo se abre hacia donde sale el pase o el remate (aim_yaw, lo fija
+## el partido): sin girar de golpe, se acomoda durante el gesto.
+func _aim_body() -> void:
+	_yaw_target = clampf(aim_yaw * 0.8, -1.2, 1.2)
+
+
+## Salto anticipado al cabezazo: el clip arranca para que el golpe coincida
+## con la llegada de la pelota (en `seconds`). false si no hay clip.
+func anticipate_header(seconds: float, height: float) -> bool:
+	if _mx == null or _clip.begins_with("header") or _clip in UNINTERRUPTIBLE:
+		return false
+	var clip := header_clip(height)
+	if not _mx.has_animation(clip):
+		return false
+	var m: Dictionary = MixamoLibrary.marks.get(clip, {})
+	var contact: float = m.get("contact", 0.3)
+	var end: float = m.get("end", contact + 0.6)
+	return _play_clip(clip, 1.0, false, maxf(0.0, contact - seconds), end)
+
+
+## Punta del botín (+1 derecho / -1 izquierdo) en la pose actual, a la altura
+## de la pelota.
+func foot_position(side: float) -> Vector3:
+	var b := _skel.find_bone("ball_r" if side > 0.0 else "ball_l")
+	if b < 0:
+		return super.foot_position(side)
+	var p := _skel.global_transform * _skel.get_bone_global_pose(b).origin
+	return Vector3(p.x, 0.11, p.z) + global_basis.z * 0.06
+
+
 ## Pie (punta del botín) o cabeza en la pose actual del gesto.
 func contact_point(event: int) -> Vector3:
-	var bones: Array = ["Head"] if event == Event.HEADER else ["foot_r", "ball_r"]
+	var bones: Array = ["Head"] if event == Event.HEADER else (["foot_l", "ball_l"] if left_footed else ["foot_r", "ball_r"])
 	var sum := Vector3.ZERO
 	var n := 0
 	for bn in bones:
@@ -658,6 +829,12 @@ func _apply_gestures() -> void:
 		if _clip == "gk_stand_up" and holding:
 			_tuck_arm("l")
 		return # la animación de Mixamo manda
+	if _touch_t > 0.0:
+		# El pie del toque se adelanta y vuelve (curva de ida y vuelta).
+		var tk := sin((1.0 - _touch_t / TOUCH_TIME) * PI)
+		var leg := "thigh_r" if _touch_side > 0.0 else "thigh_l"
+		_rotate_bone(leg, Vector3.RIGHT, -0.45 * tk)
+		_rotate_bone("calf_r" if _touch_side > 0.0 else "calf_l", Vector3.RIGHT, 0.25 * tk)
 	# Inclinación del torso al acelerar / correr (esfuerzo en el sprint).
 	_rotate_bone("spine_01", Vector3.RIGHT, _lean)
 	if _current.begins_with("Stand_") and not holding:
@@ -928,12 +1105,20 @@ static func _bake_regions(src: Mesh) -> ArrayMesh:
 		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 		var colors := PackedColorArray()
 		colors.resize(verts.size())
+		var rest := PackedFloat32Array()
+		rest.resize(verts.size() * 4)
 		for i in verts.size():
 			var v := verts[i]
 			var r := _region(v)
 			colors[i] = Color(r / 10.0, 1.0 if (r == 0 and absf(v.x) < 0.26) else 0.0, 1.0 if _is_trim(v, r) else 0.0)
+			rest[i * 4] = v.x
+			rest[i * 4 + 1] = v.y
+			rest[i * 4 + 2] = v.z
 		arrays[Mesh.ARRAY_COLOR] = colors
+		# Posición de reposo (CUSTOM0): el diseño y el número se pintan en la tela.
+		arrays[Mesh.ARRAY_CUSTOM0] = rest
 		var flags: int = src.surface_get_format(s) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS
+		flags |= Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
 		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, flags)
 	return out
 

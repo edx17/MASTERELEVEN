@@ -37,6 +37,10 @@ const CLIPS := {
 	"kick": {"file": "Kick_Soccerball"},
 	"shot": {"file": "remate"},
 	"pass": {"file": "Soccer Pass"},
+	# Zurdos: los mismos gestos espejados (pegan con la izquierda).
+	"kick_l": {"file": "Kick_Soccerball", "mirror": true},
+	"shot_l": {"file": "remate", "mirror": true},
+	"pass_l": {"file": "Soccer Pass", "mirror": true},
 	"header": {"file": "Soccer Header"},
 	# Carrera: trote, sprint y trote hacia atrás. La velocidad natural de cada
 	# uno sale de cuánto avanza la cadera en un ciclo.
@@ -94,8 +98,8 @@ const CLIPS := {
 	# Salta, la agarra y se tira encima (para hacer tiempo; pelota dividida).
 	"gk_smother": {"file": "GoalkeeperReceiver Catch", "face": true, "range": [0.7, 1.0, 3.45]},
 	"gk_catch": {"file": "Goalkeeper Catch stay"},
-	"gk_catch_high": {"file": "Goalkeeper Catch jump"},
-	"gk_catch_low": {"file": "Goalkeeper Scoop"},
+	"gk_catch_high": {"file": "Goalkeeper Catch jump", "range": [0.4, 0.78, 1.5]},
+	"gk_catch_low": {"file": "Goalkeeper Scoop", "range": [0.1, 0.72, 1.4]},
 	"gk_catch_cross": {"file": "Goalkeeper Catch corta centro", "face": true},
 	"gk_block": {"file": "Goalkeeper_Body_Block", "face": true, "range": [0.2, 0.75, 1.9]},
 	"gk_miss": {"file": "Goalkeeper Miss", "face": true},
@@ -106,8 +110,10 @@ const CLIPS := {
 	"gk_side_b": {"file": "Goalkeeper Sidestep achique", "loop": true, "face": true, "mirror": true},
 	# La estirada va hacia -X del modelo (su derecha); hacia +X es la misma,
 	# espejada.
-	"gk_dive_px": {"file": "Goalkeeper Diving Save", "mirror": true, "lateral": 0.6},
-	"gk_dive_nx": {"file": "Goalkeeper Diving Save", "lateral": 0.6},
+	# El vuelo de costado lo hace la simulación (el arquero llega o no al
+	# punto): el clip sólo conserva un poco, para la forma del salto.
+	"gk_dive_px": {"file": "Goalkeeper Diving Save", "mirror": true, "lateral": 0.25},
+	"gk_dive_nx": {"file": "Goalkeeper Diving Save", "lateral": 0.25},
 }
 
 static var _lib: AnimationLibrary
@@ -327,6 +333,12 @@ static func _marks(clip_name: String, anim: Animation, target: Skeleton3D) -> Di
 	match clip_name:
 		"kick", "shot", "pass", "gk_kick":
 			contact = _fastest_time(anim, target, "foot_r")
+		"kick_l", "shot_l", "pass_l":
+			contact = _fastest_time(anim, target, "foot_l")
+		"header_jump":
+			contact = _highest_hips_time(anim, target)
+		"header_stand":
+			contact = _fastest_time(anim, target, "Head")
 		"gk_throw":
 			contact = _fastest_time(anim, target, "hand_r")
 		"header":
@@ -342,13 +354,14 @@ static func _marks(clip_name: String, anim: Animation, target: Skeleton3D) -> Di
 	# anticipación.
 	# La pelota sale en el instante de la orden (como en WE): el clip arranca
 	# justo en el golpe para que el pie (o la cabeza) esté en la pelota.
-	var lead := 0.03 if clip_name in ["kick", "shot", "pass", "gk_kick", "header"] else 0.3
+	var lead := 0.03 if clip_name in ["kick", "shot", "pass", "gk_kick", "header", "header_stand", "header_jump",
+		"kick_l", "shot_l", "pass_l"] else 0.3
 	if clip_name.begins_with("gk_dive"):
 		lead = 0.2 # el remate ya salió: el vuelo arranca enseguida
 	var start := maxf(0.0, contact - lead)
 	var end := minf(anim.length, contact + 0.6)
 	if clip_name.begins_with("gk_dive"):
-		end = minf(anim.length, contact + 1.1)
+		end = minf(anim.length, contact + 0.85)
 	return {"start": start, "contact": contact, "end": end}
 
 

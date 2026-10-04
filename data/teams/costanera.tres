@@ -9,6 +9,7 @@ script = ExtResource("2_mnjcr")
 id = "costanera_01"
 player_name = "H. Werthein"
 position = 0
+height = 193
 speed = 63
 acceleration = 63
 stamina = 67
@@ -22,7 +23,11 @@ defense = 49
 reaction = 74
 balance = 66
 goalkeeping = 83
-abilities = PackedStringArray("atajador")
+attack = 26
+jump = 69
+shot_power = 30
+curve = 34
+abilities = PackedStringArray("atajador", "ataja_penales")
 
 [sub_resource type="Resource" id="Resource_vdaob"]
 script = ExtResource("2_mnjcr")
@@ -30,6 +35,7 @@ id = "costanera_02"
 player_name = "H. Zabala"
 number = 2
 position = 1
+height = 180
 speed = 66
 acceleration = 62
 stamina = 65
@@ -43,7 +49,11 @@ defense = 79
 reaction = 70
 balance = 67
 goalkeeping = 30
-abilities = PackedStringArray("gambeteador", "marcador")
+attack = 49
+jump = 64
+shot_power = 60
+curve = 64
+abilities = PackedStringArray("gambeteador", "marcador", "muro")
 
 [sub_resource type="Resource" id="Resource_p3v7i"]
 script = ExtResource("2_mnjcr")
@@ -51,6 +61,7 @@ id = "costanera_03"
 player_name = "C. Valdano"
 number = 3
 position = 1
+height = 175
 speed = 66
 acceleration = 61
 stamina = 65
@@ -63,6 +74,10 @@ defense = 67
 reaction = 61
 balance = 61
 goalkeeping = 30
+attack = 49
+jump = 65
+shot_power = 60
+curve = 51
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_tybos"]
@@ -71,6 +86,7 @@ id = "costanera_04"
 player_name = "R. Garmendia"
 number = 4
 position = 1
+height = 178
 speed = 63
 acceleration = 72
 stamina = 74
@@ -84,6 +100,10 @@ defense = 70
 reaction = 62
 balance = 72
 goalkeeping = 30
+attack = 47
+jump = 58
+shot_power = 59
+curve = 63
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_dyo3y"]
@@ -92,6 +112,7 @@ id = "costanera_05"
 player_name = "R. Urquiza"
 number = 5
 position = 1
+height = 171
 speed = 63
 acceleration = 65
 stamina = 73
@@ -105,6 +126,10 @@ defense = 69
 reaction = 68
 balance = 57
 goalkeeping = 30
+attack = 52
+jump = 73
+shot_power = 62
+curve = 58
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_78n1v"]
@@ -112,6 +137,7 @@ script = ExtResource("2_mnjcr")
 id = "costanera_06"
 player_name = "M. Cardozo"
 number = 6
+height = 176
 speed = 71
 acceleration = 66
 stamina = 69
@@ -124,6 +150,10 @@ defense = 52
 reaction = 57
 balance = 62
 goalkeeping = 30
+attack = 66
+jump = 60
+shot_power = 58
+curve = 59
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_tocr8"]
@@ -131,6 +161,7 @@ script = ExtResource("2_mnjcr")
 id = "costanera_07"
 player_name = "S. Olmedo"
 number = 7
+height = 172
 speed = 66
 acceleration = 72
 stamina = 72
@@ -144,7 +175,11 @@ defense = 66
 reaction = 68
 balance = 63
 goalkeeping = 30
-abilities = PackedStringArray()
+attack = 64
+jump = 62
+shot_power = 58
+curve = 59
+abilities = PackedStringArray("capitan")
 
 [sub_resource type="Resource" id="Resource_penkj"]
 script = ExtResource("2_mnjcr")
@@ -152,6 +187,7 @@ id = "costanera_08"
 player_name = "L. Salcedo"
 number = 8
 foot = 1
+height = 174
 speed = 74
 acceleration = 61
 stamina = 79
@@ -165,7 +201,11 @@ defense = 51
 reaction = 67
 balance = 57
 goalkeeping = 30
-abilities = PackedStringArray()
+attack = 68
+jump = 55
+shot_power = 62
+curve = 73
+abilities = PackedStringArray("corners")
 
 [sub_resource type="Resource" id="Resource_c1k8l"]
 script = ExtResource("2_mnjcr")
@@ -173,6 +213,7 @@ id = "costanera_09"
 player_name = "C. Jáuregui"
 number = 9
 foot = 1
+height = 181
 speed = 59
 acceleration = 68
 stamina = 72
@@ -186,6 +227,10 @@ defense = 63
 reaction = 58
 balance = 56
 goalkeeping = 30
+attack = 68
+jump = 67
+shot_power = 62
+curve = 63
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_ha3bt"]
@@ -194,6 +239,7 @@ id = "costanera_10"
 player_name = "D. Nazar"
 number = 10
 position = 3
+height = 177
 speed = 67
 acceleration = 73
 stamina = 67
@@ -207,7 +253,11 @@ defense = 48
 reaction = 67
 balance = 68
 goalkeeping = 30
-abilities = PackedStringArray("goleador")
+attack = 82
+jump = 59
+shot_power = 78
+curve = 62
+abilities = PackedStringArray("goleador", "penales")
 
 [sub_resource type="Resource" id="Resource_nsn2j"]
 script = ExtResource("2_mnjcr")
@@ -216,6 +266,7 @@ player_name = "H. Kessler"
 number = 11
 position = 3
 foot = 1
+height = 173
 speed = 71
 acceleration = 59
 stamina = 75
@@ -229,7 +280,11 @@ defense = 45
 reaction = 69
 balance = 65
 goalkeeping = 32
-abilities = PackedStringArray("goleador")
+attack = 84
+jump = 61
+shot_power = 70
+curve = 56
+abilities = PackedStringArray("goleador", "penales")
 
 [sub_resource type="Resource" id="Resource_2laqq"]
 script = ExtResource("2_mnjcr")
@@ -238,6 +293,7 @@ player_name = "L. Castañar"
 number = 12
 position = 0
 foot = 1
+height = 167
 speed = 49
 acceleration = 72
 stamina = 65
@@ -250,7 +306,11 @@ defense = 37
 reaction = 77
 balance = 72
 goalkeeping = 76
-abilities = PackedStringArray()
+attack = 23
+jump = 64
+shot_power = 38
+curve = 42
+abilities = PackedStringArray("ataja_penales")
 
 [sub_resource type="Resource" id="Resource_dqoot"]
 script = ExtResource("2_mnjcr")
@@ -258,6 +318,7 @@ id = "costanera_13"
 player_name = "E. Ferrán"
 number = 13
 position = 1
+height = 189
 speed = 73
 acceleration = 73
 stamina = 75
@@ -270,7 +331,11 @@ defense = 81
 reaction = 71
 balance = 59
 goalkeeping = 33
-abilities = PackedStringArray("marcador")
+attack = 48
+jump = 76
+shot_power = 57
+curve = 58
+abilities = PackedStringArray("marcador", "muro")
 
 [sub_resource type="Resource" id="Resource_qrf52"]
 script = ExtResource("2_mnjcr")
@@ -278,6 +343,7 @@ id = "costanera_14"
 player_name = "B. Pereyra"
 number = 14
 foot = 1
+height = 174
 speed = 67
 stamina = 66
 strength = 65
@@ -287,7 +353,11 @@ defense = 51
 reaction = 62
 balance = 61
 goalkeeping = 30
-abilities = PackedStringArray("pasador")
+attack = 76
+jump = 65
+shot_power = 62
+curve = 73
+abilities = PackedStringArray("pasador", "corners")
 
 [sub_resource type="Resource" id="Resource_uybvi"]
 script = ExtResource("2_mnjcr")
@@ -295,6 +365,7 @@ id = "costanera_15"
 player_name = "L. Acosta"
 number = 15
 foot = 1
+height = 171
 speed = 69
 acceleration = 65
 stamina = 66
@@ -307,6 +378,10 @@ defense = 59
 reaction = 66
 balance = 62
 goalkeeping = 30
+attack = 58
+jump = 59
+shot_power = 58
+curve = 63
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_6ad68"]
@@ -315,6 +390,7 @@ id = "costanera_16"
 player_name = "J. Quiroga"
 number = 16
 position = 3
+height = 175
 speed = 75
 acceleration = 71
 stamina = 70
@@ -327,6 +403,10 @@ defense = 38
 reaction = 69
 balance = 71
 goalkeeping = 32
+attack = 84
+jump = 69
+shot_power = 75
+curve = 58
 abilities = PackedStringArray("goleador")
 
 [sub_resource type="Resource" id="Resource_fevsq"]
@@ -336,6 +416,7 @@ player_name = "V. Benavídez"
 number = 17
 position = 1
 foot = 1
+height = 172
 speed = 62
 acceleration = 67
 stamina = 67
@@ -349,6 +430,10 @@ defense = 71
 reaction = 64
 balance = 57
 goalkeeping = 30
+attack = 52
+jump = 73
+shot_power = 60
+curve = 54
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_d7a1f"]
@@ -357,6 +442,7 @@ id = "costanera_18"
 player_name = "P. Irigoyen"
 number = 18
 position = 1
+height = 170
 speed = 67
 acceleration = 72
 stamina = 68
@@ -370,6 +456,10 @@ defense = 72
 reaction = 57
 balance = 58
 goalkeeping = 30
+attack = 48
+jump = 67
+shot_power = 69
+curve = 64
 abilities = PackedStringArray("gambeteador")
 
 [sub_resource type="Resource" id="Resource_aqngc"]
@@ -377,6 +467,7 @@ script = ExtResource("2_mnjcr")
 id = "costanera_19"
 player_name = "R. Hidalgo"
 number = 19
+height = 175
 speed = 69
 acceleration = 64
 stamina = 78
@@ -390,6 +481,10 @@ defense = 50
 reaction = 64
 balance = 71
 goalkeeping = 31
+attack = 63
+jump = 57
+shot_power = 59
+curve = 71
 abilities = PackedStringArray("pasador")
 
 [sub_resource type="Resource" id="Resource_atr7u"]
@@ -397,6 +492,7 @@ script = ExtResource("2_mnjcr")
 id = "costanera_20"
 player_name = "V. Larrea"
 number = 20
+height = 177
 speed = 74
 acceleration = 62
 stamina = 70
@@ -409,6 +505,10 @@ defense = 50
 reaction = 65
 balance = 64
 goalkeeping = 30
+attack = 65
+jump = 62
+shot_power = 61
+curve = 70
 abilities = PackedStringArray("pasador")
 
 [sub_resource type="Resource" id="Resource_27ae7"]
@@ -417,6 +517,7 @@ id = "costanera_21"
 player_name = "O. Espina"
 number = 21
 position = 3
+height = 192
 speed = 64
 acceleration = 65
 stamina = 72
@@ -429,6 +530,10 @@ defense = 46
 reaction = 69
 balance = 64
 goalkeeping = 30
+attack = 77
+jump = 70
+shot_power = 66
+curve = 52
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_c7gys"]
@@ -438,6 +543,7 @@ player_name = "P. Bermejo"
 number = 22
 position = 3
 foot = 1
+height = 171
 speed = 70
 stamina = 62
 strength = 68
@@ -450,6 +556,10 @@ defense = 42
 reaction = 70
 balance = 57
 goalkeeping = 30
+attack = 77
+jump = 68
+shot_power = 66
+curve = 70
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_xx65r"]
@@ -459,6 +569,7 @@ player_name = "G. Echeverri"
 number = 23
 position = 0
 foot = 1
+height = 194
 speed = 53
 stamina = 73
 strength = 65
@@ -471,6 +582,10 @@ defense = 44
 reaction = 68
 balance = 62
 goalkeeping = 77
+attack = 25
+jump = 68
+shot_power = 32
+curve = 51
 abilities = PackedStringArray()
 
 [resource]
@@ -483,5 +598,7 @@ secondary_color = Color(0.08, 0.12, 0.35, 1)
 keeper_color = Color(0.9, 0.5, 0.1, 1)
 away_color = Color(0.08, 0.12, 0.35, 1)
 away_secondary = Color(0.08, 0.12, 0.35, 1)
+pattern = 5
+pattern_color = Color(0.08, 0.12, 0.35, 1)
 formation = ExtResource("1_oxy60")
 players = Array[ExtResource("2_mnjcr")]([SubResource("Resource_0bj4q"), SubResource("Resource_vdaob"), SubResource("Resource_p3v7i"), SubResource("Resource_tybos"), SubResource("Resource_dyo3y"), SubResource("Resource_78n1v"), SubResource("Resource_tocr8"), SubResource("Resource_penkj"), SubResource("Resource_c1k8l"), SubResource("Resource_ha3bt"), SubResource("Resource_nsn2j"), SubResource("Resource_2laqq"), SubResource("Resource_dqoot"), SubResource("Resource_qrf52"), SubResource("Resource_uybvi"), SubResource("Resource_6ad68"), SubResource("Resource_fevsq"), SubResource("Resource_d7a1f"), SubResource("Resource_aqngc"), SubResource("Resource_atr7u"), SubResource("Resource_27ae7"), SubResource("Resource_c7gys"), SubResource("Resource_xx65r")])

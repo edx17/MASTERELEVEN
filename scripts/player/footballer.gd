@@ -131,6 +131,8 @@ const SPRINT_START_SPEED := 2.0
 func setup(p_team: Team, p_data: PlayerData, p_role: int, p_spot: Vector2, tuning: Tuning) -> void:
 	team = p_team
 	base_data = p_data
+	if p_data != null and p_data.attack <= 0:
+		p_data.fill_extended(false) # ficha ampliada sin cargar: se deriva
 	# Atributos del día: los del plantel más la condición (flechas).
 	data = p_data.with_condition(team.condition_of(p_data)) if p_data != null else null
 	number = data.number
@@ -209,6 +211,10 @@ func is_keeper() -> bool:
 func kit_colors() -> Dictionary:
 	var shirt := team.keeper_color if is_keeper() else team.color
 	var colors := {"shirt": shirt, "shorts": team.secondary_color, "socks": shirt, "number": number}
+	# Diseño de la camiseta (el arquero va liso, de su color).
+	if not is_keeper():
+		colors["pattern"] = team.pattern
+		colors["shirt2"] = team.pattern_color
 	if is_keeper():
 		colors["gloves"] = Color(0.95, 0.95, 0.9)
 	return colors
@@ -392,6 +398,7 @@ func _update_visual(dt: float) -> void:
 		mv.directing = directing and is_keeper()
 		mv.trip_back = trip_back
 		mv.injured = injury != Injury.NONE
+		mv.left_footed = data != null and data.foot == PlayerData.Foot.LEFT
 	visual.update(dt, spd, _tuning.sprint_speed, pose, accel)
 
 
@@ -545,14 +552,15 @@ func refresh_label() -> void:
 	match GameSettings.player_label:
 		0:
 			_label.visible = human_slot >= 0
+			# Chico y pegado a la flecha: que no tape la jugada.
 			_label.text = display_name
-			_label.font_size = 110
-			_label.position.y = 3.25
+			_label.font_size = 64
+			_label.position.y = 2.9
 		1:
 			_label.visible = true
 			_label.text = str(number)
-			_label.font_size = 72
-			_label.position.y = 2.15
+			_label.font_size = 54
+			_label.position.y = 2.1
 		_:
 			_label.visible = false
 

@@ -71,6 +71,9 @@ func _button(parent: Control, text: String, cb: Callable, help: String = "") -> 
 
 func _process(_dt: float) -> void:
 	var m := get_parent() as MatchController
+	# Con la pantalla del entretiempo / final, el menú es el de ella.
+	if m != null and m.halftime_screen != null and m.halftime_screen.visible:
+		return
 	if m != null and m.phase == MatchController.Phase.FULLTIME and not _panel.visible:
 		if Input.is_action_just_pressed(&"ui_accept") or Input.is_action_just_pressed(&"pause"):
 			_exit()

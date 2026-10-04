@@ -71,7 +71,12 @@ static func help_box(parent: Control) -> Label:
 	l.add_theme_font_size_override("font_size", 22)
 	l.add_theme_color_override("font_color", Color(0.92, 0.96, 0.92))
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.visible = false
 	pc.add_child(l)
+	# Lo que se ve: el mismo texto con los íconos de los botones ({X}, {SQ}...).
+	var m := ButtonIcons.Mirror.new(22, false, Color(0.92, 0.96, 0.92))
+	m.source = l
+	pc.add_child(m)
 	return l
 
 

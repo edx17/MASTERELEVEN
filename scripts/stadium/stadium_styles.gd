@@ -18,6 +18,8 @@ extends RefCounted
 ##   track       pista de atletismo entre la cancha y las tribunas
 ##   towers      torres cilíndricas con rampas en espiral por fuera
 ##   flood       [x desde la línea de fondo, z desde la lateral, altura, mástil]
+##   oval        lo arma OvalStadiumBuilder (cuenco ovalado de 4 bandejas);
+##               flood es fijo: reflectores colgados del techo
 
 const STYLES := [
 	{
@@ -70,6 +72,22 @@ const STYLES := [
 		"club_text": true, "track": false, "towers": true,
 		"flood": [8.0, 10.0, 44.0, false],
 	},
+	{
+		# Coloso ovalado de cuatro bandejas (inventado): butacas grises,
+		# anillos LED, anillo VIP, techo traslúcido con pasarela y columnas en V.
+		"name": "Coloso del Sur",
+		"oval": true,
+		# gap: de la línea lateral a la boca del túnel (el muro de la cancha
+		# hundida, OvalStadiumBuilder.B0 - 0,2).
+		"gap": 10.8, "wall": 5.0,
+		"stands": {"North": [12, 10, 12, 10], "West": [12, 10, 12, 10], "East": [12, 10, 12, 10], "South": [12, 10, 12, 10]},
+		"corners": [12, 10, 12, 10],
+		"tier_step": [1.4, 2.4],
+		"roof": {},
+		"seat": Color(0.6, 0.61, 0.64), "tier_colors": [],
+		"club_text": false, "track": false, "towers": false,
+		"flood": [16.0, 18.0, 44.0, false],
+	},
 ]
 
 ## Estadio del partido en curso (lo fija MatchController antes de armar el
@@ -93,6 +111,8 @@ static func roof_height(style: Dictionary, tiers: Array) -> float:
 ## (arriba del techo el propio techo los tapa).
 static func flood_layout(style: Dictionary) -> Array:
 	var f: Array = style["flood"]
+	if style.get("oval", false):
+		return [Pitch.HALF_LENGTH + float(f[0]), Pitch.HALF_WIDTH + float(f[1]), float(f[2]), false]
 	if f[3]:
 		return [Pitch.HALF_LENGTH + float(f[0]), Pitch.HALF_WIDTH + float(f[1]), float(f[2]), true]
 	var tiers: Array = style["corners"] if not (style["corners"] as Array).is_empty() else style["stands"]["North"]

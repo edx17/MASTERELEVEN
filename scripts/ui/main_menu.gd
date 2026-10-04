@@ -107,8 +107,20 @@ func _current() -> String:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_cancel") and _current() in ["modes", "options", "controls"]:
+		if _current() == "controls" and _controls_capturing():
+			return
 		go_back()
 		get_viewport().set_input_as_handled()
+
+
+func _controls_capturing() -> bool:
+	var page: Control = _pages.get("controls")
+	if page == null:
+		return false
+	for c in page.get_children():
+		if c is ControlsPage and (c as ControlsPage).is_capturing():
+			return true
+	return false
 
 
 func _first_focus(node: Node) -> void:
@@ -344,44 +356,12 @@ func _build_options() -> void:
 
 # --- Controles ------------------------------------------------------------------
 
-## [ataque, botón del mando, tecla, defensa]
-const CONTROLS := [
-	["Pase corto", "X", "J", "Entrada"],
-	["Remate (2 toques: raso)", "Cuadrado", "K", "Presión de un compañero"],
-	["Centro / pase largo", "Círculo", "L", "Barrida"],
-	["Pase al hueco", "Triángulo", "I", "Sale el arquero"],
-	["Gambetas y combinaciones", "L1", "Q", "Cambio de jugador"],
-	["Correr", "R1", "Shift", "Correr"],
-	["Frenar / tiro colocado", "R2", "E", "-"],
-	["Estrategia (L2 + botón)", "L2", "R", "Estrategia (L2 + botón)"],
-	["Cámara", "Select", "C", "Cámara"],
-	["Pausa", "Start", "Esc", "Pausa"],
-]
-
-
 func _build_controls() -> void:
 	var p := _page("controls")
-	var title := WEStyle.label("CONFIGURAR CONTROLES", 30, Color(1.0, 0.9, 0.35))
-	title.position = Vector2(80, 40)
-	p.add_child(title)
-	var pc := WEStyle.panel(Vector2(1120, 0))
-	pc.position = Vector2(80, 90)
-	p.add_child(pc)
-	var grid := GridContainer.new()
-	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 30)
-	grid.add_theme_constant_override("v_separation", 6)
-	pc.add_child(grid)
-	for h in ["ATAQUE", "MANDO", "TECLADO", "DEFENSA"]:
-		grid.add_child(WEStyle.label(h, 20, Color(1.0, 0.9, 0.35)))
-	for row in CONTROLS:
-		for i in 4:
-			var l := WEStyle.label(row[i], 19, Color(0.6, 0.85, 1.0) if i in [1, 2] else Color.WHITE)
-			if i == 0 or i == 3:
-				l.custom_minimum_size = Vector2(360, 0)
-			grid.add_child(l)
-	var col := _column(p, Vector2(80, 520))
-	_item(col, "VOLVER", "Mover: stick izquierdo o cruceta (WASD con teclado). Stick derecho: comba en la pelota parada y marsellesa. Cambiar los botones: próximamente.", go_back)
+	var cp := ControlsPage.new()
+	cp.help = _help
+	cp.back_pressed.connect(go_back)
+	p.add_child(cp)
 
 
 ## Logo del menú: el nombre y una pelota (dibujada, sin marcas).

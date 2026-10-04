@@ -1,10 +1,10 @@
 class_name ClubHouseBuilder
 extends RefCounted
-## Cancha de entrenamiento ("Club House", como la del WE): sin tribunas ni
-## público ni carteles. Pasto alrededor, un alambrado bajo, una hilera de
-## árboles, el edificio del club con los vestuarios de fondo, bancos y unos
-## pocos reflectores en mástiles. Liviano a propósito: la atención va a los
-## jugadores y a la pelota.
+## Predio de entrenamiento del club ("Club House"): la cancha principal con
+## un alambrado bajo, una mini tribuna con techo, el edificio de los
+## vestuarios, canchas paralelas sin usar a los costados, el vallado alto del
+## predio con el nombre y el escudo del club (o MASTER ELEVEN) y árboles
+## frondosos alrededor, con una línea de bosque de fondo. Sin público.
 
 ## Estilo para las luces de la noche (Atmosphere lee los reflectores de acá).
 const STYLE := {
@@ -23,6 +23,15 @@ const STYLE := {
 const FENCE := 7.0
 const TREES := 11.0
 const BUILDING_Z := 30.0
+## Canchas paralelas: centro en x = +-SIDE_PITCH_X.
+const SIDE_PITCH_X := 125.0
+## Vallado alto del predio (m desde el centro) y su altura.
+const WALL_X := 185.0
+const WALL_Z_FAR := 82.0
+const WALL_Z_NEAR := 62.0
+const WALL_H := 4.0
+## Mini tribuna (lado lejano, frente a la cámara).
+const STAND_Z := Pitch.HALF_WIDTH + FENCE + 2.5
 
 
 static func build(home: TeamData = null) -> Node3D:
@@ -30,7 +39,12 @@ static func build(home: TeamData = null) -> Node3D:
 	root.name = "Stadium"
 	_ground(root)
 	_fence(root)
+	for sx: int in [-1, 1]:
+		_side_pitch(root, sx)
+	_mini_stand(root)
+	_club_wall(root, home)
 	_trees(root)
+	_horizon(root)
 	_building(root, home)
 	_benches(root)
 	_masts(root)
@@ -49,7 +63,7 @@ static func _mat(c: Color, rough: float = 0.9) -> StandardMaterial3D:
 static func _ground(root: Node3D) -> void:
 	var g := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
-	plane.size = Vector2(Pitch.HALF_LENGTH * 2.0 + 120.0, Pitch.HALF_WIDTH * 2.0 + 120.0)
+	plane.size = Vector2(WALL_X * 2.0 + 160.0, WALL_Z_FAR + WALL_Z_NEAR + 160.0)
 	g.mesh = plane
 	g.material_override = _mat(Color(0.2, 0.33, 0.15))
 	g.position.y = -0.02
@@ -111,56 +125,265 @@ static func _fence(root: Node3D) -> void:
 	root.add_child(pmi)
 
 
-## Árboles alrededor (copas redondeadas y algunos pinos), salvo del lado de la
-## cámara, donde quedan más lejos y bajos para no tapar.
+## Árboles frondosos: copas armadas con varias esferas (racimos) en tres
+## verdes, en doble hilera por fuera del vallado y en grupos entre las
+## canchas; del lado de la cámara quedan lejos para no tapar.
 static func _trees(root: Node3D) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 2002
-	var round_tf: Array[Transform3D] = []
-	var pine_tf: Array[Transform3D] = []
-	var trunk_tf: Array[Transform3D] = []
-	var hl := Pitch.HALF_LENGTH + TREES
-	var hw := Pitch.HALF_WIDTH + TREES
 	var spots: Array[Vector3] = []
-	var x := -hl
-	while x <= hl:
-		spots.append(Vector3(x + rng.randf_range(-2, 2), 0, -hw - rng.randf_range(0, 6)))
-		spots.append(Vector3(x + rng.randf_range(-2, 2), 0, hw + 14.0 + rng.randf_range(0, 6)))
-		x += rng.randf_range(6.0, 9.0)
-	var z := -hw
-	while z <= hw:
-		spots.append(Vector3(-hl - rng.randf_range(0, 6), 0, z + rng.randf_range(-2, 2)))
-		spots.append(Vector3(hl + rng.randf_range(0, 6), 0, z + rng.randf_range(-2, 2)))
-		z += rng.randf_range(6.0, 9.0)
+	# Doble hilera por fuera del vallado (fondo y costados).
+	for row in 2:
+		var off := 6.0 + row * 9.0
+		var x := -WALL_X - off
+		while x <= WALL_X + off:
+			spots.append(Vector3(x + rng.randf_range(-2.5, 2.5), 0, -WALL_Z_FAR - off - rng.randf_range(0, 4)))
+			spots.append(Vector3(x + rng.randf_range(-2.5, 2.5), 0, WALL_Z_NEAR + off + 10.0 + rng.randf_range(0, 4)))
+			x += rng.randf_range(7.0, 10.0)
+		var z := -WALL_Z_FAR
+		while z <= WALL_Z_NEAR:
+			spots.append(Vector3(-WALL_X - off - rng.randf_range(0, 4), 0, z + rng.randf_range(-2.5, 2.5)))
+			spots.append(Vector3(WALL_X + off + rng.randf_range(0, 4), 0, z + rng.randf_range(-2.5, 2.5)))
+			z += rng.randf_range(7.0, 10.0)
+	# Grupos entre la cancha principal y las paralelas (lejos de la cámara).
+	for sx: int in [-1, 1]:
+		for k in 5:
+			spots.append(Vector3(sx * rng.randf_range(70.0, 80.0), 0, rng.randf_range(-WALL_Z_FAR + 8.0, -Pitch.HALF_WIDTH - 4.0)))
+	var trunk_tf: Array[Transform3D] = []
+	var crowns: Array = [[], [], []]
 	for p in spots:
-		# Detrás del edificio no van árboles adelante.
-		if absf(p.x) < 22.0 and p.z < -Pitch.HALF_WIDTH:
-			p.z -= BUILDING_Z * 0.6
-		var h := rng.randf_range(7.0, 12.0)
-		var pine := rng.randf() < 0.3
-		trunk_tf.append(Transform3D(Basis.from_scale(Vector3(1, h * 0.45, 1)), p + Vector3(0, h * 0.225, 0)))
-		if pine:
-			pine_tf.append(Transform3D(Basis.from_scale(Vector3(1, h * 0.85, 1) * Vector3(rng.randf_range(2.2, 3.0), 1, rng.randf_range(2.2, 3.0))), p + Vector3(0, h * 0.62, 0)))
-		else:
-			var r := rng.randf_range(2.6, 4.0)
-			round_tf.append(Transform3D(Basis.from_scale(Vector3(r, r * 0.9, r)), p + Vector3(0, h * 0.62, 0)))
+		var h := rng.randf_range(8.0, 14.0)
+		var r := rng.randf_range(3.0, 4.6)
+		trunk_tf.append(Transform3D(Basis.from_scale(Vector3(1.2, h * 0.5, 1.2)), p + Vector3(0, h * 0.25, 0)))
+		# Copa en racimo: una grande al centro y 3 a 5 alrededor, más arriba
+		# y más abajo (se lee como follaje, no como una pelota).
+		var top := p + Vector3(0, h * 0.62, 0)
+		var shade := rng.randi() % 3
+		(crowns[shade] as Array).append(Transform3D(Basis.from_scale(Vector3(r, r * 0.85, r)), top))
+		for k in rng.randi_range(3, 5):
+			var a := rng.randf() * TAU
+			var rr := r * rng.randf_range(0.55, 0.8)
+			var off := Vector3(cos(a), rng.randf_range(-0.3, 0.45), sin(a)) * r * 0.75
+			(crowns[(shade + k) % 3] as Array).append(Transform3D(Basis.from_scale(Vector3(rr, rr * 0.9, rr)), top + off))
 	var trunk := CylinderMesh.new()
-	trunk.top_radius = 0.18
-	trunk.bottom_radius = 0.28
+	trunk.top_radius = 0.2
+	trunk.bottom_radius = 0.34
 	trunk.height = 1.0
+	trunk.radial_segments = 6
 	_multi(root, trunk, trunk_tf, _mat(Color(0.3, 0.22, 0.14)))
 	var crown := SphereMesh.new()
 	crown.radius = 1.0
 	crown.height = 2.0
-	crown.radial_segments = 10
-	crown.rings = 6
-	_multi(root, crown, round_tf, _mat(Color(0.16, 0.3, 0.12)))
-	var cone := CylinderMesh.new()
-	cone.top_radius = 0.0
-	cone.bottom_radius = 1.0
-	cone.height = 1.0
-	cone.radial_segments = 8
-	_multi(root, cone, pine_tf, _mat(Color(0.1, 0.22, 0.12)))
+	crown.radial_segments = 9
+	crown.rings = 5
+	var greens := [Color(0.15, 0.29, 0.11), Color(0.2, 0.34, 0.13), Color(0.12, 0.25, 0.12)]
+	for i in 3:
+		var tfs: Array[Transform3D] = []
+		tfs.assign(crowns[i])
+		_multi(root, crown, tfs, _mat(greens[i], 0.95))
+
+
+## Fondo: una franja continua de bosque lejano todo alrededor (copas en
+## lomas suaves), para que el horizonte no quede vacío.
+static func _horizon(root: Node3D) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n := 96
+	var radius := 290.0
+	var prev_h := 18.0
+	var heights: Array[float] = []
+	for i in n:
+		prev_h = clampf(prev_h + rng.randf_range(-4.0, 4.0), 12.0, 30.0)
+		heights.append(prev_h)
+	for i in n:
+		var a0 := TAU * i / n
+		var a1 := TAU * (i + 1) / n
+		var p0 := Vector3(cos(a0) * radius, 0, sin(a0) * radius * 0.75)
+		var p1 := Vector3(cos(a1) * radius, 0, sin(a1) * radius * 0.75)
+		var h0: float = heights[i]
+		var h1: float = heights[(i + 1) % n]
+		for v: Vector3 in [p0, p1, p1 + Vector3.UP * h1, p0, p1 + Vector3.UP * h1, p0 + Vector3.UP * h0]:
+			st.add_vertex(v)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.name = "Horizon"
+	mi.mesh = st.commit()
+	var m := _mat(Color(0.13, 0.22, 0.13), 1.0)
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(mi)
+
+
+## Cancha paralela sin usar: pasto cortado a franjas, líneas y arcos sin red.
+static func _side_pitch(root: Node3D, sx: int) -> void:
+	var c := Vector3(sx * SIDE_PITCH_X, 0.0, -6.0)
+	var node := Node3D.new()
+	node.name = "SidePitch_%s" % ("R" if sx > 0 else "L")
+	node.position = c
+	root.add_child(node)
+	var hl := 48.0
+	var hw := 31.0
+	var light := _mat(Color(0.25, 0.42, 0.18))
+	var dark := _mat(Color(0.22, 0.37, 0.16))
+	var stripes := 12
+	for i in stripes:
+		var mi := MeshInstance3D.new()
+		var pm := PlaneMesh.new()
+		pm.size = Vector2(hl * 2.0 / stripes, hw * 2.0)
+		mi.mesh = pm
+		mi.material_override = light if i % 2 == 0 else dark
+		mi.position = Vector3(-hl + (i + 0.5) * hl * 2.0 / stripes, -0.005, 0.0)
+		node.add_child(mi)
+	var white := _mat(Color(0.92, 0.92, 0.9), 0.6)
+	var lw := 0.12
+	var lines := [
+		[Vector3(0, 0, -hw), Vector3(hl * 2.0, 0.01, lw)], [Vector3(0, 0, hw), Vector3(hl * 2.0, 0.01, lw)],
+		[Vector3(-hl, 0, 0), Vector3(lw, 0.01, hw * 2.0)], [Vector3(hl, 0, 0), Vector3(lw, 0.01, hw * 2.0)],
+		[Vector3(0, 0, 0), Vector3(lw, 0.01, hw * 2.0)],
+	]
+	for side: int in [-1, 1]:
+		var bx := side * (hl - 8.0)
+		lines.append([Vector3(bx, 0, 0), Vector3(lw, 0.01, 30.0)])
+		lines.append([Vector3(side * (hl - 4.0), 0, -15.0), Vector3(8.0, 0.01, lw)])
+		lines.append([Vector3(side * (hl - 4.0), 0, 15.0), Vector3(8.0, 0.01, lw)])
+	for l: Array in lines:
+		_add_box(node, l[0] + Vector3(0, 0.005, 0), l[1], white)
+	# Arcos sin red.
+	for side: int in [-1, 1]:
+		for z: float in [-3.66, 3.66]:
+			_add_box(node, Vector3(side * hl, 1.22, z), Vector3(0.12, 2.44, 0.12), white)
+		_add_box(node, Vector3(side * hl, 2.44, 0), Vector3(0.12, 0.12, 7.44), white)
+
+
+## Mini tribuna frente a la cámara: seis escalones de cemento con butacas
+## grises y un techo liviano sobre columnas.
+static func _mini_stand(root: Node3D) -> void:
+	var node := Node3D.new()
+	node.name = "MiniStand"
+	node.position = Vector3(0.0, 0.0, -STAND_Z)
+	root.add_child(node)
+	var concrete := _mat(Color(0.62, 0.62, 0.6))
+	var seat := _mat(Color(0.55, 0.57, 0.6), 0.6)
+	var steel := _mat(Color(0.32, 0.34, 0.38), 0.5)
+	var width := 34.0
+	var rows := 6
+	var seat_tf: Array[Transform3D] = []
+	for r in rows:
+		var y := 0.45 * (r + 1)
+		var z := -0.85 * r
+		_add_box(node, Vector3(0, y * 0.5, z), Vector3(width, y, 0.85), concrete)
+		var x := -width * 0.5 + 0.5
+		while x < width * 0.5 - 0.4:
+			seat_tf.append(Transform3D(Basis(), node.position + Vector3(x, y + 0.2, z - 0.1)))
+			x += 0.55
+	var seat_mesh := BoxMesh.new()
+	seat_mesh.size = Vector3(0.44, 0.38, 0.42)
+	_multi(root, seat_mesh, seat_tf, seat)
+	# Techo inclinado sobre seis columnas.
+	var back := -0.85 * (rows - 1) - 0.4
+	for i in 6:
+		var cx := -width * 0.5 + 1.0 + i * (width - 2.0) / 5.0
+		_add_box(node, Vector3(cx, 2.6, back), Vector3(0.22, 5.2, 0.22), steel)
+	var roof := MeshInstance3D.new()
+	var rb := BoxMesh.new()
+	rb.size = Vector3(width + 1.0, 0.12, 6.5)
+	roof.mesh = rb
+	roof.material_override = steel
+	roof.position = Vector3(0, 5.3, back + 2.6)
+	roof.rotation.x = -0.12
+	node.add_child(roof)
+
+
+## Vallado alto del predio: postes y paños de lona con los colores del club;
+## sobre el fondo, el nombre del club (o MASTER ELEVEN) repetido y el escudo.
+static func _club_wall(root: Node3D, home: TeamData) -> void:
+	var main := home.color if home != null else Color(0.12, 0.16, 0.42)
+	var second := home.secondary_color if home != null else Color(0.95, 0.85, 0.3)
+	var text := home.team_name.to_upper() if home != null else "MASTER ELEVEN"
+	var cloth := _mat(main.darkened(0.15), 0.95)
+	cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var band := _mat(second, 0.9)
+	band.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var post := _mat(Color(0.4, 0.42, 0.45), 0.5)
+	var node := Node3D.new()
+	node.name = "ClubWall"
+	root.add_child(node)
+	var corners := [Vector3(-WALL_X, 0, -WALL_Z_FAR), Vector3(WALL_X, 0, -WALL_Z_FAR),
+		Vector3(WALL_X, 0, WALL_Z_NEAR), Vector3(-WALL_X, 0, WALL_Z_NEAR)]
+	var post_tf: Array[Transform3D] = []
+	for i in 4:
+		var a: Vector3 = corners[i]
+		var b: Vector3 = corners[(i + 1) % 4]
+		var mid := (a + b) * 0.5
+		var length := a.distance_to(b)
+		var along := (b - a).normalized()
+		var basis := Basis(along, Vector3.UP, along.cross(Vector3.UP))
+		var panel := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(length, WALL_H, 0.08)
+		panel.mesh = bm
+		panel.material_override = cloth
+		panel.transform = Transform3D(basis, mid + Vector3(0, WALL_H * 0.5, 0))
+		node.add_child(panel)
+		var stripe := MeshInstance3D.new()
+		var sm := BoxMesh.new()
+		sm.size = Vector3(length, 0.35, 0.1)
+		stripe.mesh = sm
+		stripe.material_override = band
+		stripe.transform = Transform3D(basis, mid + Vector3(0, WALL_H - 0.3, 0))
+		node.add_child(stripe)
+		var n := int(length / 5.0)
+		for k in n + 1:
+			post_tf.append(Transform3D(Basis.from_scale(Vector3(1, WALL_H + 0.3, 1)), a.lerp(b, float(k) / n) + Vector3(0, (WALL_H + 0.3) * 0.5, 0)))
+	var pm := CylinderMesh.new()
+	pm.top_radius = 0.07
+	pm.bottom_radius = 0.07
+	pm.height = 1.0
+	pm.radial_segments = 6
+	_multi(node, pm, post_tf, post)
+	# Nombre y escudo sobre el paño del fondo (el que mira la cámara).
+	var x := -WALL_X + 24.0
+	var i := 0
+	while x < WALL_X - 10.0:
+		if i % 3 == 1:
+			_crest(node, Vector3(x, WALL_H * 0.48, -WALL_Z_FAR + 0.1), main, second)
+		else:
+			var l := Label3D.new()
+			l.text = text
+			l.font_size = 150
+			l.pixel_size = 0.014
+			l.modulate = second
+			l.outline_size = 0
+			l.shaded = true
+			l.position = Vector3(x, WALL_H * 0.45, -WALL_Z_FAR + 0.1)
+			node.add_child(l)
+		x += 30.0
+		i += 1
+
+
+## Escudo simple (dos colores) para el vallado.
+static func _crest(parent: Node3D, pos: Vector3, main: Color, second: Color) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var pts: Array[Vector2] = [Vector2(-1.1, 1.3), Vector2(1.1, 1.3), Vector2(1.1, 0.0), Vector2(0.0, -1.5), Vector2(-1.1, 0.0)]
+	for k in range(1, pts.size() - 1):
+		for v: Vector2 in [pts[0], pts[k + 1], pts[k]]:
+			st.add_vertex(Vector3(v.x, v.y, 0.0))
+	st.generate_normals()
+	var outer := MeshInstance3D.new()
+	outer.mesh = st.commit()
+	outer.material_override = _mat(second, 0.6)
+	outer.position = pos
+	parent.add_child(outer)
+	var inner := MeshInstance3D.new()
+	inner.mesh = outer.mesh
+	inner.material_override = _mat(main, 0.6)
+	inner.position = pos + Vector3(0, 0.02, 0.03)
+	inner.scale = Vector3(0.78, 0.8, 1.0)
+	parent.add_child(inner)
 
 
 static func _multi(root: Node3D, mesh: Mesh, tfs: Array[Transform3D], mat: Material) -> void:

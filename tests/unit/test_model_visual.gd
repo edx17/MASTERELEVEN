@@ -100,11 +100,13 @@ func test_mixamo_clips_when_present() -> void:
 	assert_gt(max_z, 0.3, "el pie derecho sale adelante con la animación retargeteada")
 	v.play(PlayerVisual.Event.DIVE_RIGHT)
 	assert_eq(v._clip, "gk_dive_px")
+	var max_x := 0.0
 	for i in 60:
 		_step(v, 0.0, 1)
-	v._skel.force_update_all_bone_transforms()
-	var pelvis := v._skel.get_bone_global_pose(v._skel.find_bone("pelvis")).origin
-	assert_gt(pelvis.x, 0.3, "vuela de costado hacia +X")
+		v._skel.force_update_all_bone_transforms()
+		max_x = maxf(max_x, v._skel.get_bone_global_pose(v._skel.find_bone("pelvis")).origin.x)
+	assert_gt(max_x, 0.3, "vuela de costado hacia +X")
+	assert_eq(v._clip, "", "y la estirada termina rápido (no queda flotando)")
 
 
 func _mixamo_or_skip() -> bool:
@@ -214,3 +216,45 @@ func test_standing_never_shows_the_t_pose() -> void:
 		for hand in ["hand_l", "hand_r"]:
 			var y: float = v._skel.get_bone_global_pose(v._bones[hand]).origin.y
 			assert_lt(y, shoulder - 0.3, "%s abajo (cuadro %d de la mezcla)" % [hand, frames])
+
+
+func test_kit_is_painted_on_the_shirt() -> void:
+	# Diseño, número y escudo van en el material de la camiseta (no hay un
+	# cartel con el número pegado a la espalda).
+	var v := ModelVisual.new()
+	add_child_autofree(v)
+	v.setup({"shirt": Color.RED, "shorts": Color.BLACK, "number": 23, "pattern": 1, "shirt2": Color.BLACK}, 5)
+	assert_null(v._number_label)
+	assert_eq(v._body_mat.get_shader_parameter("number"), 23)
+	assert_eq(v._body_mat.get_shader_parameter("pattern"), 1)
+	assert_eq(v._body_mat.get_shader_parameter("shirt2"), Color.BLACK)
+	var atlas := ModelVisual.digit_atlas()
+	assert_eq(atlas.get_width(), atlas.get_height() * 70 / 9, "10 dígitos de 7x9")
+	# La posición de reposo viaja en la malla (CUSTOM0).
+	var body := v._skel.find_child(ModelVisual.BODY_MESH, false, false) as MeshInstance3D
+	assert_ne(body.mesh.surface_get_format(0) & Mesh.ARRAY_FORMAT_CUSTOM0, 0)
+
+
+func test_team_kits_have_designs() -> void:
+	var striped := 0
+	for path in GameSettings.team_paths():
+		var td: TeamData = load(path)
+		if td.pattern > 0:
+			striped += 1
+	assert_gte(striped, 4, "varios equipos con camisetas con diseño")
+
+
+func test_classic_body_is_the_default_and_wears_the_kit() -> void:
+	# Por defecto, el cuerpo clásico (pocos polígonos, proporciones normales),
+	# con la misma ropa: el material del cuerpo con diseño y número.
+	assert_eq(GameSettings.player_style, GameSettings.PlayerStyle.CLASSIC)
+	var v := ModelVisual.new()
+	add_child_autofree(v)
+	v.setup({"shirt": Color.RED, "shorts": Color.BLACK, "number": 8, "pattern": 1, "shirt2": Color.BLACK}, 9)
+	assert_not_null(v._classic)
+	assert_eq(v._classic.material_override, v._body_mat)
+	var body := v._skel.find_child(ModelVisual.BODY_MESH, false, false) as MeshInstance3D
+	assert_false(body.visible, "el modelo musculoso queda oculto")
+	var tris: int = v._classic.mesh.surface_get_array_len(0) / 3
+	assert_between(tris, 200, 1200, "pocos polígonos (%d)" % tris)
+	assert_ne(v._classic.mesh.surface_get_format(0) & Mesh.ARRAY_FORMAT_CUSTOM0, 0, "con la posición de reposo para la ropa")

@@ -12,6 +12,9 @@ var short_name: String = ""
 var color: Color = Color.WHITE
 var secondary_color: Color = Color.BLACK
 var keeper_color: Color = Color.YELLOW
+## Diseño de la camiseta que se usa en este partido y su segundo color.
+var pattern: int = 0
+var pattern_color: Color = Color.BLACK
 ## +1 ataca hacia +X, -1 hacia -X. Se invierte en el entretiempo.
 var attack_dir: int = 1
 ## Los que están en la cancha (los expulsados salen de esta lista).
@@ -60,6 +63,31 @@ func condition_of(d: PlayerData) -> int:
 
 
 ## El que está en la cancha con esos datos (o null).
+## Jugador de campo en la cancha con la etiqueta `tag` (el de mejor ficha
+## para eso si hay varios), o null.
+func tagged(tag: String) -> Footballer:
+	var best: Footballer = null
+	var best_v := -1
+	for p in players:
+		if p.is_keeper() or p.data == null or not p.data.has_ability(tag):
+			continue
+		var v := p.data.curve + p.data.shooting + p.data.technique
+		if v > best_v:
+			best_v = v
+			best = p
+	return best
+
+
+## Capitán: el elegido, o el que tiene la cinta en la ficha.
+func captain_data() -> PlayerData:
+	if captain != null:
+		return captain
+	for p in players:
+		if p.base_data != null and p.base_data.has_ability("capitan"):
+			return p.base_data
+	return null
+
+
 func on_pitch(d: PlayerData) -> Footballer:
 	if d == null:
 		return null

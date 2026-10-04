@@ -48,11 +48,11 @@ func _ready() -> void:
 		func(_d: int) -> void: GameSettings.away_kit = 1 - GameSettings.away_kit,
 		"Camiseta del visitante (si se confunde con la del local, usa la otra).")
 	_add(list, "Jugadores", func() -> String:
-			if GameSettings.player_style == 1:
-				return "retro PS1 (beta)" if RetroBody.available() else "retro (falta el modelo)"
-			return "actuales",
-		func(_d: int) -> void: GameSettings.player_style = 1 - GameSettings.player_style,
-		"Modelo de los jugadores. Retro (beta): el modelo de pocos polígonos estilo PlayStation 1, mientras se termina el definitivo.")
+			if GameSettings.player_style == GameSettings.PlayerStyle.RETRO and not RetroBody.available():
+				return "retro (falta el modelo)"
+			return GameSettings.PLAYER_STYLE_NAMES[clampi(GameSettings.player_style, 0, 2)],
+		func(d: int) -> void: GameSettings.player_style = posmod(GameSettings.player_style + d, 3),
+		"Modelo de los jugadores. Clásicos: pocos polígonos, como el WE de PS1. Retro (beta): el modelo base estilo PS1. Detallados: el modelo con músculos.")
 	var go := WEStyle.bar("Jugar", func() -> void: play.emit(), 560.0, 22)
 	go.focus_entered.connect(func() -> void: _help.text = "Arranca la previa del partido (con la Dirección del equipo).")
 	list.add_child(go)

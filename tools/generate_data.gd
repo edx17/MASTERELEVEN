@@ -12,30 +12,31 @@ const SURNAMES := [
 ]
 const INITIALS := "ABCDEFGHJLMNOPRSTV"
 
-# Equipos ficticios. "away"/"away2" = segundo uniforme (camiseta, pantalón).
+# Equipos ficticios. "away"/"away2" = segundo uniforme (camiseta, pantalón);
+# "pattern"/"pattern_color" = diseño de la camiseta titular (TeamData.pattern).
 const TEAMS := [
 	{"id": "aurora", "name": "Deportivo Aurora", "short": "AUR", "color": Color(0.35, 0.65, 0.95),
 		"secondary": Color(0.95, 0.95, 0.95), "keeper": Color(0.15, 0.15, 0.15), "seed": 11,
 		"formation": "4-3-3", "away": Color(0.1, 0.14, 0.3), "away2": Color(0.1, 0.14, 0.3)},
-	{"id": "halcones", "name": "Atlético Halcones", "short": "HAL", "color": Color(0.85, 0.15, 0.15),
+	{"id": "halcones", "pattern": 1, "pattern_color": Color(0.08, 0.08, 0.08), "name": "Atlético Halcones", "short": "HAL", "color": Color(0.85, 0.15, 0.15),
 		"secondary": Color(0.08, 0.08, 0.08), "keeper": Color(0.2, 0.85, 0.35), "seed": 23,
 		"formation": "4-4-2", "away": Color(0.95, 0.95, 0.95), "away2": Color(0.85, 0.15, 0.15)},
-	{"id": "costanera", "name": "Real Costanera", "short": "CST", "color": Color(0.96, 0.96, 0.96),
+	{"id": "costanera", "pattern": 5, "pattern_color": Color(0.08, 0.12, 0.35), "name": "Real Costanera", "short": "CST", "color": Color(0.96, 0.96, 0.96),
 		"secondary": Color(0.08, 0.12, 0.35), "keeper": Color(0.9, 0.5, 0.1), "seed": 37,
 		"formation": "4-2-3-1", "away": Color(0.08, 0.12, 0.35), "away2": Color(0.08, 0.12, 0.35)},
-	{"id": "pampa", "name": "Unión Pampa", "short": "UPA", "color": Color(0.1, 0.55, 0.25),
+	{"id": "pampa", "pattern": 3, "pattern_color": Color(0.95, 0.95, 0.95), "name": "Unión Pampa", "short": "UPA", "color": Color(0.1, 0.55, 0.25),
 		"secondary": Color(0.95, 0.95, 0.95), "keeper": Color(0.95, 0.85, 0.15), "seed": 41,
 		"formation": "4-4-2", "away": Color(0.95, 0.95, 0.95), "away2": Color(0.1, 0.55, 0.25)},
 	{"id": "bahia", "name": "Sporting Bahía", "short": "SBA", "color": Color(0.98, 0.5, 0.08),
 		"secondary": Color(0.06, 0.06, 0.06), "keeper": Color(0.3, 0.3, 0.85), "seed": 53,
 		"formation": "3-5-2", "away": Color(0.06, 0.06, 0.06), "away2": Color(0.98, 0.5, 0.08)},
-	{"id": "cordillera", "name": "Atlético Cordillera", "short": "ACO", "color": Color(0.5, 0.08, 0.15),
+	{"id": "cordillera", "pattern": 4, "pattern_color": Color(0.95, 0.9, 0.8), "name": "Atlético Cordillera", "short": "ACO", "color": Color(0.5, 0.08, 0.15),
 		"secondary": Color(0.95, 0.9, 0.8), "keeper": Color(0.15, 0.6, 0.6), "seed": 67,
 		"formation": "5-3-2", "away": Color(0.95, 0.9, 0.8), "away2": Color(0.5, 0.08, 0.15)},
-	{"id": "puertoviejo", "name": "Club Puerto Viejo", "short": "CPV", "color": Color(0.98, 0.85, 0.1),
+	{"id": "puertoviejo", "pattern": 2, "pattern_color": Color(0.08, 0.2, 0.6), "name": "Club Puerto Viejo", "short": "CPV", "color": Color(0.98, 0.85, 0.1),
 		"secondary": Color(0.08, 0.2, 0.6), "keeper": Color(0.85, 0.2, 0.6), "seed": 79,
 		"formation": "4-3-3", "away": Color(0.08, 0.2, 0.6), "away2": Color(0.98, 0.85, 0.1)},
-	{"id": "nortena", "name": "Norteña FC", "short": "NOR", "color": Color(0.45, 0.2, 0.6),
+	{"id": "nortena", "pattern": 1, "pattern_color": Color(0.96, 0.96, 0.96), "name": "Norteña FC", "short": "NOR", "color": Color(0.45, 0.2, 0.6),
 		"secondary": Color(0.96, 0.96, 0.96), "keeper": Color(0.6, 0.85, 0.2), "seed": 83,
 		"formation": "4-2-3-1", "away": Color(0.85, 0.85, 0.88), "away2": Color(0.45, 0.2, 0.6)},
 ]
@@ -66,6 +67,8 @@ func _init() -> void:
 		team.color = t["color"]
 		team.secondary_color = t["secondary"]
 		team.keeper_color = t["keeper"]
+		team.pattern = t.get("pattern", 0)
+		team.pattern_color = t.get("pattern_color", Color.BLACK)
 		team.away_color = t["away"]
 		team.away_secondary = t["away2"]
 		team.formation = formations[t["formation"]]
@@ -86,7 +89,11 @@ func _init() -> void:
 			var p := _make_player(rng, roles[i], i + 1, names[i])
 			p.id = "%s_%02d" % [team.id, i + 1]
 			p.abilities = p.suggested_abilities()
+			p.fill_extended()
 			team.players.append(p)
+		var cap := PlayerData.pick_captain(team.players)
+		if cap != null and not cap.abilities.has("capitan"):
+			cap.abilities.append("capitan")
 		_save(team, "res://data/teams/%s.tres" % team.id)
 	print("Datos generados.")
 	quit()

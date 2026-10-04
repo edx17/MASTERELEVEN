@@ -65,8 +65,11 @@ static func prepare(sk: Skeleton3D) -> Dictionary:
 	out_v.resize(verts.size())
 	out_n.resize(verts.size())
 	for i in verts.size():
-		var v := Vector3(verts[i].x, verts[i].y - lo, verts[i].z) * s
+		# El modelo mira hacia -Z y nuestros jugadores hacia +Z: se gira 180°
+		# (si no, caminan para atrás con el pecho en la espalda).
+		var v := Vector3(-verts[i].x, verts[i].y - lo, -verts[i].z) * s
 		var n := normals[i] if i < normals.size() else Vector3.UP
+		n = Vector3(-n.x, n.y, -n.z)
 		# Brazos: de la pose A a la T (giro alrededor del hombro).
 		if absf(v.x) > shoulder_x * 0.9 and v.y > shoulder_y - 0.62:
 			var side := signf(v.x)

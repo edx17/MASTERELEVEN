@@ -11,6 +11,8 @@ const NAMES := ["Ninguna", "Presión", "Contraataque", "Trampa del offside", "At
 	"Todos al ataque", "Todos atrás"]
 ## Botones (en el orden de HumanController.STRATEGY_BUTTONS).
 const BUTTON_NAMES := ["X", "Cuadrado", "Círculo", "Triángulo"]
+## Íconos (ButtonIcons) de esos botones.
+const BUTTON_ICONS := ["X", "SQ", "O", "TRI"]
 const DEFAULT_SLOTS: Array[int] = [Kind.PRESSING, Kind.COUNTER, Kind.OFFSIDE_TRAP, Kind.WINGS]
 
 

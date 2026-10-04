@@ -20,6 +20,8 @@ enum Build { AUTO = -1, NORMAL, HEAVY, SLIM, TALL, SHORT, STOCKY, MUSCULAR }
 @export var hair: int = -1
 ## Edad (0 = se calcula de forma estable a partir del nombre).
 @export var age: int = 0
+## Altura en cm (0 = según el físico).
+@export var height: int = 0
 
 @export_group("Atributos")
 @export_range(1, 99) var speed: int = 60
@@ -35,6 +37,11 @@ enum Build { AUTO = -1, NORMAL, HEAVY, SLIM, TALL, SHORT, STOCKY, MUSCULAR }
 @export_range(1, 99) var reaction: int = 60
 @export_range(1, 99) var balance: int = 60
 @export_range(1, 99) var goalkeeping: int = 20
+## Ficha ampliada (0 = se deriva de los otros atributos; ver fill_extended()).
+@export_range(0, 99) var attack: int = 0
+@export_range(0, 99) var jump: int = 0
+@export_range(0, 99) var shot_power: int = 0
+@export_range(0, 99) var curve: int = 0
 
 @export_group("Habilidades especiales")
 ## Ids de ABILITY_NAMES (como las estrellitas del WE).
@@ -90,8 +97,11 @@ func visual_build() -> Build:
 	return Build.NORMAL if r < 0.7 else (Build.TALL if r < 0.85 else Build.STOCKY)
 
 
-## Altura en cm para la ficha (según el físico, con una variación estable).
+## Altura en cm para la ficha (la cargada, o según el físico con una
+## variación estable).
 func height_cm() -> int:
+	if height > 0:
+		return height
 	var r := float(hash(player_name + "cm") % 1000) / 1000.0
 	return roundi(178.0 * body_height() + lerpf(-4.0, 4.0, r))
 
@@ -106,11 +116,14 @@ const CONDITION_NAMES := ["Excelente", "Buena", "Normal", "Baja", "Mala"]
 const CONDITION_DELTA := [6, 3, 0, -3, -6]
 ## Probabilidad de cada condición al empezar un partido.
 const CONDITION_ODDS := [0.1, 0.25, 0.35, 0.2, 0.1]
-## Atributos que muestra la ficha y que cambian con la condición.
-const ATTRIBUTES := ["speed", "acceleration", "stamina", "strength", "passing", "shooting",
-	"technique", "ball_control", "heading", "defense", "reaction", "balance", "goalkeeping"]
-const ATTRIBUTE_NAMES := ["Velocidad", "Aceleración", "Resistencia", "Fuerza", "Pases", "Tiro",
-	"Técnica", "Dominio", "Cabeza", "Defensa", "Respuesta", "Balance", "Arquero"]
+## Atributos que muestra la ficha (en este orden) y que cambian con la
+## condición. 1-99.
+const ATTRIBUTES := ["attack", "defense", "balance", "stamina", "speed", "acceleration", "reaction",
+	"jump", "heading", "technique", "passing", "shot_power", "shooting", "ball_control", "curve",
+	"strength", "goalkeeping"]
+const ATTRIBUTE_NAMES := ["Ataque", "Defensa", "Balance", "Estamina", "Velocidad", "Aceleración",
+	"Respuesta", "Potencia de salto", "Precisión de cabeza", "Técnica", "Precisión de pase",
+	"Potencia de remate", "Precisión de remate", "Gambeta", "Curva", "Fuerza", "Arquero"]
 
 
 static func roll_condition(rng: RandomNumberGenerator) -> int:
@@ -129,7 +142,8 @@ func with_condition(c: int) -> PlayerData:
 		return self
 	var d := duplicate() as PlayerData
 	for a in ATTRIBUTES:
-		d.set(a, clampi(int(get(a)) + delta, 1, 99))
+		if int(get(a)) > 0: # los de la ficha ampliada sin cargar quedan en 0
+			d.set(a, clampi(int(get(a)) + delta, 1, 99))
 	return d
 
 
@@ -153,12 +167,17 @@ func mass() -> float:
 # --- Habilidades especiales ------------------------------------------------------
 
 const ABILITY_NAMES := {
-	"pasador": "Pasador: pases precisos al hueco",
-	"goleador": "Goleador: define mejor en el área",
-	"gambeteador": "Gambeteador: difícil de sacarle la pelota",
-	"cabeceador": "Cabeceador: gana arriba",
-	"especialista": "Especialista en tiros libres",
-	"marcador": "Marcador: entradas más limpias",
+	"gambeteador": "Gambeteador",
+	"especialista": "Lanzador de tiros libres",
+	"penales": "Especialista en penales",
+	"corners": "Lanzador de córners",
+	"muro": "Muro defensivo",
+	"ataja_penales": "Atajador de penales",
+	"capitan": "Capitán",
+	"pasador": "Pasador",
+	"goleador": "Goleador",
+	"cabeceador": "Cabeceador",
+	"marcador": "Marcador",
 	"atajador": "Arquero de mano a mano",
 }
 
@@ -186,6 +205,69 @@ func suggested_abilities() -> PackedStringArray:
 		out.append("especialista")
 	if defense >= 78:
 		out.append("marcador")
+	return out
+
+
+## Completa la ficha ampliada que no venga cargada (atributos en 0 y
+## altura), de forma estable a partir del resto, y suma las etiquetas que le
+## correspondan. La usan el generador de datos y la migración de los equipos.
+func fill_extended(tags: bool = true) -> void:
+	var j := func(salt: String) -> int: return int(absi(hash(player_name + salt)) % 9) - 4
+	var gk := position == Position.GK
+	if attack <= 0:
+		var a := 25.0
+		match position:
+			Position.FW: a = (shooting + ball_control + speed) / 3.0 + 8.0
+			Position.MF: a = (passing + technique + shooting) / 3.0
+			Position.DF: a = defense * 0.35 + passing * 0.3 + 5.0
+		attack = clampi(roundi(a) + j.call("at"), 1, 99)
+	if jump <= 0:
+		var bonus := {Build.TALL: 6, Build.SHORT: -6, Build.SLIM: 2, Build.HEAVY: -4}.get(visual_build(), 0) as int
+		jump = clampi(roundi(heading * 0.6 + strength * 0.2 + reaction * 0.2) + bonus + j.call("ju"), 1, 99)
+	if shot_power <= 0:
+		shot_power = clampi(roundi(strength * 0.5 + shooting * 0.5) - (15 if gk else 0) + j.call("sp"), 1, 99)
+	if curve <= 0:
+		curve = clampi(roundi(technique * 0.6 + passing * 0.4) - 4 - (15 if gk else 0) + j.call("cu"), 1, 99)
+	if height <= 0:
+		height = height_cm()
+	if not tags:
+		return
+	for tag in suggested_tags():
+		if not abilities.has(tag):
+			abilities.append(tag)
+
+
+## Capitán del plantel: el titular de campo más experimentado (edad y
+## ficha), si ninguno lo tiene ya.
+static func pick_captain(players: Array) -> PlayerData:
+	var best: PlayerData = null
+	var best_score := -INF
+	for i in mini(11, players.size()):
+		var p: PlayerData = players[i]
+		if p.abilities.has("capitan"):
+			return p
+		if p.position == Position.GK:
+			continue
+		var score := p.get_age() * 3.0 + p.reaction + p.defense * 0.5 + p.passing * 0.5
+		if score > best_score:
+			best_score = score
+			best = p
+	return best
+
+
+## Etiquetas de la ficha ampliada que corresponden a los atributos.
+func suggested_tags() -> PackedStringArray:
+	var out := PackedStringArray()
+	if position == Position.GK:
+		if reaction >= 70 and goalkeeping >= 70:
+			out.append("ataja_penales")
+		return out
+	if curve >= 72 and passing >= 66:
+		out.append("corners")
+	if shooting >= 70 and balance >= 60 and technique >= 62:
+		out.append("penales")
+	if defense >= 74 and strength >= 66:
+		out.append("muro")
 	return out
 
 

@@ -50,6 +50,16 @@ func _run() -> void:
 	var throw := out.contains("throw")
 	# Hoja del apretón de manos ("shake"): el que espera y el que pasa.
 	var shake := out.contains("shake")
+	# Hoja de camisetas ("kit"): un equipo por columna, de frente arriba y de
+	# espaldas abajo (diseño, número y escudo pintados en la tela).
+	var kits := out.contains("kit")
+	var team_list: Array = []
+	if kits:
+		for path in GameSettings.team_paths():
+			team_list.append(load(path))
+		stances = []
+		for k in team_list.size() * 2:
+			stances.append(1)
 	if shake:
 		stances = [1, 1, 1, 1]
 	if throw:
@@ -77,9 +87,15 @@ func _run() -> void:
 		if builds:
 			look["build"] = i % 7
 			look["hair_style"] = HairBuilder.Style.FADE
+		if kits:
+			var td: TeamData = team_list[i % team_list.size()]
+			look = {"shirt": td.color, "shorts": td.secondary_color, "number": [10, 7, 23, 9, 5, 14, 11, 8][i % 8],
+				"pattern": td.pattern, "shirt2": td.pattern_color}
 		v.setup(look, 3 + i)
 		# Primero de frente, después de costado (girado 90°).
 		v.rotation.y = 0.0 if i < stances.size() / 2 else PI * 0.5
+		if kits:
+			v.rotation.y = 0.0 if i < stances.size() / 2 else PI
 		if hair:
 			v.rotation.y = 0.5 if i < stances.size() / 2 else PI * 0.85
 		v.stance = maxi(stances[i], 1)

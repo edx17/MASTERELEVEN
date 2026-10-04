@@ -7,6 +7,7 @@ extends RefCounted
 ##   L1 + Cuadrado = globo · doble Cuadrado = remate rasante
 ##   L1 + Círculo = centro alto · doble Círculo = centro raso
 ##   L1 + X = pared · L1 + R1 = super cancel · L1 x3 = bicicleta
+##   L1 + R1 + Cuadrado = remate potente (carga y perfila más lento)
 ##   Cuadrado + X / Círculo + X = amague · stick derecho 360° = marsellesa
 ##   L1 mantenido con la pelota = conducción cerrada; sin la pelota, cambia de jugador.
 
@@ -28,6 +29,9 @@ const AIM_MEMORY := 0.35
 const DOUBLE_TAP := 0.2
 const TRIPLE_TAP := 0.8
 const SPIN_WINDOW := 1.0
+## Remate potente: la barra carga más lento y el jugador tarda en perfilarse.
+const POWER_CHARGE_SLOW := 1.6
+const POWER_WINDUP := 0.3
 
 var slot: int = 0
 var team: Team
@@ -53,6 +57,11 @@ var _charge_l1: bool = false
 var _tap := {}
 ## R2 apretado mientras se cargaba el remate: sale colocado.
 var _charge_placed := false
+## L1 + R1 al empezar a cargar el remate: remate potente.
+var _charge_power := false
+## Remate potente soltado: el jugador se perfila (frena y arma la pierna)
+## antes de pegarle. {power, aim, t}. Vacío = nada.
+var _windup := {}
 var _l1_taps: Array[float] = []
 var _spin_acc: float = 0.0
 var _spin_prev: float = INF
@@ -69,6 +78,10 @@ var _receive_lock_dir: Vector3 = Vector3.ZERO
 var _aim_dir: Vector3 = Vector3.ZERO
 var _aim_age: float = 999.0
 var _switch_cooldown: float = 0.0
+## L1: segundos hacia adelante en que se mira la pelota y ventaja (m) de los
+## que están entre la pelota y el arco propio al defender.
+const SWITCH_LOOKAHEAD := 0.45
+const SWITCH_GOAL_SIDE_BONUS := 4.0
 ## Último pase (contador de patadas del partido) ya usado para cambio automático.
 var _handled_kick: int = -1
 
@@ -114,6 +127,36 @@ func nearest_to_ball(exclude: Footballer = null) -> Footballer:
 		var d := p.flat_pos().distance_to(bp)
 		if d < best_d:
 			best_d = d
+			best = p
+	return best
+
+
+## A quién pasa el control con L1 (al instante): el destinatario de un pase
+## que viaja; si no, el que mejor llega adonde va a estar la pelota en un
+## momento. Defendiendo, pesan más los que están entre la pelota y el arco
+## propio (los que pueden cortar la línea).
+func switch_target() -> Footballer:
+	var ball := _match.ball
+	var recv := ball.intended_receiver
+	if recv != null and recv.team == team and recv != controlled and not recv.is_keeper() and ball.is_loose():
+		return recv
+	var ahead := ball.flat_pos() + Vector3(ball.state.vel.x, 0.0, ball.state.vel.z) * SWITCH_LOOKAHEAD
+	var rival_has_it := ball.owner_player != null and ball.owner_player.team != team
+	var own_goal := team.own_goal()
+	var best: Footballer = null
+	var best_score := INF
+	for p in team.players:
+		if p == controlled or p.is_keeper() or (p.is_human() and p.human_slot != slot):
+			continue
+		var score := p.flat_pos().distance_to(ahead)
+		if rival_has_it:
+			# Entre la pelota y el arco propio: puede cerrar el camino.
+			var to_goal := own_goal - ahead
+			var along := (p.flat_pos() - ahead).dot(to_goal.normalized())
+			if along > 0.0 and along < to_goal.length():
+				score -= SWITCH_GOAL_SIDE_BONUS
+		if score < best_score:
+			best_score = score
 			best = p
 	return best
 
@@ -165,7 +208,7 @@ func tick(dt: float) -> void:
 		_auto_off = false
 	# L1 sin la pelota = cambio de jugador (con la pelota es gambeta).
 	if input.just_pressed(&"special") and not r1 and not has_ball and not _match.is_restart_taker(controlled):
-		var next := nearest_to_ball(controlled)
+		var next := switch_target()
 		if next != null:
 			select(next)
 			_switch_cooldown = 1.0
@@ -201,6 +244,21 @@ func tick(dt: float) -> void:
 	p.pressing = false
 	# L1 mantenido con la pelota: conducción cerrada (gambeta).
 	p.close_control = has_ball and l1 and not r1
+
+	# Remate potente perfilándose: frena, no acepta otra orden y le pega al
+	# terminar el armado (si todavía la tiene al alcance).
+	if not _windup.is_empty():
+		p.desired_move = move * 0.25
+		p.wants_sprint = false
+		_windup["t"] -= dt
+		if _windup["t"] <= 0.0:
+			var w := _windup
+			_windup = {}
+			if _match.can_kick(p):
+				_do_kick(KickActions.Kind.SHOT, w["power"], w["aim"], null, KickActions.Variant.POWER)
+		elif ball.owner_player != p and not _match.can_kick(p):
+			_windup = {} # se la sacaron mientras armaba
+		return
 
 	# Gambetas con la pelota: bicicleta (L1 x3) y marsellesa (stick derecho 360°).
 	if has_ball:
@@ -317,11 +375,12 @@ func tick(dt: float) -> void:
 			if input.just_pressed(action):
 				charging_action = action
 				power = 0.0
-				_charge_l1 = l1
+				_charge_power = l1 and r1 and KICK_BUTTONS[action] == KickActions.Kind.SHOT
+				_charge_l1 = l1 and not _charge_power
 				_charge_placed = false
 				break
 	if is_charging():
-		power = minf(1.0, power + dt / _match.tuning.power_charge_time)
+		power = minf(1.0, power + dt / (_match.tuning.power_charge_time * (POWER_CHARGE_SLOW if _charge_power else 1.0)))
 		# R2 mientras se carga el remate: sale colocado.
 		if input.just_pressed(&"brake"):
 			_charge_placed = true
@@ -341,7 +400,9 @@ func tick(dt: float) -> void:
 			charging_action = &""
 			var target := preview_receiver
 			_set_preview(null)
-			if _charge_l1:
+			if _charge_power:
+				_windup = {"power": power, "aim": aim, "t": POWER_WINDUP}
+			elif _charge_l1:
 				# L1 + botón: globo, centro alto o pared.
 				match kind:
 					KickActions.Kind.SHOT, KickActions.Kind.LONG_PASS:

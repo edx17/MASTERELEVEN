@@ -171,7 +171,8 @@ static func _build_goal(root: Node3D, side: int) -> void:
 	bar.position = Vector3(gx, Pitch.GOAL_HEIGHT, 0.0)
 	bar.rotation_degrees = Vector3(90.0, 0.0, 0.0)
 	goal.add_child(bar)
-	# Red: grilla de líneas en fondo, costados y techo.
+	# Red: grilla de líneas en fondo, costados y techo, en tramos cortos (así
+	# se puede inflar donde pega la pelota; ver GoalNet).
 	var im := ImmediateMesh.new()
 	im.surface_begin(Mesh.PRIMITIVE_LINES)
 	var back := gx + side * Pitch.GOAL_DEPTH
@@ -181,46 +182,53 @@ static func _build_goal(root: Node3D, side: int) -> void:
 	# Fondo.
 	var z := -w
 	while z <= w + 0.001:
-		im.surface_add_vertex(Vector3(back, 0.0, z))
-		im.surface_add_vertex(Vector3(back, h, z))
+		_net_line(im, Vector3(back, 0.0, z), Vector3(back, h, z), step)
 		z += step
 	var y := 0.0
 	while y <= h + 0.001:
-		im.surface_add_vertex(Vector3(back, y, -w))
-		im.surface_add_vertex(Vector3(back, y, w))
+		_net_line(im, Vector3(back, y, -w), Vector3(back, y, w), step)
 		# Costados.
-		im.surface_add_vertex(Vector3(gx, y, -w))
-		im.surface_add_vertex(Vector3(back, y, -w))
-		im.surface_add_vertex(Vector3(gx, y, w))
-		im.surface_add_vertex(Vector3(back, y, w))
+		_net_line(im, Vector3(gx, y, -w), Vector3(back, y, -w), step)
+		_net_line(im, Vector3(gx, y, w), Vector3(back, y, w), step)
 		y += step
 	var x := 0.0
 	while x <= Pitch.GOAL_DEPTH + 0.001:
 		var px := gx + side * x
 		# Verticales de los costados.
-		im.surface_add_vertex(Vector3(px, 0.0, -w))
-		im.surface_add_vertex(Vector3(px, h, -w))
-		im.surface_add_vertex(Vector3(px, 0.0, w))
-		im.surface_add_vertex(Vector3(px, h, w))
+		_net_line(im, Vector3(px, 0.0, -w), Vector3(px, h, -w), step)
+		_net_line(im, Vector3(px, 0.0, w), Vector3(px, h, w), step)
 		# Techo a lo ancho.
-		im.surface_add_vertex(Vector3(px, h, -w))
-		im.surface_add_vertex(Vector3(px, h, w))
+		_net_line(im, Vector3(px, h, -w), Vector3(px, h, w), step)
 		x += step
 	z = -w
 	while z <= w + 0.001:
-		im.surface_add_vertex(Vector3(gx, h, z))
-		im.surface_add_vertex(Vector3(back, h, z))
+		_net_line(im, Vector3(gx, h, z), Vector3(back, h, z), step)
 		z += step
 	im.surface_end()
-	var net := MeshInstance3D.new()
+	var net := GoalNet.new()
+	net.name = "Net"
+	net.side = side
 	net.mesh = im
-	var nm := StandardMaterial3D.new()
-	nm.albedo_color = Color(1, 1, 1, 0.55)
-	nm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	nm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var nm := ShaderMaterial.new()
+	nm.shader = preload("res://scripts/stadium/goal_net.gdshader")
+	nm.set_shader_parameter("side", float(side))
+	nm.set_shader_parameter("front_x", gx)
+	nm.set_shader_parameter("back_x", back)
+	nm.set_shader_parameter("half_w", w)
+	nm.set_shader_parameter("height", h)
 	net.material_override = nm
 	net.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# La red se deforma: que no la recorte el AABB del mesh.
+	net.extra_cull_margin = 1.0
 	goal.add_child(net)
+
+
+## Línea de la red partida en tramos de `step` (cada vértice puede moverse).
+static func _net_line(im: ImmediateMesh, a: Vector3, b: Vector3, step: float) -> void:
+	var n := maxi(1, ceili(a.distance_to(b) / step))
+	for i in n:
+		im.surface_add_vertex(a.lerp(b, float(i) / n))
+		im.surface_add_vertex(a.lerp(b, float(i + 1) / n))
 
 
 static func _build_corner_flags(root: Node3D) -> void:

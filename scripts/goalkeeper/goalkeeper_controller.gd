@@ -17,6 +17,10 @@ const RUSH_MAX_PROGRESS := 0.5
 const SWEEPER_MAX := 9.0
 ## Con la pelota en las manos haciendo tiempo (s; el límite es 6).
 const WASTE_HOLD_TIME := 5.4
+## Después de un rebote en el arquero, cuánto tarda en volver a ir por la
+## pelota (s), y hasta qué distancia del arco sale por una pelota suelta (m).
+const REBOUND_PAUSE := 0.7
+const LOOSE_BALL_RANGE := 13.0
 
 var team: Team
 var _match: MatchController
@@ -102,8 +106,11 @@ func tick(p: Footballer, ai: TeamAI, dt: float) -> void:
 		p.debug_state = "achica"
 		ai.go_to(p, bp, true)
 		return
-	# 5) Pelota suelta y lenta en el área: sale a buscarla.
-	if ball.is_loose() and Pitch.in_penalty_area(bp, own) and v.length() < 9.0:
+	# 5) Pelota suelta y lenta en el área: sale a buscarla (cerca del arco).
+	# Justo después de un rebote suyo no la persigue: primero se reacomoda.
+	var own_rebound := ball.last_toucher == p and ball.kick_age < REBOUND_PAUSE
+	if ball.is_loose() and not own_rebound and Pitch.in_penalty_area(bp, own) and v.length() < 9.0 \
+			and bp.distance_to(goal) < LOOSE_BALL_RANGE:
 		if _arrives_first(p, bp):
 			p.debug_state = "sale"
 			ai.go_to(p, bp, true)

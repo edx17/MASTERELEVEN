@@ -9,6 +9,7 @@ script = ExtResource("2_0tuen")
 id = "bahia_01"
 player_name = "N. Kessler"
 position = 0
+height = 195
 speed = 50
 acceleration = 72
 stamina = 71
@@ -22,6 +23,10 @@ defense = 50
 reaction = 67
 balance = 58
 goalkeeping = 69
+attack = 28
+jump = 72
+shot_power = 37
+curve = 36
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_yn7at"]
@@ -30,6 +35,7 @@ id = "bahia_02"
 player_name = "G. Duarte"
 number = 2
 position = 1
+height = 166
 speed = 70
 acceleration = 66
 strength = 74
@@ -42,6 +48,10 @@ defense = 70
 reaction = 72
 balance = 71
 goalkeeping = 30
+attack = 50
+jump = 68
+shot_power = 63
+curve = 68
 abilities = PackedStringArray("gambeteador")
 
 [sub_resource type="Resource" id="Resource_njld0"]
@@ -50,6 +60,7 @@ id = "bahia_03"
 player_name = "T. Acosta"
 number = 3
 position = 1
+height = 166
 speed = 67
 stamina = 68
 strength = 70
@@ -62,6 +73,10 @@ defense = 68
 reaction = 67
 balance = 68
 goalkeeping = 30
+attack = 48
+jump = 68
+shot_power = 61
+curve = 60
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_11p1f"]
@@ -71,6 +86,7 @@ player_name = "L. Nazar"
 number = 4
 position = 1
 foot = 1
+height = 179
 speed = 73
 acceleration = 73
 strength = 76
@@ -82,7 +98,11 @@ heading = 67
 defense = 78
 reaction = 59
 goalkeeping = 30
-abilities = PackedStringArray("marcador")
+attack = 50
+jump = 64
+shot_power = 67
+curve = 65
+abilities = PackedStringArray("marcador", "muro", "capitan")
 
 [sub_resource type="Resource" id="Resource_hd4e5"]
 script = ExtResource("2_0tuen")
@@ -91,6 +111,7 @@ player_name = "C. Galdós"
 number = 5
 position = 1
 foot = 1
+height = 191
 speed = 64
 acceleration = 62
 stamina = 63
@@ -103,6 +124,10 @@ heading = 64
 defense = 66
 reaction = 62
 goalkeeping = 30
+attack = 42
+jump = 67
+shot_power = 61
+curve = 57
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_0h1ny"]
@@ -110,6 +135,7 @@ script = ExtResource("2_0tuen")
 id = "bahia_06"
 player_name = "N. Zabala"
 number = 6
+height = 169
 speed = 73
 stamina = 69
 strength = 65
@@ -122,6 +148,10 @@ defense = 50
 reaction = 65
 balance = 59
 goalkeeping = 30
+attack = 68
+jump = 63
+shot_power = 59
+curve = 64
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_kalix"]
@@ -129,6 +159,7 @@ script = ExtResource("2_0tuen")
 id = "bahia_07"
 player_name = "H. Olmedo"
 number = 7
+height = 192
 speed = 58
 acceleration = 71
 stamina = 81
@@ -142,6 +173,10 @@ defense = 57
 reaction = 72
 balance = 67
 goalkeeping = 30
+attack = 75
+jump = 71
+shot_power = 64
+curve = 69
 abilities = PackedStringArray("pasador", "especialista")
 
 [sub_resource type="Resource" id="Resource_iixfv"]
@@ -150,6 +185,7 @@ id = "bahia_08"
 player_name = "T. Hidalgo"
 number = 8
 foot = 1
+height = 176
 speed = 70
 acceleration = 71
 stamina = 69
@@ -163,6 +199,10 @@ defense = 51
 reaction = 71
 balance = 67
 goalkeeping = 30
+attack = 69
+jump = 63
+shot_power = 60
+curve = 68
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_2jaft"]
@@ -171,6 +211,7 @@ id = "bahia_09"
 player_name = "O. Quiroga"
 number = 9
 foot = 1
+height = 171
 acceleration = 63
 stamina = 82
 strength = 72
@@ -182,6 +223,10 @@ heading = 55
 defense = 53
 reaction = 58
 goalkeeping = 32
+attack = 70
+jump = 61
+shot_power = 61
+curve = 68
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_a6f1w"]
@@ -190,6 +235,7 @@ id = "bahia_10"
 player_name = "G. Arrieta"
 number = 10
 position = 3
+height = 167
 speed = 67
 acceleration = 70
 stamina = 65
@@ -203,7 +249,11 @@ defense = 42
 reaction = 57
 balance = 62
 goalkeeping = 30
-abilities = PackedStringArray("goleador", "gambeteador")
+attack = 80
+jump = 64
+shot_power = 76
+curve = 62
+abilities = PackedStringArray("goleador", "gambeteador", "penales")
 
 [sub_resource type="Resource" id="Resource_re04d"]
 script = ExtResource("2_0tuen")
@@ -212,6 +262,7 @@ player_name = "F. Valdano"
 number = 11
 position = 3
 foot = 1
+height = 191
 speed = 77
 acceleration = 70
 strength = 70
@@ -224,6 +275,10 @@ defense = 32
 reaction = 57
 balance = 59
 goalkeeping = 30
+attack = 86
+jump = 65
+shot_power = 72
+curve = 63
 abilities = PackedStringArray("goleador")
 
 [sub_resource type="Resource" id="Resource_lsu5c"]
@@ -232,6 +287,7 @@ id = "bahia_12"
 player_name = "T. Jáuregui"
 number = 12
 position = 0
+height = 169
 speed = 59
 acceleration = 73
 stamina = 74
@@ -245,6 +301,10 @@ defense = 50
 reaction = 68
 balance = 57
 goalkeeping = 81
+attack = 24
+jump = 68
+shot_power = 43
+curve = 43
 abilities = PackedStringArray("atajador")
 
 [sub_resource type="Resource" id="Resource_8u4pi"]
@@ -254,6 +314,7 @@ player_name = "F. Benavídez"
 number = 13
 position = 1
 foot = 1
+height = 176
 speed = 58
 acceleration = 68
 stamina = 72
@@ -267,6 +328,10 @@ defense = 73
 reaction = 67
 balance = 69
 goalkeeping = 30
+attack = 50
+jump = 67
+shot_power = 53
+curve = 60
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_fbcl0"]
@@ -274,6 +339,7 @@ script = ExtResource("2_0tuen")
 id = "bahia_14"
 player_name = "G. Bermejo"
 number = 14
+height = 179
 speed = 62
 acceleration = 74
 stamina = 75
@@ -287,6 +353,10 @@ defense = 58
 reaction = 57
 balance = 63
 goalkeeping = 30
+attack = 63
+jump = 58
+shot_power = 65
+curve = 67
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_bu8dc"]
@@ -294,6 +364,7 @@ script = ExtResource("2_0tuen")
 id = "bahia_15"
 player_name = "G. Rivadeo"
 number = 15
+height = 174
 speed = 68
 stamina = 71
 strength = 71
@@ -305,6 +376,10 @@ heading = 61
 defense = 50
 reaction = 61
 goalkeeping = 30
+attack = 70
+jump = 66
+shot_power = 60
+curve = 69
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_2e8im"]
@@ -314,6 +389,7 @@ player_name = "O. Garmendia"
 number = 16
 position = 3
 foot = 1
+height = 177
 speed = 66
 acceleration = 58
 stamina = 72
@@ -327,7 +403,11 @@ defense = 38
 reaction = 71
 balance = 64
 goalkeeping = 30
-abilities = PackedStringArray("gambeteador")
+attack = 78
+jump = 61
+shot_power = 64
+curve = 66
+abilities = PackedStringArray("gambeteador", "penales")
 
 [sub_resource type="Resource" id="Resource_87r0w"]
 script = ExtResource("2_0tuen")
@@ -335,6 +415,7 @@ id = "bahia_17"
 player_name = "C. Urquiza"
 number = 17
 position = 1
+height = 195
 speed = 63
 acceleration = 68
 stamina = 74
@@ -347,6 +428,10 @@ heading = 68
 defense = 69
 reaction = 61
 goalkeeping = 30
+attack = 49
+jump = 73
+shot_power = 67
+curve = 64
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_i6p06"]
@@ -355,6 +440,7 @@ id = "bahia_18"
 player_name = "N. Echeverri"
 number = 18
 position = 1
+height = 165
 speed = 66
 acceleration = 73
 stamina = 66
@@ -367,6 +453,10 @@ defense = 73
 reaction = 65
 balance = 70
 goalkeeping = 30
+attack = 52
+jump = 68
+shot_power = 58
+curve = 55
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_ha217"]
@@ -374,6 +464,7 @@ script = ExtResource("2_0tuen")
 id = "bahia_19"
 player_name = "L. Ferrán"
 number = 19
+height = 176
 speed = 63
 acceleration = 73
 stamina = 76
@@ -385,6 +476,10 @@ defense = 55
 reaction = 65
 balance = 58
 goalkeeping = 30
+attack = 68
+jump = 61
+shot_power = 58
+curve = 63
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_8xppx"]
@@ -392,6 +487,7 @@ script = ExtResource("2_0tuen")
 id = "bahia_20"
 player_name = "H. Herrán"
 number = 20
+height = 175
 speed = 67
 acceleration = 58
 stamina = 73
@@ -405,6 +501,10 @@ defense = 54
 reaction = 70
 balance = 58
 goalkeeping = 32
+attack = 67
+jump = 64
+shot_power = 60
+curve = 61
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_k6ind"]
@@ -413,6 +513,7 @@ id = "bahia_21"
 player_name = "F. Taborda"
 number = 21
 position = 3
+height = 168
 speed = 80
 acceleration = 58
 stamina = 74
@@ -426,6 +527,10 @@ defense = 39
 reaction = 57
 balance = 61
 goalkeeping = 33
+attack = 85
+jump = 60
+shot_power = 72
+curve = 56
 abilities = PackedStringArray("goleador")
 
 [sub_resource type="Resource" id="Resource_08nds"]
@@ -434,6 +539,7 @@ id = "bahia_22"
 player_name = "H. Maidana"
 number = 22
 position = 3
+height = 179
 speed = 71
 acceleration = 66
 stamina = 62
@@ -447,6 +553,10 @@ defense = 37
 reaction = 65
 balance = 71
 goalkeeping = 30
+attack = 80
+jump = 62
+shot_power = 67
+curve = 57
 abilities = PackedStringArray("gambeteador")
 
 [sub_resource type="Resource" id="Resource_hs3r4"]
@@ -455,6 +565,7 @@ id = "bahia_23"
 player_name = "C. Pereyra"
 number = 23
 position = 0
+height = 170
 speed = 59
 acceleration = 72
 stamina = 75
@@ -468,7 +579,11 @@ defense = 39
 reaction = 81
 balance = 63
 goalkeeping = 81
-abilities = PackedStringArray("atajador")
+attack = 23
+jump = 70
+shot_power = 41
+curve = 48
+abilities = PackedStringArray("atajador", "ataja_penales")
 
 [resource]
 script = ExtResource("3_f0268")
