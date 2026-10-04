@@ -63,6 +63,11 @@ static func step(s: BallState, dt: float, t: Tuning) -> int:
 
 	for side: int in [-1, 1]:
 		events |= _collide_goal(prev, s, side, t)
+	# Adentro del arco, la pelota que vuelve hacia la cancha (después de
+	# pegar en la red) se frena enseguida: la red cuelga y la retiene.
+	if absf(s.pos.x) > Pitch.HALF_LENGTH and absf(s.pos.z) < Pitch.GOAL_HALF_WIDTH \
+			and s.pos.y < Pitch.GOAL_HEIGHT and s.vel.x * signf(s.pos.x) < 0.0:
+		s.vel.x *= exp(-NET_HOLD * dt)
 	return events
 
 
@@ -121,6 +126,10 @@ static func _reflect(s: BallState, n: Vector3, restitution: float) -> bool:
 	return true
 
 
+const NET_BACK_RESTITUTION := 0.12
+const NET_HOLD := 4.0
+
+
 ## Pared de red perpendicular al eje `axis` (0=x, 1=y, 2=z) ubicada en `plane`.
 ## Detecta si el segmento prev->pos la cruzó dentro de los límites del arco.
 static func _net_plane(prev: Vector3, s: BallState, axis: int, plane: float, side: int, t: Tuning) -> bool:
@@ -145,7 +154,10 @@ static func _net_plane(prev: Vector3, s: BallState, axis: int, plane: float, sid
 	if not ok:
 		return false
 	s.pos[axis] = eff
-	s.vel[axis] = -s.vel[axis] * t.net_restitution
+	# El fondo de la red cede y devuelve un poco la pelota (se ve el golpe en
+	# la red); los costados y el techo la frenan casi del todo.
+	var rest := maxf(t.net_restitution, NET_BACK_RESTITUTION) if axis == 0 else t.net_restitution
+	s.vel[axis] = -s.vel[axis] * rest
 	# La red absorbe: frena también el resto del movimiento.
 	for other in 3:
 		if other != axis:

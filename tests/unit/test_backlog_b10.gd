@@ -421,7 +421,7 @@ func test_fulltime_reactions_and_crowd_leaves() -> void:
 func test_floodlights_only_shadow_the_players() -> void:
 	GameSettings.time_choice = MatchConditions.TimeOfDay.NIGHT
 	_start_match()
-	GameSettings.time_choice = -1
+	GameSettings.time_choice = MatchConditions.TimeOfDay.AFTERNOON
 	assert_false(m.atmosphere.floodlights.is_empty())
 	for spot in m.atmosphere.floodlights:
 		assert_eq(spot.shadow_caster_mask, Atmosphere.ACTORS_LAYER)

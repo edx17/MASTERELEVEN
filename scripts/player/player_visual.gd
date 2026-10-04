@@ -156,6 +156,13 @@ func foot_position(side: float) -> Vector3:
 var _quiet := false
 
 
+## Congela la pose (repetición en pausa, como el offside). La próxima
+## llamada a update() la vuelve a mover. Las animaciones por código ya se
+## quedan quietas si no se llama a update().
+func freeze_pose() -> void:
+	pass
+
+
 func play(event: int, side: float = 1.0) -> void:
 	if not _quiet:
 		played.emit(event, side)

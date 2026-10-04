@@ -532,7 +532,7 @@ func _update_phase(dt: float) -> void:
 					replay_request = {}
 					banner_text = ""
 					_set_phase(Phase.REPLAY)
-					var extra := {"line": req.get("line", NAN)}
+					var extra := {"line": req.get("line", NAN), "card": req.get("card", 0)}
 					var passer: Footballer = req.get("passer")
 					var offender: Footballer = req.get("offender")
 					if passer != null and offender != null:
@@ -550,12 +550,12 @@ func _update_phase(dt: float) -> void:
 					_set_phase(Phase.REPLAY)
 					var caption := "GOL"
 					if goal_scorer != null:
-						caption = "GOL   " + Replay.scorer_line(goal_scorer, goal_scorer.team.index != _pending.team)
+						caption = Replay.player_line(goal_scorer)
 					var clip := replay.snapshot(Replay.Kind.GOAL, _pending.team, caption)
 					highlights.append(clip)
 					var cel_scorer: Footballer = celebration.get("scorer")
 					_celebration_clip = replay.celebration_snapshot(cel_scorer, _pending.team,
-						"" if cel_scorer == null else "Festejo de %s" % cel_scorer.display_name)
+						Replay.player_line(cel_scorer))
 					replay.play_clip(clip)
 				else:
 					_setup_kickoff(1 - _pending.team)
@@ -1068,8 +1068,7 @@ func _try_take_loose_ball() -> void:
 		# Atajada en las manos: el juego sigue, pero queda para los highlights.
 		var shooter: Footballer = last_kick.get("player")
 		if last_kick.get("kind") == KickActions.Kind.SHOT and shooter != null and replay != null and replay.has_frames():
-			highlights.append(replay.snapshot(Replay.Kind.CHANCE, shooter.team.index,
-				"¡Atajada de %s!   Remate de %s" % [best.display_name, shooter.display_name]))
+			highlights.append(replay.snapshot(Replay.Kind.CHANCE, shooter.team.index, Replay.player_line(shooter)))
 	var receiver := ball.intended_receiver
 	if receiver != null and receiver != best:
 		receiver.clear_pass_target()
@@ -1160,15 +1159,11 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 		card_scene = {"offender": offender, "red": text.contains("ROJA"), "pos": offender_pos,
 			"facing": offender_facing, "stage": 0, "t": 0.0}
 	# Repetición de la falta (siempre: hubo un jugador derribado).
-	var caption := "Falta de %s" % offender.display_name
-	if text.contains("ROJA"):
-		caption += "   ·   ROJA"
-	elif carded:
-		caption += "   ·   AMARILLA"
-	if type == MatchRules.Restart.PENALTY:
-		caption += "   ·   PENAL"
+	# Cartel: número y nombre del infractor (con la tarjeta, si hubo).
+	var caption := Replay.player_line(offender)
+	var card := 2 if text.contains("ROJA") else (1 if carded else 0)
 	replay.mark_event()
-	request_replay(Replay.Kind.FOUL, awarded, caption)
+	request_replay(Replay.Kind.FOUL, awarded, caption, {"card": card})
 	_pending = MatchRules.Outcome.new(type, awarded, Vector3(spot.x, tuning.ball_radius, spot.z))
 	ball.owner_player = null
 	ball.intended_receiver = null
@@ -1265,7 +1260,7 @@ func call_offside(p: Footballer, line: float = NAN, kicker: Footballer = null) -
 	_phase_timer = FOUL_DELAY
 	_set_phase(Phase.STOPPED)
 	replay.mark_event(true)
-	request_replay(Replay.Kind.OFFSIDE, p.team.index, "Fuera de juego: %s" % p.display_name,
+	request_replay(Replay.Kind.OFFSIDE, p.team.index, "",
 		{"line": line, "passer": kicker, "offender": p})
 
 
@@ -2112,6 +2107,9 @@ func injure(p: Footballer, level: int) -> void:
 
 ## Separación suave entre jugadores (sin física de cuerpos, decisión B).
 func _separate_players() -> void:
+	# Saliendo al túnel no se empujan (en la boca se trababan entre todos).
+	if not walk_off.is_empty() and phase == Phase.HALFTIME:
+		return
 	var list := all_players()
 	for i in list.size():
 		for j in range(i + 1, list.size()):
@@ -2192,10 +2190,10 @@ func _check_rules() -> void:
 				and ball.last_toucher.is_keeper() and ball.last_toucher.team != shooter.team
 		replay.mark_event()
 		if keeper_save:
-			request_replay(Replay.Kind.CHANCE, shooter.team.index, "¡Atajada de %s!   Remate de %s" % [ball.last_toucher.display_name, shooter.display_name])
+			request_replay(Replay.Kind.CHANCE, shooter.team.index, Replay.player_line(shooter))
 		elif absf(ball.state.pos.z) < 8.0 or _post_hit:
 			audio.cheer("ooh")
-			request_replay(Replay.Kind.CHANCE, shooter.team.index, ("¡Al palo!   " if _post_hit else "¡Cerca!   ") + "Remate de %s" % shooter.display_name)
+			request_replay(Replay.Kind.CHANCE, shooter.team.index, Replay.player_line(shooter))
 	_post_hit = false
 	if outcome.type == MatchRules.Restart.CORNER:
 		stats["corners"][outcome.team] += 1
@@ -2321,8 +2319,13 @@ const SCORER_CAM_HEIGHT := 3.0
 const SCORER_CAM_FOV := 36.0
 
 
+## Antes de irse con el goleador, la cámara del partido muestra la pelota en
+## la red (este tiempo).
+const NET_VIEW_TIME := 1.2
+
+
 func _follow_scorer(scorer: Footballer, _dt: float) -> void:
-	if _camera == null or scorer == null:
+	if _camera == null or scorer == null or _goal_elapsed < NET_VIEW_TIME:
 		return
 	var sp := scorer.global_position
 	var to_field := Vector3(-sp.x, 0.0, -sp.z)
@@ -2495,7 +2498,7 @@ const FULLTIME_REACTIONS := 7.5
 ## Al final, cuánto tarda en vaciarse la tribuna (s).
 const STANDS_EMPTY_TIME := 90.0
 ## Caminando hacia el túnel / al árbitro (fracción de la velocidad de trote).
-const WALK_PACE := 0.42
+const WALK_PACE := 0.22
 ## {jugador: [acción, destino, gesto]} de la salida o de las reacciones.
 var walk_off := {}
 var _stands_t := 0.0
@@ -2550,6 +2553,10 @@ func _start_walk_off() -> void:
 			else:
 				walk_off[p] = ["stay", p.flat_pos(),
 					PlayerVisual.Event.APPLAUD if i % 2 == 0 else PlayerVisual.Event.HANDS_HIPS]
+	# Empate: cada uno va a saludar al más cercano que esté libre (rival:
+	# apretón de manos; compañero: choque de manos).
+	if final and diff == 0:
+		_pair_greetings()
 	# Los que se quedan donde están hacen su gesto ya (dura toda la toma).
 	for p in walk_off:
 		if p is Footballer and walk_off[p][0] == "stay" and p.visual != null:
@@ -2572,12 +2579,30 @@ func _drive_walk_off(_dt: float) -> void:
 		var fp: Footballer = p
 		match w[0]:
 			"tunnel":
-				var to: Vector3 = (w[1] as Vector3) - fp.flat_pos()
-				if to.length() < 2.0:
+				# Primero hasta la boca (un poco antes, alineados) y después
+				# adentro del túnel; desaparecen ya adentro.
+				var mouth: Vector3 = w[1]
+				var inside := Vector3(mouth.x * 0.4, 0.0, StadiumBuilder.tunnel_z + 4.0)
+				var tgt := inside if fp.global_position.z > mouth.z - 3.0 else mouth - Vector3(0, 0, 2.5)
+				var to := tgt - fp.flat_pos()
+				if fp.global_position.z > StadiumBuilder.tunnel_z + 2.5:
 					fp.visible = false # entró al túnel
 					fp.desired_move = Vector3.ZERO
 				else:
 					fp.desired_move = to.normalized() * WALK_PACE
+			"greet":
+				var mate: Footballer = w[1]
+				var mid := (fp.flat_pos() + mate.flat_pos()) * 0.5
+				var to3 := mid - fp.flat_pos()
+				if to3.length() > 0.6 and w.size() < 4:
+					fp.desired_move = to3.normalized() * WALK_PACE * 1.6
+				else:
+					fp.desired_move = Vector3.ZERO
+					fp.look_at_point(mate.flat_pos())
+					if w.size() < 4:
+						w.append(true)
+						if fp.visual != null:
+							fp.visual.play(w[2], 1.0 if fp.team.index == 0 else -1.0)
 			"ref", "talk":
 				var target: Vector3
 				if w[0] == "ref":
@@ -2603,6 +2628,30 @@ func _drive_walk_off(_dt: float) -> void:
 				fp.desired_move = Vector3.ZERO
 
 
+func _pair_greetings() -> void:
+	var free: Array[Footballer] = []
+	for t in teams:
+		for p in t.players:
+			free.append(p)
+	free.shuffle()
+	while free.size() >= 2:
+		var a: Footballer = free.pop_back()
+		var best: Footballer = null
+		var best_d := INF
+		for b in free:
+			var d := a.flat_pos().distance_to(b.flat_pos())
+			if d < best_d:
+				best_d = d
+				best = b
+		free.erase(best)
+		var ev := PlayerVisual.Event.HANDSHAKE if a.team != best.team else PlayerVisual.Event.HIGH_FIVE
+		walk_off[a] = ["greet", best, ev]
+		walk_off[best] = ["greet", a, ev]
+	# El que sobra (número impar) aplaude.
+	for p in free:
+		walk_off[p] = ["stay", p.flat_pos(), PlayerVisual.Event.APPLAUD]
+
+
 ## Durante la pantalla del entretiempo / final la cancha queda vacía.
 func hide_players_for_break() -> void:
 	for p in all_players():
@@ -2626,7 +2675,7 @@ func _show_players_after_break() -> void:
 func _empty_stands(dt: float) -> void:
 	_stands_t += dt
 	if StadiumBuilder.crowd_material != null:
-		StadiumBuilder.crowd_material.set_shader_parameter("empty", clampf(_stands_t / STANDS_EMPTY_TIME, 0.0, 0.97))
+		StadiumBuilder.crowd_material.set_shader_parameter("empty", clampf(_stands_t / STANDS_EMPTY_TIME, 0.0, 1.08))
 
 
 ## Arranca el segundo tiempo (desde la pantalla del entretiempo o sola).

@@ -25,6 +25,9 @@ var _hint: Label
 var _radar: Radar
 ## Paneles inferiores: [0] = equipo local (izquierda), [1] = visitante (derecha).
 var _panels: Array[PlayerPanel] = []
+## Mentalidad (3 barras) y estrategia, al lado del panel de cada humano.
+var _tactics: Array[TacticsBox] = []
+var _tactic_labels: Array[Label] = []
 
 
 func setup(p_match: MatchController) -> void:
@@ -65,7 +68,21 @@ func setup(p_match: MatchController) -> void:
 	_strategy.position += Vector2(-28, 58)
 	add_child(_strategy)
 
-	_banner = _label("", 40)
+	# Carteles del partido (FALTA, CÓRNER, GOL...): grandes, en mayúsculas,
+	# con letra gruesa y ancha y borde oscuro (como en la TV).
+	_banner = _label("", 58)
+	var heavy := FontVariation.new()
+	heavy.base_font = _banner.get_theme_default_font()
+	heavy.variation_embolden = 1.1
+	heavy.spacing_glyph = 4
+	heavy.variation_transform = Transform2D(Vector2(1.12, 0.0), Vector2(0.0, 1.0), Vector2.ZERO)
+	_banner.add_theme_font_override("font", heavy)
+	_banner.add_theme_color_override("font_color", Color(1.0, 0.95, 0.75))
+	_banner.add_theme_color_override("font_outline_color", Color(0.05, 0.05, 0.1))
+	_banner.add_theme_constant_override("outline_size", 14)
+	_banner.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+	_banner.add_theme_constant_override("shadow_offset_x", 3)
+	_banner.add_theme_constant_override("shadow_offset_y", 4)
 	_banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	_banner.position.y = 110
 	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -88,6 +105,22 @@ func setup(p_match: MatchController) -> void:
 		panel.position = Vector2(-PANEL_SIZE.x - 30 if right else 30, -PANEL_SIZE.y - 28)
 		add_child(panel)
 		_panels.append(panel)
+		# Al lado del panel, hacia el centro de la pantalla.
+		var box := TacticsBox.new()
+		box.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT if right else Control.PRESET_BOTTOM_LEFT)
+		box.size = TacticsBox.SIZE
+		box.position = Vector2(-PANEL_SIZE.x - 30 - 8 - TacticsBox.SIZE.x if right else 30 + PANEL_SIZE.x + 8, -PANEL_SIZE.y - 28)
+		add_child(box)
+		_tactics.append(box)
+		var tl := _label("", 16)
+		tl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.45))
+		tl.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT if right else Control.PRESET_BOTTOM_LEFT)
+		tl.position = Vector2(-PANEL_SIZE.x - 30 if right else 30, -PANEL_SIZE.y - 28 - 24)
+		tl.size = Vector2(PANEL_SIZE.x, 22)
+		if right:
+			tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		add_child(tl)
+		_tactic_labels.append(tl)
 
 	_hint = _label("", 18)
 	_hint.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
@@ -131,15 +164,20 @@ func _process(_dt: float) -> void:
 		# muestra TrainingSession).
 		_top.visible = false
 		_clock.visible = false
+	# Arriba a la derecha sólo la estrategia de la CPU; la del humano (y su
+	# mentalidad) va al lado del panel de su jugador.
 	var lines := []
 	for t in _match.teams:
-		if t.strategy != Strategy.Kind.NONE:
+		var human := _human_for_team(t.index) != null
+		_tactics[t.index].visible = human and _match.training == null
+		_tactics[t.index].mentality = t.mentality
+		_tactics[t.index].queue_redraw()
+		_tactic_labels[t.index].visible = human
+		_tactic_labels[t.index].text = Strategy.NAMES[t.strategy] if t.strategy != Strategy.Kind.NONE else ""
+		if t.strategy != Strategy.Kind.NONE and not human:
 			lines.append("%s: %s" % [t.short_name, Strategy.NAMES[t.strategy]])
-		# Mentalidad del humano (si no es la equilibrada): una flecha.
-		if t.mentality != 0 and _match.training == null and _match.humans.any(func(h: HumanController) -> bool: return h.team == t):
-			lines.append("%s: %s" % [t.short_name, ("▲ ofensiva" if t.mentality > 0 else "▼ defensiva")])
 	_strategy.text = "\n".join(lines)
-	_banner.text = _match.banner_text
+	_banner.text = _match.banner_text.to_upper()
 	if _match.phase == MatchController.Phase.FULLTIME:
 		_banner.text = "FINAL   %s %d - %d %s" % [t0.short_name, t0.score, t1.score, t1.short_name]
 		_hint.text = "{X} / Start: volver al menú"
@@ -202,6 +240,25 @@ static func _label(text: String, size: int) -> Label:
 
 
 ## Panel inferior: [POS] Nombre, barra de energía y barra de potencia encima.
+## Mentalidad: cuadrado con tres barras gruesas (rojo ofensiva, verde
+## equilibrada, azul defensiva); la activa encendida y las otras apagadas.
+class TacticsBox:
+	extends Control
+	const SIZE := Vector2(44, 44)
+	const COLORS := [Color(0.95, 0.2, 0.18), Color(0.25, 0.85, 0.3), Color(0.25, 0.5, 1.0)]
+	var mentality := 0
+
+	func _draw() -> void:
+		draw_rect(Rect2(Vector2.ZERO, SIZE), Color(0.02, 0.04, 0.08, 0.75))
+		draw_rect(Rect2(Vector2.ZERO, SIZE), Color(1, 1, 1, 0.5), false, 1.5)
+		# De arriba hacia abajo: ofensiva (+1), equilibrada (0), defensiva (-1).
+		for i in 3:
+			var level := 1 - i
+			var on := level == mentality
+			var c: Color = COLORS[i] if on else (COLORS[i] as Color).darkened(0.75)
+			draw_rect(Rect2(6, 6 + i * 12, SIZE.x - 12, 9), c)
+
+
 class PlayerPanel:
 	extends Control
 

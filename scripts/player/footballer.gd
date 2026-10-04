@@ -635,9 +635,10 @@ func _build_visuals() -> void:
 	# controlado, como en WE; legible también con las cámaras lejanas.
 	_arrow = MeshInstance3D.new()
 	var cone := CylinderMesh.new()
-	cone.top_radius = 0.32
+	# (La mitad que antes: B11.)
+	cone.top_radius = 0.16
 	cone.bottom_radius = 0.0
-	cone.height = 0.5
+	cone.height = 0.25
 	cone.radial_segments = 4
 	_arrow.mesh = cone
 	var arrow_mat := StandardMaterial3D.new()
@@ -645,7 +646,7 @@ func _build_visuals() -> void:
 	arrow_mat.no_depth_test = true
 	arrow_mat.render_priority = 1
 	_arrow.material_override = arrow_mat
-	_arrow.position.y = 2.75
+	_arrow.position.y = 2.45
 	_arrow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_arrow.visible = false
 	add_child(_arrow)
@@ -653,8 +654,9 @@ func _build_visuals() -> void:
 	# Anillo en el piso del jugador controlado (del color del humano).
 	_control_ring = MeshInstance3D.new()
 	var ring := TorusMesh.new()
-	ring.inner_radius = 0.55
-	ring.outer_radius = 0.75
+	# Mitad de superficie que antes (más fino y más chico).
+	ring.inner_radius = 0.4
+	ring.outer_radius = 0.5
 	ring.rings = 24
 	_control_ring.mesh = ring
 	var ring_mat := StandardMaterial3D.new()
