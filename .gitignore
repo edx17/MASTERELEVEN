@@ -5,10 +5,5 @@
 export_presets.cfg.bak
 /build/
 
-# Animaciones de Mixamo: se usan si están en tu copia local, pero su licencia
-# no permite redistribuir los archivos (el repo es público).
-/assets/animations/mixamo/
-
-# Texturas de césped (CC0) muy pesadas para GitHub: se usan si están en tu
-# copia local (scripts/stadium/grass_textures.gd); si no, detalle procedural.
-/assets/textures/grass/
+# Las animaciones de Mixamo y las texturas van en el repo (ver assets/CREDITS.md).
+# Los zips que se dejan en assets/_entrada/ se procesan y se borran.

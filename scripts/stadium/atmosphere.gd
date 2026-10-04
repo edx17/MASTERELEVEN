@@ -127,6 +127,13 @@ func _build_environment() -> void:
 	sky_mat.ground_horizon_color = horizon.darkened(0.3)
 	sky_mat.sun_angle_max = 20.0
 	sky.sky_material = sky_mat
+	# Cielo fotográfico (HDRI) si está en assets/skies/ para estas condiciones.
+	var photo := SkyTextures.for_conditions(conditions, randi())
+	if photo != null:
+		var pano := PanoramaSkyMaterial.new()
+		pano.panorama = photo
+		pano.energy_multiplier = 1.0 if not cloudy else 0.9
+		sky.sky_material = pano
 	environment.background_mode = Environment.BG_SKY
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
