@@ -49,9 +49,13 @@ recién después de que el partido se sienta bien.
 Si esto no funciona, NO se agregan sistemas: se corrige el gameplay primero.
 
 ## Restricciones
-- SIN LICENCIAS: todos los clubes, jugadores, ligas, torneos y selecciones son
-  ficticios. Nada de nombres, logos, música, modelos, texturas ni assets de
-  Konami ni de marcas reales.
+- **Uso personal** (decisión del dueño, octubre 2026): el juego no se vende ni
+  se comparte; el repo es público sólo mientras se trabaja con Claude y
+  después queda privado. Por eso los **nombres reales** de países, ligas,
+  clubes y jugadores están permitidos (bandera de cada selección incluida).
+  Lo que NO se copia: escudos/logos de clubes, música con licencia, y
+  modelos, texturas o assets de Konami u otras marcas (los escudos se
+  generan, las camisetas usan los colores del club).
 - Portable para PC (Windows prioritario; Linux/Mac deseable). Objetivo: 60 FPS
   con 22 jugadores.
 - Jugable 100% con teclado o con mando (DualShock/DualSense/Xbox), con
@@ -232,8 +236,20 @@ Criterio: capturas lado a lado con la referencia y 60 FPS con 22 jugadores.
 - Esqueletos con física (ragdoll en caídas, cinemática inversa al patear).
 
 ### Fase 6 — Liga Master
-- Base de datos ficticia: al menos 3 países con 2 divisiones cada uno
-  (16-20 clubes por división), más selecciones nacionales.
+- Base de datos con nombres reales (máximo 23 jugadores por plantel):
+  - Selecciones (con bandera): Inglaterra, España, Portugal, Italia,
+    Alemania, Países Bajos; Estados Unidos, México, Argentina, Brasil,
+    Uruguay; Marruecos, Nigeria, Camerún; China, Japón, Rusia, Turquía;
+    Australia.
+  - Ligas: Inglaterra (Premier, Championship, League One, League Two),
+    España (LaLiga, LaLiga 2), Italia (Serie A, Serie B), Portugal (Liga
+    Portugal), Alemania (Bundesliga, 2. Bundesliga), Países Bajos
+    (Eredivisie), México (Liga MX), Argentina (LPF, Primera Nacional,
+    Primera B, Primera C, Torneo Promocional Amateur), Brasil (Brasileirão).
+- Inicio de la Liga Master: siempre en 2.ª división; en Argentina e
+  Inglaterra se arranca más abajo. Los países con una sola división no son
+  elegibles. Siempre se elige entre **Equipo WE** (plantel genérico) o
+  **Club real** (el plantel del club elegido).
 - Temporadas con fixture ida y vuelta, tabla, goleadores.
 - Ascensos y descensos automáticos al cierre de temporada.
 - Sistema de puntos al estilo WE clásico (se ganan por resultados y se usan

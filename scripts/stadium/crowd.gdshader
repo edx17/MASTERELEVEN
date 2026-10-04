@@ -9,6 +9,48 @@ uniform float cheer = 0.0;
 uniform float empty = 0.0;
 // Qué parte del vaciado dura la salida de cada persona (≈7 s de 90).
 const float LEAVE_WINDOW = 0.08;
+// Pasillos y bocas de salida de la tribuna (StadiumBuilder._stand); sin
+// esto (layout_on = 0) suben derecho hasta arriba.
+instance uniform float layout_on = 0.0;
+instance uniform vec3 st_origin = vec3(0.0);
+instance uniform vec3 st_x = vec3(1.0, 0.0, 0.0);
+instance uniform vec3 st_z = vec3(0.0, 0.0, 1.0);
+instance uniform vec4 tier_z = vec4(100000.0);
+instance uniform vec4 vom_z = vec4(100000.0);
+instance uniform vec4 vom_y = vec4(0.0);
+instance uniform float vom_x0 = 0.0;
+instance uniform float vom_step = 26.4;
+// Óvalo (layout_on = 2): A0, B0 y forma del contorno (OvalStadiumBuilder).
+instance uniform vec3 oval = vec3(64.5, 45.0, 4.5);
+vec3 ring_point(float t, float off) {
+	float e = 2.0 / oval.z;
+	float c = cos(t);
+	float s = sin(t);
+	return vec3(sign(c) * pow(abs(c), e) * (oval.x + off), 0.0, sign(s) * pow(abs(s), e) * (oval.y + off));
+}
+
+// Punto de la fila en el ángulo polar phi (OvalStadiumBuilder.polar_point).
+vec3 polar_point(float phi, float off) {
+	float a = oval.x + off;
+	float b = oval.y + off;
+	float c = cos(phi);
+	float s = sin(phi);
+	float t = atan(pow(abs(s) * a / max(abs(c) * b, 1e-6), oval.z * 0.5));
+	return ring_point(atan(sign(s) * sin(t), sign(c) * cos(t)), off);
+}
+
+// Cuánto hacia afuera del borde interno está un punto (bisección).
+float ring_offset(vec3 p) {
+	float lo = 0.0;
+	float hi = 90.0;
+	for (int i = 0; i < 14; i++) {
+		float m = (lo + hi) * 0.5;
+		float f = pow(abs(p.x) / (oval.x + m), oval.z) + pow(abs(p.z) / (oval.y + m), oval.z);
+		if (f > 1.0) { lo = m; } else { hi = m; }
+	}
+	return (lo + hi) * 0.5;
+}
+
 uniform vec3 skin_light : source_color = vec3(0.93, 0.76, 0.63);
 uniform vec3 skin_dark : source_color = vec3(0.4, 0.27, 0.19);
 
@@ -31,6 +73,63 @@ void vertex() {
 	float p = clamp((empty - seed) / LEAVE_WINDOW, 0.0, 1.0);
 	if (p >= 1.0) {
 		VERTEX = vec3(0.0);
+	} else if (p > 0.0 && layout_on > 1.5) {
+		// Óvalo: por la fila hasta la escalera con boca, por la escalera
+		// hasta la boca y adentro (desplazamientos en el mundo, llevados al
+		// espacio de la persona).
+		vec3 w = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+		float off = ring_offset(w);
+		int t = int(off > tier_z.y) + int(off > tier_z.z) + int(off > tier_z.w);
+		float vo = vom_z[t];
+		float sit = smoothstep(0.0, 0.08, p);
+		vec3 d = vec3(0.0);
+		d.y = 0.22 * sit;
+		vec3 n = normalize(vec3(w.x / (oval.x * oval.x), 0.0, w.z / (oval.y * oval.y)));
+		if (vo > 90000.0) {
+			float up = smoothstep(0.3, 1.0, p);
+			d += n * up * 7.0 + vec3(0.0, up * 3.5, 0.0);
+		} else {
+			float phi = atan(w.z, w.x);
+			float k = round((phi / vom_step - 1.0) * 0.5) * 2.0 + 1.0;
+			float pv = k * vom_step;
+			vec3 aisle = polar_point(pv, off);
+			vec3 mouth = polar_point(pv, vo + 0.4);
+			float along = smoothstep(0.08, 0.45, p);
+			float stairs = smoothstep(0.45, 0.85, p);
+			float enter = smoothstep(0.85, 1.0, p);
+			d.xz += (aisle.xz - w.xz) * along + (mouth.xz - aisle.xz) * stairs + n.xz * enter * 2.2;
+			d.y += (vom_y[t] - w.y) * stairs - enter * 0.4;
+		}
+		d.y += abs(sin(TIME * 7.0 + seed * 20.0)) * 0.05 * sit;
+		VERTEX += inverse(mat3(MODEL_MATRIX)) * d;
+	} else if (p > 0.0 && layout_on > 0.5) {
+		// Dónde está sentado (en la tribuna) y a qué boca de salida va.
+		vec3 w = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz - st_origin;
+		float lx = dot(w, st_x);
+		float lz = dot(w, st_z);
+		float ly = w.y;
+		int t = int(lz > tier_z.y) + int(lz > tier_z.z) + int(lz > tier_z.w);
+		float vz = vom_z[t];
+		float vy = vom_y[t];
+		float sit = smoothstep(0.0, 0.08, p);
+		VERTEX.y += 0.22 * sit;
+		if (vz > 90000.0) {
+			// Bandeja sin boca: sube por el pasillo hasta arriba.
+			float up = smoothstep(0.3, 1.0, p);
+			VERTEX.z += up * 7.0;
+			VERTEX.y += up * 3.5;
+		} else {
+			float xa = vom_x0 + round((lx - vom_x0) / vom_step) * vom_step;
+			float along = smoothstep(0.08, 0.45, p);
+			float stairs = smoothstep(0.45, 0.85, p);
+			float enter = smoothstep(0.85, 1.0, p);
+			// Por la fila hasta el pasillo, por la escalera hasta la boca y
+			// adentro (hacia atrás y abajo, al túnel de la tribuna).
+			VERTEX.x += (xa - lx) * along;
+			VERTEX.z += (vz + 0.4 - lz) * stairs + enter * 2.2;
+			VERTEX.y += (vy - ly) * stairs - enter * 0.4;
+		}
+		VERTEX.y += abs(sin(TIME * 7.0 + seed * 20.0)) * 0.05 * sit;
 	} else if (p > 0.0) {
 		float aisle = (0.6 + fract(seed * 13.7) * 3.0) * (fract(seed * 7.3) < 0.5 ? -1.0 : 1.0);
 		float along = smoothstep(0.0, 0.4, p);

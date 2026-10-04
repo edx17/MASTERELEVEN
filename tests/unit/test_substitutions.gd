@@ -39,10 +39,16 @@ func test_bench_and_substitution_keep_the_slot() -> void:
 	assert_eq(t.slot_of(p), slot, "entra en el puesto del que sale")
 	assert_eq(t.players.size(), 11)
 	assert_false(t.players.has(out))
-	assert_false(out.visible)
+	# B13: con la pelota parada el cambio es animado (el suplente espera en
+	# la mitad de cancha; el que sale camina hasta ahí y se va).
+	assert_eq(m.sub_scenes.size(), 1, "escena del cambio")
+	assert_almost_eq(p.flat_pos().distance_to(m.sub_spot(t)), 0.0, 0.01, "espera en la mitad de cancha")
+	assert_true(out.visible, "el que sale todavía camina")
+	assert_gt(where.distance_to(m.sub_spot(t)), 1.0)
+	m._finish_sub_scenes()
+	assert_false(out.visible, "al terminar ya no está")
 	assert_eq(p.number, d.number)
 	assert_eq(p.base_spot, out.base_spot)
-	assert_almost_eq(p.flat_pos().distance_to(where), 0.0, 0.01)
 	assert_false(t.bench.has(d), "ya no está en el banco")
 	assert_eq(t.subs_used, 1)
 	assert_eq(m.stats["subs"][0], 1)
