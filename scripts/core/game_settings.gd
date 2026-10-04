@@ -85,9 +85,12 @@ var persist := true
 var random_conditions := true
 ## Repetición después de cada gol (apagada en tests y herramientas).
 var show_replays := true
-## Estilo de los jugadores: 0 = actual, 1 = retro estilo PS1 (beta, si está
-## el modelo base en la copia local).
-var player_style: int = 0
+## Estilo de los jugadores: clásico (pocos polígonos, como el WE de PS1; por
+## defecto), retro (el modelo base estilo PS1, beta) o detallado (el modelo
+## con músculos).
+enum PlayerStyle { CLASSIC, RETRO, DETAILED }
+const PLAYER_STYLE_NAMES := ["clásicos", "retro PS1 (beta)", "detallados"]
+var player_style: int = PlayerStyle.CLASSIC
 ## Repetición también de las jugadas peligrosas (remates cerca, atajadas al
 ## córner, faltas importantes).
 var replay_chances := true

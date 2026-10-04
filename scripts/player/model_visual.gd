@@ -58,6 +58,8 @@ var keeper := false
 var _body_mat: ShaderMaterial
 ## Cuerpo del modo retro (o null) y su piel / pelo.
 var _retro: MeshInstance3D
+## Cuerpo clásico (o null).
+var _classic: MeshInstance3D
 var _retro_colors := {}
 var _number_label: Label3D
 var carrying := false
@@ -170,8 +172,21 @@ func setup(colors: Dictionary, seed: int) -> void:
 		_apply_kit(mat, colors)
 		body.material_override = mat
 		_body_mat = mat
+	# Cuerpo clásico (por defecto): pocos polígonos y proporciones normales,
+	# con la misma ropa (diseño, número y escudo en la tela).
+	if GameSettings.player_style == GameSettings.PlayerStyle.CLASSIC and body != null and _body_mat != null:
+		# Caras planas separadas: la ropa no se "infla" (si no, se abren).
+		_body_mat.set_shader_parameter("cloth_inflate", 0.0)
+		_classic = ClassicBody.build(_skel, _body_mat)
+		body.visible = false
+		if hair_node != null:
+			hair_node.visible = false
+		for extra in ["Eyebrows", "Eyes"]:
+			var em := _skel.find_child(extra, false, false) as Node3D
+			if em != null:
+				em.visible = false
 	# Modo retro (beta): el modelo de pocos polígonos sobre el mismo esqueleto.
-	if GameSettings.player_style == 1 and RetroBody.available() and body != null:
+	if GameSettings.player_style == GameSettings.PlayerStyle.RETRO and RetroBody.available() and body != null:
 		_retro_colors = {"skin": SKIN_TONES[rng.randi() % SKIN_TONES.size()], "hair": HAIR_TONES[rng.randi() % HAIR_TONES.size()]}
 		var rc := colors.duplicate()
 		rc.merge(_retro_colors)

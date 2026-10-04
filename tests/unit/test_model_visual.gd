@@ -240,3 +240,19 @@ func test_team_kits_have_designs() -> void:
 		if td.pattern > 0:
 			striped += 1
 	assert_gte(striped, 4, "varios equipos con camisetas con diseño")
+
+
+func test_classic_body_is_the_default_and_wears_the_kit() -> void:
+	# Por defecto, el cuerpo clásico (pocos polígonos, proporciones normales),
+	# con la misma ropa: el material del cuerpo con diseño y número.
+	assert_eq(GameSettings.player_style, GameSettings.PlayerStyle.CLASSIC)
+	var v := ModelVisual.new()
+	add_child_autofree(v)
+	v.setup({"shirt": Color.RED, "shorts": Color.BLACK, "number": 8, "pattern": 1, "shirt2": Color.BLACK}, 9)
+	assert_not_null(v._classic)
+	assert_eq(v._classic.material_override, v._body_mat)
+	var body := v._skel.find_child(ModelVisual.BODY_MESH, false, false) as MeshInstance3D
+	assert_false(body.visible, "el modelo musculoso queda oculto")
+	var tris: int = v._classic.mesh.surface_get_array_len(0) / 3
+	assert_between(tris, 200, 1200, "pocos polígonos (%d)" % tris)
+	assert_ne(v._classic.mesh.surface_get_format(0) & Mesh.ARRAY_FORMAT_CUSTOM0, 0, "con la posición de reposo para la ropa")
