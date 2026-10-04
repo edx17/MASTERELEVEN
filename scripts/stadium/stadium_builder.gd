@@ -43,6 +43,8 @@ const TUNNEL_DEPTH := 16.0
 static func build(home: TeamData, away: TeamData = null, style: Dictionary = {}) -> Node3D:
 	if style.is_empty():
 		style = StadiumStyles.current
+	if style.get("oval", false):
+		return OvalStadiumBuilder.build(home, away, style)
 	var root := Node3D.new()
 	root.name = "Stadium"
 	var seat_color := seat_tone(home.color) if home != null else Color(0.8, 0.15, 0.15)
