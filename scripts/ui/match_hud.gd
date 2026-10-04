@@ -96,6 +96,14 @@ func setup(p_match: MatchController) -> void:
 	_hint.position.y -= Radar.SIZE.y + 30
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_hint)
+	# Se muestra con los íconos de los botones.
+	_hint.self_modulate.a = 0.0
+	var hm := ButtonIcons.Mirror.new(18, true)
+	hm.source = _hint
+	hm.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	hm.custom_minimum_size = Vector2(900, 30)
+	hm.position = Vector2(-450, _hint.position.y - 30)
+	add_child(hm)
 
 
 func _process(_dt: float) -> void:
@@ -131,13 +139,13 @@ func _process(_dt: float) -> void:
 	_banner.text = _match.banner_text
 	if _match.phase == MatchController.Phase.FULLTIME:
 		_banner.text = "FINAL   %s %d - %d %s" % [t0.short_name, t0.score, t1.score, t1.short_name]
-		_hint.text = "Enter / Start para volver al menú"
+		_hint.text = "{X} / Start: volver al menú"
 	else:
 		_hint.text = _match.toast_text
 		# Cuenta de los 6 s del arquero (en los últimos 3).
 		var left := _match.hands_time_left()
 		if left >= 0.0 and left < 3.0 and _hint.text == "":
-			_hint.text = "Arquero: %d s (Triángulo la suelta)" % ceili(left)
+			_hint.text = "Arquero: %d s ({TRI} la suelta)" % ceili(left)
 		var throw_left := _match.throw_in_time_left()
 		if throw_left >= 0.0 and throw_left < 3.0 and _hint.text == "":
 			_hint.text = "Lateral: %d s" % ceili(throw_left)

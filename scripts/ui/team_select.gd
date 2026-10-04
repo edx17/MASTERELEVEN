@@ -171,4 +171,4 @@ func _refresh() -> void:
 	_bars.away = teams[picks[1]].ratings()
 	_bars.queue_redraw()
 	_help.text = ("Elegí tu equipo." if single else ("Elegí el equipo LOCAL." if side == 0 else "Elegí el equipo VISITANTE.")) + \
-		"   X: elegir   Cuadrado (Z): al azar   Círculo (Esc): volver"
+		"   {X} elegir   {SQ} (Z) al azar   {O} (Esc) volver"

@@ -123,6 +123,7 @@ func _ready() -> void:
 	replay_chances = persist
 	if persist:
 		load_settings()
+		ControlsConfig.load_saved()
 	InputRouter.setup_for_mode(mode)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 	_check_capture_mode()

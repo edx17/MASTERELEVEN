@@ -89,7 +89,11 @@ func _init() -> void:
 			var p := _make_player(rng, roles[i], i + 1, names[i])
 			p.id = "%s_%02d" % [team.id, i + 1]
 			p.abilities = p.suggested_abilities()
+			p.fill_extended()
 			team.players.append(p)
+		var cap := PlayerData.pick_captain(team.players)
+		if cap != null and not cap.abilities.has("capitan"):
+			cap.abilities.append("capitan")
 		_save(team, "res://data/teams/%s.tres" % team.id)
 	print("Datos generados.")
 	quit()

@@ -15,7 +15,7 @@ Ver `Claude.md` para visión, criterios y fases.
 | 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) |
 | 8 — Pulido | ⬜ |
 | Entrenamiento (Club House) | 🟡 Implementado, **pendiente de tu prueba** |
-| Backlog B1–B9 (tu lista de pendientes) | 🟡 B1–B7 hechos, B8–B9 en curso (PR #24) |
+| Backlog B1–B9 (tu lista de pendientes) | 🟡 B1–B8 hechos, B9 en curso (PR #24) |
 
 ---
 
@@ -32,6 +32,7 @@ Ver `Claude.md` para visión, criterios y fases.
 | B5 Ataque | Con la pelota en la banda en el último tercio, los de arriba ocupan el área: punto penal, primer palo, segundo palo y uno a la puerta del área (nunca en offside). **Remate potente: L1 + R1 + Cuadrado**: la barra carga más lento, el jugador se perfila 0,3 s y le pega 30 % más fuerte con el doble de error. La CPU también lo usa de lejos. |
 | B6 Gráficos | Césped mate (rugosidad mínima 0,85 y casi sin especular: no se ve de plástico); túnel con paredes claras y cuatro paneles de luz (ya no es una cueva); vincha de tela mate sin brillo; **la red se infla donde pega la pelota** (según la velocidad) y vuelve oscilando; la pelota gira en las repeticiones (de B1). |
 | B7 Cinemáticas | Calentamiento: en cada mitad dos **rondos 4 contra 1** (la pelota de utilería circula de pie en pie y el del medio la persigue) y **los arqueros en su área atajando** remates (estirada, en el aire o agachado). Presentación: cada equipo en su fila (ya no pasa uno por delante del otro) y **dolly frontal** por los 11 de cada equipo; al llegar a cada jugador aparece su cartel (número, nombre, puesto) y el público responde (señal `player_announced` para el locutor). **Repetición del offside** con la línea del penúltimo defensor sobre el césped; las atajadas en las manos quedan en los highlights; los remates cerca/al palo ya tenían repetición. |
+| B8 UI | **Íconos de los botones** dibujados en el juego (cruz, círculo, cuadrado, triángulo, L1/R1/L2/R2) en las ayudas, la pantalla de equipo, el HUD y la presentación (en los textos: `{X}`, `{SQ}`...). **Dirección del equipo** rediseñada: cancha grande con fichas (número, puesto, apellido) que se deslizan a su lugar al cambiar la formación o hacer un cambio; menú con más aire y estrategias con su combinación de botones; ficha ampliada. **Cambio de controles** (Opciones > Controles): elegís la acción y apretás el botón o la tecla nueva; si otra la usaba se intercambian; Restaurar vuelve a fábrica; se guarda en `user://controls.cfg`. Nombre flotante más chico. **Ficha ampliada**: Ataque, Defensa, Balance, Estamina, Velocidad, Aceleración, Respuesta, Potencia de salto, Precisión de cabeza, Técnica, Precisión de pase, Potencia de remate, Precisión de remate, Gambeta, Curva (+ Fuerza y Arquero), altura cargada y etiquetas Gambeteador, Lanzador de tiros libres, Especialista en penales, Lanzador de córners, Muro defensivo, Atajador de penales y Capitán. Juegan: la potencia cambia la velocidad del remate, la curva la comba, el salto el alcance del cabezazo; los lanzadores patean sus pelotas paradas si no elegiste otro; el especialista en penales y el atajador de penales tienen ventaja en los once metros; el muro entra mejor. La pantalla de entretiempo es de B1. |
 
 ---
 

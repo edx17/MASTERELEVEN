@@ -60,7 +60,7 @@ var _announced := -1
 var _caption: PanelContainer
 var _ui: CanvasLayer
 var _menu: VBoxContainer
-var _hint: Label
+var _hint: Control
 var _formation: Control
 ## Dirección del equipo de la previa (alineación libre, pateadores, capitán).
 var sheet: TeamSheet
@@ -519,14 +519,14 @@ func _build_ui() -> void:
 	cond.add_theme_color_override("font_outline_color", Color.BLACK)
 	cond.add_theme_constant_override("outline_size", 6)
 	_menu.add_child(cond)
-	_hint = Label.new()
-	_hint.text = "X / Start: saltear"
-	_hint.add_theme_font_size_override("font_size", 18)
-	_hint.add_theme_color_override("font_outline_color", Color.BLACK)
-	_hint.add_theme_constant_override("outline_size", 6)
-	_hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	_hint.position += Vector2(-200, -50)
-	_ui.add_child(_hint)
+	var hint := ButtonIcons.IconLabel.new(18)
+	hint.add_theme_color_override("font_outline_color", Color.BLACK)
+	hint.add_theme_constant_override("outline_size", 6)
+	hint.custom_minimum_size = Vector2(220, 30)
+	hint.position = Vector2(1060, 650)
+	_ui.add_child(hint)
+	hint.show_text("{X} / Start: saltear")
+	_hint = hint
 	sheet = TeamSheet.new()
 	_ui.add_child(sheet)
 	sheet.closed.connect(func() -> void:

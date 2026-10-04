@@ -569,6 +569,7 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 		return null
 	var from_restart := restart_type if phase == Phase.RESTART else -1
 	kicks.set_piece = from_restart in [MatchRules.Restart.FREE_KICK, MatchRules.Restart.PENALTY]
+	kicks.penalty = from_restart == MatchRules.Restart.PENALTY
 	# El adelantado que la juega de primera (cabezazo, remate) también está
 	# en offside: se cobra antes de que su patada cuente.
 	if phase == Phase.PLAYING and not _offside.is_empty() and player != _offside["kicker"]:
@@ -667,6 +668,9 @@ func _plan_save_for(defenders: Team, extra_reaction: float) -> void:
 	if not plan.on_target:
 		return
 	var bonus := ais[defenders.index].difficulty.keeper_bonus if defenders.index < ais.size() else 0
+	# Atajador de penales: lee mejor al que patea desde los once metros.
+	if kicks.penalty and gk.data != null and gk.data.has_ability("ataja_penales"):
+		bonus += 12
 	var reaction := (gk.data.reaction if gk.data else 60) + bonus
 	var gk_skill := (gk.data.goalkeeping if gk.data else 60) + bonus
 	# Arquero que sale corriendo a achicar (Triángulo): reacciona peor al
@@ -912,9 +916,11 @@ func in_header_reach(p: Footballer) -> bool:
 		return false
 	# Los altos llegan más arriba y un poco más lejos.
 	var tall := p.data.body_height() if p.data else 1.0
-	# El cabeceador salta mejor.
+	# El cabeceador salta mejor; la potencia de salto suma (o resta) un poco.
 	if p.data != null and p.data.has_ability("cabeceador"):
 		tall += 0.04
+	if p.data != null and p.data.jump > 0:
+		tall += (p.data.jump - 60) / 600.0
 	if h > tuning.header_max_height * tall:
 		return false
 	return ball.flat_pos().distance_to(p.flat_pos()) < tuning.header_reach * lerpf(1.0, tall, 2.0)
@@ -1052,8 +1058,8 @@ func foul_chance(offender: Footballer, victim: Footballer, slide: bool) -> float
 	else:
 		p = 0.35 if front < -0.3 else 0.1
 	p += 0.1 * conditions.wetness if conditions != null else 0.0
-	# El marcador entra limpio.
-	if offender.data != null and offender.data.has_ability("marcador"):
+	# El marcador (y el muro defensivo) entra limpio.
+	if offender.data != null and (offender.data.has_ability("marcador") or offender.data.has_ability("muro")):
 		p *= 0.7
 	return clampf(p, 0.0, 0.9)
 
@@ -1927,6 +1933,8 @@ func tackle_chance(defender: Footballer, carrier: Footballer) -> float:
 		chance -= 0.1
 	if defender.data != null and defender.data.has_ability("marcador"):
 		chance += 0.08
+	if defender.data != null and defender.data.has_ability("muro"):
+		chance += 0.06
 	# En plena marsellesa la pelota queda protegida por el cuerpo que gira.
 	if carrier.skill == Footballer.Skill.ROULETTE:
 		chance *= 0.35
@@ -2465,7 +2473,7 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 			stand = spot - Vector3(team.attack_dir * 0.6, 0.0, 0.0)
 			look = Vector3(team.attack_dir, 0.0, 0.0)
 		MatchRules.Restart.CORNER:
-			taker = team.on_pitch(team.ck_taker)
+			taker = team.on_pitch(team.ck_taker) if team.ck_taker != null else team.tagged("corners")
 			if taker == null or taker.is_keeper():
 				taker = _nearest_outfield(team, spot)
 			var out := Vector3(signf(spot.x), 0.0, signf(spot.z)).normalized()
@@ -2473,7 +2481,8 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 			look = (team.target_goal() - spot).normalized()
 		MatchRules.Restart.FREE_KICK:
 			# El pateador elegido, si es para pegarle al arco; si no, el más cerca.
-			taker = team.on_pitch(team.fk_taker) if spot.distance_to(team.target_goal()) < FK_TAKER_RANGE else null
+			taker = (team.on_pitch(team.fk_taker) if team.fk_taker != null else team.tagged("especialista")) \
+					if spot.distance_to(team.target_goal()) < FK_TAKER_RANGE else null
 			if taker == null or taker.is_keeper():
 				taker = _nearest_outfield(team, spot)
 			look = (team.target_goal() - spot).normalized()
@@ -2481,7 +2490,7 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 			# desde la cámara de atrás se ve la pelota y el arco).
 			stand = spot - look * FK_STAND_BACK + Vector3.UP.cross(look).normalized() * FK_STAND_SIDE
 		MatchRules.Restart.PENALTY:
-			taker = team.on_pitch(team.pk_taker)
+			taker = team.on_pitch(team.pk_taker) if team.pk_taker != null else team.tagged("penales")
 			if taker == null:
 				taker = _best_shooter(team)
 			look = (team.target_goal() - spot).normalized()

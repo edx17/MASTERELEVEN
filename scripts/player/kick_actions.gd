@@ -321,6 +321,8 @@ func _best_in_box(player: Footballer) -> Footballer:
 ## shooting/technique/balance, la presión, la orientación y la distancia.
 ## La patada es un tiro libre o un penal (para el especialista). La fija el partido.
 var set_piece := false
+## La patada es un penal (para el especialista en penales y el atajador).
+var penalty := false
 
 
 func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, placed: bool = false,
@@ -366,8 +368,10 @@ func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, pl
 			err *= 0.8
 		if header and data.has_ability("cabeceador"):
 			err *= 0.75
-		if set_piece and data.has_ability("especialista"):
+		if set_piece and not penalty and data.has_ability("especialista"):
 			err *= 0.65
+		if penalty and data.has_ability("penales"):
+			err *= 0.55
 	err += KickAccuracy.fatigue_penalty(player.stamina_fraction())
 	last_error = err
 	if randomize_error:
@@ -379,6 +383,9 @@ func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, pl
 		speed *= PLACED_SPEED
 	elif power_shot:
 		speed *= POWER_SPEED
+	# Potencia de remate: +-8 % de velocidad.
+	if data != null and data.shot_power > 0 and not header:
+		speed *= lerpf(0.92, 1.08, PlayerData.unit(data.shot_power))
 	if weak:
 		speed *= WEAK_FOOT_SPEED
 	# La potencia define a qué altura llega al arco: floja = rasante, fuerte =
@@ -405,7 +412,8 @@ func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, pl
 			ball.state.pos.y = tuning.ball_radius
 	# Un poco de comba natural hacia el centro del arco.
 	# Comba natural del empeine hacia el centro del arco (0-30 rad/s).
-	var curl := Vector3(0.0, signf(aim_z) * side * randf_range(0.0, 30.0), 0.0) if randomize_error else Vector3.ZERO
+	var curve_k := lerpf(0.6, 1.3, PlayerData.unit(data.curve)) if data != null and data.curve > 0 else 1.0
+	var curl := Vector3(0.0, signf(aim_z) * side * randf_range(0.0, 30.0) * curve_k, 0.0) if randomize_error else Vector3.ZERO
 	ball.intended_receiver = null
 	ball.kick(vel, curl, player)
 

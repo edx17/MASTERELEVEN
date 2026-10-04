@@ -9,6 +9,7 @@ script = ExtResource("2_jjgwi")
 id = "pampa_01"
 player_name = "L. Benavídez"
 position = 0
+height = 192
 speed = 57
 acceleration = 74
 stamina = 63
@@ -22,7 +23,11 @@ defense = 47
 reaction = 82
 balance = 68
 goalkeeping = 80
-abilities = PackedStringArray("atajador")
+attack = 29
+jump = 69
+shot_power = 38
+curve = 35
+abilities = PackedStringArray("atajador", "ataja_penales")
 
 [sub_resource type="Resource" id="Resource_6uswf"]
 script = ExtResource("2_jjgwi")
@@ -30,6 +35,7 @@ id = "pampa_02"
 player_name = "T. Nazar"
 number = 2
 position = 1
+height = 170
 speed = 72
 acceleration = 67
 stamina = 69
@@ -42,7 +48,11 @@ heading = 66
 defense = 82
 balance = 58
 goalkeeping = 30
-abilities = PackedStringArray("gambeteador", "marcador")
+attack = 53
+jump = 69
+shot_power = 55
+curve = 57
+abilities = PackedStringArray("gambeteador", "marcador", "muro")
 
 [sub_resource type="Resource" id="Resource_aqhuf"]
 script = ExtResource("2_jjgwi")
@@ -51,6 +61,7 @@ player_name = "D. Kessler"
 number = 3
 position = 1
 foot = 1
+height = 190
 speed = 58
 acceleration = 74
 stamina = 72
@@ -64,6 +75,10 @@ defense = 71
 reaction = 69
 balance = 68
 goalkeeping = 30
+attack = 45
+jump = 80
+shot_power = 64
+curve = 56
 abilities = PackedStringArray("cabeceador")
 
 [sub_resource type="Resource" id="Resource_cqltb"]
@@ -72,6 +87,7 @@ id = "pampa_04"
 player_name = "D. Jáuregui"
 number = 4
 position = 1
+height = 174
 speed = 72
 acceleration = 58
 stamina = 67
@@ -85,6 +101,10 @@ defense = 66
 reaction = 62
 balance = 61
 goalkeeping = 33
+attack = 46
+jump = 68
+shot_power = 56
+curve = 56
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_yke10"]
@@ -93,6 +113,7 @@ id = "pampa_05"
 player_name = "O. Garmendia"
 number = 5
 position = 1
+height = 168
 speed = 73
 acceleration = 62
 stamina = 62
@@ -105,6 +126,10 @@ heading = 71
 defense = 66
 balance = 66
 goalkeeping = 31
+attack = 47
+jump = 72
+shot_power = 63
+curve = 60
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_leg2v"]
@@ -112,6 +137,7 @@ script = ExtResource("2_jjgwi")
 id = "pampa_06"
 player_name = "L. Duarte"
 number = 6
+height = 179
 speed = 73
 acceleration = 74
 stamina = 66
@@ -125,13 +151,18 @@ defense = 64
 reaction = 59
 balance = 62
 goalkeeping = 30
-abilities = PackedStringArray("pasador")
+attack = 72
+jump = 58
+shot_power = 56
+curve = 79
+abilities = PackedStringArray("pasador", "corners")
 
 [sub_resource type="Resource" id="Resource_quq5v"]
 script = ExtResource("2_jjgwi")
 id = "pampa_07"
 player_name = "B. Valdano"
 number = 7
+height = 179
 speed = 71
 acceleration = 68
 stamina = 78
@@ -145,7 +176,11 @@ defense = 57
 reaction = 69
 balance = 66
 goalkeeping = 30
-abilities = PackedStringArray("pasador")
+attack = 70
+jump = 63
+shot_power = 66
+curve = 75
+abilities = PackedStringArray("pasador", "corners", "capitan")
 
 [sub_resource type="Resource" id="Resource_fjpdx"]
 script = ExtResource("2_jjgwi")
@@ -153,6 +188,7 @@ id = "pampa_08"
 player_name = "M. Werthein"
 number = 8
 foot = 1
+height = 189
 speed = 64
 acceleration = 67
 stamina = 72
@@ -165,6 +201,10 @@ defense = 65
 reaction = 65
 balance = 69
 goalkeeping = 31
+attack = 74
+jump = 73
+shot_power = 60
+curve = 71
 abilities = PackedStringArray("pasador", "gambeteador")
 
 [sub_resource type="Resource" id="Resource_yg4yb"]
@@ -172,6 +212,7 @@ script = ExtResource("2_jjgwi")
 id = "pampa_09"
 player_name = "F. Rivadeo"
 number = 9
+height = 178
 speed = 69
 acceleration = 71
 stamina = 81
@@ -185,6 +226,10 @@ defense = 57
 reaction = 69
 balance = 67
 goalkeeping = 30
+attack = 67
+jump = 57
+shot_power = 64
+curve = 69
 abilities = PackedStringArray("especialista")
 
 [sub_resource type="Resource" id="Resource_rflhg"]
@@ -193,6 +238,7 @@ id = "pampa_10"
 player_name = "B. Salcedo"
 number = 10
 position = 3
+height = 178
 speed = 72
 acceleration = 74
 stamina = 66
@@ -206,7 +252,11 @@ defense = 47
 reaction = 70
 balance = 62
 goalkeeping = 30
-abilities = PackedStringArray("gambeteador")
+attack = 82
+jump = 70
+shot_power = 67
+curve = 59
+abilities = PackedStringArray("gambeteador", "penales")
 
 [sub_resource type="Resource" id="Resource_1ior3"]
 script = ExtResource("2_jjgwi")
@@ -214,6 +264,7 @@ id = "pampa_11"
 player_name = "E. Espina"
 number = 11
 position = 3
+height = 178
 speed = 66
 acceleration = 64
 stamina = 68
@@ -226,6 +277,10 @@ defense = 44
 reaction = 70
 balance = 71
 goalkeeping = 30
+attack = 83
+jump = 68
+shot_power = 76
+curve = 53
 abilities = PackedStringArray("goleador")
 
 [sub_resource type="Resource" id="Resource_8bxgj"]
@@ -234,6 +289,7 @@ id = "pampa_12"
 player_name = "A. Hidalgo"
 number = 12
 position = 0
+height = 192
 speed = 52
 acceleration = 59
 stamina = 62
@@ -246,6 +302,10 @@ defense = 39
 reaction = 69
 balance = 62
 goalkeeping = 71
+attack = 23
+jump = 67
+shot_power = 40
+curve = 45
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_0e5vm"]
@@ -254,6 +314,7 @@ id = "pampa_13"
 player_name = "F. Dalmasso"
 number = 13
 position = 1
+height = 171
 speed = 61
 acceleration = 58
 stamina = 76
@@ -267,13 +328,18 @@ defense = 75
 reaction = 64
 balance = 67
 goalkeeping = 30
-abilities = PackedStringArray("gambeteador")
+attack = 47
+jump = 64
+shot_power = 61
+curve = 63
+abilities = PackedStringArray("gambeteador", "muro")
 
 [sub_resource type="Resource" id="Resource_gmcfl"]
 script = ExtResource("2_jjgwi")
 id = "pampa_14"
 player_name = "F. Figueras"
 number = 14
+height = 166
 speed = 62
 stamina = 70
 strength = 56
@@ -285,6 +351,10 @@ defense = 58
 reaction = 65
 balance = 69
 goalkeeping = 33
+attack = 69
+jump = 60
+shot_power = 55
+curve = 64
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_itxps"]
@@ -292,6 +362,7 @@ script = ExtResource("2_jjgwi")
 id = "pampa_15"
 player_name = "L. Cardozo"
 number = 15
+height = 179
 speed = 71
 acceleration = 63
 stamina = 74
@@ -305,6 +376,10 @@ defense = 50
 reaction = 62
 balance = 66
 goalkeeping = 30
+attack = 62
+jump = 58
+shot_power = 69
+curve = 62
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_glx0y"]
@@ -314,6 +389,7 @@ player_name = "P. Urquiza"
 number = 16
 position = 3
 foot = 1
+height = 180
 speed = 67
 acceleration = 73
 stamina = 65
@@ -327,6 +403,10 @@ defense = 32
 reaction = 62
 balance = 65
 goalkeeping = 30
+attack = 84
+jump = 70
+shot_power = 73
+curve = 56
 abilities = PackedStringArray("goleador")
 
 [sub_resource type="Resource" id="Resource_us1xu"]
@@ -335,6 +415,7 @@ id = "pampa_17"
 player_name = "H. Maidana"
 number = 17
 position = 1
+height = 171
 speed = 73
 acceleration = 70
 stamina = 62
@@ -347,7 +428,11 @@ defense = 75
 reaction = 58
 balance = 65
 goalkeeping = 30
-abilities = PackedStringArray()
+attack = 51
+jump = 73
+shot_power = 55
+curve = 54
+abilities = PackedStringArray("muro")
 
 [sub_resource type="Resource" id="Resource_0mc8v"]
 script = ExtResource("2_jjgwi")
@@ -355,6 +440,7 @@ id = "pampa_18"
 player_name = "O. Ferrán"
 number = 18
 position = 1
+height = 165
 speed = 67
 acceleration = 70
 stamina = 62
@@ -367,13 +453,18 @@ defense = 79
 reaction = 61
 balance = 67
 goalkeeping = 30
-abilities = PackedStringArray("cabeceador", "marcador")
+attack = 56
+jump = 68
+shot_power = 62
+curve = 59
+abilities = PackedStringArray("cabeceador", "marcador", "muro")
 
 [sub_resource type="Resource" id="Resource_0n8wf"]
 script = ExtResource("2_jjgwi")
 id = "pampa_19"
 player_name = "F. Zabala"
 number = 19
+height = 175
 speed = 62
 acceleration = 63
 stamina = 67
@@ -386,6 +477,10 @@ heading = 54
 defense = 61
 reaction = 69
 goalkeeping = 30
+attack = 65
+jump = 60
+shot_power = 53
+curve = 62
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_x2f5d"]
@@ -394,6 +489,7 @@ id = "pampa_20"
 player_name = "B. Quiroga"
 number = 20
 foot = 1
+height = 181
 speed = 59
 acceleration = 68
 stamina = 69
@@ -405,6 +501,10 @@ heading = 62
 reaction = 61
 balance = 57
 goalkeeping = 31
+attack = 63
+jump = 60
+shot_power = 63
+curve = 66
 abilities = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_rt5uw"]
@@ -413,6 +513,7 @@ id = "pampa_21"
 player_name = "C. Larrea"
 number = 21
 position = 3
+height = 182
 speed = 68
 acceleration = 68
 strength = 65
@@ -425,6 +526,10 @@ defense = 47
 reaction = 64
 balance = 63
 goalkeeping = 30
+attack = 83
+jump = 68
+shot_power = 70
+curve = 54
 abilities = PackedStringArray("goleador")
 
 [sub_resource type="Resource" id="Resource_362ds"]
@@ -434,6 +539,7 @@ player_name = "O. Echeverri"
 number = 22
 position = 3
 foot = 1
+height = 193
 speed = 67
 acceleration = 68
 stamina = 67
@@ -446,7 +552,11 @@ heading = 56
 defense = 33
 reaction = 63
 goalkeeping = 30
-abilities = PackedStringArray("goleador", "gambeteador")
+attack = 78
+jump = 62
+shot_power = 74
+curve = 61
+abilities = PackedStringArray("goleador", "gambeteador", "penales")
 
 [sub_resource type="Resource" id="Resource_30iu4"]
 script = ExtResource("2_jjgwi")
@@ -454,6 +564,7 @@ id = "pampa_23"
 player_name = "O. Arrieta"
 number = 23
 position = 0
+height = 166
 speed = 55
 acceleration = 66
 stamina = 71
@@ -467,6 +578,10 @@ defense = 38
 reaction = 69
 balance = 57
 goalkeeping = 70
+attack = 25
+jump = 60
+shot_power = 31
+curve = 46
 abilities = PackedStringArray()
 
 [resource]
@@ -477,9 +592,9 @@ short_name = "UPA"
 color = Color(0.1, 0.55, 0.25, 1)
 secondary_color = Color(0.95, 0.95, 0.95, 1)
 keeper_color = Color(0.95, 0.85, 0.15, 1)
-pattern = 3
-pattern_color = Color(0.95, 0.95, 0.95, 1)
 away_color = Color(0.95, 0.95, 0.95, 1)
 away_secondary = Color(0.1, 0.55, 0.25, 1)
+pattern = 3
+pattern_color = Color(0.95, 0.95, 0.95, 1)
 formation = ExtResource("1_7klvr")
 players = Array[ExtResource("2_jjgwi")]([SubResource("Resource_sdp2p"), SubResource("Resource_6uswf"), SubResource("Resource_aqhuf"), SubResource("Resource_cqltb"), SubResource("Resource_yke10"), SubResource("Resource_leg2v"), SubResource("Resource_quq5v"), SubResource("Resource_fjpdx"), SubResource("Resource_yg4yb"), SubResource("Resource_rflhg"), SubResource("Resource_1ior3"), SubResource("Resource_8bxgj"), SubResource("Resource_0e5vm"), SubResource("Resource_gmcfl"), SubResource("Resource_itxps"), SubResource("Resource_glx0y"), SubResource("Resource_us1xu"), SubResource("Resource_0mc8v"), SubResource("Resource_0n8wf"), SubResource("Resource_x2f5d"), SubResource("Resource_rt5uw"), SubResource("Resource_362ds"), SubResource("Resource_30iu4")])

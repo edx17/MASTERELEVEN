@@ -65,44 +65,55 @@ func _ready() -> void:
 	dim.color = Color(0, 0, 0, 0.45)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
+	# Izquierda: el plantel. Derecha: la cancha grande con la formación
+	# (los jugadores se acomodan solos al cambiarla), y abajo el menú y la
+	# ficha del jugador marcado.
 	var root := HBoxContainer.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	root.custom_minimum_size = Vector2(1180, 680)
+	root.custom_minimum_size = Vector2(1240, 690)
 	root.position = -root.custom_minimum_size * 0.5
-	root.add_theme_constant_override("separation", 18)
+	root.add_theme_constant_override("separation", 14)
 	add_child(root)
-	# Izquierda: equipo, minicancha y lista.
-	var left := _panel(root, Vector2(560, 680))
+	var left := _panel(root, Vector2(470, 690))
 	var lbox := VBoxContainer.new()
 	lbox.add_theme_constant_override("separation", 4)
 	left.add_child(lbox)
 	_title = _label(lbox, "", 20, Color(1.0, 0.85, 0.3))
-	_pitch = MiniPitch.new()
-	_pitch.custom_minimum_size = Vector2(530, 128)
-	lbox.add_child(_pitch)
 	var head := HBoxContainer.new()
 	lbox.add_child(head)
 	_label(head, "Jugador", 15, Color(0.7, 0.8, 0.95)).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_col_label = _label(head, "", 15, Color(0.7, 0.8, 0.95))
 	_list = VBoxContainer.new()
-	_list.add_theme_constant_override("separation", 1)
+	_list.add_theme_constant_override("separation", 2)
 	lbox.add_child(_list)
-	# Derecha: menú, ficha y ayuda.
 	var right := VBoxContainer.new()
-	right.custom_minimum_size = Vector2(600, 680)
-	right.add_theme_constant_override("separation", 12)
+	right.custom_minimum_size = Vector2(756, 690)
+	right.add_theme_constant_override("separation", 10)
 	root.add_child(right)
-	var mp := _panel(right, Vector2(600, 0))
+	var pp := _panel(right, Vector2(756, 0))
+	_pitch = MiniPitch.new()
+	_pitch.custom_minimum_size = Vector2(730, 236)
+	pp.add_child(_pitch)
+	var bottom := HBoxContainer.new()
+	bottom.add_theme_constant_override("separation", 10)
+	bottom.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right.add_child(bottom)
+	var mp := _panel(bottom, Vector2(318, 0))
 	_menu = VBoxContainer.new()
-	_menu.add_theme_constant_override("separation", 2)
+	_menu.add_theme_constant_override("separation", 4)
 	mp.add_child(_menu)
-	var dp := _panel(right, Vector2(600, 0))
-	dp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var dp := _panel(bottom, Vector2(428, 0))
+	dp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_detail = VBoxContainer.new()
-	_detail.add_theme_constant_override("separation", 2)
+	_detail.add_theme_constant_override("separation", 3)
 	dp.add_child(_detail)
-	_status = _label(right, "", 16, Color(0.85, 0.9, 1.0))
+	_status = _label(right, "", 15, Color(0.85, 0.9, 1.0))
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_status.visible = false
+	var sm := ButtonIcons.Mirror.new(15, false, Color(0.85, 0.9, 1.0))
+	sm.source = _status
+	sm.custom_minimum_size = Vector2(756, 40)
+	right.add_child(sm)
 
 
 ## Abre la pantalla para el equipo `t` (previa = cambios libres y "Jugar").
@@ -208,7 +219,7 @@ func _rebuild() -> void:
 			sep.custom_minimum_size = Vector2(0, 2)
 			_list.add_child(sep)
 		_rows.append(_row(i, e, pending.get(e["d"], "")))
-	_col_label.text = "%s   (L1 / R1)" % COLUMN_NAMES[column]
+	_col_label.text = "%s" % COLUMN_NAMES[column]
 	_title.text = "%s  ·  %s" % [team.team_name, team.formation.formation_name if team.formation else ""]
 	_build_menu()
 	_pitch.team = team
@@ -229,7 +240,7 @@ func _rebuild() -> void:
 
 func _row(i: int, e: Dictionary, pending: String) -> Button:
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(530, 20)
+	b.custom_minimum_size = Vector2(444, 22)
 	b.focus_mode = Control.FOCUS_ALL
 	var bg := ROW if e["kind"] == "pitch" else ROW_BENCH
 	if not _marked.is_empty() and _marked["d"] == e["d"]:
@@ -253,7 +264,7 @@ func _row(i: int, e: Dictionary, pending: String) -> Button:
 		"red": name_color = Color(1.0, 0.35, 0.3)
 		"out": name_color = Color(0.5, 0.52, 0.56)
 	var tag := ""
-	if team.captain == d:
+	if team.captain_data() == d:
 		tag += "  (C)"
 	if pending != "":
 		tag += "  [%s]" % pending
@@ -399,20 +410,21 @@ func _build_menu() -> void:
 	_menu_button("Tiros libres: %s" % _taker_name(team.fk_taker), _choose.bind(Mode.FK))
 	_menu_button("Córners: %s" % _taker_name(team.ck_taker), _choose.bind(Mode.CK))
 	_menu_button("Penales: %s" % _taker_name(team.pk_taker), _choose.bind(Mode.PK))
-	_menu_button("Capitán: %s" % _taker_name(team.captain), _choose.bind(Mode.CAPTAIN))
+	_menu_button("Capitán: %s" % _taker_name(team.captain, team.captain_data()), _choose.bind(Mode.CAPTAIN))
 	_menu_button("Formación: %s" % (team.formation.formation_name if team.formation else "-"), _next_formation)
 	for i in team.strategy_slots.size():
 		var on := "  (activa)" if team.strategy == team.strategy_slots[i] else ""
-		_menu_button("Estrategia L2 + %s: %s%s" % [Strategy.BUTTON_NAMES[i], Strategy.NAMES[team.strategy_slots[i]], on],
-			cycle_strategy_slot.bind(i))
+		var sb := _menu_button("%s%s" % [Strategy.NAMES[team.strategy_slots[i]], on], cycle_strategy_slot.bind(i))
+		sb.icon = ButtonIcons.combo(["L2", Strategy.BUTTON_ICONS[i]], 20)
 
 
 func _menu_button(text: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.custom_minimum_size = Vector2(570, 25)
-	b.add_theme_font_size_override("font_size", 16)
+	b.custom_minimum_size = Vector2(294, 25)
+	b.add_theme_font_size_override("font_size", 15)
+	b.clip_text = true
 	for st in ["normal", "hover", "focus", "pressed"]:
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = Color(0.3, 0.5, 0.75, 0.9) if st in ["focus", "hover"] else Color(0, 0, 0, 0)
@@ -425,8 +437,10 @@ func _menu_button(text: String, cb: Callable) -> Button:
 	return b
 
 
-func _taker_name(d: PlayerData) -> String:
-	return d.player_name if d != null else "automático"
+func _taker_name(d: PlayerData, auto: PlayerData = null) -> String:
+	if d != null:
+		return d.player_name
+	return "auto (%s)" % auto.player_name if auto != null else "automático"
 
 
 func _mode_name(m: int) -> String:
@@ -485,11 +499,11 @@ func _next_formation() -> void:
 func _hint() -> String:
 	match mode:
 		Mode.CAPTAIN, Mode.FK, Mode.CK, Mode.PK:
-			return "%s: elegí un jugador de la cancha.   Círculo / Esc: volver" % _mode_name(mode)
+			return "%s: elegí un jugador de la cancha.   {O} / Esc: volver" % _mode_name(mode)
 	if not _marked.is_empty():
-		return "%s marcado: elegí con quién cambiarlo.   Círculo / Esc: desmarcar" % _marked["d"].player_name
-	var extra := "cambio libre" if prematch else "titular por suplente: cambio en la próxima pelota parada"
-	return "X en dos jugadores: se intercambian (%s).  L1 / R1: columna" % extra
+		return "%s marcado: elegí con quién cambiarlo.   {O} / Esc: desmarcar" % _marked["d"].player_name
+	var extra := "cambio libre" if prematch else "entra en la próxima pelota parada"
+	return "{X} en dos jugadores: se intercambian (%s).   {L1} / {R1} columna" % extra
 
 
 # --- Ficha ----------------------------------------------------------------------
@@ -505,15 +519,16 @@ func _show_detail(i: int) -> void:
 	var p: Footballer = e["p"]
 	var cond := team.condition_of(base)
 	var d: PlayerData = p.data if p != null and p.data != null else base.with_condition(cond)
-	_label(_detail, "%d  %s" % [base.number, base.player_name], 24, Color.WHITE)
+	_label(_detail, "%d  %s" % [base.number, base.player_name], 21, Color.WHITE)
 	var info := "%s  ·  %s  ·  %d cm  ·  Condición: %s" % [POS_CODES[base.position],
 		"Zurdo" if base.foot == PlayerData.Foot.LEFT else "Diestro", base.height_cm(),
 		PlayerData.CONDITION_NAMES[cond]]
 	if p != null and e["kind"] == "pitch":
 		info += "  ·  Energía %d%%" % roundi(p.stamina_cap())
-	_label(_detail, info, 15, Color(0.75, 0.85, 1.0))
+	var il := _label(_detail, info, 13, Color(0.75, 0.85, 1.0))
+	il.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var roles := []
-	if team.captain == base:
+	if team.captain_data() == base:
 		roles.append("Capitán")
 	if team.fk_taker == base:
 		roles.append("Tiros libres")
@@ -528,21 +543,27 @@ func _show_detail(i: int) -> void:
 	if e["kind"] == "out":
 		roles.append("Ya salió")
 	if not roles.is_empty():
-		_label(_detail, " · ".join(roles), 15, Color(1.0, 0.8, 0.3))
+		_label(_detail, " · ".join(roles), 13, Color(1.0, 0.8, 0.3))
 	var grid := GridContainer.new()
 	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 18)
-	grid.add_theme_constant_override("v_separation", 1)
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 0)
 	_detail.add_child(grid)
 	for k in PlayerData.ATTRIBUTES.size():
 		var v := int(d.get(PlayerData.ATTRIBUTES[k]))
-		var nl := _label(grid, PlayerData.ATTRIBUTE_NAMES[k], 16, Color(0.85, 0.88, 0.95))
+		if v <= 0:
+			continue
+		var nl := _label(grid, PlayerData.ATTRIBUTE_NAMES[k], 13, Color(0.85, 0.88, 0.95))
 		nl.custom_minimum_size = Vector2(150, 0)
-		var vl := _label(grid, str(v), 16, attribute_color(v))
-		vl.custom_minimum_size = Vector2(40, 0)
-	# Habilidades especiales (las estrellitas del WE).
+		var vl := _label(grid, str(v), 13, attribute_color(v))
+		vl.custom_minimum_size = Vector2(30, 0)
+	# Etiquetas (las estrellitas del WE), en una sola línea.
+	var tags := PackedStringArray()
 	for id in base.abilities:
-		_label(_detail, "★ " + String(PlayerData.ABILITY_NAMES.get(id, id)), 15, Color(1.0, 0.85, 0.35))
+		tags.append(String(PlayerData.ABILITY_NAMES.get(id, id)))
+	if not tags.is_empty():
+		var tl := _label(_detail, "★ " + "  ★ ".join(tags), 13, Color(1.0, 0.85, 0.35))
+		tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 
 ## Colores de los puntajes como en el WE: los altos resaltan.
@@ -580,43 +601,81 @@ func _label(parent: Control, text: String, font_size: int, color: Color) -> Labe
 	return l
 
 
-## Minicancha con la formación (el equipo ataca hacia la derecha).
+## Cancha con la formación (el equipo ataca hacia la derecha). Cada jugador
+## es una ficha con su número, puesto y apellido; al cambiar la formación o
+## hacer un cambio, las fichas se deslizan a su lugar nuevo.
 class MiniPitch:
 	extends Control
 	var team: Team
 	var focused: Footballer
 	var marked: Footballer
+	## Posición dibujada de cada ficha (0..1 en la cancha), que sigue a la real.
+	var _shown := {}
+
+	func _process(dt: float) -> void:
+		if team == null:
+			return
+		var moving := false
+		for p in team.players:
+			var want := spot_of(p)
+			var cur: Vector2 = _shown.get(p, want)
+			var nxt := cur.lerp(want, 1.0 - exp(-10.0 * dt))
+			if nxt.distance_to(want) < 0.001:
+				nxt = want
+			else:
+				moving = true
+			_shown[p] = nxt
+		if moving:
+			queue_redraw()
+
+	## Lugar de la ficha de `p` en la cancha (x 0..1 de arco propio a rival,
+	## y 0..1 de arriba abajo).
+	func spot_of(p: Footballer) -> Vector2:
+		# Las posiciones base van de su arco a la mitad: se estiran a la cancha.
+		var max_x := 0.3
+		for q in team.players:
+			max_x = maxf(max_x, q.base_spot.x)
+		return Vector2(0.06 + 0.84 * clampf(p.base_spot.x / max_x, 0.0, 1.0), 0.5 - p.base_spot.y * 0.5)
+
+	## Lugar dibujado ahora (para los tests: se anima hacia spot_of).
+	func shown_of(p: Footballer) -> Vector2:
+		return _shown.get(p, spot_of(p))
 
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
 		draw_rect(r, Color(0.16, 0.42, 0.2))
-		for i in 8:
+		for i in 10:
 			if i % 2 == 0:
-				draw_rect(Rect2(r.position.x + r.size.x * i / 8.0, 0, r.size.x / 8.0, r.size.y), Color(0.19, 0.47, 0.23))
+				draw_rect(Rect2(r.size.x * i / 10.0, 0, r.size.x / 10.0, r.size.y), Color(0.19, 0.47, 0.23))
 		var line := Color(1, 1, 1, 0.75)
 		draw_rect(r.grow(-2), line, false, 1.5)
 		draw_line(Vector2(r.size.x * 0.5, 2), Vector2(r.size.x * 0.5, r.size.y - 2), line, 1.5)
-		draw_arc(r.get_center(), r.size.y * 0.16, 0, TAU, 32, line, 1.5)
+		draw_arc(r.get_center(), r.size.y * 0.15, 0, TAU, 40, line, 1.5)
 		for side in [0.0, 1.0]:
 			var w := r.size.x * 0.13
-			var h := r.size.y * 0.55
+			var h := r.size.y * 0.58
 			draw_rect(Rect2(absf(side * r.size.x - (w if side > 0 else 0.0)), (r.size.y - h) * 0.5, w, h), line, false, 1.5)
 		if team == null:
 			return
-		var max_x := 0.01
-		for p in team.players:
-			max_x = maxf(max_x, p.base_spot.x)
 		var font := get_theme_default_font()
 		for p in team.players:
-			var pos := Vector2(r.size.x * (0.05 + 0.9 * p.base_spot.x / max_x), r.size.y * 0.5 - p.base_spot.y * r.size.y * 0.4)
+			var n := shown_of(p)
+			var pos := Vector2(r.size.x * n.x, 16.0 + (r.size.y - 40.0) * n.y)
 			var c := team.keeper_color if p.is_keeper() else team.color
 			if p == marked:
-				draw_circle(pos, 12.0, Color(1.0, 0.75, 0.1))
+				draw_circle(pos, 17.0, Color(1.0, 0.75, 0.1))
 			elif p == focused:
-				draw_circle(pos, 12.0, Color.WHITE)
-			draw_circle(pos, 9.0, c)
+				draw_circle(pos, 17.0, Color.WHITE)
+			draw_circle(pos, 13.0, c)
+			draw_arc(pos, 13.0, 0, TAU, 24, Color(0, 0, 0, 0.6), 1.5)
 			var ink := Color.BLACK if c.get_luminance() > 0.35 else Color.WHITE
-			draw_string(font, pos + Vector2(-7, 5), str(p.number), HORIZONTAL_ALIGNMENT_CENTER, 14, 12, ink)
+			draw_string(font, pos + Vector2(-13, 5), str(p.number), HORIZONTAL_ALIGNMENT_CENTER, 26, 14, ink)
+			var code: String = "GK" if p.is_keeper() else ROLE_CODES[clampi(p.tactical_role, 0, ROLE_CODES.size() - 1)]
+			var pos_i := PlayerData.Position.GK if p.is_keeper() else TacticalRole.to_position(p.tactical_role)
+			draw_rect(Rect2(pos + Vector2(-42, -7), Vector2(25, 14)), POS_COLORS[pos_i])
+			draw_string(font, pos + Vector2(-42, 4), code, HORIZONTAL_ALIGNMENT_CENTER, 25, 11, Color.WHITE)
+			var surname := p.display_name.get_slice(" ", p.display_name.get_slice_count(" ") - 1)
+			draw_string(font, pos + Vector2(-45, 26), surname, HORIZONTAL_ALIGNMENT_CENTER, 90, 12, Color.WHITE)
 
 
 ## Barra de energía: lo actual, y en oscuro lo que se perdió por el desgaste.
