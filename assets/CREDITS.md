@@ -24,12 +24,16 @@ similares con licencia compatible).
 | Herramienta | Ubicación | Origen | Licencia |
 |-------------|-----------|--------|----------|
 | GUT 9.7.1 (tests unitarios) | `addons/gut/` | https://github.com/bitwes/Gut | MIT (`addons/gut/LICENSE.md`) |
+| Skills de desarrollo de juegos para Claude Code (25) | `.claude/skills/` | https://github.com/gamedev-skills/awesome-gamedev-agent-skills | Apache 2.0 (`.claude/skills/LICENSE-awesome-gamedev-agent-skills`, `NOTICE-...`) |
 
-## Animaciones de Mixamo (copia local)
+## Animaciones de Mixamo
 
-El repositorio es público y la licencia de Mixamo no permite redistribuir los
-archivos, así que `assets/animations/mixamo/` está en `.gitignore`. Para verlas
-en el juego, poné en esa carpeta (FBX, "Without Skin" o "With Skin"):
+Desde B10 van en el repo (ya no están en el `.gitignore`), así los tests, las
+capturas y el .exe de prueba usan lo mismo que se ve en el editor. La licencia
+de Mixamo permite usarlas en el juego pero no redistribuir los archivos
+sueltos: **conviene que el repositorio sea privado** (GitHub → Settings →
+Danger Zone → Change visibility). Van en `assets/animations/mixamo/` (FBX,
+"Without Skin" o "With Skin"):
 `Kick Soccerball`, `Soccer Penalty Kick`, `Soccer Pass`, `Soccer Header`,
 `Soccer Tackle`, `Soccer Tackle 1`, `Receive Soccerball`, `Soccer Trip`,
 `Standing Up`, `Cartwheel`, `Dribble`, `Goalkeeper Idle`, `Goalkeeper Catch`,
@@ -56,3 +60,18 @@ descargar, así que se ponen a mano (son CC0: se pueden subir al repo):
 Sirve cualquier césped corto CC0 con esos tres mapas (por ejemplo Grass001 o
 Grass005 de ambientCG). Las franjas de corte y el desgaste los sigue poniendo
 el shader.
+
+## Cielos HDRI (opcionales, CC0)
+
+`SkyTextures` usa un panorama de `assets/skies/` según el horario y el clima:
+`despejado`, `amanecer_invierno`, `atardecer`, `nublado`, `nublado2`, `nieve`
+(.hdr / .exr / .jpg / .png, 2K). Los de ambientCG que elegiste
+(HdrOutdoorFieldBaseballDayClear001, HdrOutdoorSoccerFieldWinterDayClear001,
+HdrSkySunset007, HdrSkyOvercast001, HdrOutdoorFieldDayOvercast004,
+HdrOutdoorSnowMountainsEveningClear001) son CC0: se dejan en
+`assets/_entrada/` y Claude los renombra y los anota acá.
+
+## Entrada de assets
+
+Ver `assets/_entrada/LEEME.md`: los zips se dejan tal como se bajan y se
+procesan en la próxima sesión (tamaño, nombres, conexión al juego y créditos).
