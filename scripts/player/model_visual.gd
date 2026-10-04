@@ -163,6 +163,7 @@ func setup(colors: Dictionary, seed: int) -> void:
 		_add_hair(hair_style, hair_color, colors.get("shirt", Color.WHITE))
 		mat.set_shader_parameter("hands", colors.get("gloves", skin))
 		mat.set_shader_parameter("trim", _trim_for(shirt, colors.get("shorts", Color.WHITE)))
+		_apply_kit(mat, colors)
 		body.material_override = mat
 		_body_mat = mat
 	# Modo retro (beta): el modelo de pocos polígonos sobre el mismo esqueleto.
@@ -179,7 +180,9 @@ func setup(colors: Dictionary, seed: int) -> void:
 				var em := _skel.find_child(extra, false, false) as Node3D
 				if em != null:
 					em.visible = false
-	if colors.has("number"):
+	# El número va pintado en la camiseta (shader); sólo el modelo retro usa
+	# el número aparte.
+	if colors.has("number") and _retro != null:
 		_add_back_number(int(colors["number"]), colors.get("shirt", Color.WHITE))
 	var dark := _mat(Color(0.05, 0.04, 0.04))
 	for extra in ["Eyebrows", "Eyes"]:
@@ -196,6 +199,72 @@ func setup(colors: Dictionary, seed: int) -> void:
 		_anim.add_animation_library(&"mx", _mx)
 	_anim.mixer_applied.connect(_apply_gestures)
 	_play_locomotion(0.0)
+
+
+## Diseño, número y escudo de la camiseta (pintados en la tela por el shader).
+func _apply_kit(mat: ShaderMaterial, colors: Dictionary) -> void:
+	var shirt: Color = colors.get("shirt", Color.WHITE)
+	var shirt2: Color = colors.get("shirt2", colors.get("shorts", Color.BLACK))
+	mat.set_shader_parameter("pattern", int(colors.get("pattern", 0)))
+	mat.set_shader_parameter("shirt2", shirt2)
+	mat.set_shader_parameter("number", int(colors.get("number", 0)))
+	mat.set_shader_parameter("digits", digit_atlas())
+	# Número que se lea sobre la camiseta (y sobre las rayas): claro u oscuro,
+	# con contorno del color contrario.
+	var base := shirt.lerp(shirt2, 0.5) if int(colors.get("pattern", 0)) > 0 else shirt
+	var light := base.get_luminance() > 0.55
+	mat.set_shader_parameter("number_color", Color(0.08, 0.08, 0.1) if light else Color(0.97, 0.97, 0.97))
+	mat.set_shader_parameter("number_outline", Color(0.97, 0.97, 0.97) if light else Color(0.06, 0.06, 0.08))
+	mat.set_shader_parameter("crest", not colors.has("gloves"))
+
+
+## Tipografía de los números (píxeles 5x7, como las camisetas de la PS1):
+## atlas de 10 dígitos; rojo = relleno, verde = contorno.
+const DIGIT_ROWS := [
+	["01110", "10001", "10011", "10101", "11001", "10001", "01110"],
+	["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
+	["01110", "10001", "00001", "00110", "01000", "10000", "11111"],
+	["11110", "00001", "00001", "01110", "00001", "00001", "11110"],
+	["00010", "00110", "01010", "10010", "11111", "00010", "00010"],
+	["11111", "10000", "11110", "00001", "00001", "10001", "01110"],
+	["00110", "01000", "10000", "11110", "10001", "10001", "01110"],
+	["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
+	["01110", "10001", "10001", "01110", "10001", "10001", "01110"],
+	["01110", "10001", "10001", "01111", "00001", "00010", "01100"],
+]
+static var _digits: ImageTexture
+
+
+static func digit_atlas() -> ImageTexture:
+	if _digits != null:
+		return _digits
+	# Cada dígito: 5x7 píxeles agrandados x6, con margen; el contorno es un
+	# borde fino (2 px) alrededor del relleno.
+	const K := 6
+	var cw := 7 * K
+	var ch := 9 * K
+	var img := Image.create(cw * 10, ch, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var fill := {}
+	for d in 10:
+		var rows: Array = DIGIT_ROWS[d]
+		for y in 7:
+			for x in 5:
+				if String(rows[y])[x] != "1":
+					continue
+				for sy in K:
+					for sx in K:
+						fill[Vector2i(d * cw + (x + 1) * K + sx, (y + 1) * K + sy)] = true
+	for px: Vector2i in fill:
+		for oy in range(-2, 3):
+			for ox in range(-2, 3):
+				var q := px + Vector2i(ox, oy)
+				if not fill.has(q):
+					img.set_pixelv(q, Color(0, 1, 0, 1))
+	for px: Vector2i in fill:
+		img.set_pixelv(px, Color(1, 1, 0, 1))
+	_digits = ImageTexture.create_from_image(img)
+	return _digits
 
 
 ## Vivos de la camiseta: el color del short, o la camiseta más oscura si se
@@ -222,6 +291,7 @@ func recolor(colors: Dictionary) -> void:
 		if colors.has("gloves"):
 			_body_mat.set_shader_parameter("hands", colors["gloves"])
 		_body_mat.set_shader_parameter("trim", _trim_for(shirt, colors.get("shorts", Color.WHITE)))
+		_apply_kit(_body_mat, colors)
 	if _number_label != null:
 		_color_number(_number_label, colors.get("shirt", Color.WHITE))
 		if colors.has("number"):
@@ -928,12 +998,20 @@ static func _bake_regions(src: Mesh) -> ArrayMesh:
 		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 		var colors := PackedColorArray()
 		colors.resize(verts.size())
+		var rest := PackedFloat32Array()
+		rest.resize(verts.size() * 4)
 		for i in verts.size():
 			var v := verts[i]
 			var r := _region(v)
 			colors[i] = Color(r / 10.0, 1.0 if (r == 0 and absf(v.x) < 0.26) else 0.0, 1.0 if _is_trim(v, r) else 0.0)
+			rest[i * 4] = v.x
+			rest[i * 4 + 1] = v.y
+			rest[i * 4 + 2] = v.z
 		arrays[Mesh.ARRAY_COLOR] = colors
+		# Posición de reposo (CUSTOM0): el diseño y el número se pintan en la tela.
+		arrays[Mesh.ARRAY_CUSTOM0] = rest
 		var flags: int = src.surface_get_format(s) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS
+		flags |= Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
 		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, flags)
 	return out
 

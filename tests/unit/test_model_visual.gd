@@ -214,3 +214,29 @@ func test_standing_never_shows_the_t_pose() -> void:
 		for hand in ["hand_l", "hand_r"]:
 			var y: float = v._skel.get_bone_global_pose(v._bones[hand]).origin.y
 			assert_lt(y, shoulder - 0.3, "%s abajo (cuadro %d de la mezcla)" % [hand, frames])
+
+
+func test_kit_is_painted_on_the_shirt() -> void:
+	# Diseño, número y escudo van en el material de la camiseta (no hay un
+	# cartel con el número pegado a la espalda).
+	var v := ModelVisual.new()
+	add_child_autofree(v)
+	v.setup({"shirt": Color.RED, "shorts": Color.BLACK, "number": 23, "pattern": 1, "shirt2": Color.BLACK}, 5)
+	assert_null(v._number_label)
+	assert_eq(v._body_mat.get_shader_parameter("number"), 23)
+	assert_eq(v._body_mat.get_shader_parameter("pattern"), 1)
+	assert_eq(v._body_mat.get_shader_parameter("shirt2"), Color.BLACK)
+	var atlas := ModelVisual.digit_atlas()
+	assert_eq(atlas.get_width(), atlas.get_height() * 70 / 9, "10 dígitos de 7x9")
+	# La posición de reposo viaja en la malla (CUSTOM0).
+	var body := v._skel.find_child(ModelVisual.BODY_MESH, false, false) as MeshInstance3D
+	assert_ne(body.mesh.surface_get_format(0) & Mesh.ARRAY_FORMAT_CUSTOM0, 0)
+
+
+func test_team_kits_have_designs() -> void:
+	var striped := 0
+	for path in GameSettings.team_paths():
+		var td: TeamData = load(path)
+		if td.pattern > 0:
+			striped += 1
+	assert_gte(striped, 4, "varios equipos con camisetas con diseño")

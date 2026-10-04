@@ -114,7 +114,9 @@ func test_keeper_sent_off_without_subs_an_outfield_player_goes_in_goal() -> void
 	if new_gk.visual is ModelVisual:
 		var mv := new_gk.visual as ModelVisual
 		assert_eq(mv._body_mat.get_shader_parameter("shirt"), t.keeper_color, "se ve con la camiseta de arquero")
-		assert_eq(mv._number_label.text, str(new_gk.number))
+		# El número va pintado en la camiseta (shader), el suyo.
+		assert_eq(mv._body_mat.get_shader_parameter("number"), new_gk.number)
+		assert_eq(mv._body_mat.get_shader_parameter("pattern"), 0, "el arquero va liso")
 
 
 func test_keeper_second_yellow_is_a_red_too() -> void:

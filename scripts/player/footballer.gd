@@ -209,6 +209,10 @@ func is_keeper() -> bool:
 func kit_colors() -> Dictionary:
 	var shirt := team.keeper_color if is_keeper() else team.color
 	var colors := {"shirt": shirt, "shorts": team.secondary_color, "socks": shirt, "number": number}
+	# Diseño de la camiseta (el arquero va liso, de su color).
+	if not is_keeper():
+		colors["pattern"] = team.pattern
+		colors["shirt2"] = team.pattern_color
 	if is_keeper():
 		colors["gloves"] = Color(0.95, 0.95, 0.9)
 	return colors

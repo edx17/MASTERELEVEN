@@ -12,6 +12,9 @@ var short_name: String = ""
 var color: Color = Color.WHITE
 var secondary_color: Color = Color.BLACK
 var keeper_color: Color = Color.YELLOW
+## Diseño de la camiseta que se usa en este partido y su segundo color.
+var pattern: int = 0
+var pattern_color: Color = Color.BLACK
 ## +1 ataca hacia +X, -1 hacia -X. Se invierte en el entretiempo.
 var attack_dir: int = 1
 ## Los que están en la cancha (los expulsados salen de esta lista).

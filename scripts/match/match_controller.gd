@@ -289,10 +289,15 @@ func _build_world() -> void:
 	var datas: Array[TeamData] = [GameSettings.home_team(), GameSettings.away_team()]
 	for i in 2:
 		var d := datas[i]
-		var kit := d.kit(GameSettings.home_kit if i == 0 else GameSettings.away_kit)
+		var kit_i := GameSettings.home_kit if i == 0 else GameSettings.away_kit
+		var kit := d.kit(kit_i)
 		if i == 1 and GameSettings.kits_clash(kit[0], teams[0].color):
-			kit = d.kit(1 - GameSettings.away_kit)
+			kit_i = 1 - kit_i
+			kit = d.kit(kit_i)
 		var team := Team.new(i, d.team_name, d.short_name, kit[0], kit[1], d.keeper_color)
+		var pat := d.kit_pattern(kit_i)
+		team.pattern = pat[0]
+		team.pattern_color = pat[1]
 		team.data = d
 		team.formation = d.formation
 		# Condición del día de todo el plantel (flechas).

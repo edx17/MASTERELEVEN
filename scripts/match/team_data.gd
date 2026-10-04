@@ -13,6 +13,12 @@ extends Resource
 ## Segundo uniforme (camiseta y pantalón).
 @export var away_color: Color = Color.WHITE
 @export var away_secondary: Color = Color.WHITE
+## Diseño de cada camiseta (0 lisa, 1 rayas verticales, 2 rayas finitas,
+## 3 aros, 4 mitades, 5 banda diagonal) y su segundo color.
+@export var pattern: int = 0
+@export var pattern_color: Color = Color.BLACK
+@export var away_pattern: int = 0
+@export var away_pattern_color: Color = Color.BLACK
 @export var formation: FormationData
 @export var players: Array[PlayerData] = []
 
@@ -22,6 +28,13 @@ func kit(i: int) -> Array[Color]:
 	if i == 1:
 		return [away_color, away_secondary]
 	return [color, secondary_color]
+
+
+## Diseño del uniforme 0 o 1: [diseño, segundo color].
+func kit_pattern(i: int) -> Array:
+	if i == 1:
+		return [away_pattern, away_pattern_color]
+	return [pattern, pattern_color]
 
 
 ## Promedios del plantel titular para las barras de la elección de equipo
