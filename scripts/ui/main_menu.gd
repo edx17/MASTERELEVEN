@@ -421,12 +421,35 @@ static func stadium_thumbnail(i: int) -> Texture2D:
 var _music: AudioStreamPlayer
 
 
+var _ui_sfx: AudioStreamPlayer
+
+
 func _start_music() -> void:
 	_music = AudioStreamPlayer.new()
-	_music.stream = MatchAudio.sound("menu_music")
+	_music.stream = MatchAudio.stream("menu_music")
 	add_child(_music)
 	_update_music()
 	_music.play()
+	# Sonidos del menú (tus archivos): moverse entre opciones y elegir.
+	_ui_sfx = AudioStreamPlayer.new()
+	add_child(_ui_sfx)
+	get_viewport().gui_focus_changed.connect(func(_c: Control) -> void: _ui_sound("menu_move"))
+	get_tree().node_added.connect(_hook_button)
+	for b in find_children("*", "BaseButton", true, false):
+		_hook_button(b)
+
+
+func _hook_button(n: Node) -> void:
+	if n is BaseButton and not (n as BaseButton).pressed.is_connected(_ui_sound.bind("menu_select")):
+		(n as BaseButton).pressed.connect(_ui_sound.bind("menu_select"))
+
+
+func _ui_sound(name: String) -> void:
+	if _ui_sfx == null or not MatchAudio.has_file(name) or not is_inside_tree():
+		return
+	_ui_sfx.stream = MatchAudio.stream(name)
+	_ui_sfx.volume_db = linear_to_db(maxf(0.0001, GameSettings.sfx_volume / 10.0 * 0.7))
+	_ui_sfx.play()
 
 
 func _update_music() -> void:

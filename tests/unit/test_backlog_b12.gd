@@ -307,3 +307,25 @@ func test_net_hit_is_recorded_for_the_replay() -> void:
 	for n in get_tree().get_nodes_in_group(&"goal_net"):
 		if (n as GoalNet).side == 1:
 			assert_gt(absf((n as GoalNet).current_bulge()), 0.2, "se infla")
+
+
+## Tus sonidos grabados (assets/audio) reemplazan a los generados; los de
+## fondo van en loop. La presentación arranca con el ambiente previo y al
+## terminar entra la tribuna.
+func test_recorded_sounds_are_used() -> void:
+	for n in ["post", "ooh", "cheer", "goal_chant", "whistles", "whistle_short", "whistle_long",
+			"whistle_end", "pass", "crowd", "chant", "prematch", "vuvuzelas", "fulltime_win",
+			"menu_move", "menu_select"]:
+		assert_true(MatchAudio.stream(n) is AudioStreamOggVorbis, "%s grabado" % n)
+	assert_true((MatchAudio.stream("crowd") as AudioStreamOggVorbis).loop, "tribuna en loop")
+	assert_false((MatchAudio.stream("cheer") as AudioStreamOggVorbis).loop, "el gol no")
+	assert_true(MatchAudio.stream("applause") is AudioStreamWAV, "sin archivo: el generado")
+	GameSettings.set_mode(GameSettings.Mode.CPU_VS_CPU)
+	GameSettings.play_intro = true
+	m = load("res://scenes/match/match.tscn").instantiate()
+	add_child_autofree(m)
+	m.set_physics_process(false)
+	assert_eq(m.audio._crowd.stream, MatchAudio.stream("prematch"), "ambiente previo")
+	m.intro._enter(MatchIntro.Step.DONE)
+	assert_eq(m.audio._crowd.stream, MatchAudio.stream("crowd"), "entra la tribuna")
+	GameSettings.play_intro = false

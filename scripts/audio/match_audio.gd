@@ -7,8 +7,15 @@ extends Node
 ## en las faltas y tarjetas, cánticos con bombo de fondo (cada tanto), los
 ## aplausos al jugador que sale reemplazado, el "swoosh" de la cortina de la
 ## repetición y la música del menú. Volúmenes en Opciones.
+##
+## Si hay un archivo grabado en res://assets/audio/<nombre>.ogg (los que
+## subiste: silbato, pase, palo, "uhh", gol, hinchada, ambiente previo,
+## vuvuzelas, final...), se usa ése; si no, el generado por código.
 
 const RATE := 22050
+const FILES_DIR := "res://assets/audio/"
+## Los que suenan en loop (fondo).
+const LOOPS := ["crowd", "chant", "prematch", "drums", "menu_music"]
 
 static var _cache := {}
 
@@ -30,7 +37,8 @@ func setup(m: MatchController) -> void:
 	_crowd = AudioStreamPlayer.new()
 	# En el Club House no hay público: redoblantes y bombo de fondo.
 	_training = GameSettings.training
-	_crowd.stream = sound("drums" if _training else "crowd")
+	# Antes del partido (presentación), el ambiente previo; después, la tribuna.
+	_crowd.stream = stream("drums" if _training else ("prematch" if GameSettings.play_intro or m.phase == MatchController.Phase.INTRO else "crowd"))
 	_crowd.bus = &"Master"
 	add_child(_crowd)
 	for i in 8:
@@ -39,7 +47,11 @@ func setup(m: MatchController) -> void:
 		_pool.append(p)
 	m.ball.kicked.connect(func(_k: Footballer) -> void:
 		var v := m.ball.speed()
-		play("kick", clampf(v / 30.0, 0.25, 1.0), randf_range(0.9, 1.12) * lerpf(1.15, 0.85, clampf(v / 30.0, 0.0, 1.0))))
+		# Pase (grabado, si está) o patada fuerte (generada).
+		if v < 18.0 and has_file("pass"):
+			play("pass", clampf(v / 18.0, 0.35, 0.9), randf_range(0.94, 1.08))
+		else:
+			play("kick", clampf(v / 30.0, 0.25, 1.0), randf_range(0.9, 1.12) * lerpf(1.15, 0.85, clampf(v / 30.0, 0.0, 1.0))))
 	m.ball.bounced.connect(func(strength: float) -> void:
 		if strength > 2.0:
 			play("bounce", clampf(strength / 12.0, 0.1, 0.6), randf_range(0.95, 1.1)))
@@ -47,13 +59,17 @@ func setup(m: MatchController) -> void:
 		play("post", 1.0)
 		cheer("ooh"))
 	m.ball.hit_net.connect(func() -> void: play("net", 0.7))
-	m.goal_scored.connect(func(_t: int) -> void: cheer("goal"))
+	m.goal_scored.connect(func(_t: int) -> void:
+		cheer("goal")
+		# Después del grito, la hinchada canta.
+		if has_file("goal_chant") and not _training:
+			get_tree().create_timer(4.0).timeout.connect(func() -> void: play("goal_chant", 0.7, 1.0, true)))
 	m.phase_changed.connect(_on_phase)
 	# Tarjeta: silbidos fuertes de la tribuna.
 	m.card_shown.connect(func(_p: Footballer) -> void: crowd_whistles(1.0))
 	if not _training:
 		_chant = AudioStreamPlayer.new()
-		_chant.stream = sound("chant")
+		_chant.stream = stream("chant")
 		_chant.volume_db = -80.0
 		add_child(_chant)
 		_chant_wait = randf_range(8.0, 25.0)
@@ -119,6 +135,13 @@ func applause() -> void:
 
 
 func _on_phase(phase: int) -> void:
+	# Termina la presentación: entra la tribuna (y suenan las vuvuzelas).
+	if _crowd != null and not _training and phase != MatchController.Phase.INTRO \
+			and _crowd.stream == stream("prematch"):
+		_crowd.stream = stream("crowd")
+		_crowd.play()
+		if has_file("vuvuzelas"):
+			play("vuvuzelas", 0.45, 1.0, true)
 	match phase:
 		MatchController.Phase.STOPPED:
 			play("whistle_short", 0.9)
@@ -126,6 +149,9 @@ func _on_phase(phase: int) -> void:
 			play("whistle_long", 1.0)
 		MatchController.Phase.FULLTIME:
 			play("whistle_end", 1.0)
+			# Ganó alguien: la tribuna lo festeja.
+			if not _training and has_file("fulltime_win") and _match.teams[0].score != _match.teams[1].score:
+				get_tree().create_timer(1.5).timeout.connect(func() -> void: play("fulltime_win", 0.8, 1.0, true))
 		MatchController.Phase.RESTART:
 			if _match.restart_type == MatchRules.Restart.KICKOFF:
 				play("whistle_short", 0.9)
@@ -142,11 +168,35 @@ func cheer(kind: String) -> void:
 func play(name: String, volume: float = 1.0, pitch: float = 1.0, crowd := false) -> void:
 	var p := _pool[_next]
 	_next = (_next + 1) % _pool.size()
-	p.stream = sound(name)
+	p.stream = stream(name)
 	p.pitch_scale = pitch
 	var master := (GameSettings.crowd_volume if crowd else GameSettings.sfx_volume) / 10.0
 	p.volume_db = linear_to_db(maxf(0.0001, volume * master))
 	p.play()
+
+
+# --- Archivos grabados (con respaldo generado) -----------------------------------
+
+static var _file_cache := {}
+
+
+static func has_file(name: String) -> bool:
+	return ResourceLoader.exists(FILES_DIR + name + ".ogg")
+
+
+## El sonido a reproducir: el archivo grabado si está, si no el generado.
+static func stream(name: String) -> AudioStream:
+	if _file_cache.has(name):
+		return _file_cache[name]
+	var st: AudioStream = null
+	if has_file(name):
+		st = load(FILES_DIR + name + ".ogg") as AudioStream
+		if st is AudioStreamOggVorbis:
+			(st as AudioStreamOggVorbis).loop = name in LOOPS
+	if st == null:
+		st = sound(name)
+	_file_cache[name] = st
+	return st
 
 
 # --- Síntesis ---------------------------------------------------------------------

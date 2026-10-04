@@ -21,7 +21,7 @@ Ver `Claude.md` para visión, criterios y fases.
 
 ---
 
-## Backlog B11 — paso 3: pelota parada a la WE2002, tierra, tela y sonidos
+## Backlog B11 — pasos 3 y 4: pelota parada a la WE2002, tierra, tela y sonidos
 
 ### Pelota parada
 - **Carrera**: en tiros libres, córners y penales el pateador se para atrás
@@ -71,11 +71,21 @@ Ver `Claude.md` para visión, criterios y fases.
   borra el plan de atajada y, con el juego detenido, vuelve caminando a su arco.
 - Si el tiempo terminaba con una pelota parada armada, el pateador quedaba
   trabado y no se iba al túnel.
-- Tus archivos de sonido en una carpeta `sonidos/` del proyecto: Godot no
-  importa WAV de 24/32 bits o con más de 2 canales ("Format not supported").
-  Subilos a `assets/_entrada/` y se convierten (paso 4).
+- El error "Format not supported for WAVE file" venía de tu copia local de
+  `whistle final partido.wav` (8 canales, 96 kHz, 32 bits: Godot no lo
+  importa). Si tenés una carpeta `sonidos/` en tu proyecto local, borrala:
+  ya están todos convertidos en `assets/audio/`.
 
-Tests: `tests/unit/test_backlog_b12.gd` (14 tests).
+### Tus sonidos (paso 4)
+Recortados a la parte útil y pasados a OGG (de ~90 MB a 3,2 MB) en
+`assets/audio/` (detalle en `assets/CREDITS.md`): silbato y pitazo final,
+pase, palo, "uhh", grito de gol + la hinchada cantando después, silbidos
+contra el árbitro, tribuna y cánticos de fondo, ambiente previo en la
+presentación, vuvuzelas al salir, festejo al final y los sonidos del menú.
+Los que no tienen archivo (aplausos, swoosh, música del menú, bombo del Club
+House) siguen generados por código.
+
+Tests: `tests/unit/test_backlog_b12.gd` (15 tests).
 
 ---
 
