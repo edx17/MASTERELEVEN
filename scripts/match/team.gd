@@ -41,6 +41,10 @@ var pk_taker: PlayerData = null
 ## Estrategias asignadas a los cuatro botones y la que está activa.
 var strategy_slots: Array[int] = Strategy.DEFAULT_SLOTS.duplicate()
 var strategy: int = Strategy.Kind.NONE
+## Mentalidad (L2 + cruceta izquierda / derecha): -1 defensiva (atacan
+## menos), 0 equilibrada, +1 ofensiva (suben más jugadores al ataque).
+var mentality: int = 0
+const MENTALITY_NAMES := ["Defensiva", "Equilibrada", "Ofensiva"]
 var score: int = 0
 
 

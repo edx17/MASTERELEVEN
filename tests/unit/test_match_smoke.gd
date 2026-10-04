@@ -9,6 +9,7 @@ func before_each() -> void:
 	GameSettings.set_mode(GameSettings.Mode.CPU_VS_CPU)
 	GameSettings.match_minutes = 3
 	_match = load("res://scenes/match/match.tscn").instantiate() as MatchController
+	_match.break_auto_continue = true
 	add_child_autofree(_match)
 	# El partido se avanza a mano, tick por tick.
 	_match.set_physics_process(false)

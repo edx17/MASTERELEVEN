@@ -41,6 +41,9 @@ static func prepare(sk: Skeleton3D) -> Dictionary:
 		_ring(Vector3(0, 1.28, -0.01), 0.19, 0.115, [[b.call("spine_02"), 0.5], [b.call("spine_03"), 0.5]], Zone.SHIRT, true),
 		_ring(Vector3(0, 1.42, -0.015), 0.205, 0.11, [[b.call("spine_03"), 1.0]], Zone.SHIRT, true),
 		_ring(Vector3(0, 1.49, -0.02), 0.14, 0.088, [[b.call("spine_03"), 1.0]], Zone.SHIRT, true, true),
+		# Cierra el cuello de la camiseta contra el cuello (antes quedaba un
+		# agujero alrededor del cuello).
+		_ring(Vector3(0, 1.505, -0.02), 0.068, 0.062, [[b.call("spine_03"), 0.6], [b.call("neck_01"), 0.4]], Zone.SHIRT, true, true),
 	]])
 	# Cuello.
 	parts.append([Y, 6, [
@@ -68,11 +71,22 @@ static func prepare(sk: Skeleton3D) -> Dictionary:
 		var toe := b.call("ball" + sfx) as int
 		var clav := b.call("clavicle" + sfx) as int
 		var ax := X * side
+		# Hombro (deltoides) pegado a la clavícula: tapa la articulación
+		# cuando el brazo se mueve (antes se abría entre la manga y el torso).
+		parts.append([ax, 6, [
+			_ring(Vector3(side * 0.1, 1.43, -0.03), 0.02, 0.02, [[clav, 1.0]], Zone.SHIRT),
+			_ring(Vector3(side * 0.14, 1.435, -0.03), 0.07, 0.072, [[clav, 1.0]], Zone.SHIRT),
+			_ring(Vector3(side * 0.205, 1.44, -0.035), 0.068, 0.07, [[clav, 0.6], [upper, 0.4]], Zone.SHIRT),
+			_ring(Vector3(side * 0.25, 1.44, -0.04), 0.02, 0.02, [[upper, 1.0]], Zone.SHIRT),
+		]])
 		# Manga corta (camiseta) y brazo (piel), eje X.
 		parts.append([ax, 6, [
+			_ring(Vector3(side * 0.12, 1.425, -0.03), 0.025, 0.03, [[clav, 1.0]], Zone.SHIRT),
 			_ring(Vector3(side * 0.17, 1.425, -0.03), 0.06, 0.07, [[clav, 0.5], [upper, 0.5]], Zone.SHIRT),
 			_ring(Vector3(side * 0.24, 1.44, -0.04), 0.068, 0.068, [[upper, 1.0]], Zone.SHIRT),
 			_ring(Vector3(side * 0.34, 1.445, -0.05), 0.062, 0.062, [[upper, 1.0]], Zone.SHIRT, false, true),
+			# Ruedo de la manga cerrado contra el brazo.
+			_ring(Vector3(side * 0.345, 1.445, -0.05), 0.05, 0.05, [[upper, 1.0]], Zone.SHIRT, false, true),
 		]])
 		parts.append([ax, 6, [
 			_ring(Vector3(side * 0.335, 1.445, -0.05), 0.054, 0.054, [[upper, 1.0]], Zone.SKIN),

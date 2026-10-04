@@ -80,6 +80,8 @@ const STYLES := [
 		# gap: de la línea lateral a la boca del túnel (el muro de la cancha
 		# hundida, OvalStadiumBuilder.B0 - 0,2).
 		"gap": 10.8, "wall": 5.0,
+		# Bancos embutidos en el muro de la cancha hundida (al lado del túnel).
+		"bench": 10.6,
 		"stands": {"North": [12, 10, 12, 10], "West": [12, 10, 12, 10], "East": [12, 10, 12, 10], "South": [12, 10, 12, 10]},
 		"corners": [12, 10, 12, 10],
 		"tier_step": [1.4, 2.4],

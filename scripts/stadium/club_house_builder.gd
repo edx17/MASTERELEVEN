@@ -237,20 +237,11 @@ static func _side_pitch(root: Node3D, sx: int) -> void:
 		mi.material_override = light if i % 2 == 0 else dark
 		mi.position = Vector3(-hl + (i + 0.5) * hl * 2.0 / stripes, -0.005, 0.0)
 		node.add_child(mi)
+	# Todas las marcas (área chica, punto penal, medialuna, córners...).
+	var lines := PitchBuilder.lines_mesh(hl, hw)
+	lines.position.y = 0.005
+	node.add_child(lines)
 	var white := _mat(Color(0.92, 0.92, 0.9), 0.6)
-	var lw := 0.12
-	var lines := [
-		[Vector3(0, 0, -hw), Vector3(hl * 2.0, 0.01, lw)], [Vector3(0, 0, hw), Vector3(hl * 2.0, 0.01, lw)],
-		[Vector3(-hl, 0, 0), Vector3(lw, 0.01, hw * 2.0)], [Vector3(hl, 0, 0), Vector3(lw, 0.01, hw * 2.0)],
-		[Vector3(0, 0, 0), Vector3(lw, 0.01, hw * 2.0)],
-	]
-	for side: int in [-1, 1]:
-		var bx := side * (hl - 8.0)
-		lines.append([Vector3(bx, 0, 0), Vector3(lw, 0.01, 30.0)])
-		lines.append([Vector3(side * (hl - 4.0), 0, -15.0), Vector3(8.0, 0.01, lw)])
-		lines.append([Vector3(side * (hl - 4.0), 0, 15.0), Vector3(8.0, 0.01, lw)])
-	for l: Array in lines:
-		_add_box(node, l[0] + Vector3(0, 0.005, 0), l[1], white)
 	# Arcos sin red.
 	for side: int in [-1, 1]:
 		for z: float in [-3.66, 3.66]:

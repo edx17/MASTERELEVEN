@@ -127,6 +127,13 @@ func _build_environment() -> void:
 	sky_mat.ground_horizon_color = horizon.darkened(0.3)
 	sky_mat.sun_angle_max = 20.0
 	sky.sky_material = sky_mat
+	# Cielo fotográfico (HDRI) si está en assets/skies/ para estas condiciones.
+	var photo := SkyTextures.for_conditions(conditions, randi())
+	if photo != null:
+		var pano := PanoramaSkyMaterial.new()
+		pano.panorama = photo
+		pano.energy_multiplier = 1.0 if not cloudy else 0.9
+		sky.sky_material = pano
 	environment.background_mode = Environment.BG_SKY
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
@@ -183,7 +190,8 @@ func _build_sun() -> void:
 	sun.shadow_blur = 1.2
 	# La sombra deja pasar parte de la luz (la que rebota en el cielo, el
 	# césped y las tribunas): sombra marcada pero nunca negra.
-	sun.shadow_opacity = 0.72
+	# (Más suave desde B10: la sombra de un techo no oscurece media cancha.)
+	sun.shadow_opacity = 0.55
 	# Tamaño aparente del sol: la sombra de un techo alto tiene el borde
 	# difuso (penumbra) y la de un jugador queda nítida.
 	sun.light_angular_distance = 1.6
@@ -231,6 +239,19 @@ func _build_sun() -> void:
 
 # --- Noche: torres de luz -----------------------------------------------------
 
+## Capa de la cancha y el estadio (la 2); los jugadores y la pelota quedan en
+## la 1, la única que proyecta sombras de los reflectores.
+const SCENERY_LAYER := 2
+const ACTORS_LAYER := 1
+
+
+static func move_to_scenery_layer(root: Node) -> void:
+	for n in root.find_children("*", "VisualInstance3D", true, false):
+		(n as VisualInstance3D).layers = SCENERY_LAYER
+	if root is VisualInstance3D:
+		(root as VisualInstance3D).layers = SCENERY_LAYER
+
+
 func _build_floodlights() -> void:
 	var night := conditions.time_of_day == MatchConditions.TimeOfDay.NIGHT
 	var lamp_mat := StandardMaterial3D.new()
@@ -277,8 +298,9 @@ func _build_floodlights() -> void:
 			var spot := SpotLight3D.new()
 			spot.position = base + Vector3(0.0, height + 2.0, 0.0)
 			spot.spot_range = 240.0
-			spot.spot_angle = 38.0
-			spot.spot_attenuation = 0.4
+			# Más abierto y parejo: entre las cuatro torres cubren toda la cancha.
+			spot.spot_angle = 52.0
+			spot.spot_attenuation = 0.25
 			spot.light_energy = (3.2 if night else 1.5)
 			spot.light_color = Color(1.0, 0.98, 0.92)
 			# Sombras sólo en dos torres (costo): igual se ven sombras cruzadas.
@@ -287,6 +309,7 @@ func _build_floodlights() -> void:
 			spot.light_specular = 0.25
 			# Sombras de los jugadores tenues (con varias torres casi no se ven).
 			spot.shadow_opacity = 0.45
+			spot.shadow_caster_mask = ACTORS_LAYER
 			add_child(spot)
 			spot.look_at(Vector3(-xs * 8.0, 0.0, -zs * 6.0), Vector3.UP)
 			floodlights.append(spot)

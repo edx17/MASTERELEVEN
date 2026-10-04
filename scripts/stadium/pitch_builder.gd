@@ -70,49 +70,31 @@ static func _build_grass(root: Node3D, params: Dictionary = {}) -> void:
 
 
 static func _build_lines(root: Node3D) -> void:
+	root.add_child(lines_mesh())
+
+
+## Las líneas de una cancha (todas las marcas de PitchMarkings) como malla
+## plana sobre el pasto. Sirve también para canchas más chicas (Club House).
+static func lines_mesh(hl: float = Pitch.HALF_LENGTH, hw: float = Pitch.HALF_WIDTH) -> MeshInstance3D:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var hl := Pitch.HALF_LENGTH
-	var hw := Pitch.HALF_WIDTH
-	# Perímetro y línea media.
-	_seg(st, Vector2(-hl, -hw), Vector2(hl, -hw))
-	_seg(st, Vector2(-hl, hw), Vector2(hl, hw))
-	_seg(st, Vector2(-hl, -hw), Vector2(-hl, hw))
-	_seg(st, Vector2(hl, -hw), Vector2(hl, hw))
-	_seg(st, Vector2(0.0, -hw), Vector2(0.0, hw))
-	_arc(st, Vector2.ZERO, Pitch.CENTER_CIRCLE_RADIUS, 0.0, TAU, 64)
-	_arc(st, Vector2.ZERO, 0.2, 0.0, TAU, 12, 0.4)
-	for side: int in [-1, 1]:
-		var gx: float = side * hl
-		# Área grande.
-		var pa := gx - side * Pitch.PENALTY_AREA_DEPTH
-		_seg(st, Vector2(gx, -Pitch.PENALTY_AREA_HALF_WIDTH), Vector2(pa, -Pitch.PENALTY_AREA_HALF_WIDTH))
-		_seg(st, Vector2(gx, Pitch.PENALTY_AREA_HALF_WIDTH), Vector2(pa, Pitch.PENALTY_AREA_HALF_WIDTH))
-		_seg(st, Vector2(pa, -Pitch.PENALTY_AREA_HALF_WIDTH), Vector2(pa, Pitch.PENALTY_AREA_HALF_WIDTH))
-		# Área chica.
-		var ga := gx - side * Pitch.GOAL_AREA_DEPTH
-		_seg(st, Vector2(gx, -Pitch.GOAL_AREA_HALF_WIDTH), Vector2(ga, -Pitch.GOAL_AREA_HALF_WIDTH))
-		_seg(st, Vector2(gx, Pitch.GOAL_AREA_HALF_WIDTH), Vector2(ga, Pitch.GOAL_AREA_HALF_WIDTH))
-		_seg(st, Vector2(ga, -Pitch.GOAL_AREA_HALF_WIDTH), Vector2(ga, Pitch.GOAL_AREA_HALF_WIDTH))
-		# Punto penal y medialuna (sólo la parte fuera del área).
-		var spot := Vector2(gx - side * Pitch.PENALTY_SPOT_DISTANCE, 0.0)
-		_arc(st, spot, 0.15, 0.0, TAU, 10, 0.3)
-		var half_angle := acos((Pitch.PENALTY_AREA_DEPTH - Pitch.PENALTY_SPOT_DISTANCE) / Pitch.CENTER_CIRCLE_RADIUS)
-		var facing := 0.0 if side == -1 else PI
-		_arc(st, spot, Pitch.CENTER_CIRCLE_RADIUS, facing - half_angle, facing + half_angle, 24)
-		# Arcos de córner.
-		for zs: int in [-1, 1]:
-			var corner := Vector2(gx, zs * hw)
-			var start := atan2(-zs, -side)
-			_arc(st, corner, 1.0, start - PI / 4.0, start + PI / 4.0, 8)
+	for l: Array in PitchMarkings.lines(hl, hw):
+		_seg(st, l[0], l[1])
+	for a: Array in PitchMarkings.arcs(hl, hw):
+		var segs := maxi(8, int(absf(a[3] - a[2]) / TAU * 64.0))
+		if a[4]:
+			_arc(st, a[0], a[1], a[2], a[3], 12, a[1] * 2.0)
+		else:
+			_arc(st, a[0], a[1], a[2], a[3], segs)
 	st.generate_normals()
 	var mi := MeshInstance3D.new()
+	mi.name = "Lines"
 	mi.mesh = st.commit()
 	var mat := _flat_material(Color(0.95, 0.95, 0.95))
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	root.add_child(mi)
+	return mi
 
 
 ## Rectángulo fino sobre el pasto entre dos puntos (x, z).

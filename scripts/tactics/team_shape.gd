@@ -63,7 +63,12 @@ static func params_for(state: int) -> Params:
 
 
 ## Objetivos (espacio de equipo) de los 11 puestos.
-static func compute(formation: FormationData, state: int, ball: Vector2, strategy: int = 0) -> Array[Vector2]:
+## Cuánto se adelanta el bloque por punto de mentalidad (espacio de equipo).
+const MENTALITY_PUSH := 0.045
+
+
+static func compute(formation: FormationData, state: int, ball: Vector2, strategy: int = 0,
+		mentality: int = 0) -> Array[Vector2]:
 	var p := params_for(state)
 	var def_base := 1.0
 	var fw_base := 0.0
@@ -131,6 +136,15 @@ static func compute(formation: FormationData, state: int, ball: Vector2, strateg
 			# Los defensores forman una línea (misma altura).
 			if TacticalRole.is_defender(role):
 				x = line + (0.02 if role == TacticalRole.Kind.FB else 0.0)
+		# Mentalidad: con la pelota, el bloque sube (ofensiva) o se queda
+		# (defensiva); los laterales y volantes son los que más cambian.
+		if mentality != 0:
+			var k := 1.0
+			if role == TacticalRole.Kind.FB or role == TacticalRole.Kind.CM or role == TacticalRole.Kind.DM:
+				k = 1.6
+			elif role == TacticalRole.Kind.ST or role == TacticalRole.Kind.WF:
+				k = 0.5
+			x += mentality * MENTALITY_PUSH * k * (1.0 if p.in_possession else 0.5)
 		var r: Vector2 = TacticalRole.X_RANGE[role]
 		var adj := Strategy.adjust(strategy, role, Vector2(x, y), ball, p.in_possession)
 		var top := r.y + (0.08 if strategy == Strategy.Kind.OFFSIDE_TRAP else 0.0)

@@ -20,6 +20,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	GameSettings.set_mode(GameSettings.Mode.CPU_VS_CPU)
 	_match = load("res://scenes/match/match.tscn").instantiate()
+	_match.break_auto_continue = true
 	get_tree().root.add_child.call_deferred(_match)
 	var menu := get_tree().current_scene
 	if menu != null:

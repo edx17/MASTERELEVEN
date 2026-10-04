@@ -101,7 +101,7 @@ static func _bowl(sectors: Array[Node3D], fans: Dictionary) -> Dictionary:
 	var offset := 0.0
 	var y := FIRST_ROW_Y
 	# Muro de la cancha hundida (del césped a la primera fila).
-	_ring_band(steps, 0.0, -0.3, 0.0, FIRST_ROW_Y + 1.0, 0.3)
+	_ring_band(steps, 0.0, -0.3, 0.0, FIRST_ROW_Y + 1.0, 0.3, false, StadiumBuilder.TUNNEL_HALF + 0.4)
 	var hole := StadiumBuilder.TUNNEL_HALF + 0.4
 	for ti in TIERS.size():
 		var rows: int = TIERS[ti][0]
@@ -208,7 +208,7 @@ static func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector
 ## Banda vertical a lo largo del óvalo entre `off0` y `off1`, de `y0` a `y1`
 ## (muros, frentes). Con `single`, todo va al primer SurfaceTool.
 static func _ring_band(sts: Array[SurfaceTool], off0: float, off1: float, y0: float, y1: float,
-		_pad: float = 0.0, single: bool = false) -> void:
+		_pad: float = 0.0, single: bool = false, tunnel_hole: float = 0.0) -> void:
 	var n := 180
 	for k in n:
 		var t0 := TAU * k / n
@@ -218,11 +218,32 @@ static func _ring_band(sts: Array[SurfaceTool], off0: float, off1: float, y0: fl
 		var a1 := ring_point(t0, off1)
 		var b1 := ring_point(t1, off1)
 		var st := sts[0] if single else sts[sector_of((a0 + b0) * 0.5)]
-		var u0 := Vector3.UP * y0
-		var u1 := Vector3.UP * y1
-		_quad(st, a0 + u0, b0 + u0, b0 + u1, a0 + u1) # cara hacia la cancha
-		_quad(st, a1 + u1, b1 + u1, b1 + u0, a1 + u0) # cara de atrás
-		_quad(st, a0 + u1, b0 + u1, b1 + u1, a1 + u1) # tapa
+		# Boca del túnel: el segmento (cerca del eje mide ~10 m por la forma del
+		# óvalo) se corta en los bordes del túnel; adentro queda sólo el dintel.
+		var cuts: Array[float] = [0.0, 1.0]
+		if tunnel_hole > 0.0 and a0.z > 0.0 and b0.z > 0.0 and absf(b0.x - a0.x) > 0.001:
+			for edge: float in [-tunnel_hole, tunnel_hole]:
+				var u := (edge - a0.x) / (b0.x - a0.x)
+				if u > 0.0 and u < 1.0:
+					cuts.append(u)
+			cuts.sort()
+		for c in cuts.size() - 1:
+			var u0 := cuts[c]
+			var u1 := cuts[c + 1]
+			var pa0 := a0.lerp(b0, u0)
+			var pb0 := a0.lerp(b0, u1)
+			var pa1 := a1.lerp(b1, u0)
+			var pb1 := a1.lerp(b1, u1)
+			var low := y0
+			if tunnel_hole > 0.0 and pa0.z > 0.0 and absf((pa0.x + pb0.x) * 0.5) < tunnel_hole:
+				if y1 <= StadiumBuilder.TUNNEL_H:
+					continue
+				low = maxf(y0, StadiumBuilder.TUNNEL_H)
+			var lo := Vector3.UP * low
+			var hi := Vector3.UP * y1
+			_quad(st, pa0 + lo, pb0 + lo, pb0 + hi, pa0 + hi) # cara hacia la cancha
+			_quad(st, pa1 + hi, pb1 + hi, pb1 + lo, pa1 + lo) # cara de atrás
+			_quad(st, pa0 + hi, pb0 + hi, pb1 + hi, pa1 + hi) # tapa
 
 
 static func _seats(parent: Node3D, list: Array) -> void:

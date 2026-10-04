@@ -14,7 +14,8 @@ extends Node3D
 enum Event { KICK, PASS, HEADER, THROW, DIVE_LEFT, DIVE_RIGHT, CATCH, TACKLE,
 		RECEIVE, CHEST, CATCH_HIGH, CATCH_LOW, BLOCK, CELEBRATE, DEJECTED, ROLL,
 		FEINT, ROULETTE, STEPOVER, HIGH_FIVE, HANDSHAKE, CHEER,
-		SPRINT_START, SPRINT_TURN, CHILENA, SMOTHER, CARD, TOUCH }
+		SPRINT_START, SPRINT_TURN, CHILENA, SMOTHER, CARD, TOUCH,
+		APPLAUD, HEAD_HOLD, HANDS_HIPS, PROTEST }
 ## Cada gesto pedido (lo escucha la repetición para volver a mostrarlo).
 ## En HEADER y en las atajadas `side` lleva la altura de la pelota; en
 ## CELEBRATE, el festejo (Celebrations); en SPRINT_TURN, hacia dónde gira
@@ -187,6 +188,8 @@ func play(event: int, side: float = 1.0) -> void:
 		Event.STEPOVER: _event_len = 0.6
 		Event.HIGH_FIVE: _event_len = 0.5
 		Event.HANDSHAKE: _event_len = 0.75
+		# Reacciones del final (y del entretiempo): duran lo que dura la toma.
+		Event.APPLAUD, Event.HEAD_HOLD, Event.HANDS_HIPS, Event.PROTEST: _event_len = maxf(side, 1.5)
 		_: _event_len = 1.1
 
 
@@ -262,6 +265,20 @@ func _apply(run: float) -> void:
 			_hips.position.y += 0.2 * absf(sin(k * PI * 4.0))
 			for i in 2:
 				_arm[i].rotation = Vector3(-2.9 * minf(k * 5.0, 1.0), 0, 0)
+		Event.APPLAUD:
+			for i in 2:
+				_arm[i].rotation = Vector3(-1.2, 0, (0.35 + 0.15 * sin(k * 60.0)) * (1.0 if i == 0 else -1.0))
+		Event.HEAD_HOLD:
+			for i in 2:
+				_arm[i].rotation = Vector3(-2.6, 0, 0)
+			_torso.rotation.x = _lean + 0.25
+		Event.HANDS_HIPS:
+			for i in 2:
+				_arm[i].rotation = Vector3(0.1, 0, 0.5 * (-1.0 if i == 0 else 1.0))
+			_torso.rotation.x = _lean + 0.2
+		Event.PROTEST:
+			for i in 2:
+				_arm[i].rotation = Vector3(-0.8 + 0.25 * sin(k * 14.0), 0, 0.9 * (-1.0 if i == 0 else 1.0))
 		Event.CARD:
 			# El árbitro levanta la tarjeta con el brazo derecho estirado.
 			_arm[1].rotation = Vector3(-2.9 * minf(k * 6.0, 1.0) * minf((1.0 - k) * 6.0, 1.0), 0, 0)

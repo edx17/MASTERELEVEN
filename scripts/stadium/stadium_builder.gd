@@ -881,7 +881,9 @@ static func _technical_area(parent: Node3D, style: Dictionary) -> void:
 			parent.add_child(m)
 		# Banco de suplentes: abierto hacia la cancha, con pared de fondo,
 		# laterales, techo traslúcido y una fila de asientos.
-		var bz := Pitch.HALF_WIDTH + float(style["wall"]) - 1.2
+		# Contra el muro (o, si el estadio lo indica, embutido más atrás: en
+		# el Coloso del Sur quedaba delante del túnel y tapaba la toma).
+		var bz := Pitch.HALF_WIDTH + float(style.get("bench", style["wall"])) - 1.2
 		var shell := _mat(Color(0.36, 0.4, 0.48), 0.7)
 		var parts := [
 			[Vector3(cx, 1.1, bz + 0.72), Vector3(9.0, 2.2, 0.16), shell],

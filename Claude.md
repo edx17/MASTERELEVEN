@@ -58,7 +58,10 @@ Si esto no funciona, NO se agregan sistemas: se corrige el gameplay primero.
   detección automática y remapeo desde opciones.
 - Solo assets libres (CC0 o de producción propia). Animaciones: Mixamo o
   similares con licencia compatible. Documentar el origen de cada asset en
-  /assets/CREDITS.md.
+  /assets/CREDITS.md. Los assets van en el repo (también Mixamo, para que las
+  pruebas y el .exe usen lo mismo que se ve en el editor); como algunas
+  licencias (Mixamo, Poliigon) no permiten redistribuir los archivos sueltos,
+  conviene que el repo sea privado.
 
 ## Stack y decisiones técnicas tomadas
 - Motor: Godot 4 (4.7.x), GDScript. Tests con GUT (addons/gut).
@@ -87,6 +90,8 @@ Si esto no funciona, NO se agregan sistemas: se corrige el gameplay primero.
 | Pase en profundidad (atacando) · sale el arquero, mantenido (defendiendo) | Triángulo | I |
 | Correr | R1 | Shift |
 | Gambeta (mantenido, conducción cerrada) / combinaciones · cambio de jugador sin la pelota | L1 | Q |
+| Estrategia (L2 + X / Cuadrado / Círculo / Triángulo) | L2 | R + la tecla |
+| Mentalidad: defensiva ← equilibrada → ofensiva | L2 + cruceta izq. / der. | R + ← / → |
 | Pausa | Start | Esc |
 | Cambio de cámara | Select | C |
 | Stick derecho (marsellesa) | Stick derecho | Flechas |
@@ -123,14 +128,31 @@ Todo definido en el Input Map de Godot, nunca hardcodeado.
 
 ## Estructura
 ```
-scenes/    match/ players/ ball/ stadium/ ui/
+scenes/    match/ (match.tscn) ui/ (main_menu.tscn) — el resto se arma por código
 scripts/   player/ ball/ ai/ tactics/ match/ camera/ goalkeeper/ ui/ core/
-systems/   input/ possession/ replay/ save/
-data/      players/ teams/ formations/ config/
-assets/    models/ textures/ animations/ audio/ fonts/
-tests/
-docs/
+           stadium/ audio/ competition/ training/
+systems/   input/ (fuentes de input, mapeo de controles)
+data/      teams/ formations/ config/
+assets/    models/ textures/ animations/ (mixamo/ va en el repo) ui/ skies/
+           _entrada/ (zips tal como se bajan; Claude los procesa)
+tests/unit/   GUT (corren en GitHub Actions en cada push)
+tools/     capturas, hojas de poses, benchmark, generador de datos
+docs/      PROGRESS.md (estado), FISICA.md, REFERENCIA_WE.md, ENTRENAMIENTO.md
+.claude/   hook de inicio de las sesiones en la nube y skills de desarrollo de juegos
+.github/   CI: tests + .exe de Windows (artifact)
 ```
+
+## Herramientas
+- **CI** (`.github/workflows/ci.yml`): tests de GUT y `MasterEleven.exe` de
+  Windows (preset de `export_presets.cfg`) en cada push; el .exe se baja de
+  *Actions → Artifacts*.
+- **Sesiones de Claude en la nube**: `.claude/hooks/session-start.sh` instala
+  Godot 4.7.2 e importa el proyecto. Skills de Godot y de diseño de juegos
+  (awesome-gamedev-agent-skills, Apache 2.0) en `.claude/skills/`.
+- **Capturas** (`tools/capture_runner.gd`, `tools/pose_sheet.gd`): con
+  `xvfb-run` y `--rendering-method gl_compatibility` Claude saca fotos del
+  partido, la presentación, estadios (`--stadium=N`, `--cond=`, `--shot=`) y
+  hojas de poses para revisar lo visual antes de entregar.
 
 ## FASES (no avanzar a la siguiente sin cumplir los criterios de aceptación)
 
@@ -155,7 +177,7 @@ remate → arquero → gol, todo con sensación WE2002:
 Criterio: el "criterio de éxito del gameplay" de arriba, jugado por vos con
 mando y con teclado.
 
-### Fase 3 — IA de partido (EN CURSO)
+### Fase 3 — IA de partido (IMPLEMENTADA, pendiente de prueba)
 - TeamAI con estados DEFENDING, BUILD_UP, ATTACKING, COUNTER_ATTACK, PRESSING,
   RETREATING; TeamShape / DefensiveShape / AttackingShape.
 - Formaciones 4-4-2, 4-3-3, 4-2-3-1, 3-5-2, 5-3-2 (formation_slot por jugador).
@@ -178,7 +200,7 @@ Criterio: un partido vs CPU es competitivo y la CPU juega "como un equipo".
   jugador controlado al estilo ForeverEleven (sin copiar assets de nadie).
 Criterio: capturas lado a lado con la referencia y 60 FPS con 22 jugadores.
 
-### Fase 4 — Reglas, atributos y plantel
+### Fase 4 — Reglas, atributos y plantel (IMPLEMENTADA, pendiente de prueba)
 - Faltas, tiros libres, penales, offside, amarillas y rojas (lo necesario, no todo).
 - Árbitro con IA (según docs/FISICA.md): cono de visión (~120°, ~20 m), se
   ubica a 10-15 m de la pelota, sólo sanciona lo que ve, con un % de errores

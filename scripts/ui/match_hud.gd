@@ -135,6 +135,9 @@ func _process(_dt: float) -> void:
 	for t in _match.teams:
 		if t.strategy != Strategy.Kind.NONE:
 			lines.append("%s: %s" % [t.short_name, Strategy.NAMES[t.strategy]])
+		# Mentalidad del humano (si no es la equilibrada): una flecha.
+		if t.mentality != 0 and _match.training == null and _match.humans.any(func(h: HumanController) -> bool: return h.team == t):
+			lines.append("%s: %s" % [t.short_name, ("▲ ofensiva" if t.mentality > 0 else "▼ defensiva")])
 	_strategy.text = "\n".join(lines)
 	_banner.text = _match.banner_text
 	if _match.phase == MatchController.Phase.FULLTIME:
@@ -322,12 +325,7 @@ class Radar:
 		var line := Color(1, 1, 1, 0.75)
 		draw_rect(Rect2(Vector2.ZERO, SIZE), Color(0.05, 0.12, 0.07, 0.45))
 		draw_rect(Rect2(Vector2.ZERO, SIZE), line, false, 1.5)
-		draw_line(Vector2(SIZE.x * 0.5, 0), Vector2(SIZE.x * 0.5, SIZE.y), line, 1.0)
-		draw_arc(SIZE * 0.5, Pitch.CENTER_CIRCLE_RADIUS / Pitch.HALF_WIDTH * 0.5 * SIZE.y, 0, TAU, 24, line, 1.0)
-		for side in [-1, 1]:
-			var a := _to_radar(Vector3(side * Pitch.HALF_LENGTH, 0, -Pitch.PENALTY_AREA_HALF_WIDTH))
-			var b := _to_radar(Vector3(side * (Pitch.HALF_LENGTH - Pitch.PENALTY_AREA_DEPTH), 0, Pitch.PENALTY_AREA_HALF_WIDTH))
-			draw_rect(Rect2(Vector2(minf(a.x, b.x), a.y), Vector2(absf(b.x - a.x), b.y - a.y)), line, false, 1.0)
+		PitchMarkings.draw_2d(self, Rect2(Vector2.ZERO, SIZE), line, 1.0, Pitch.HALF_LENGTH, Pitch.HALF_WIDTH, false)
 		for t in _match.teams:
 			for p in t.players:
 				var r := 3.5 if p.is_human() else 2.8

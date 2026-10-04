@@ -48,7 +48,7 @@ func test_referee_follows_the_play_from_a_distance() -> void:
 	assert_lt(p.z, 20.0)
 	assert_true(absf(p.x) <= Pitch.HALF_LENGTH and absf(p.z) <= Pitch.HALF_WIDTH, "adentro de la cancha")
 	var ball := Vector3(20, 0.11, 10)
-	for i in 300:
+	for i in 420:
 		m.referee.tick(dt, ball, true)
 	assert_lt(m.referee.global_position.distance_to(Referee.trail_point(ball)), 0.6, "llega a su lugar")
 

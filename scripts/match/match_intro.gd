@@ -55,6 +55,11 @@ var _looks := {}
 var _rondos: Array[Dictionary] = []
 ## Arqueros atajando en el calentamiento ({keeper, ball, home, t, from, to, dive}).
 var _keeper_drills: Array[Dictionary] = []
+## Pelotas sueltas del calentamiento (utilería, quietas en el césped).
+var _loose_balls: Array[MeshInstance3D] = []
+## Entrenador de arqueros: le patea desde el borde del área.
+const COACH_DIST := 11.0
+const LOOSE_BALLS := 7
 ## Jugador que se está presentando (índice en la fila).
 var _announced := -1
 var _caption: PanelContainer
@@ -105,7 +110,9 @@ func tick(dt: float) -> void:
 				# Segunda toma: el arquero atajando.
 				var gk := _match.teams[1].keeper()
 				if gk != null:
-					_cam.set_shot(gk.flat_pos() + Vector3(gk.team.attack_dir * 9.0, 2.0, 4.0), gk.flat_pos() + Vector3(0, 1.0, 0), 34.0)
+					# De costado: el entrenador que patea y el arquero que ataja.
+					var mid := gk.flat_pos() + Vector3(gk.team.attack_dir * COACH_DIST * 0.5, 0.0, 0.0)
+					_cam.set_shot(mid + Vector3(gk.team.attack_dir * 1.5, 2.4, 11.5), mid + Vector3(0, 0.9, 0), 46.0)
 		Step.PRESENT_HOME, Step.PRESENT_AWAY:
 			_walk_to_targets()
 			_update_looks(dt)
@@ -129,8 +136,8 @@ func tick(dt: float) -> void:
 			show_lineup(0 if _t < DURATION[Step.LINEUP] * 0.5 else 1)
 			# Paneo a lo largo de las dos filas, frente a los jugadores.
 			var k := clampf(_t / DURATION[Step.LINEUP], 0.0, 1.0)
-			var x := lerpf(-16.0, 16.0, k)
-			_cam.set_shot(Vector3(x, 1.8, 9.5), Vector3(x * 0.9, 1.4, 2.0), 38.0, 3.0)
+			var x := lerpf(-14.0, 14.0, smoothstep(0.0, 1.0, k))
+			_cam.set_shot(Vector3(x, 2.1, ROW_Z + 8.5), Vector3(x * 0.85, 1.3, ROW_Z), 40.0, 0.0 if _t <= dt else 3.0)
 	if DURATION.has(step) and _t >= DURATION[step]:
 		_enter(step + 1)
 
@@ -210,7 +217,26 @@ func _setup_warmup() -> void:
 			var home := t.own_goal() + Vector3(t.attack_dir * 0.9, 0.0, 0.0)
 			gk.teleport(home, Vector3(t.attack_dir, 0, 0))
 			_keeper_drills.append({"keeper": gk, "ball": _prop_ball(), "home": home,
-				"t": -_rng.randf_range(0.2, 1.2), "from": Vector3.ZERO, "to": Vector3.ZERO, "dive": -1})
+				"t": -_rng.randf_range(0.2, 1.2), "from": Vector3.ZERO, "to": Vector3.ZERO, "dive": -1,
+				"coach": _coach(home + Vector3(t.attack_dir * COACH_DIST, 0.0, 0.0), -t.attack_dir)})
+		# Pelotas sueltas por el área y la medialuna (como en una previa real).
+		for i in LOOSE_BALLS:
+			var b := _prop_ball()
+			var off := Vector3(t.attack_dir * _rng.randf_range(12.0, 24.0), 0.11, _rng.randf_range(-14.0, 14.0))
+			b.global_position = t.own_goal() + off
+			b.visible = true
+			_loose_balls.append(b)
+
+
+## Un entrenador de buzo (sin número) parado en `pos`, mirando hacia el arco.
+func _coach(pos: Vector3, face_x: float) -> Node3D:
+	var v: PlayerVisual = ModelVisual.new() if ModelVisual.available() else PlayerVisual.new()
+	_match.add_child(v)
+	v.setup({"shirt": Color(0.13, 0.14, 0.18), "shorts": Color(0.13, 0.14, 0.18),
+		"socks": Color(0.13, 0.14, 0.18)}, 77 + int(pos.x))
+	v.global_position = pos
+	v.rotation.y = atan2(face_x, 0.0)
+	return v
 
 
 func _prop_ball() -> MeshInstance3D:
@@ -235,6 +261,11 @@ func _clear_warmup() -> void:
 		(r["ball"] as Node).queue_free()
 	for d in _keeper_drills:
 		(d["ball"] as Node).queue_free()
+		if d.has("coach"):
+			(d["coach"] as Node).queue_free()
+	for b in _loose_balls:
+		b.queue_free()
+	_loose_balls.clear()
 	_rondos.clear()
 	_keeper_drills.clear()
 
@@ -309,11 +340,20 @@ func _keeper_drill_tick(d: Dictionary, dt: float) -> void:
 	if t < 0.0:
 		ball.visible = false
 		_move_or_stop(gk, home, WALK)
+		var cv: PlayerVisual = d.get("coach") as PlayerVisual
+		if cv != null:
+			cv.update(dt, 0.0, 8.4, PlayerVisual.Pose.NORMAL, 0.0)
 		return
 	if d["dive"] < 0:
 		# Nuevo remate.
 		var side := gk.team.attack_dir
+		var coach: Node3D = d.get("coach")
 		d["from"] = home + Vector3(side * 10.0, 0.11, _rng.randf_range(-2.0, 2.0))
+		if coach != null:
+			# El entrenador patea: la pelota sale de su pie.
+			d["from"] = coach.global_position + Vector3(-side * 0.5, 0.11, 0.1)
+			if coach is PlayerVisual:
+				(coach as PlayerVisual).play(PlayerVisual.Event.KICK)
 		var kind := _rng.randi() % 4
 		var z := 0.0
 		var h := 1.0
@@ -333,6 +373,9 @@ func _keeper_drill_tick(d: Dictionary, dt: float) -> void:
 		d["to"] = home + Vector3(0.0, h, z)
 		d["played"] = false
 	ball.visible = true
+	var coach_v: PlayerVisual = d.get("coach") as PlayerVisual
+	if coach_v != null:
+		coach_v.update(dt, 0.0, 8.4, PlayerVisual.Pose.NORMAL, 0.0)
 	var k := clampf(t / KEEPER_SHOT_FLIGHT, 0.0, 1.0)
 	var from: Vector3 = d["from"]
 	var to: Vector3 = d["to"]
@@ -383,8 +426,16 @@ func _skip_ahead_on_pitch() -> void:
 
 
 func _set_lineup_targets() -> void:
+	# Fila prolija: el que todavía venía caminando ya está en su lugar, todos
+	# de frente a la cámara (antes alguno pasaba por delante de la toma).
 	for p in _targets:
 		p.desired_move = Vector3.ZERO
+		p.teleport(_targets[p], Vector3.BACK)
+	# El árbitro en el medio, entre los dos equipos.
+	if _match.referee != null:
+		_match.referee.release()
+		_match.referee.teleport(Vector3(0.0, 0.0, ROW_Z))
+		_match.referee.facing = Vector3.BACK
 
 
 ## Presentación: dolly de frente a la fila de `t`, de punta a punta; al

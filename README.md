@@ -2,41 +2,64 @@
 
 Fútbol 3D arcade-simulación: gameplay de Winning Eleven 2002 con presentación
 moderna, y modo Liga Master como objetivo. Todo ficticio: clubes, jugadores y
-torneos inventados. Ver `Claude.md` para la
-visión completa y `docs/PROGRESS.md` para el estado.
+torneos inventados. Ver `Claude.md` para la visión completa y
+`docs/PROGRESS.md` para el estado.
 
-## Cómo abrirlo
+## Jugar la última versión (.exe de prueba)
+Cada push arma un `MasterEleven.exe` para Windows (un solo archivo):
+GitHub → pestaña **Actions** → la última corrida de **CI** → abajo,
+**Artifacts** → `MasterEleven-windows-...` (zip). Se guarda 30 días.
+
+## Abrirlo en el editor
 1. Bajá **Godot 4.7** (versión *Standard*, no .NET) desde https://godotengine.org/download
    — es un ejecutable sin instalación.
 2. Abrí Godot → *Importar* → elegí `project.godot` de esta carpeta.
 3. **F5** para jugar.
 
-## Controles
+## Controles (estilo WE)
 | Acción | Mando | Teclado |
 |--------|-------|---------|
-| Mover | Stick izq / cruceta | WASD |
-| Pase corto / presionar | A / Cruz | J |
-| Tiro / barrida | X / Cuadrado | K |
-| Pase largo / centro | B / Círculo | L |
-| Pase al hueco | Y / Triángulo | I |
-| Sprint | RB / R1 | Shift |
-| Cambiar jugador | LB / L1 | Q |
+| Mover | Stick izq. / cruceta | WASD |
+| Pase (atacando) · presión (defendiendo) | X / A | J |
+| Remate · un compañero presiona | Cuadrado / X | K |
+| Centro / pase largo · barrida | Círculo / B | L |
+| Pase al hueco · sale el arquero | Triángulo / Y | I |
+| Correr | R1 / RB | Shift |
+| Gambeta / combinaciones · cambio de jugador | L1 / LB | Q |
+| Estrategia (L2 + X / Cuadrado / Círculo / Triángulo) | L2 / LT | R + la tecla |
+| Mentalidad defensiva / ofensiva | L2 + cruceta ← / → | R + ← / → |
 | Pausa | Start | Esc |
 | Cambiar cámara | Select / Back | C |
 | Modo debug | — | F9 |
 
-Mantené el botón para cargar la barra de potencia. Se remapea desde
-*Proyecto → Configuración del proyecto → Mapa de entrada*.
+Mantené el botón para cargar la barra de potencia. Las combinaciones (globo,
+pared, centros, bicicleta, marsellesa...) están en `Claude.md` y en el menú
+*Opciones → Controles*, donde también se cambian los botones.
 
 ## Ajustar la sensación de juego
 - `data/config/tuning.tres`: velocidades, giro, conducción, robo, pases, tiros, arquero.
-- `data/config/cameras/*.tres`: modos de cámara (TV, Amplia, Cercana, Vertical, Dron): altura, distancia, ángulo, seguimiento, zoom.
+- `data/config/cameras/*.tres`: modos de cámara (altura, distancia, ángulo, seguimiento, zoom).
 - `data/teams/*.tres`: equipos y atributos de jugadores (regenerables con
   `godot --headless -s res://tools/generate_data.gd`).
 
+## Assets (texturas, cielos, animaciones, sonidos)
+Dejá los archivos tal como los bajaste en `assets/_entrada/` y subilos
+(`git add assets/_entrada && git commit && git push`). Claude los descomprime,
+los achica, los conecta al juego y los anota en `assets/CREDITS.md`
+(ver `assets/_entrada/LEEME.md`).
+
 ## Tests
-Desde el editor: panel **GUT** (abajo) → *Run All*.
-Por línea de comandos:
+Corren solos en GitHub en cada push (pestaña *Actions*). Para correrlos a mano:
+- Desde el editor: panel **GUT** (abajo) → *Run All*.
+- Por línea de comandos:
 ```
 godot --headless -s addons/gut/gut_cmdln.gd -gconfig=.gutconfig.json
+```
+
+## Capturas sin abrir el juego
+```
+xvfb-run -s "-screen 0 1280x720x24" godot --rendering-method gl_compatibility \
+    --resolution 1280x720 -- --capture=carpeta [--quick | --intro | --replay | --foul |
+    --training | --tunnel | --sheet | --stadium=N | --cond=horario,clima |
+    --shot=x,y,z,mira_x,mira_y,mira_z]
 ```

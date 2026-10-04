@@ -60,6 +60,13 @@ func _run() -> void:
 		stances = []
 		for k in team_list.size() * 2:
 			stances.append(1)
+	# Hoja de reacciones del final ("gestures"): aplaudir, cabeza, cintura y
+	# protesta; de frente arriba y de costado abajo.
+	var gestures := out.contains("gesture")
+	var gesture_events := [PlayerVisual.Event.APPLAUD, PlayerVisual.Event.HEAD_HOLD,
+		PlayerVisual.Event.HANDS_HIPS, PlayerVisual.Event.PROTEST]
+	if gestures:
+		stances = [1, 1, 1, 1, 1, 1, 1, 1]
 	if shake:
 		stances = [1, 1, 1, 1]
 	if throw:
@@ -105,7 +112,10 @@ func _run() -> void:
 		if shake:
 			v.update(1.0 / 60.0, 0.0, 8.4, PlayerVisual.Pose.NORMAL, 0.0)
 			v.play(PlayerVisual.Event.HANDSHAKE, 1.0 if i % 2 == 0 else -1.0)
-		for f in 20:
+		if gestures:
+			v.update(1.0 / 60.0, 0.0, 8.4, PlayerVisual.Pose.NORMAL, 0.0)
+			v.play(gesture_events[i % 4], 4.0)
+		for f in (90 if gestures else 20):
 			v.update(1.0 / 60.0, 0.0, 8.4, PlayerVisual.Pose.NORMAL, 0.0)
 			await process_frame
 		await process_frame

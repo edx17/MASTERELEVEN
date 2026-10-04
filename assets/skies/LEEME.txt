@@ -1,0 +1,1 @@
+Cielos HDRI (panorama equirectangular, 2K): despejado, amanecer_invierno, atardecer, nublado, nublado2, nieve (.hdr/.exr/.jpg/.png). Ver scripts/stadium/sky_textures.gd.

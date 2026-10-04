@@ -491,9 +491,13 @@ func _next_formation() -> void:
 	for i in all.size():
 		if team.formation != null and all[i].formation_name == team.formation.formation_name:
 			idx = i
+	var focus_idx := _menu.get_children().find(get_viewport().gui_get_focus_owner()) if is_inside_tree() else -1
 	match_ref.set_formation(team.index, all[(idx + 1) % all.size()])
 	_rebuild()
-	_menu.get_child(_menu.get_child_count() - 1).grab_focus()
+	# El foco queda en "Formación" para seguir pasando (antes iba al último
+	# botón, que desde que están las estrategias ya no es éste).
+	if focus_idx >= 0 and focus_idx < _menu.get_child_count():
+		(_menu.get_child(focus_idx) as Control).grab_focus()
 
 
 func _hint() -> String:
@@ -648,13 +652,7 @@ class MiniPitch:
 			if i % 2 == 0:
 				draw_rect(Rect2(r.size.x * i / 10.0, 0, r.size.x / 10.0, r.size.y), Color(0.19, 0.47, 0.23))
 		var line := Color(1, 1, 1, 0.75)
-		draw_rect(r.grow(-2), line, false, 1.5)
-		draw_line(Vector2(r.size.x * 0.5, 2), Vector2(r.size.x * 0.5, r.size.y - 2), line, 1.5)
-		draw_arc(r.get_center(), r.size.y * 0.15, 0, TAU, 40, line, 1.5)
-		for side in [0.0, 1.0]:
-			var w := r.size.x * 0.13
-			var h := r.size.y * 0.58
-			draw_rect(Rect2(absf(side * r.size.x - (w if side > 0 else 0.0)), (r.size.y - h) * 0.5, w, h), line, false, 1.5)
+		PitchMarkings.draw_2d(self, r.grow(-10), line, 1.5)
 		if team == null:
 			return
 		var font := get_theme_default_font()

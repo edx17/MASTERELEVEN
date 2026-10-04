@@ -151,6 +151,11 @@ func _ready() -> void:
 			[70, "train:6"], [71, "simulate:1.0"], [78, "shot:train_rondo.png"],
 			[80, "train:7"], [81, "simulate:0.4"], [88, "shot:train_targets.png"],
 			[90, "train_pause"], [98, "shot:train_pause.png"], [100, "quit"]]
+	# `--shot=x,y,z,mx,my,mz[,fov]`: una sola toma fija sin jugadores.
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--shot="):
+			_script = [[20, "freeze"], [21, "hide_players"], [22, "cam:" + a.trim_prefix("--shot=")],
+				[30, "shot:shot.png"], [32, "quit"]]
 	# `--retro`: jugadores con el modelo retro (estilo PS1).
 	if "--retro" in OS.get_cmdline_user_args():
 		GameSettings.player_style = 1
@@ -217,6 +222,15 @@ func _run(action: String) -> void:
 	if action == "freeze":
 		# Simulación congelada: la cámara se acomoda y las fotos son estables.
 		_match.set_physics_process(false)
+	elif action == "hide_players":
+		for p in _match.all_players():
+			p.visible = false
+	elif action.begins_with("cam:"):
+		# cam:x,y,z,mira_x,mira_y,mira_z[,fov]: toma fija para revisar algo.
+		var v := action.trim_prefix("cam:").split(",")
+		var fov := float(v[6]) if v.size() > 6 else 45.0
+		_camera.set_shot(Vector3(float(v[0]), float(v[1]), float(v[2])),
+			Vector3(float(v[3]), float(v[4]), float(v[5])), fov)
 	elif action == "throw_in":
 		_place(Vector3(-8, 0, Pitch.HALF_WIDTH - 0.3), Vector3(-8.5, 0.11, Pitch.HALF_WIDTH - 0.6))
 	elif action == "attack":

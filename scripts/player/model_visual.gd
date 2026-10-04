@@ -949,6 +949,44 @@ func _apply_gestures() -> void:
 			_rotate_bone("upperarm_r", Vector3.RIGHT, (-2.7 - pump) * up)
 			_rotate_bone("lowerarm_l", Vector3.RIGHT, -0.4 * up)
 			_rotate_bone("lowerarm_r", Vector3.RIGHT, -0.4 * up)
+		Event.APPLAUD:
+			# Aplaude: brazos adelante y las manos que se juntan y se separan.
+			var on := minf(k * 8.0, 1.0) * minf((1.0 - k) * 8.0, 1.0)
+			var clap := 0.18 * sin(_event_t * 16.0)
+			_rotate_bone("upperarm_l", Vector3.RIGHT, -1.5 * on)
+			_rotate_bone("upperarm_r", Vector3.RIGHT, -1.5 * on)
+			_rotate_bone("upperarm_l", Vector3.FORWARD, (0.45 + clap) * on)
+			_rotate_bone("upperarm_r", Vector3.FORWARD, -(0.45 + clap) * on)
+			_rotate_bone("lowerarm_l", Vector3.UP, -0.9 * on)
+			_rotate_bone("lowerarm_r", Vector3.UP, 0.9 * on)
+		Event.HEAD_HOLD:
+			# No lo puede creer: brazos arriba con las manos juntas sobre la
+			# cabeza y la mirada al piso.
+			var on := minf(k * 6.0, 1.0) * minf((1.0 - k) * 6.0, 1.0)
+			_rotate_bone("upperarm_l", Vector3.RIGHT, -2.75 * on)
+			_rotate_bone("upperarm_r", Vector3.RIGHT, -2.75 * on)
+			_rotate_bone("upperarm_l", Vector3.FORWARD, -0.45 * on)
+			_rotate_bone("upperarm_r", Vector3.FORWARD, 0.45 * on)
+			_rotate_bone("spine_03", Vector3.RIGHT, 0.2 * on)
+			_rotate_bone("neck_01", Vector3.RIGHT, 0.45 * on)
+		Event.HANDS_HIPS:
+			# Cabizbajo: hombros caídos, el cuerpo hacia adelante y la mirada
+			# al piso.
+			var on := minf(k * 6.0, 1.0) * minf((1.0 - k) * 6.0, 1.0)
+			_rotate_bone("spine_03", Vector3.RIGHT, 0.3 * on)
+			_rotate_bone("neck_01", Vector3.RIGHT, 0.55 * on)
+			_rotate_bone("upperarm_l", Vector3.RIGHT, -0.2 * on)
+			_rotate_bone("upperarm_r", Vector3.RIGHT, -0.2 * on)
+		Event.PROTEST:
+			# Protesta: brazos abiertos, palmas arriba, sacudiendo.
+			var on := minf(k * 8.0, 1.0) * minf((1.0 - k) * 8.0, 1.0)
+			var shake := 0.22 * sin(_event_t * 9.0)
+			_rotate_bone("upperarm_l", Vector3.FORWARD, -(0.85 + shake) * on)
+			_rotate_bone("upperarm_r", Vector3.FORWARD, (0.85 + shake) * on)
+			_rotate_bone("upperarm_l", Vector3.RIGHT, -0.75 * on)
+			_rotate_bone("upperarm_r", Vector3.RIGHT, -0.75 * on)
+			_rotate_bone("lowerarm_l", Vector3.UP, -0.5 * on)
+			_rotate_bone("lowerarm_r", Vector3.UP, 0.5 * on)
 		Event.CATCH:
 			_rotate_bone("upperarm_l", Vector3.RIGHT, -1.4 * strike)
 			_rotate_bone("upperarm_r", Vector3.RIGHT, -1.4 * strike)

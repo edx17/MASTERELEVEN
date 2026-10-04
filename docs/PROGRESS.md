@@ -16,8 +16,57 @@ Ver `Claude.md` para visión, criterios y fases.
 | 8 — Pulido | ⬜ |
 | Entrenamiento (Club House) | 🟡 Implementado, **pendiente de tu prueba** |
 | Backlog B1–B9 (tu lista de pendientes) | 🟡 B1–B9 hechos (PR #24) |
+| Backlog B10 (tu prueba de octubre) + infraestructura | 🟡 Hecho en `claude/vibrant-mendel-0ut5bk`, **pendiente de tu prueba** |
 
 ---
+
+## Backlog B10 e infraestructura
+
+### Infraestructura
+
+| Tema | Cambio |
+|---|---|
+| Tests automáticos | `.github/workflows/ci.yml`: en cada push y PR, GitHub corre los tests de GUT con Godot 4.7.2 sin pantalla (~3 min). Un push nuevo cancela la corrida anterior de la misma rama. |
+| .exe de prueba | El mismo workflow exporta el preset **Windows Desktop** (`export_presets.cfg`): un solo `MasterEleven.exe` con todo adentro. Se baja desde GitHub → *Actions* → la corrida → *Artifacts* (se guarda 30 días). |
+| Sesiones en la nube | `.claude/hooks/session-start.sh` instala Godot e importa el proyecto, así Claude corre los tests y saca capturas en cada sesión. |
+| Skills de desarrollo de juegos | 25 skills de `awesome-gamedev-agent-skills` (Apache 2.0) en `.claude/skills/` (Godot 3D, animación, audio, export, shaders, UI, IA, game feel, cámara, rendimiento...). Se activan solas en las sesiones de Claude Code. |
+| Assets en el repo | Mixamo y las texturas ya no están en el `.gitignore`. Los zips/fbx/sonidos se dejan tal cual en `assets/_entrada/` (ver su LEEME) y Claude los procesa. El césped fotográfico pasó de 4K (24 MB) a 2K (1,4 MB). |
+| Cielos HDRI | `SkyTextures`: si hay un cielo en `assets/skies/` (despejado, amanecer_invierno, atardecer, nublado, nublado2, nieve) se usa según horario y clima; si no, el procedural. **Faltan los archivos** (ver más abajo). |
+| Capturas | `capture_runner.gd --shot=x,y,z,mx,my,mz[,fov]`: una toma fija sin jugadores (para revisar estadios, luces, túnel). |
+
+### Tu lista (B10)
+
+| Pedido | Cambio |
+|---|---|
+| Entrenamiento: al tirar un centro los compañeros se iban a la línea de su arco | La "línea del offside" daba 0 sin defensores de campo (= tu propio arco). Ahora nunca queda detrás de la mitad ni de la pelota, y sin offside (o en el entrenamiento) no limita. |
+| La pelota se frena sobre la línea en el gol | La repetición dejaba de grabar 0,8 s después de cruzar la línea: en un remate lento terminaba con la pelota en la línea. Ahora sigue 3 s después (se ve la red). |
+| Dirección del equipo: al cambiar la formación el cursor se iba al final | El foco queda en *Formación*. |
+| Repeticiones a los tirones, cortadas | Interpolan entre cuadros (sin tirones en cámara lenta). Arrancan cuando empezó la acción (entre 3 y 6 s antes) y siguen 3 s después. |
+| Gol: repetir también el festejo desde otro ángulo | Después de la repetición del gol, el festejo de frente al goleador (lo sigue la cámara). |
+| Gol: la cámara con el goleador | Apenas es gol, la cámara lo persigue en plano medio mientras corre y festeja; después la repetición. |
+| Offside de costado y lejos, en el momento justo | Toma desde la banda, lejos, que muestra al que pasa y al adelantado; se congela 1,4 s en el pase con la línea. |
+| Entretiempo: que espere | La pantalla espera siempre (también CPU vs CPU) y los botones no responden el primer 1,5 s (si venías apretando X no se saltea sola). |
+| Final: puntajes en lugar de Dirección del equipo | `PlayerRatings`: pases, asistencias, remates, quites, intercepciones, atajadas, goles recibidos, faltas y tarjetas de cada jugador; puntaje de 1 a 10 y **figura del partido**. En el final, "Puntajes de los jugadores". |
+| Fin del 1er tiempo: que se vayan al túnel | Caminando al túnel; de a dos charlan; uno va a hablar con el árbitro. En la pantalla del entretiempo la cancha queda vacía (vuelven para el 2º tiempo). |
+| Final: festejos y bronca | Los que ganan levantan los brazos o aplauden; los que pierden se tiran al piso, se agarran la cabeza, quedan cabizbajos o le protestan al árbitro (hasta dos). Empate: aplausos y cabizbajos. Después, la pantalla con la cancha vacía y **la gente que se va yendo** (en 90 s). |
+| Árbitro en el saque del medio | Al costado del círculo central, del lado de enfrente de la cámara, en el campo del que saca. |
+| Canchas dibujadas con todas las marcas | `PitchMarkings`: área chica, punto penal, medialuna, círculo y punto central, arcos de córner y arcos. Las usan la cancha, las canchas paralelas del Club House, el radar y la minicancha de la Dirección del equipo. |
+| La CPU casi no patea; llega al área y la tira al lateral | En el área remata casi siempre (al palo libre); cerca del arco no la devuelve atrás ni al costado (sólo a uno mejor ubicado); en el último tercio encara hacia el área. CPU vs CPU (8 partidos): **3,8 → 8,5 remates por partido**, goles 1,1 → 1,0. |
+| Compañeros que acompañen: 3 niveles con L2 + cruceta | **L2 + cruceta izquierda / derecha** (teclado: **R + ← / →**): mentalidad defensiva / equilibrada / ofensiva. Sube o baja el bloque, más o menos jugadores llegan al área en los centros (en ofensiva también el volante defensivo y el lateral del otro lado), más desmarques y un apoyo más por afuera. Se ve arriba a la derecha. |
+| Coliseo del Sur: algo tapa el túnel | En el Coloso del Sur el muro de la cancha hundida no tenía la boca del túnel y el banco de suplentes quedaba delante. Ahora el túnel se ve y los bancos van embutidos en el muro. |
+| Sombras muy fuertes; de noche, reflectores mal puestos | De noche las líneas cruzadas sobre el césped eran sombras de arcos, red, carteles y techos: ahora los reflectores sólo proyectan sombras de jugadores y pelota, y alumbran más parejo. De día la sombra del sol es más suave (los techos hacen sombra pero no oscurecen tanto). |
+| Cuerpo clásico: aberturas en hombros y cuello | El cuello de la camiseta cierra contra el cuello, un hombro pegado a la clavícula tapa la unión con la manga y el ruedo de la manga cierra contra el brazo. |
+| Presentación fea | La fila queda prolija (cada uno en su lugar, de frente, el árbitro al medio) y la cámara pasa más lejos (antes había jugadores caminando delante de la toma). |
+| Calentamiento: entrenadores que le pateen al arquero, pelotas sueltas | Un entrenador de arqueros (de buzo) le patea desde el borde del área (toma de costado) y hay pelotas sueltas por cada área. |
+| Gestos nuevos | `APPLAUD`, `HEAD_HOLD`, `HANDS_HIPS` (cabizbajo) y `PROTEST`, revisados con `--poses=...gestures.png`. |
+
+**Tests:** 352 en verde (nuevo `test_backlog_b10.gd`, 18 tests).
+
+### Pendiente
+- [ ] **Tu prueba** de todo lo de arriba (en Forward+: las capturas de Claude son en modo compatibilidad).
+- [ ] **Subir los assets**: las animaciones de Mixamo (`assets/animations/mixamo/`) y los zips de texturas y cielos en `assets/_entrada/`. Por el chat sólo llegaron 4 imágenes de muestra y el desplazamiento de *GrassPatchyGround* (no los mapas de color/normal/rugosidad).
+- [ ] Animaciones "trabadas": no se pudo reproducir sin las de Mixamo (acá se ven los gestos por código). Un video corto ayudaría.
+- [ ] Sonido grabado (ver la lista de bancos de sonidos en el chat de esta sesión).
 
 ## Backlog de pulido (PR #24)
 
