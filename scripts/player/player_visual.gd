@@ -14,7 +14,7 @@ extends Node3D
 enum Event { KICK, PASS, HEADER, THROW, DIVE_LEFT, DIVE_RIGHT, CATCH, TACKLE,
 		RECEIVE, CHEST, CATCH_HIGH, CATCH_LOW, BLOCK, CELEBRATE, DEJECTED, ROLL,
 		FEINT, ROULETTE, STEPOVER, HIGH_FIVE, HANDSHAKE, CHEER,
-		SPRINT_START, SPRINT_TURN, CHILENA, SMOTHER, CARD }
+		SPRINT_START, SPRINT_TURN, CHILENA, SMOTHER, CARD, TOUCH }
 ## Cada gesto pedido (lo escucha la repetición para volver a mostrarlo).
 ## En HEADER y en las atajadas `side` lleva la altura de la pelota; en
 ## CELEBRATE, el festejo (Celebrations); en SPRINT_TURN, hacia dónde gira
@@ -146,6 +146,11 @@ func contact_point(event: int) -> Vector3:
 	return global_transform * Vector3(-0.12, 0.11, 0.45)
 
 
+## Punta del botín (+1 derecho, -1 izquierdo), a ras del piso.
+func foot_position(side: float) -> Vector3:
+	return global_transform * Vector3(-0.12 * side, 0.11, 0.42)
+
+
 ## Lo pone una subclase que ya avisó el gesto (no se avisa dos veces).
 var _quiet := false
 
@@ -160,7 +165,7 @@ func play(event: int, side: float = 1.0) -> void:
 			event = Event.THROW
 		Event.CHILENA:
 			event = Event.KICK
-		Event.RECEIVE, Event.DEJECTED, Event.SPRINT_START, Event.SPRINT_TURN:
+		Event.RECEIVE, Event.DEJECTED, Event.SPRINT_START, Event.SPRINT_TURN, Event.TOUCH:
 			return # sin gesto propio en el humanoide armado por piezas
 	_event = event
 	_event_t = 0.0

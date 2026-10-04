@@ -64,6 +64,8 @@ const HEADER_MIN_HEIGHT := 1.3
 ## Duración de la marsellesa y de la bicicleta (s) y espera máxima de la pared.
 const ROULETTE_TIME := 0.7
 const STEPOVER_TIME := 0.6
+## Velocidad con la que la suela arrastra la pelota en el amague (m/s).
+const FEINT_DRAG_SPEED := 2.6
 const ONE_TWO_TIMEOUT := 4.0
 ## Un desvío más rápido que esto hacia el arco se trata como remate (plan de atajada).
 const DEFLECTION_SHOT_SPEED := 12.0
@@ -1516,8 +1518,13 @@ func perform_feint(p: Footballer, stick: Vector3) -> void:
 	dir = dir.normalized()
 	p.facing = dir
 	p.velocity = dir * minf(Vector3(p.velocity.x, 0.0, p.velocity.z).length(), 2.5)
-	ball.state.pos = Vector3(p.flat_pos().x, tuning.ball_radius, p.flat_pos().z) + dir * 0.45
-	ball.state.vel = p.velocity
+	# La suela arrastra la pelota hacia el lado del enganche: se mueve con
+	# fuerza (rueda hacia allá); si estaba lejos del pie se acomoda deslizándose
+	# (no salta de lugar).
+	var old_pos := ball.state.pos
+	ball.state.pos = Vector3(p.flat_pos().x, tuning.ball_radius, p.flat_pos().z) + dir * 0.35
+	ball.visual_offset += Vector3(old_pos.x - ball.state.pos.x, 0.0, old_pos.z - ball.state.pos.z)
+	ball.state.vel = p.velocity + dir * FEINT_DRAG_SPEED
 	p.start_skill(Footballer.Skill.FEINT, 0.35)
 	_fool_defenders(p, 5.0, 0.5)
 	if p.visual != null:

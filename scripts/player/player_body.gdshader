@@ -136,10 +136,7 @@ void fragment() {
 				c = mix(c, number_outline, m.y);
 				c = mix(c, number_color, m.x);
 			} else {
-				// Pecho: número chico al centro y escudo sobre el corazón (+X).
-				vec2 m = number_mask(vec2((p.x + 0.06) / 0.12, (1.27 - p.y) / 0.15));
-				c = mix(c, number_outline, m.y);
-				c = mix(c, number_color, m.x);
+				// Pecho: sólo el escudo sobre el corazón (+X); el número va atrás.
 				if (crest) {
 					vec2 q = vec2(p.x - 0.105, p.y - 1.335);
 					// Escudo: óvalo con borde y una franja diagonal.

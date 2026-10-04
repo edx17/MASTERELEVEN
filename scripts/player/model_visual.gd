@@ -105,6 +105,10 @@ var injured := false
 var directing := false
 var _down_t := 0.0
 var _carry_hand := -1
+## Toque de conducción en curso (s que le quedan) y con qué pie.
+var _touch_t := 0.0
+var _touch_side := 1.0
+const TOUCH_TIME := 0.16
 
 
 ## Hay modelo y animaciones importados en el proyecto.
@@ -392,6 +396,7 @@ static func _color_number(label: Label3D, shirt: Color) -> void:
 
 
 func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: float) -> void:
+	_touch_t = maxf(0.0, _touch_t - dt)
 	_pose = pose
 	_speed = speed
 	_run = clampf(speed / maxf(sprint_speed, 0.1), 0.0, 1.0)
@@ -509,6 +514,11 @@ func play(event: int, side: float = 1.0) -> void:
 			clip = "gk_smother" if _mx != null and _mx.has_animation("gk_smother") else "gk_catch"
 		Event.SPRINT_START:
 			clip = "sprint_start"
+		Event.TOUCH:
+			# Toque de conducción: un golpecito con el pie (encima de la carrera).
+			_touch_t = TOUCH_TIME
+			_touch_side = side
+			return
 		Event.SPRINT_TURN:
 			# El clip sin espejar gira hacia MixamoLibrary.turn_sign.
 			clip = "sprint_turn" if signf(side) == MixamoLibrary.turn_sign else "sprint_turn_m"
@@ -594,6 +604,16 @@ func throw_point() -> Vector3:
 		return global_position + Vector3(0, 2.0, 0)
 	var mid := (_skel.get_bone_global_pose(l).origin + _skel.get_bone_global_pose(r).origin) * 0.5
 	return _skel.global_transform * mid + Vector3(0, 0.06, 0)
+
+
+## Punta del botín (+1 derecho / -1 izquierdo) en la pose actual, a la altura
+## de la pelota.
+func foot_position(side: float) -> Vector3:
+	var b := _skel.find_bone("ball_r" if side > 0.0 else "ball_l")
+	if b < 0:
+		return super.foot_position(side)
+	var p := _skel.global_transform * _skel.get_bone_global_pose(b).origin
+	return Vector3(p.x, 0.11, p.z) + global_basis.z * 0.06
 
 
 ## Pie (punta del botín) o cabeza en la pose actual del gesto.
@@ -728,6 +748,12 @@ func _apply_gestures() -> void:
 		if _clip == "gk_stand_up" and holding:
 			_tuck_arm("l")
 		return # la animación de Mixamo manda
+	if _touch_t > 0.0:
+		# El pie del toque se adelanta y vuelve (curva de ida y vuelta).
+		var tk := sin((1.0 - _touch_t / TOUCH_TIME) * PI)
+		var leg := "thigh_r" if _touch_side > 0.0 else "thigh_l"
+		_rotate_bone(leg, Vector3.RIGHT, -0.45 * tk)
+		_rotate_bone("calf_r" if _touch_side > 0.0 else "calf_l", Vector3.RIGHT, 0.25 * tk)
 	# Inclinación del torso al acelerar / correr (esfuerzo en el sprint).
 	_rotate_bone("spine_01", Vector3.RIGHT, _lean)
 	if _current.begins_with("Stand_") and not holding:

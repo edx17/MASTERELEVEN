@@ -39,6 +39,14 @@ var _touch_phase: float = 0.0
 ## Segundos que quedan para que una pelota bajada con el pecho/muslo caiga al
 ## pie (mientras tanto no se pierde por estar alta).
 var _settle: float = 0.0
+## Pie del último toque (+1 derecho / -1 izquierdo, se alternan) y gambeta
+## anterior del conductor (para el empujón del pique después de la bicicleta).
+var _touch_foot: float = 1.0
+var _last_skill: int = 0
+var _last_owner: Footballer
+## Entre toques el resorte es más suave: la pelota rueda sola y el toque la
+## vuelve a empujar (no queda "pegada" por cercanía).
+const BETWEEN_TOUCH_SPRING := 0.3
 
 
 ## Pelota de invierno (naranja), para que se vea sobre la nieve.
@@ -158,6 +166,40 @@ func _hold_in_hands(dt: float) -> void:
 	_sync_node(dt)
 
 
+## Un toque de conducción: el pie empuja la pelota hacia adelante (hasta la
+## distancia del toque) y la pelota se dibuja pegada al botín en ese instante
+## (sin luz entre el pie y la pelota).
+func _touch(p: Footballer, pv: Vector3, d: float, period: float) -> void:
+	p.touches += 1
+	_touch_foot = -_touch_foot
+	var rel := Vector3(state.pos.x - p.global_position.x, 0.0, state.pos.z - p.global_position.z).dot(p.facing)
+	var push := clampf((Dribble.FOOT_OFFSET + d - rel) / (period * 0.5), 0.5, 6.0)
+	var hv := pv + p.facing * push
+	state.vel.x = hv.x
+	state.vel.z = hv.z
+	if p.visual != null:
+		p.visual.play(PlayerVisual.Event.TOUCH, _touch_foot)
+		var foot := p.visual.foot_position(_touch_foot)
+		var off := Vector3(foot.x - state.pos.x, 0.0, foot.z - state.pos.z)
+		if off.length() < 0.5:
+			visual_offset = off
+
+
+## Dónde va la pelota durante una gambeta (INF si no hay gambeta):
+## - marsellesa: arrastrada con la suela, describe un arco al costado mientras
+##   el cuerpo gira, y sale del otro lado;
+## - bicicleta: queda quieta debajo mientras las piernas pasan por encima.
+func _skill_target(p: Footballer, foot: Vector3) -> Vector3:
+	var right := p.facing.cross(Vector3.UP).normalized()
+	match p.skill:
+		Footballer.Skill.ROULETTE:
+			var k := 1.0 - clampf(p.skill_timer / MatchController.ROULETTE_TIME, 0.0, 1.0)
+			return foot + right * 0.55 * sin(k * PI) - p.facing * 0.3 * sin(k * PI)
+		Footballer.Skill.STEPOVER:
+			return foot + p.facing * 0.1
+	return Vector3.INF
+
+
 ## Conducción guiada (ver Dribble): un resorte lleva la pelota hacia un punto
 ## delante del pie que "late" con los toques. La física sigue actuando (rueda,
 ## pica), así que en los giros la pelota queda un instante atrás y la sigue.
@@ -189,16 +231,32 @@ func _dribble(dt: float) -> void:
 		var period := Dribble.touch_period(frac)
 		var before := _touch_phase
 		_touch_phase = fmod(_touch_phase + dt / period, 1.0)
-		if _touch_phase < before:
-			p.touches += 1
 		var d := Dribble.touch_distance(frac, control_c, p.dribble_pressure, _tuning)
 		# Conducción cerrada (L1) y gambetas: la pelota pegada al pie.
 		if p.close_control or p.skill in [Footballer.Skill.ROULETTE, Footballer.Skill.STEPOVER]:
 			d *= 0.55
 		target = Dribble.dribble_target(p.global_position, p.facing, Dribble.pulse(_touch_phase, d),
 			p.shield_from, shielding)
+		if _touch_phase < before and not shielding:
+			_touch(p, pv, d, period)
+	# Gambetas: la pelota se mueve con el gesto (no es sólo la animación).
+	var skill_target := _skill_target(p, foot)
+	if skill_target != Vector3.INF:
+		target = skill_target
+	if p.skill == Footballer.Skill.BURST and _last_skill == Footballer.Skill.STEPOVER and p == _last_owner:
+		# Después de la bicicleta, el pique: la empuja hacia adelante.
+		state.vel = Vector3(pv.x, 0.0, pv.z) + p.facing * 4.5
+		state.vel.y = 0.0
+	_last_skill = p.skill
+	_last_owner = p
 	var to_target := target - Vector3(state.pos.x, 0.0, state.pos.z)
-	var desired := pv + to_target * Dribble.spring_rate(control_u)
+	# El resorte fuerte sólo si la pelota quedó atrás del pie (la alcanza),
+	# parado, protegiéndola o en una gambeta; si no, rueda hasta el próximo
+	# toque.
+	var behind := to_target.dot(p.facing) > 0.05
+	var guided := speed < Dribble.SHIELD_SPEED or shielding or behind or skill_target != Vector3.INF
+	var k := Dribble.spring_rate(control_u) * (1.0 if guided else BETWEEN_TOUCH_SPRING)
+	var desired := pv + to_target * k
 	var hv := Vector3(state.vel.x, 0.0, state.vel.z).move_toward(desired, _tuning.dribble_steer_accel * dt)
 	state.vel.x = hv.x
 	state.vel.z = hv.z
