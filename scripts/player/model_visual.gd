@@ -199,14 +199,13 @@ func setup(colors: Dictionary, seed: int) -> void:
 		# Caras planas separadas: la ropa no se "infla" (si no, se abren).
 		_body_mat.set_shader_parameter("cloth_inflate", 0.0)
 		_classic = ClassicBody.build(_skel, _body_mat)
+		# El peinado (malla de pelo) también en el cuerpo clásico (B3).
 		# Cara dibujada (ojos, cejas, boca, barba) y manga larga.
 		_body_mat.set_shader_parameter("draw_face", true)
 		_body_mat.set_shader_parameter("beard", beard)
 		_body_mat.set_shader_parameter("beard_color", beard_color)
 		_body_mat.set_shader_parameter("long_sleeves", bool(colors.get("long_sleeves", false)))
 		body.visible = false
-		if hair_node != null:
-			hair_node.visible = false
 		for extra in ["Eyebrows", "Eyes"]:
 			var em := _skel.find_child(extra, false, false) as Node3D
 			if em != null:
@@ -457,10 +456,15 @@ func _add_hair(style: int, color: Color, band_color: Color) -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = m
 	mi.transform = _skel.get_bone_global_rest(head).affine_inverse()
-	mi.set_surface_override_material(0, HairBuilder.material(color))
-	if m.get_surface_count() > 1:
-		var b := band_color if band_color.get_luminance() > 0.2 else Color(0.95, 0.95, 0.95)
-		mi.set_surface_override_material(1, _band_material(b))
+	for si in m.get_surface_count():
+		match m.surface_get_name(si):
+			"cards":
+				mi.set_surface_override_material(si, HairBuilder.cards_material(color))
+			"band":
+				var b := band_color if band_color.get_luminance() > 0.2 else Color(0.95, 0.95, 0.95)
+				mi.set_surface_override_material(si, _band_material(b))
+			_:
+				mi.set_surface_override_material(si, HairBuilder.material(color))
 	att.add_child(mi)
 	hair_node = mi
 

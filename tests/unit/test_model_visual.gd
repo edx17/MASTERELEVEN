@@ -266,5 +266,6 @@ func test_classic_body_is_the_default_and_wears_the_kit() -> void:
 	var body := v._skel.find_child(ModelVisual.BODY_MESH, false, false) as MeshInstance3D
 	assert_false(body.visible, "el modelo musculoso queda oculto")
 	var tris: int = v._classic.mesh.surface_get_array_len(0) / 3
-	assert_between(tris, 200, 1200, "pocos polígonos (%d)" % tris)
+	# B15: malla más fina (siluetas, orejas, nariz), sigue siendo liviana.
+	assert_between(tris, 200, 2500, "pocos polígonos (%d)" % tris)
 	assert_ne(v._classic.mesh.surface_get_format(0) & Mesh.ARRAY_FORMAT_CUSTOM0, 0, "con la posición de reposo para la ropa")

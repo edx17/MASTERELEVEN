@@ -1,5 +1,11 @@
 # Jugadores: modelo, aspecto y datos (referencia: Winning Eleven 2002)
 
+> **Paso B hecho (PR #30):** cuerpo paramétrico, identidad guardada, malla
+> más fina con cara, UV de la ropa, manga larga, número en el short y pelo
+> con mechones (14 peinados). Quedan para más adelante: cuellos en V/polo
+> (editor de camisetas), nombre en la espalda y la cara con textura para los
+> "Detallados".
+
 Especificación que pasó el dueño del proyecto (octubre 2026), cruzada con
 lo que ya tiene Master Eleven (`PlayerData`, `ModelVisual`, `ClassicBody`,
 `HairBuilder`). Estados: ✅ hecho · 🟡 parcial · ⬜ falta.

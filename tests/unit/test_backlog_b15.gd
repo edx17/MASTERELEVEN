@@ -166,3 +166,38 @@ func test_long_sleeves_rule() -> void:
 			field += 1
 	assert_gt(keepers, 25, "los arqueros casi siempre")
 	assert_lt(field, 15, "con buen tiempo, pocos")
+
+
+## B3: todos los peinados se arman (14 estilos) y los de mechones traen la
+## superficie "cards" (con transparencia recortada).
+func test_all_hair_styles_build() -> void:
+	assert_eq(HairBuilder.Style.size(), 14)
+	assert_eq(HairBuilder.NAMES.size(), HairBuilder.Style.size())
+	for st in HairBuilder.Style.size():
+		var m := HairBuilder.mesh(st)
+		if st == HairBuilder.Style.SHAVED:
+			assert_null(m)
+			continue
+		assert_not_null(m, HairBuilder.NAMES[st])
+		assert_eq(m.surface_get_name(0), "hair")
+	for st in [HairBuilder.Style.FADE, HairBuilder.Style.FRINGE, HairBuilder.Style.QUIFF, HairBuilder.Style.LONG_PARTED]:
+		var m := HairBuilder.mesh(st)
+		var names := []
+		for i in m.get_surface_count():
+			names.append(m.surface_get_name(i))
+		assert_has(names, "cards", "%s con mechones" % HairBuilder.NAMES[st])
+	var cm := HairBuilder.cards_material(Color.BLACK)
+	assert_eq(cm.transparency, BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR)
+
+
+## B3: el cuerpo clásico muestra la malla del peinado (antes, un casquete igual
+## para todos).
+func test_classic_body_shows_the_hairstyle() -> void:
+	if not ModelVisual.available() or GameSettings.player_style != GameSettings.PlayerStyle.CLASSIC:
+		pass_test("sin modelo clásico")
+		return
+	var v := ModelVisual.new()
+	add_child_autofree(v)
+	v.setup({"shirt": Color.WHITE, "hair_style": HairBuilder.Style.QUIFF}, 5)
+	assert_not_null(v.hair_node)
+	assert_true(v.hair_node.visible, "peinado visible")
