@@ -126,19 +126,26 @@ además arma el `.exe` de Windows).
 
 ### Próximos pasos (en orden)
 1. **Tu prueba** del Paso A (jugabilidad WE2002).
-2. **Paso B — Identidad de cada jugador**: estatura, botines y peinado
+2. **Paso UI-1 — Pantallas como el WE2002** (propuesto; detalle en
+   `docs/UI_WE2002.md`): pantalla de título con "Press START", tanda de
+   penales sola, puestos detallados y pateadores separados en la Dirección
+   del equipo, cartel "EN VIVO" y foto de equipo en la presentación, número
+   de jugador en la flecha, distancia al arco ("23M") en la pelota parada,
+   pausa con cámara / pantalla / sonido y resultado con goles por tiempo,
+   offsides, tiros libres y penales.
+3. **Paso B — Identidad de cada jugador**: estatura, botines y peinado
    propios; pelo de los "Detallados".
-3. **Paso C — Base de datos real**: 19 selecciones (con bandera) y las ligas
+4. **Paso C — Base de datos real**: 19 selecciones (con bandera) y las ligas
    de Inglaterra (4 divisiones), España (2), Italia (2), Portugal, Alemania
    (2), Países Bajos, México, Argentina (5) y Brasil; hasta 23 jugadores por
    plantel. Ver la lista en `Claude.md` (Fase 6).
-4. **Paso D — Liga Master** (en varios PR): arranca en 2.ª; en Argentina e
+5. **Paso D — Liga Master** (en varios PR): arranca en 2.ª; en Argentina e
    Inglaterra en la más baja (Torneo Promocional Amateur / League Two); las
    ligas de una sola división no se eligen. Siempre a elegir entre **Equipo
    WE** (genérico) o **Club real**, salvo con un club de primera (LPF,
    Premier, LaLiga, Serie A, Bundesliga): ahí es obligatorio el Equipo WE.
-5. Himno propio, relator y pulido final.
-6. **Al final — Editores** (externos si hace falta): ligas (agregar /
+6. Himno propio, relator y pulido final.
+7. **Al final — Editores** (externos si hace falta): ligas (agregar /
    eliminar), equipos (agregar / editar / eliminar; formación, escudo,
    colores), jugadores (agregar / editar / eliminar; atributos) y un editor
    externo para los mapeos de las camisetas.
