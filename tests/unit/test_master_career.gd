@@ -253,7 +253,9 @@ func test_market_buy_loan_sell_and_ai() -> void:
 	assert_false(m._player_dict("lugano", loan_pid).is_empty())
 	# Venta y libre.
 	var mine: Dictionary = m.club_players("lugano")[5]
-	var offer := m.sell_offer(int(mine["pid"]))
+	var seeded := RandomNumberGenerator.new()
+	seeded.seed = 3
+	var offer := m.sell_offer(int(mine["pid"]), seeded)
 	assert_true(offer.has("club"))
 	var pts := m.points
 	assert_eq(m.sell(int(mine["pid"]), offer["club"], int(offer["price"])), "")
@@ -267,7 +269,10 @@ func test_market_buy_loan_sell_and_ai() -> void:
 	assert_ne(m.buy(it2["club"], int(m.market_list(-1, -1, "ovr", 1)[0]["d"]["pid"])), "", "no se puede comprar")
 	m.simulate_to_end(4)
 	assert_true(m._player_dict("lugano", loan_pid).is_empty(), "el préstamo volvió")
-	assert_false(m._player_dict(it2["club"], loan_pid).is_empty())
+	# Vuelve a su club (después, en la misma pretemporada, otro club se lo
+	# puede comprar o se puede retirar: se mira el registro de pases).
+	assert_true(m.transfers.any(func(t: Dictionary) -> bool:
+		return t["kind"] == "vuelta" and t["to"] == it2["club"] and t["n"] == it2["d"]["n"]), "volvió a su club")
 	var ai := m.transfers.filter(func(t: Dictionary) -> bool: return t["kind"] == "ia")
 	assert_gt(ai.size(), 5, "los otros clubes también ficharon")
 	# Nadie quedó con el plantel corto.
