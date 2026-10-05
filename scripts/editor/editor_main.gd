@@ -1004,6 +1004,20 @@ func _leagues_tab() -> Control:
 	_l_divs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_l_divs.item_selected.connect(func(_i: int) -> void: _refresh_clubs())
 	c1.add_child(_l_divs)
+	# Liga Master: cuántos bajan de esta división (y suben de la de abajo).
+	var rel := HBoxContainer.new()
+	c1.add_child(rel)
+	rel.add_child(_lbl("Bajan a la de abajo:"))
+	_l_down = SpinBox.new()
+	_l_down.min_value = 0
+	_l_down.max_value = 8
+	_l_down.tooltip_text = "Liga Master: cuántos descienden de esta división y cuántos ascienden de la de abajo."
+	_l_down.value_changed.connect(func(v: float) -> void:
+		var ids := _division_sel()
+		if _l_down_updating or ids.is_empty():
+			return
+		model.set_relegation(ids[0], ids[1], int(v)))
+	rel.add_child(_l_down)
 	var c2 := VBoxContainer.new()
 	c2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tab.add_child(c2)
@@ -1057,6 +1071,10 @@ func _leagues_tab() -> Control:
 	return tab
 
 
+var _l_down: SpinBox
+var _l_down_updating := false
+
+
 func _country_sel() -> Dictionary:
 	var cs := TeamDB.countries()
 	return cs[_l_country.selected] if _l_country.selected >= 0 and _l_country.selected < cs.size() else {}
@@ -1098,6 +1116,15 @@ func _refresh_leagues() -> void:
 
 func _refresh_clubs() -> void:
 	_l_clubs.clear()
+	var dsel := _division_sel()
+	if _l_down != null and not dsel.is_empty():
+		var c := _country_sel()
+		var idx: int = _l_divs.get_selected_items()[0]
+		var last: bool = idx >= (c["divisions"] as Array).size() - 1
+		_l_down_updating = true
+		_l_down.value = TeamDB.relegation_count(dsel[0], idx)
+		_l_down.editable = not last
+		_l_down_updating = false
 	var dv := _division_sel()
 	if dv.is_empty():
 		return

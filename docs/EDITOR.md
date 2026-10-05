@@ -53,6 +53,9 @@ todo como estaba.
 - **Pasar de división** (ascensos y descensos a mano), **Sacar de la
   liga**, **Agregar club** nuevo (plantel generado según la división) y
   "Editar equipo" (lo abre en la pestaña Equipos).
+- **Bajan a la de abajo**: cuántos clubes descienden de esa división (y
+  ascienden de la de abajo) en la Liga Master. Si no se toca: 3 en
+  Inglaterra y 2 en el resto.
 
 ## Copas
 - Copas propias: nombre, formato (eliminación directa de 4, 8, 16 o 32, o

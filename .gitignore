@@ -7,3 +7,6 @@ export_presets.cfg.bak
 
 # Las animaciones de Mixamo y las texturas van en el repo (ver assets/CREDITS.md).
 # Los zips que se dejan en assets/_entrada/ se procesan y se borran.
+
+# Traducciones que Godot genera si importa un CSV como traducción (los CSV de datos usan importer="keep").
+*.translation

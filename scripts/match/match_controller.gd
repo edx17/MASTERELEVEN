@@ -2662,6 +2662,9 @@ func _check_rules() -> void:
 		ratings.on_goal(goal_scorer, outcome.team, teams)
 		_show_goal(outcome.team)
 		teams[outcome.team].score += 1
+		var scorer_pid := goal_scorer.base_data.pid if goal_scorer != null and goal_scorer.base_data != null \
+			and goal_scorer.team == teams[outcome.team] else 0
+		GameSettings.last_scorers.append([outcome.team, scorer_pid])
 		stats["goals_1st" if clock.half == 1 else "goals_2nd"][outcome.team] += 1
 		banner_text = "¡GOL!"
 		_phase_timer = CELEBRATION_MAX
@@ -3552,5 +3555,7 @@ func exit_to_menu() -> void:
 	GameSettings.shootout = false
 	# Partido de Liga / Copa: cuenta sólo si se jugó hasta el final.
 	GameSettings.last_result = [teams[0].score, teams[1].score] if phase == Phase.FULLTIME else []
+	if phase != Phase.FULLTIME:
+		GameSettings.last_scorers = []
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")

@@ -123,6 +123,11 @@ var training_kind: int = 0
 var training_challenge: int = 0
 var human_side: int = 0
 var last_result: Array = []
+## Goles del partido jugado: [[lado (0 local / 1 visitante), pid del autor
+## (0 si no se sabe o fue en contra)]]. Lo usa la Liga Master.
+var last_scorers: Array = []
+## Partido de la Liga Master en curso (active_save es la carrera).
+var master_match := false
 ## Volumen de efectos (silbato, pelota) y del público, 0..10.
 var sfx_volume: int = 8
 ## Pantalla del partido (pausa > Pantalla): radar y marcador/reloj.

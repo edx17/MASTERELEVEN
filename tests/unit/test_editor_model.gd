@@ -161,3 +161,12 @@ func test_kit_template_round_trip() -> void:
 	mc.set_physics_process(false)
 	assert_not_null(mc.teams[0].kit_texture, "el partido usa la camiseta pintada")
 	GameSettings.home_team_path = GameSettings.DEFAULT_HOME
+
+
+## Liga Master: cuántos bajan de cada división (se puede deshacer).
+func test_relegation_rule() -> void:
+	assert_eq(TeamDB.relegation_count("arg", 0), 2)
+	m.set_relegation("arg", "arg1", 3)
+	assert_eq(TeamDB.relegation_count("arg", 0), 3)
+	m.undo()
+	assert_eq(TeamDB.relegation_count("arg", 0), 2)

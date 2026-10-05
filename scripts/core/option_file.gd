@@ -11,6 +11,7 @@ extends RefCounted
 ##   clubs:     {"pais:id": entrada completa}  clubes editados o nuevos
 ##   divisions: {"pais:division": [ids]}       qué clubes juegan cada división
 ##   deleted_nations: [ids]                    selecciones borradas
+##   rules:     {"pais:division": {"down": n}}  cuántos bajan (Liga Master)
 ##   cups:      [{id, name, format, teams}]    copas propias (format "knockout"
 ##              o "league"; teams = rutas de TeamDB)
 ## Las entradas tienen el mismo formato que data/db (ver docs/BASE_DE_DATOS.md).
@@ -27,6 +28,7 @@ var clubs: Dictionary = {}
 var divisions: Dictionary = {}
 var deleted_nations: Array = []
 var cups: Array = []
+var rules: Dictionary = {}
 
 
 ## Carpeta con las plantillas de camisetas de este Option File.
@@ -78,12 +80,14 @@ static func from_dict(d: Dictionary) -> OptionFile:
 	of.divisions = d.get("divisions", {})
 	of.deleted_nations = d.get("deleted_nations", [])
 	of.cups = d.get("cups", [])
+	of.rules = d.get("rules", {})
 	return of
 
 
 func to_dict() -> Dictionary:
 	return {"format": FORMAT, "version": VERSION, "name": name, "created": created, "updated": updated,
-		"nations": nations, "clubs": clubs, "divisions": divisions, "deleted_nations": deleted_nations, "cups": cups}
+		"nations": nations, "clubs": clubs, "divisions": divisions, "deleted_nations": deleted_nations, "cups": cups,
+		"rules": rules}
 
 
 func save() -> bool:
@@ -96,7 +100,7 @@ func save() -> bool:
 
 func is_empty() -> bool:
 	return nations.is_empty() and clubs.is_empty() and divisions.is_empty() and deleted_nations.is_empty() \
-		and cups.is_empty()
+		and cups.is_empty() and rules.is_empty()
 
 
 ## Copia un Option File de afuera (otra PC, un amigo) a la carpeta; devuelve
@@ -174,6 +178,8 @@ func apply_countries(base: Array) -> Array:
 					entry["id"] = String(id)
 					list.append(entry)
 			d["clubs"] = list
+			if rules.has(dkey) and (rules[dkey] as Dictionary).has("down"):
+				d["down"] = int(rules[dkey]["down"])
 		out.append(cc)
 	return out
 
@@ -187,6 +193,10 @@ func set_club(country_id: String, entry: Dictionary) -> void:
 func set_nation(entry: Dictionary) -> void:
 	nations[String(entry["id"])] = entry.duplicate(true)
 	deleted_nations.erase(String(entry["id"]))
+
+
+func set_relegation(country_id: String, division_id: String, n: int) -> void:
+	rules.get_or_add("%s:%s" % [country_id, division_id], {})["down"] = n
 
 
 func set_division(country_id: String, division_id: String, club_ids: Array) -> void:

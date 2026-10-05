@@ -22,6 +22,15 @@ var _continue_btn: Button
 var _custom_cup: Dictionary = {}
 var _cups_col: VBoxContainer
 var _continue_col: VBoxContainer
+# Liga Master
+var _master_hub: MasterHub
+var _master_col: VBoxContainer
+var _master_squad_col: VBoxContainer
+var _master_info: Label
+var _master_country := ""
+var _master_club := ""
+## Eligiendo el club de una carrera nueva.
+var _new_master := false
 var _history: Array[String] = []
 var _focus_memory := {}
 ## La pantalla de título (Press START) sale sólo al abrir el juego.
@@ -40,6 +49,7 @@ func _ready() -> void:
 	_build_home()
 	_build_continue()
 	_build_cups()
+	_build_master()
 	_build_modes()
 	_build_training()
 	_build_world_cup()
@@ -63,6 +73,14 @@ func _ready() -> void:
 		_history.clear()
 		show_page("home", false))
 	_pages["hub"] = _hub
+	_master_hub = MasterHub.new()
+	add_child(_master_hub)
+	_master_hub.play_match.connect(_on_master_match)
+	_master_hub.back.connect(func() -> void:
+		MasterCareer.deactivate()
+		_history.clear()
+		show_page("home", false))
+	_pages["master_hub"] = _master_hub
 	Input.joy_connection_changed.connect(func(_d: int, _c: bool) -> void: _refresh_modes())
 	if title_seen:
 		show_page("home")
@@ -78,6 +96,17 @@ func _ready() -> void:
 				c.save()
 			GameSettings.last_result = []
 			show_page("hub")
+	# Volviendo de un partido de la Liga Master.
+	if GameSettings.master_match:
+		GameSettings.master_match = false
+		var m := MasterCareer.load_saved(GameSettings.active_save)
+		if m != null:
+			if not GameSettings.last_result.is_empty():
+				m.play_round(GameSettings.last_result, GameSettings.last_scorers)
+				m.save()
+			show_page("master_hub")
+		GameSettings.last_result = []
+		GameSettings.last_scorers = []
 
 
 # --- Navegación -------------------------------------------------------------------
@@ -92,9 +121,10 @@ func show_page(page: String, remember := true) -> void:
 	for k in _pages:
 		(_pages[k] as Control).visible = k == page
 	# Las pantallas de equipos y partido traen su propia ayuda.
-	_help.get_parent().visible = page in ["home", "modes", "training", "options", "controls", "worldcup", "continue", "data", "cups"]
+	_help.get_parent().visible = page in ["home", "modes", "training", "options", "controls", "worldcup", "continue", "data", "cups",
+		"master", "master_squad"]
 	if page == "home" and _continue_btn != null:
-		_continue_btn.disabled = Competition.list_saves().is_empty()
+		_continue_btn.disabled = Competition.list_saves().is_empty() and not MasterCareer.has_saves()
 	if page == "title":
 		return
 	match page:
@@ -108,6 +138,14 @@ func show_page(page: String, remember := true) -> void:
 			_build_continue_list()
 		"cups":
 			_build_cups_list()
+		"master":
+			_build_master_list()
+		"master_squad":
+			_build_master_squad()
+		"master_hub":
+			var m := MasterCareer.load_saved(GameSettings.active_save)
+			if m != null:
+				_master_hub.open(m)
 		_:
 			var back_focus: Control = _focus_memory.get(page)
 			if not remember and back_focus != null and is_instance_valid(back_focus):
@@ -220,7 +258,7 @@ func _build_home() -> void:
 	var p := _page("home")
 	var col := _column(p, Vector2(80, 60))
 	col.add_theme_constant_override("separation", 6)
-	_continue_btn = _item(col, "CONTINUAR", "Seguir una Liga, Copa o Mundial guardados (cada uno en su archivo).",
+	_continue_btn = _item(col, "CONTINUAR", "Seguir una Liga Master, Liga, Copa o Mundial guardados (cada uno en su archivo).",
 		show_page.bind("continue"))
 	_item(col, "PARTIDO", "Jugá un partido amistoso: contra la CPU, de a dos o mirá CPU contra CPU.", show_page.bind("modes"))
 	_item(col, "LIGA", "Campeonato todos contra todos con los 8 equipos. Se guarda entre partidos.",
@@ -229,7 +267,8 @@ func _build_home() -> void:
 		_open_competition.bind(Competition.Kind.CUP))
 	_item(col, "MUNDIAL 2026", "48 selecciones: 12 grupos de 4, pasan dos por grupo y los 8 mejores terceros, después 16avos hasta la final.",
 		_open_world_cup)
-	_item(col, "LIGA MASTER", "Próximamente (Fase 6): armá tu equipo, con mercado de pases, y llevalo a la cima.", Callable(), false)
+	_item(col, "LIGA MASTER", "Carrera de club: elegí país y club, arrancá abajo y llevalo a primera. Temporadas completas, ascensos y descensos, goleadores y puntos WE.",
+		show_page.bind("master"))
 	_item(col, "ENTRENAMIENTO", "Club House: práctica libre, pelota parada y desafíos con récord.", show_page.bind("training"))
 	_item(col, "EDITOR", "Jugadores, planteles y equipos: altas, bajas, pases y edición masiva (también se abre aparte: MasterEleven Editor).",
 		func() -> void:
@@ -276,6 +315,8 @@ func _choose_mode(mode: int, shootout := false) -> void:
 	GameSettings.competition_match = false
 	_new_competition = -1
 	_teams.single = false
+	_teams.only_country = ""
+	_new_master = false
 	_teams.only_paths = []
 	show_page("teams")
 
@@ -292,6 +333,8 @@ func _open_competition(kind: int) -> void:
 		return
 	_new_competition = kind
 	_teams.single = true
+	_teams.only_country = ""
+	_new_master = false
 	_teams.only_paths = []
 	show_page("teams")
 
@@ -388,6 +431,8 @@ func _build_cups_list() -> void:
 		_custom_cup = {}
 		_new_competition = Competition.Kind.CUP
 		_teams.single = true
+		_teams.only_country = ""
+		_new_master = false
 		_teams.only_paths = []
 		show_page("teams"), true, 640.0)
 	for cup in playable_cups():
@@ -398,6 +443,8 @@ func _build_cups_list() -> void:
 				_custom_cup = cup
 				_new_competition = Competition.Kind.CUP
 				_teams.single = true
+				_teams.only_country = ""
+				_new_master = false
 				_teams.only_paths.assign(cup.get("teams", []))
 				show_page("teams"), true, 640.0)
 	_item(_cups_col, "VOLVER", "Volver al menú principal.", go_back, true, 640.0)
@@ -428,6 +475,8 @@ func _build_continue_list() -> void:
 		_continue_col.remove_child(c)
 		c.queue_free()
 	var saves := Competition.list_saves()
+	saves.append_array(MasterCareer.list_saves())
+	saves.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return String(a["updated"]) > String(b["updated"]))
 	for sv in saves:
 		var text := "%s   —   %s" % [sv["title"], sv["progress"]]
 		var help := "Guardada %s." % String(sv["updated"]).replace("T", " ")
@@ -442,17 +491,26 @@ func _build_continue_list() -> void:
 
 ## Sigue una partida guardada (con el Option File con el que se creó).
 func open_save(file: String) -> void:
-	var c := Competition.load_saved(file)
-	if c == null:
-		return
-	if c.option_file != GameSettings.active_optionfile and (c.option_file == "" or OptionFile.load_named(c.option_file) != null):
-		GameSettings.active_optionfile = c.option_file
+	var of_name := ""
+	var career := MasterCareer.is_career_file(file)
+	if career:
+		var m := MasterCareer.load_saved(file)
+		if m == null:
+			return
+		of_name = m.option_file
+	else:
+		var c := Competition.load_saved(file)
+		if c == null:
+			return
+		of_name = c.option_file
+	if of_name != GameSettings.active_optionfile and (of_name == "" or OptionFile.load_named(of_name) != null):
+		GameSettings.active_optionfile = of_name
 		GameSettings.apply_option_file()
 		GameSettings.save_settings()
 	GameSettings.active_save = file
 	_history.clear()
 	_history.append("home")
-	show_page("hub", false)
+	show_page("master_hub" if career else "hub", false)
 
 
 # --- Mundial 2026 ------------------------------------------------------------------
@@ -538,6 +596,8 @@ func _world_cup_pick_team() -> void:
 		return
 	_new_competition = Competition.Kind.WORLD_CUP
 	_teams.single = true
+	_teams.only_country = ""
+	_new_master = false
 	_teams.only_paths = world_cup_paths(GameSettings.wc_playoff)
 	show_page("teams")
 
@@ -554,11 +614,28 @@ func _on_competition_match(home: String, away: String, side: int) -> void:
 	show_page("setup")
 
 
+## Jugar el partido de la fecha de la Liga Master.
+func _on_master_match(home: String, away: String, side: int) -> void:
+	_on_competition_match(home, away, side)
+	GameSettings.competition_match = false
+	GameSettings.master_match = true
+	GameSettings.last_scorers = []
+
+
 func _on_teams_chosen(home: String, away: String) -> void:
+	if _new_master:
+		_new_master = false
+		_teams.only_country = ""
+		_teams.single = false
+		_master_club = home.get_slice(":", 3)
+		show_page("master_squad")
+		return
 	if _new_competition >= 0:
 		var kind := _new_competition
 		_new_competition = -1
 		_teams.single = false
+		_teams.only_country = ""
+		_new_master = false
 		_start_competition(kind, home)
 		return
 	GameSettings.home_team_path = home
@@ -570,6 +647,91 @@ func _on_teams_chosen(home: String, away: String) -> void:
 		get_tree().change_scene_to_file(MATCH_SCENE)
 		return
 	show_page("setup")
+
+
+# --- Liga Master --------------------------------------------------------------------
+
+func _build_master() -> void:
+	var p := _page("master")
+	var title := WEStyle.label("LIGA MASTER  ·  CARRERA NUEVA", 30, Color(1.0, 0.9, 0.35))
+	title.position = Vector2(80, 40)
+	p.add_child(title)
+	var sub := WEStyle.label("Elegí el país y después tu club.", 20, Color(0.75, 0.85, 1.0))
+	sub.position = Vector2(80, 82)
+	p.add_child(sub)
+	_master_col = _column(p, Vector2(80, 124))
+	_master_col.add_theme_constant_override("separation", 6)
+	var q := _page("master_squad")
+	var t2 := WEStyle.label("LIGA MASTER  ·  TU PLANTEL", 30, Color(1.0, 0.9, 0.35))
+	t2.position = Vector2(80, 40)
+	q.add_child(t2)
+	_master_info = WEStyle.label("", 21)
+	_master_info.position = Vector2(80, 90)
+	_master_info.size = Vector2(1100, 150)
+	_master_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	q.add_child(_master_info)
+	_master_squad_col = _column(q, Vector2(80, 260))
+
+
+func _build_master_list() -> void:
+	for c in _master_col.get_children():
+		_master_col.remove_child(c)
+		c.queue_free()
+	for co in MasterCareer.eligible_countries():
+		var id := String(co["id"])
+		var start: Dictionary = co["divisions"][MasterCareer.start_division(id)]
+		_item(_master_col, String(co["name"]).to_upper(),
+			"Empezás en %s. Podés elegir cualquier club del país: si juega más arriba, baja a esa división." % start["name"],
+			_master_pick_country.bind(id), true, 520.0)
+	_item(_master_col, "VOLVER", "Volver al menú principal.", go_back, true, 520.0)
+	_first_focus(_master_col)
+
+
+func _master_pick_country(id: String) -> void:
+	_master_country = id
+	_new_competition = -1
+	_teams.single = true
+	_teams.only_paths = []
+	_teams.only_country = id
+	_new_master = true
+	show_page("teams")
+
+
+func _build_master_squad() -> void:
+	for c in _master_squad_col.get_children():
+		_master_squad_col.remove_child(c)
+		c.queue_free()
+	var co := TeamDB.country(_master_country)
+	var start := MasterCareer.start_division(_master_country)
+	var start_name := String(co["divisions"][start]["name"])
+	var from := MasterCareer.division_of(_master_country, _master_club)
+	var club := TeamDB.load_team(TeamDB.club_path(_master_country, _master_club)).team_name
+	var info := "%s  ·  %s\nEmpezás en %s." % [club, co["name"], start_name]
+	if from >= 0 and from != start:
+		info += " %s juega en %s: baja a %s y, para que las ligas no cambien de tamaño, sube un club de cada división de por medio." % [club,
+			co["divisions"][from]["name"], start_name]
+	var forced := MasterCareer.we_forced(_master_country, _master_club)
+	if forced:
+		info += "\nCon un club de primera sólo se puede con el Equipo WE."
+	_master_info.text = info
+	_item(_master_squad_col, "PLANTEL REAL",
+		"Con un club de primera no se puede (arrancar abajo con un grande sería un afano)." if forced \
+			else "Arrancás con los jugadores reales del club.",
+		_create_master.bind("real"), not forced, 520.0)
+	_item(_master_squad_col, "EQUIPO WE",
+		"Plantel genérico de jugadores inventados, con el nombre y la camiseta de tu club. Hay que armarlo de a poco.",
+		_create_master.bind("we"), true, 520.0)
+	_item(_master_squad_col, "VOLVER", "Elegir otro club.", go_back, true, 520.0)
+	_first_focus(_master_squad_col)
+
+
+func _create_master(mode: String) -> void:
+	var m := MasterCareer.create(_master_country, _master_club, mode)
+	m.save()
+	GameSettings.active_save = m.file
+	_history.clear()
+	_history.append("home")
+	show_page("master_hub", false)
 
 
 # --- Entrenamiento -----------------------------------------------------------------
@@ -596,6 +758,8 @@ func _choose_training(kind: int) -> void:
 	GameSettings.competition_match = false
 	_new_competition = -1
 	_teams.single = false
+	_teams.only_country = ""
+	_new_master = false
 	show_page("teams")
 
 
