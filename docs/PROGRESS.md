@@ -133,8 +133,12 @@ además arma el `.exe` de Windows).
    de jugador en la flecha, distancia al arco ("23M") en la pelota parada,
    pausa con cámara / pantalla / sonido y resultado con goles por tiempo,
    offsides, tiros libres y penales.
-3. **Paso B — Identidad de cada jugador**: estatura, botines y peinado
-   propios; pelo de los "Detallados".
+3. **Paso B — Identidad de cada jugador** (detalle en
+   `docs/JUGADORES_WE2002.md`): piel, color de pelo, barba/bigote, botines y
+   nacionalidad guardados en cada jugador; físico con letras del WE y
+   estatura en cm que escala el modelo; peinados que faltan y pelo de los
+   "Detallados"; manga larga con frío o lluvia; número en el short; pie
+   ambidiestro; puesto detallado.
 4. **Paso C — Base de datos real**: 19 selecciones (con bandera) y las ligas
    de Inglaterra (4 divisiones), España (2), Italia (2), Portugal, Alemania
    (2), Países Bajos, México, Argentina (5) y Brasil; hasta 23 jugadores por
