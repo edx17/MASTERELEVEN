@@ -287,3 +287,29 @@ func test_player_value_by_age() -> void:
 	var old := MasterCareer.player_value({"pos": "CMF", "age": 33, "a": a})
 	assert_gt(young, old * 2)
 	assert_eq(young % 50, 0)
+
+
+## D5: noticias, historial y palmarés.
+func test_news_history_and_honours() -> void:
+	var m := MasterCareer.create("arg", "lugano", "real", 83)
+	m.points = 50000
+	var it: Dictionary = m.market_list(3, 3, "ovr", 5)[0]
+	m.buy(it["club"], int(it["d"]["pid"]))
+	assert_string_contains(String(m.latest_news(1)[0]["text"]), "Fichaste")
+	m.simulate_to_end(9)
+	var texts: Array = m.latest_news(120).map(func(n: Dictionary) -> String: return n["text"])
+	assert_true(texts.any(func(t: String) -> bool: return t.contains("campeón")), "campeones")
+	assert_true(texts.any(func(t: String) -> bool: return t.contains("Lesión") or t.contains("Suspendido")), "bajas de tu plantel")
+	var bombs := m.news.filter(func(n: Dictionary) -> bool: return n["kind"] == "bombazo")
+	assert_lte(bombs.size(), 6, "como mucho 3 por ventana")
+	var h := m.club_history()
+	assert_eq(h.size(), 1)
+	assert_eq(String(h[0]["division"]), "Primera C")
+	assert_gt(int(h[0]["pos"]), 0)
+	assert_false((h[0]["scorer"] as Dictionary).is_empty(), "goleador del club")
+	assert_eq(m.most_titles(10).size(), 4, "un campeón por división")
+	# Se guarda.
+	m.save()
+	var back := MasterCareer.load_saved(m.file)
+	assert_eq(back.news.size(), m.news.size())
+	MasterCareer.deactivate()

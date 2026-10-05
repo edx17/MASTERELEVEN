@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **459 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **460 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -18,7 +18,7 @@ además arma el `.exe` de Windows).
 | 3 — IA de partido | ✅ Implementada (se sigue ajustando con tus pruebas) | — |
 | 4 — Reglas, atributos y plantel | ✅ Implementada | — |
 | 5 — Presentación moderna (estadios, animaciones, audio, repeticiones) | 🟡 Muy avanzada; falta el pelo "Detallados" y la voz del locutor | — |
-| 6 — Liga Master | 🟡 D1–D4 hechos; falta D5 (noticias, historial y palmarés) | #32, #33 |
+| 6 — Liga Master | 🟡 D1–D5 hechos, **pendiente de tu prueba** | #32, #33 |
 | 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) | — |
 | 8 — Pulido | ⬜ | — |
 | Entrenamiento (Club House) | ✅ | #23 |
@@ -42,6 +42,7 @@ además arma el `.exe` de Windows).
 | Menús: todo entra, tablas con el mando, cabeceras del Mundial | 🟡 Hecho, pendiente de tu prueba | #33 |
 | D3 — Liga Master: Plantel, Dirección guardada, Calendario; escudos PNG | 🟡 Hecho, pendiente de tu prueba | #33 |
 | D4 — Liga Master: mercado de pases con puntos WE | 🟡 Hecho, pendiente de tu prueba | #33 |
+| D5 — Liga Master: noticias, historial y palmarés | 🟡 Hecho, pendiente de tu prueba | #33 |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -148,12 +149,24 @@ además arma el `.exe` de Windows).
    (hecho: tarjetas, lesiones, evolución, retiros y juveniles), **D3**
    (hecho: Plantel, Dirección guardada, Calendario y escudos), **D4**
    (hecho: mercado de pases con puntos WE, préstamos, ventanas, IA que
-   ficha) y **D5** (noticias, historial y palmarés).
-4. Himno propio, relator y pulido final.
-5. Editores: ya hechos (E1–E4, ver `docs/EDITOR.md`); quedan solo extras
+   ficha) y **D5** (hecho: noticias, historial y palmarés).
+4. **Fase 7 — Torneos**: copa nacional, copa continental y Mundial cada 4
+   temporadas con convocados de la carrera (plan antes de arrancar).
+5. Himno propio, relator y pulido final.
+6. Editores: ya hechos (E1–E4, ver `docs/EDITOR.md`); quedan solo extras
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## D5 — Liga Master: noticias, historial y palmarés
+- **Noticias** (Ver ◀ ▶ en la pantalla de la carrera): lesiones y
+  suspensiones de tu plantel, tus pases, los **bombazos** del mercado (los
+  tres más caros de cada ventana), campeones de cada división, cómo te fue,
+  retiros y juveniles. Con la temporada y la fecha de cada una.
+- **Historial**: el **palmarés** de tu club (títulos, ascensos y descensos),
+  una fila por temporada (año, división, posición, campeón / ascenso /
+  descenso y el goleador del club) y los clubes con más títulos de la
+  carrera.
 
 ## D4 — Liga Master: mercado de pases (puntos WE)
 - **Mercado de pases** (botón en la pantalla de la carrera y en el resumen

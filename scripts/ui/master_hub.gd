@@ -17,9 +17,10 @@ const DOWN := Color(1.0, 0.55, 0.5)
 var career: MasterCareer
 ## División que se muestra a la izquierda y si se ven los goleadores.
 var view_division := 0
-## Qué se ve a la izquierda: 0 tabla, 1 goleadores, 2 calendario.
+## Qué se ve a la izquierda: 0 tabla, 1 goleadores, 2 calendario,
+## 3 noticias, 4 historial y palmarés.
 var view_mode := 0
-const VIEW_NAMES := ["Tabla", "Goleadores", "Calendario"]
+const VIEW_NAMES := ["Tabla", "Goleadores", "Calendario", "Noticias", "Historial"]
 var _squad: MasterSquad
 var _market: MasterMarket
 var _left: VBoxContainer
@@ -73,7 +74,7 @@ func _rebuild() -> void:
 		func() -> String: return VIEW_NAMES[view_mode],
 		func(dir: int) -> void:
 			view_mode = wrapi(view_mode + dir, 0, VIEW_NAMES.size())
-			_rebuild_left(), "Tabla de posiciones, goleadores o tu calendario.", 636.0))
+			_rebuild_left(), "Tabla, goleadores, calendario, noticias o historial.", 636.0))
 	var body := VBoxContainer.new()
 	body.name = "Body"
 	_left.add_child(body)
@@ -98,8 +99,82 @@ func _rebuild_left() -> void:
 			_scorers(body)
 		2:
 			_calendar(body)
+		3:
+			_news(body)
+		4:
+			_history(body)
 		_:
 			_table(body)
+
+
+func _scroll_box(body: Control, h: float = 480.0) -> VBoxContainer:
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(636, h)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	WEStyle.pad_scroll(scroll)
+	body.add_child(scroll)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	scroll.add_child(box)
+	return box
+
+
+## Noticias de la carrera, las más nuevas arriba.
+func _news(body: Control) -> void:
+	var box := _scroll_box(body)
+	var colors := {"lesion": DOWN, "susp": Color(1.0, 0.75, 0.4), "pase": BLUE, "bombazo": GOLD, "temporada": UP}
+	var list := career.latest_news(60)
+	if list.is_empty():
+		box.add_child(WEStyle.label("Todavía no hay noticias.", 17))
+	for n in list:
+		var l := WEStyle.label("T%d · F%d   %s" % [int(n["season"]), int(n["round"]), n["text"]], 15,
+			colors.get(n["kind"], Color.WHITE))
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size = Vector2(610, 0)
+		box.add_child(l)
+	body.add_child(WEStyle.label("T: temporada · F: fecha · Stick derecho o RePág / AvPág: mover", 14, Color(0.75, 0.8, 0.9)))
+
+
+## Historial de tus temporadas y palmarés.
+func _history(body: Control) -> void:
+	var box := _scroll_box(body)
+	var hon := career.club_honours()
+	box.add_child(WEStyle.label("Palmarés de %s" % career.user_team().team_name, 18, GOLD))
+	var titles: Array = hon["titles"]
+	var t := WEStyle.label("Títulos: %s" % (", ".join(titles) if not titles.is_empty() else "ninguno todavía"), 15, Color.WHITE)
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	t.custom_minimum_size = Vector2(610, 0)
+	box.add_child(t)
+	box.add_child(WEStyle.label("Ascensos: %d · Descensos: %d" % [hon["promotions"], hon["relegations"]], 15))
+	box.add_child(WEStyle.label("Temporadas", 17, BLUE))
+	var rows := career.club_history()
+	if rows.is_empty():
+		box.add_child(WEStyle.label("Todavía no terminó ninguna temporada.", 15))
+	else:
+		var grid := GridContainer.new()
+		grid.columns = 5
+		grid.add_theme_constant_override("h_separation", 14)
+		grid.add_theme_constant_override("v_separation", 0)
+		box.add_child(grid)
+		for h in ["Año", "División", "Pos", "", "Goleador"]:
+			grid.add_child(WEStyle.label(h, 14, BLUE))
+		for r in rows:
+			var went: String = {"up": "Ascenso", "down": "Descenso"}.get(r["went"], "")
+			var c: Color = GOLD if r["champion"] else (UP if r["went"] == "up" else (DOWN if r["went"] == "down" else Color.WHITE))
+			grid.add_child(WEStyle.label(str(r["year"]), 15, c))
+			var dn := WEStyle.label(String(r["division"]), 15, c)
+			dn.custom_minimum_size = Vector2(190, 0)
+			grid.add_child(dn)
+			grid.add_child(WEStyle.label("%d.º" % r["pos"], 15, c))
+			grid.add_child(WEStyle.label("Campeón" if r["champion"] else went, 15, c))
+			var sc: Dictionary = r["scorer"]
+			grid.add_child(WEStyle.label("%s (%d)" % [sc["n"], int(sc["goals"])] if not sc.is_empty() else "", 15, c))
+	var most := career.most_titles(8)
+	if not most.is_empty():
+		box.add_child(WEStyle.label("Más campeones de la carrera", 17, BLUE))
+		for m in most:
+			var mine: bool = m[0] == career.user_club
+			box.add_child(WEStyle.label("  %s: %d" % [_name(String(m[0])), int(m[1])], 15, GOLD if mine else Color.WHITE))
 
 
 ## Tus partidos de la temporada: fecha, local o visitante, rival y resultado.

@@ -3,7 +3,7 @@ extends Node
 ## xvfb-run godot -- --menu-shot=archivo.png [--menu-page=teams]
 ## Páginas: home, modes, teams, setup, options, controls, master, master_squad,
 ## master_hub, master_end, master_plantel, master_cal,
-## master_market, master_sell, master_pases.
+## master_market, master_sell, master_pases, master_news, master_hist.
 
 var out := "user://menu.png"
 
@@ -46,9 +46,11 @@ func _run() -> void:
 				page = "hub"
 			# Liga Master: carrera de ejemplo (Boca con el Equipo WE, en Primera C).
 			var master_view := ""
-			if page in ["master_plantel", "master_cal", "master_market", "master_sell", "master_pases"]:
+			if page in ["master_plantel", "master_cal", "master_market", "master_sell", "master_pases", "master_news", "master_hist"]:
 				master_view = page
 				page = "master_hub"
+			if master_view in ["master_news", "master_hist"]:
+				page = "master_end"
 			if page in ["master_hub", "master_end"]:
 				var m := MasterCareer.create("arg", "boca", "we", 21)
 				for i in 5:
@@ -66,8 +68,8 @@ func _run() -> void:
 			menu.call("show_page", page)
 			if master_view != "":
 				var hub: MasterHub = menu.get("_master_hub")
-				if master_view == "master_cal":
-					hub.view_mode = 2
+				if master_view in ["master_cal", "master_news", "master_hist"]:
+					hub.view_mode = {"master_cal": 2, "master_news": 3, "master_hist": 4}[master_view]
 					hub.call("_rebuild")
 				elif master_view == "master_plantel":
 					hub.call("_open_squad")

@@ -56,6 +56,11 @@ var season_start: Dictionary = {}
 ## Pases de la carrera: [{season, n, from, to, price, kind ("compra",
 ## "préstamo", "venta", "libre", "ia", "vuelta")}].
 var transfers: Array = []
+## Noticias de la carrera (las más nuevas al final): [{season, round, text, kind}].
+var news: Array = []
+const NEWS_MAX := 120
+## Pase "bombazo" (noticia aunque no sea de tu club): desde este valor.
+const BIG_TRANSFER := 12000
 
 
 # --- Creación -----------------------------------------------------------------------
@@ -247,6 +252,7 @@ func play_round(user_result: Array = [], user_scorers: Array = [], seed: int = 0
 	# Los que no podían jugar esta fecha cumplen una (después de jugarla).
 	var serving: Array[Dictionary] = []
 	_dirty.clear()
+	var absent_before := _absence_snapshot()
 	for li in leagues.size():
 		var comp: Competition = leagues[li]["comp"]
 		if comp.finished():
@@ -280,6 +286,7 @@ func play_round(user_result: Array = [], user_scorers: Array = [], seed: int = 0
 		# Vuelve a estar disponible: el club se rearma.
 		if int(d.get("inj", 0)) == 0 and int(d.get("susp", 0)) == 0:
 			_dirty[sv["club"]] = true
+	_news_absences(absent_before)
 	# Los planteles con altas o bajas nuevas se rearman.
 	for club in _dirty:
 		TeamDB.refresh_club(country, club, world.clubs["%s:%s" % [country, club]])
@@ -551,6 +558,23 @@ func _end_season() -> void:
 	summary["user"]["retired"] = report["retired"]
 	summary["user"]["youth"] = report["youth"]
 	summary["user"]["risers"] = report["risers"]
+	var my_top: Array = top_scorers(-1, 200).filter(func(r: Dictionary) -> bool: return String(r["club"]) == user_club)
+	summary["user"]["scorer"] = my_top[0] if not my_top.is_empty() else {}
+	# Noticias de fin de temporada.
+	for d in summary["divisions"]:
+		add_news("%s %s: campeón %s." % [d["name"], year_label(), _club_name(String(d["champion"]))], "temporada")
+	var verdict := "Terminaste %d.º en %s." % [pos, division_name(mine)]
+	if pos == 1:
+		verdict = "¡Campeones de %s %s!" % [division_name(mine), year_label()]
+	if went == "up":
+		verdict += " ¡Ascenso!"
+	elif went == "down":
+		verdict += " Descenso."
+	add_news(verdict, "temporada")
+	for n in report["retired"]:
+		add_news("Se retiró %s." % n, "club")
+	if not (report["youth"] as Array).is_empty():
+		add_news("Suben de las inferiores: %s." % ", ".join(report["youth"]), "club")
 	for i in divs.size():
 		world.set_division(country, String(divs[i]["id"]), lists[i])
 	history.append(summary)
@@ -913,7 +937,7 @@ func buy(club: String, pid: int) -> String:
 		return why
 	points -= price
 	_move_player(club, user_club, d)
-	transfers.append({"season": season, "n": d["n"], "from": club, "to": user_club, "price": price, "kind": "compra"})
+	_log_transfer({"season": season, "n": d["n"], "from": club, "to": user_club, "price": price, "kind": "compra"})
 	return ""
 
 
@@ -932,7 +956,7 @@ func lowball(club: String, pid: int, rng: RandomNumberGenerator = null) -> Strin
 		return "rechazada"
 	points -= price
 	_move_player(club, user_club, d)
-	transfers.append({"season": season, "n": d["n"], "from": club, "to": user_club, "price": price, "kind": "compra"})
+	_log_transfer({"season": season, "n": d["n"], "from": club, "to": user_club, "price": price, "kind": "compra"})
 	return "aceptada"
 
 
@@ -952,7 +976,7 @@ func loan_in(club: String, pid: int) -> String:
 	points -= price
 	d["loan_from"] = club
 	_move_player(club, user_club, d)
-	transfers.append({"season": season, "n": d["n"], "from": club, "to": user_club, "price": price, "kind": "préstamo"})
+	_log_transfer({"season": season, "n": d["n"], "from": club, "to": user_club, "price": price, "kind": "préstamo"})
 	return ""
 
 
@@ -994,7 +1018,7 @@ func sell(pid: int, club: String, price: int) -> String:
 		return "No podés quedarte con menos de 16 jugadores."
 	points += price
 	_move_player(user_club, club, d)
-	transfers.append({"season": season, "n": d["n"], "from": user_club, "to": club, "price": price, "kind": "venta"})
+	_log_transfer({"season": season, "n": d["n"], "from": user_club, "to": club, "price": price, "kind": "venta"})
 	return ""
 
 
@@ -1009,11 +1033,11 @@ func release(pid: int) -> String:
 		var back := String(d["loan_from"])
 		d.erase("loan_from")
 		_move_player(user_club, back, d)
-		transfers.append({"season": season, "n": d["n"], "from": user_club, "to": back, "price": 0, "kind": "vuelta"})
+		_log_transfer({"season": season, "n": d["n"], "from": user_club, "to": back, "price": 0, "kind": "vuelta"})
 		return ""
 	club_players(user_club).erase(d)
 	_refresh_user()
-	transfers.append({"season": season, "n": d["n"], "from": user_club, "to": "", "price": 0, "kind": "libre"})
+	_log_transfer({"season": season, "n": d["n"], "from": user_club, "to": "", "price": 0, "kind": "libre"})
 	return ""
 
 
@@ -1044,7 +1068,7 @@ func _return_loans() -> void:
 				d.erase("loan_from")
 				if world.clubs.has("%s:%s" % [country, back]):
 					_move_player(club, back, d)
-					transfers.append({"season": season, "n": d["n"], "from": club, "to": back, "price": 0, "kind": "vuelta"})
+					_log_transfer({"season": season, "n": d["n"], "from": club, "to": back, "price": 0, "kind": "vuelta"})
 
 
 ## Mercado de los otros clubes: algunos compran a un jugador mejor que el
@@ -1052,6 +1076,8 @@ func _return_loans() -> void:
 ## una más abajo (el vendedor repone con un juvenil si queda corto).
 func _ai_window(rng: RandomNumberGenerator, lists: Array, divs: Array) -> void:
 	var co := TeamDB.country(country)
+	var moved := {} # cada jugador cambia de club una sola vez por ventana
+	var big: Array = []
 	for di in lists.size():
 		for club in lists[di]:
 			if club == user_club or rng.randf() > 0.25:
@@ -1073,7 +1099,7 @@ func _ai_window(rng: RandomNumberGenerator, lists: Array, divs: Array) -> void:
 					if other == club or other == user_club or club_players(other).size() <= MIN_SQUAD:
 						continue
 					for x in club_players(other):
-						if x.has("loan_from") or TeamDB.position_of_code(String(x.get("pos", "CMF"))) != line:
+						if x.has("loan_from") or moved.has(int(x["pid"])) or TeamDB.position_of_code(String(x.get("pos", "CMF"))) != line:
 							continue
 						if dict_overall(x) > floor_ovr + 2 and (pick.is_empty() or dict_overall(x) > dict_overall(pick)) and rng.randf() < 0.5:
 							pick = x
@@ -1083,12 +1109,19 @@ func _ai_window(rng: RandomNumberGenerator, lists: Array, divs: Array) -> void:
 			if pick.is_empty():
 				continue
 			_move_player(from, club, pick)
-			transfers.append({"season": season, "n": pick["n"], "from": from, "to": club, "price": player_value(pick), "kind": "ia"})
+			moved[int(pick["pid"])] = true
+			var t := {"season": season, "n": pick["n"], "from": from, "to": club, "price": player_value(pick), "kind": "ia"}
+			_log_transfer(t)
+			if int(t["price"]) >= BIG_TRANSFER:
+				big.append(t)
 			var e: Dictionary = world.clubs["%s:%s" % [country, from]]
 			var div: Dictionary = divs[mini(dj_of(lists, from), divs.size() - 1)]
 			var level := int(TeamDB.DIVISION_LEVEL.get(int(div.get("level", 1)), 56)) - 10
 			_add_youth(e, level, String(co.get("names", "en")), co.get("skin", [40, 30, 18, 12]),
 				String(co.get("nationality", "")), rng, MIN_SQUAD + 2)
+	big.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["price"]) > int(b["price"]))
+	for t in big.slice(0, 3):
+		add_news("Bombazo: %s pasa de %s a %s." % [t["n"], _club_name(t["from"]), _club_name(t["to"])], "bombazo")
 
 
 static func dj_of(lists: Array, club: String) -> int:
@@ -1103,6 +1136,113 @@ func season_transfers() -> Array:
 	var out := transfers.filter(func(t: Dictionary) -> bool: return int(t["season"]) == season)
 	out.reverse()
 	return out
+
+
+# --- Noticias, historial y palmarés (D5) ---------------------------------------------------
+
+## Agrega una noticia (kind: "lesion", "susp", "pase", "bombazo", "temporada", "club").
+func add_news(text: String, kind: String = "club") -> void:
+	var r := 0
+	if not leagues.is_empty():
+		r = user_league().current
+	news.append({"season": season, "round": r, "text": text, "kind": kind})
+	if news.size() > NEWS_MAX:
+		news = news.slice(news.size() - NEWS_MAX)
+
+
+## Las noticias, de la más nueva a la más vieja.
+func latest_news(n: int = 40) -> Array:
+	var out := news.slice(maxi(0, news.size() - n))
+	out.reverse()
+	return out
+
+
+func _club_name(club: String) -> String:
+	if club == "":
+		return "ningún club"
+	var t := TeamDB.load_team(TeamDB.club_path(country, club))
+	return t.team_name if t != null else club
+
+
+## Anota un pase y, si es de tu club o un bombazo, la noticia.
+func _log_transfer(t: Dictionary) -> void:
+	transfers.append(t)
+	var mine: bool = t["from"] == user_club or t["to"] == user_club
+	var n: String = t["n"]
+	match String(t["kind"]):
+		"compra":
+			add_news("Fichaste a %s (%s) por %d puntos." % [n, _club_name(t["from"]), int(t["price"])], "pase")
+		"préstamo":
+			add_news("%s llega a préstamo desde %s." % [n, _club_name(t["from"])], "pase")
+		"venta":
+			add_news("Vendiste a %s a %s por %d puntos." % [n, _club_name(t["to"]), int(t["price"])], "pase")
+		"libre":
+			add_news("%s quedó libre." % n, "pase")
+		"vuelta":
+			if mine:
+				add_news("%s volvió a %s al terminar el préstamo." % [n, _club_name(t["to"])], "pase")
+		"ia":
+			pass # los bombazos los anuncia _ai_window (los tres más caros)
+
+
+## Lesiones y suspensiones nuevas de tu plantel (comparando con antes de la fecha).
+func _news_absences(before: Dictionary) -> void:
+	for d in club_players(user_club):
+		var b: Array = before.get(int(d["pid"]), [0, 0])
+		var inj := int(d.get("inj", 0))
+		var susp := int(d.get("susp", 0))
+		if inj > int(b[0]) and inj > 0:
+			add_news("Lesión: %s, %d fecha%s afuera." % [d["n"], inj, "" if inj == 1 else "s"], "lesion")
+		if susp > int(b[1]) and susp > 0:
+			add_news("Suspendido: %s, %d fecha%s." % [d["n"], susp, "" if susp == 1 else "s"], "susp")
+
+
+func _absence_snapshot() -> Dictionary:
+	var out := {}
+	for d in club_players(user_club):
+		out[int(d["pid"])] = [int(d.get("inj", 0)), int(d.get("susp", 0))]
+	return out
+
+
+## Tu historial: una fila por temporada terminada
+## [{season, year, division, pos, went, champion (bool), scorer}].
+func club_history() -> Array:
+	var out: Array = []
+	for s in history:
+		var u: Dictionary = s.get("user", {})
+		out.append({"season": s["season"], "year": s.get("year", ""), "division": u.get("division_name", ""),
+			"pos": int(u.get("pos", 0)), "went": String(u.get("went", "stay")), "champion": int(u.get("pos", 0)) == 1,
+			"scorer": u.get("scorer", {})})
+	return out
+
+
+## Palmarés de tu club: {titles: ["Primera C 2026", ...], promotions, relegations, best: "1.º en ..."}.
+func club_honours() -> Dictionary:
+	var titles: Array = []
+	var ups := 0
+	var downs := 0
+	for h in club_history():
+		if h["champion"]:
+			titles.append("%s %s" % [h["division"], h["year"]])
+		if h["went"] == "up":
+			ups += 1
+		elif h["went"] == "down":
+			downs += 1
+	return {"titles": titles, "promotions": ups, "relegations": downs}
+
+
+## Clubes con más títulos en la carrera: [[club, títulos]] ordenado.
+func most_titles(n: int = 10) -> Array:
+	var count := {}
+	for s in history:
+		for d in s.get("divisions", []):
+			var c := String(d["champion"])
+			count[c] = int(count.get(c, 0)) + 1
+	var out: Array = []
+	for c in count:
+		out.append([c, count[c]])
+	out.sort_custom(func(a: Array, b: Array) -> bool: return a[1] > b[1])
+	return out.slice(0, n)
 
 
 func last_summary() -> Dictionary:
@@ -1129,7 +1269,7 @@ func to_dict() -> Dictionary:
 		"updated": updated, "country": country, "season": season, "first_year": first_year, "user_club": user_club,
 		"squad_mode": squad_mode, "points": points, "world": world.to_dict(), "leagues": ls, "scorers": scorers,
 		"history": history, "season_over": season_over, "next_pid": next_pid,
-		"season_start": season_start, "transfers": transfers}
+		"season_start": season_start, "transfers": transfers, "news": news}
 
 
 static func from_dict(d: Dictionary) -> MasterCareer:
@@ -1154,6 +1294,7 @@ static func from_dict(d: Dictionary) -> MasterCareer:
 	m.next_pid = int(d.get("next_pid", 1))
 	m.season_start = d.get("season_start", {})
 	m.transfers = d.get("transfers", [])
+	m.news = d.get("news", [])
 	return m
 
 
