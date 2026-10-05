@@ -105,6 +105,8 @@ var competition_match := false
 ## Entrenamiento en el Club House (TrainingSession): qué se practica al
 ## entrar (TrainingSession.Kind y, en los desafíos, TrainingSession.Challenge).
 var training := false
+## Partido > Tanda de penales: sólo la definición por penales.
+var shootout := false
 var training_kind: int = 0
 var training_challenge: int = 0
 var human_side: int = 0

@@ -232,6 +232,13 @@ func _ready() -> void:
 		add_child(training)
 		training.setup(self)
 		training.start()
+	elif GameSettings.shootout:
+		# Tanda de penales sola: sin presentación, directo a los penales.
+		GameSettings.play_intro = false
+		training = PenaltyShootout.new()
+		add_child(training)
+		training.setup(self)
+		training.start()
 	elif GameSettings.play_intro:
 		# Desde el menú: presentación previa (menú con el estadio de fondo,
 		# calentamiento, túnel, saludo, formaciones) y después el saque.
@@ -3541,6 +3548,7 @@ func _exit_tree() -> void:
 
 func exit_to_menu() -> void:
 	GameSettings.training = false
+	GameSettings.shootout = false
 	# Partido de Liga / Copa: cuenta sólo si se jugó hasta el final.
 	GameSettings.last_result = [teams[0].score, teams[1].score] if phase == Phase.FULLTIME else []
 	get_tree().paused = false

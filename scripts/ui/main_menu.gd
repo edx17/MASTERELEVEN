@@ -197,6 +197,8 @@ func _build_modes() -> void:
 		_choose_mode.bind(GameSettings.Mode.TWO_PLAYERS), true, 460.0)
 	_item(col, "CPU vs CPU", "Mirá un partido entre la computadora y la computadora.",
 		_choose_mode.bind(GameSettings.Mode.CPU_VS_CPU), true, 460.0)
+	_item(col, "TANDA DE PENALES", "Sólo la definición por penales: cinco por equipo y, si siguen iguales, muerte súbita.",
+		_choose_mode.bind(GameSettings.Mode.VS_CPU, true), true, 460.0)
 	_item(col, "VOLVER", "Volver al menú principal.", go_back, true, 460.0)
 	_refresh_modes()
 
@@ -206,8 +208,9 @@ func _refresh_modes() -> void:
 		_mode_two.disabled = not InputRouter.can_play_two_players()
 
 
-func _choose_mode(mode: int) -> void:
+func _choose_mode(mode: int, shootout := false) -> void:
 	GameSettings.training = false
+	GameSettings.shootout = shootout
 	GameSettings.set_mode(mode)
 	GameSettings.human_side = 0
 	GameSettings.competition_match = false
@@ -246,6 +249,7 @@ func _on_competition_match(home: String, away: String, side: int) -> void:
 	GameSettings.human_side = side
 	GameSettings.set_mode(GameSettings.Mode.VS_CPU)
 	GameSettings.training = false
+	GameSettings.shootout = false
 	GameSettings.competition_match = true
 	show_page("setup")
 
@@ -285,6 +289,7 @@ func _build_training() -> void:
 ## Elegís qué practicar; después, tu equipo y el rival.
 func _choose_training(kind: int) -> void:
 	GameSettings.training = true
+	GameSettings.shootout = false
 	GameSettings.training_kind = kind
 	GameSettings.set_mode(GameSettings.Mode.VS_CPU)
 	GameSettings.human_side = 0

@@ -189,3 +189,41 @@ func test_copy_strategy_saves_and_loads() -> void:
 	sheet.close()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TeamSheet.plans_path))
 	TeamSheet.plans_path = "user://plans.cfg"
+
+
+## UI1-e: cuándo queda decidida la tanda.
+func test_shootout_decided() -> void:
+	assert_eq(PenaltyShootout.decided([true, true, true], [false, false, false]), 0, "3-0 con 2 por patear")
+	assert_eq(PenaltyShootout.decided([true, true, true], [false, false]), -1, "todavía puede")
+	assert_eq(PenaltyShootout.decided([true, true, true, true, true], [true, true, true, true, true]), -1)
+	assert_eq(PenaltyShootout.decided([true, true, true, true, true, false], [true, true, true, true, true, true]), 1, "muerte súbita")
+	assert_eq(PenaltyShootout.decided([true, true, true, true, true, true], [true, true, true, true, true]), -1, "falta el otro")
+
+
+## UI1-e: tanda CPU vs CPU completa: alterna, los demás esperan en el medio
+## y termina con un ganador.
+func test_shootout_plays_to_a_winner() -> void:
+	GameSettings.shootout = true
+	GameSettings.set_mode(GameSettings.Mode.CPU_VS_CPU)
+	m = load("res://scenes/match/match.tscn").instantiate()
+	add_child_autofree(m)
+	m.set_physics_process(false)
+	GameSettings.shootout = false
+	var so := m.training as PenaltyShootout
+	assert_not_null(so)
+	assert_eq(m.restart_type, MatchRules.Restart.PENALTY)
+	var waiting := 0
+	for p in m.all_players():
+		if p != m.restart_taker and not p.is_keeper() and p.flat_pos().length() < 9.0:
+			waiting += 1
+	assert_gt(waiting, 15, "en el círculo central")
+	var first_shooter := so.shooter
+	for i in int(240.0 / dt):
+		_step(1)
+		if so.finished:
+			break
+	assert_true(so.finished, "terminó")
+	assert_ne(so.winner, -1)
+	assert_ne(so.goals_of(0), so.goals_of(1))
+	assert_true(absi(so.kicks[0].size() - so.kicks[1].size()) <= 1)
+	assert_eq(first_shooter, 0)

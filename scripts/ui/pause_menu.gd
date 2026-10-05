@@ -250,7 +250,7 @@ func _toggle() -> void:
 	if paused:
 		_title.text = _title_text()
 		var m := get_parent() as MatchController
-		if m != null and m.training != null:
+		if m != null and m.training != null and not m.training is PenaltyShootout:
 			_open_training(m.training)
 			return
 		_refresh()
