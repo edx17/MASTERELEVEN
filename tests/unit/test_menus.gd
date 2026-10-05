@@ -30,6 +30,9 @@ func test_main_menu_pages_and_back() -> void:
 	var menu: Control = load("res://scenes/ui/main_menu.tscn").instantiate()
 	add_child_autofree(menu)
 	await get_tree().process_frame
+	# Al abrir el juego, primero el título (Press START).
+	if menu.call("_current") == "title":
+		menu.call("leave_title")
 	assert_eq(menu.call("_current"), "home")
 	menu.call("show_page", "modes")
 	assert_eq(menu.call("_current"), "modes")

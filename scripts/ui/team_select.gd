@@ -103,6 +103,17 @@ func _ready() -> void:
 		b.pressed.connect(_on_pick.bind(i))
 		_grid.add_child(b)
 	_help = WEStyle.help_box(self)
+	# Leyenda fija de los botones (arriba a la derecha, como en el WE).
+	var legend := ButtonIcons.IconLabel.new(20, false, Color(0.92, 0.95, 1.0))
+	legend.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	legend.position = Vector2(-470, 22)
+	legend.size = Vector2(450, 30)
+	add_child(legend)
+	legend.show_text(LEGEND)
+
+
+## Leyenda de botones de la elección de equipos.
+const LEGEND := "{SQ} Al azar    {X} Aceptar    {O} Volver"
 
 
 func open() -> void:
@@ -171,4 +182,4 @@ func _refresh() -> void:
 	_bars.away = teams[picks[1]].ratings()
 	_bars.queue_redraw()
 	_help.text = ("Elegí tu equipo." if single else ("Elegí el equipo LOCAL." if side == 0 else "Elegí el equipo VISITANTE.")) + \
-		"   {X} elegir   {SQ} (Z) al azar   {O} (Esc) volver"
+		"   (Teclado: Enter elegir, Z al azar, Esc volver.)"

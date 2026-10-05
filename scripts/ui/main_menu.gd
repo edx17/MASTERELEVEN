@@ -19,6 +19,8 @@ var _hub: CompetitionHub
 var _new_competition := -1
 var _history: Array[String] = []
 var _focus_memory := {}
+## La pantalla de título (Press START) sale sólo al abrir el juego.
+static var title_seen := false
 
 
 func _ready() -> void:
@@ -29,6 +31,7 @@ func _ready() -> void:
 	WEStyle.background(self)
 	_start_music()
 	_help = WEStyle.help_box(self)
+	_build_title()
 	_build_home()
 	_build_modes()
 	_build_training()
@@ -52,7 +55,10 @@ func _ready() -> void:
 		show_page("home", false))
 	_pages["hub"] = _hub
 	Input.joy_connection_changed.connect(func(_d: int, _c: bool) -> void: _refresh_modes())
-	show_page("home")
+	if title_seen:
+		show_page("home")
+	else:
+		show_page("title", false)
 	# Volviendo de un partido de Liga / Copa: se anota el resultado.
 	if GameSettings.competition_match:
 		GameSettings.competition_match = false
@@ -78,6 +84,8 @@ func show_page(page: String, remember := true) -> void:
 		(_pages[k] as Control).visible = k == page
 	# Las pantallas de equipos y partido traen su propia ayuda.
 	_help.get_parent().visible = page in ["home", "modes", "training", "options", "controls"]
+	if page == "title":
+		return
 	match page:
 		"teams":
 			_teams.open()
@@ -107,6 +115,12 @@ func _current() -> String:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _current() == "title":
+		if event.is_action_pressed(&"pause") or event.is_action_pressed(&"ui_accept") \
+				or (event is InputEventMouseButton and event.pressed):
+			leave_title()
+			get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed(&"ui_cancel") and _current() in ["modes", "options", "controls"]:
 		if _current() == "controls" and _controls_capturing():
 			return
@@ -160,6 +174,29 @@ func _item(col: VBoxContainer, text: String, help: String, cb: Callable, enabled
 	b.mouse_entered.connect(func() -> void: _help.text = help)
 	col.add_child(b)
 	return b
+
+
+# --- Título -----------------------------------------------------------------------
+
+## Pantalla de título como la del WE2002: estadio en alambre azul, el logo
+## amarillo y rojo, "Press START Button" titilando y el copyright.
+func _build_title() -> void:
+	var p := _page("title")
+	var bg := ColorRect.new()
+	bg.color = Color(0.0, 0.01, 0.05)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(bg)
+	var t := TitleScreen.new()
+	t.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(t)
+
+
+func leave_title() -> void:
+	title_seen = true
+	_ui_sound("menu_select")
+	show_page("home", false)
 
 
 # --- Inicio ---------------------------------------------------------------------
@@ -409,6 +446,94 @@ class Logo:
 		draw_string_outline(font, Vector2(0, 54), title, HORIZONTAL_ALIGNMENT_CENTER, size.x, 50, 10, Color(0.1, 0.1, 0.35))
 		draw_string(font, Vector2(0, 54), title, HORIZONTAL_ALIGNMENT_CENTER, size.x, 50, Color(1.0, 0.88, 0.3))
 		draw_string(font, Vector2(0, size.y - 10), "fútbol de los de antes", HORIZONTAL_ALIGNMENT_CENTER, size.x, 22, Color(0.8, 0.85, 1.0))
+
+
+## Título: estadio de alambre que gira despacio, logo y "Press START".
+class TitleScreen:
+	extends Control
+	var t := 0.0
+
+	func _process(dt: float) -> void:
+		t += dt
+		queue_redraw()
+
+	## Punto 3D (x, y, z en m) a pantalla, con la cámara girando alrededor.
+	func blink_on() -> bool:
+		return fmod(t, 1.4) < 1.0
+
+	func _proj(v: Vector3) -> Vector2:
+		var a := t * 0.12
+		var x := v.x * cos(a) - v.z * sin(a)
+		var z := v.x * sin(a) + v.z * cos(a) + 175.0
+		var y := v.y - 95.0
+		# Cámara alta mirando al centro de la cancha.
+		var pitch := atan2(95.0, 175.0)
+		var yy := y * cos(pitch) + z * sin(pitch)
+		var zz := -y * sin(pitch) + z * cos(pitch)
+		var f := size.y * 1.5
+		return Vector2(size.x * 0.5 + x * f / zz, size.y * 0.66 - yy * f / zz)
+
+	func _line(a: Vector3, b: Vector3, c: Color, w: float = 1.0) -> void:
+		draw_line(_proj(a), _proj(b), c, w, true)
+
+	func _draw() -> void:
+		var blue := Color(0.2, 0.45, 1.0, 0.75)
+		var dim := Color(0.15, 0.3, 0.8, 0.4)
+		# Cancha.
+		var hl := 52.5
+		var hw := 34.0
+		var corners := [Vector3(-hl, 0, -hw), Vector3(hl, 0, -hw), Vector3(hl, 0, hw), Vector3(-hl, 0, hw)]
+		for i in 4:
+			_line(corners[i], corners[(i + 1) % 4], blue, 1.5)
+		_line(Vector3(0, 0, -hw), Vector3(0, 0, hw), blue)
+		var prev := Vector3(9.15, 0, 0)
+		for k in range(1, 25):
+			var a := TAU * k / 24.0
+			var cur := Vector3(cos(a) * 9.15, 0, sin(a) * 9.15)
+			_line(prev, cur, blue)
+			prev = cur
+		for sx in [-1.0, 1.0]:
+			var x0: float = sx * hl
+			var x1: float = sx * (hl - 16.5)
+			_line(Vector3(x0, 0, -20.16), Vector3(x1, 0, -20.16), blue)
+			_line(Vector3(x1, 0, -20.16), Vector3(x1, 0, 20.16), blue)
+			_line(Vector3(x1, 0, 20.16), Vector3(x0, 0, 20.16), blue)
+			_line(Vector3(x0, 0, -3.66), Vector3(x0, 2.44, -3.66), blue, 2.0)
+			_line(Vector3(x0, 2.44, -3.66), Vector3(x0, 2.44, 3.66), blue, 2.0)
+			_line(Vector3(x0, 2.44, 3.66), Vector3(x0, 0, 3.66), blue, 2.0)
+		# Tribunas: anillos escalonados y costillas.
+		for ring in 5:
+			var e := 8.0 + ring * 7.0
+			var h := 2.0 + ring * 5.0
+			var pts: Array[Vector3] = []
+			for k in 41:
+				var a := TAU * k / 40.0
+				var c := cos(a)
+				var sn := sin(a)
+				pts.append(Vector3(signf(c) * pow(absf(c), 0.6) * (hl + e), h, signf(sn) * pow(absf(sn), 0.6) * (hw + e)))
+			for k in 40:
+				_line(pts[k], pts[k + 1], blue if ring % 2 == 0 else dim)
+		for k in 40:
+			var a := TAU * k / 40.0
+			var c := cos(a)
+			var sn := sin(a)
+			var lo := Vector3(signf(c) * pow(absf(c), 0.6) * (hl + 8.0), 2.0, signf(sn) * pow(absf(sn), 0.6) * (hw + 8.0))
+			var hi := Vector3(signf(c) * pow(absf(c), 0.6) * (hl + 36.0), 22.0, signf(sn) * pow(absf(sn), 0.6) * (hw + 36.0))
+			_line(lo, hi, dim)
+		# Logo: "MASTER" amarillo y "ELEVEN" rojo, con borde oscuro.
+		var font := get_theme_default_font()
+		var cx := size.x * 0.5
+		var y0 := size.y * 0.24
+		draw_string_outline(font, Vector2(0, y0), "MASTER", HORIZONTAL_ALIGNMENT_CENTER, size.x, 96, 18, Color(0.02, 0.02, 0.12))
+		draw_string(font, Vector2(0, y0), "MASTER", HORIZONTAL_ALIGNMENT_CENTER, size.x, 96, Color(1.0, 0.86, 0.15))
+		draw_string_outline(font, Vector2(0, y0 + 96), "ELEVEN", HORIZONTAL_ALIGNMENT_CENTER, size.x, 96, 18, Color(0.02, 0.02, 0.12))
+		draw_string(font, Vector2(0, y0 + 96), "ELEVEN", HORIZONTAL_ALIGNMENT_CENTER, size.x, 96, Color(0.92, 0.12, 0.12))
+		draw_line(Vector2(cx - 260, y0 + 120), Vector2(cx + 260, y0 + 120), Color(1.0, 0.86, 0.15), 4.0)
+		# "Press START Button" titilando.
+		if blink_on():
+			draw_string_outline(font, Vector2(0, size.y * 0.8), "Press START Button", HORIZONTAL_ALIGNMENT_CENTER, size.x, 34, 6, Color(0, 0, 0))
+			draw_string(font, Vector2(0, size.y * 0.8), "Press START Button", HORIZONTAL_ALIGNMENT_CENTER, size.x, 34, Color.WHITE)
+		draw_string(font, Vector2(0, size.y - 28), "© 2026 VirtualFutsal", HORIZONTAL_ALIGNMENT_CENTER, size.x, 18, Color(0.7, 0.75, 0.9))
 
 
 ## Miniatura del estadio `i` (-1 = al azar: un recuadro neutro).
