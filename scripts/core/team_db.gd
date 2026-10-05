@@ -239,7 +239,7 @@ static func _fill_players(t: TeamData, e: Dictionary, level: int, names_group: S
 	var listed: Array = e.get("players", [])
 	if not listed.is_empty():
 		for i in mini(listed.size(), 23):
-			var p := player_from_dict(listed[i], t.id, i)
+			var p := player_from_dict(listed[i], t.id, i, level)
 			if p.nationality == "":
 				p.nationality = nationality
 			t.players.append(p)
@@ -253,7 +253,7 @@ static func _fill_players(t: TeamData, e: Dictionary, level: int, names_group: S
 
 ## Jugador importado: {n, num, pos (GK/CB/.../CF), alt, ft (R/L/B), h, age,
 ## nat, a: {speed, ...}}. Los atributos que falten se derivan.
-static func player_from_dict(d: Dictionary, team_id: String, i: int) -> PlayerData:
+static func player_from_dict(d: Dictionary, team_id: String, i: int, level: int = 65) -> PlayerData:
 	var p := PlayerData.new()
 	p.player_name = String(d.get("n", "Jugador %d" % (i + 1)))
 	p.id = "%s_%02d" % [team_id, i + 1]
@@ -272,7 +272,11 @@ static func player_from_dict(d: Dictionary, team_id: String, i: int) -> PlayerDa
 		if k in p:
 			p.set(k, int(a[k]))
 	if a.is_empty():
-		_random_attributes(p, int(d.get("ovr", 65)), RandomNumberGenerator.new())
+		# Sin atributos (p. ej. Transfermarkt): según su valoración o el nivel
+		# del equipo, estable por jugador.
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(p.player_name + team_id)
+		_random_attributes(p, int(d.get("ovr", level)), rng)
 	p.abilities = p.suggested_abilities()
 	p.fill_extended()
 	return p

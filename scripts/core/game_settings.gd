@@ -148,7 +148,7 @@ func _is_tool_run() -> bool:
 		if a.contains("gut_cmdln"):
 			return true
 	for a in OS.get_cmdline_user_args():
-		if a.begins_with("--capture=") or a.begins_with("--poses=") or a.begins_with("--stadium-thumbs=") or a.begins_with("--menu-shot=") or a == "--benchmark":
+		if a.begins_with("--capture=") or a.begins_with("--poses=") or a.begins_with("--stadium-thumbs=") or a.begins_with("--menu-shot=") or a.begins_with("--import-players=") or a == "--benchmark":
 			return true
 	return false
 
@@ -208,6 +208,10 @@ func _check_capture_mode() -> void:
 			var poses: Node = load("res://tools/pose_sheet.gd").new()
 			poses.set("out", arg.trim_prefix("--poses="))
 			get_tree().root.add_child.call_deferred(poses)
+		if arg.begins_with("--import-players="):
+			var imp: Node = load("res://tools/import_players.gd").new()
+			imp.set("files", arg.trim_prefix("--import-players=").split(",", false))
+			get_tree().root.add_child.call_deferred(imp)
 		if arg.begins_with("--menu-shot="):
 			var shot: Node = load("res://tools/menu_shot.gd").new()
 			shot.set("out", arg.trim_prefix("--menu-shot="))
