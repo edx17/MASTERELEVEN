@@ -4,14 +4,10 @@ extends CanvasLayer
 
 var _panel: Control
 var _help: Label
+var _title: Label
 var _resume: Button
-var _formation_btn: Button
-var _difficulty_btn: Button
-var _stick_btn: Button
-var _speed_btn: Button
-var _keeper_btn: Button
-var _label_btn: Button
 var _subs_btn: Button
+var _camera_row: WEStyle.OptionRow
 ## Dirección del equipo (cambios, pateadores, capitán, formación).
 var _sheet: TeamSheet
 ## Lista del partido y, en el entrenamiento, el menú de práctica (se arma al
@@ -20,13 +16,20 @@ var _box: VBoxContainer
 var _train_box: VBoxContainer
 var _train_rows: Array[WEStyle.OptionRow] = []
 var _train_first: Control
+## Submenúes de la pausa (Pantalla, Sonido, Opciones de juego) y el botón
+## que abre cada uno (para volver al mismo lugar).
+var _subs: Dictionary = {}
+var _sub_opener: Dictionary = {}
+var _sub_rows: Array[WEStyle.OptionRow] = []
+## Mando que pausó (1, 2...; 0 = no se sabe).
+var pad := 0
 
 
 func _ready() -> void:
 	layer = 10
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	# Al estilo del WE: cartel "PAUSA" arriba a la izquierda, barras violetas
-	# a la izquierda (el partido se sigue viendo) y la ayuda abajo.
+	# Al estilo del WE: cartel "PAUSA — MANDO 1" arriba a la izquierda, barras
+	# violetas a la izquierda (el partido se sigue viendo) y la ayuda abajo.
 	_panel = Control.new()
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -36,9 +39,9 @@ func _ready() -> void:
 	head.position = Vector2(0, 74)
 	head.size = Vector2(520, 50)
 	_panel.add_child(head)
-	var title := WEStyle.label("PAUSA", 30, Color(0.85, 0.9, 1.0))
-	title.position = Vector2(24, 78)
-	_panel.add_child(title)
+	_title = WEStyle.label("PAUSA", 30, Color(0.85, 0.9, 1.0))
+	_title.position = Vector2(24, 78)
+	_panel.add_child(_title)
 	var box := VBoxContainer.new()
 	box.position = Vector2(0, 136)
 	box.add_theme_constant_override("separation", 5)
@@ -47,12 +50,64 @@ func _ready() -> void:
 	_help = WEStyle.help_box(_panel)
 	_resume = _button(box, "Continuar", _toggle, "Volver al partido.")
 	_subs_btn = _button(box, "", _open_subs, "Cambios, posiciones, pateadores, capitán, formación y estrategias.")
-	_formation_btn = _button(box, "", _cycle_formation, "Cambiar la formación de tu equipo.")
-	_difficulty_btn = _button(box, "", _cycle_difficulty, "Qué tan bien juega la computadora.")
-	_stick_btn = _button(box, "", _cycle_stick, "8 o 16 rumbos como en el WE, o libre.")
-	_speed_btn = _button(box, "", _cycle_speed, "Más lento o más rápido (el reloj del partido no cambia).")
-	_keeper_btn = _button(box, "", _cycle_keeper, "Qué hace tu arquero si no la soltaste a tiempo.")
-	_label_btn = _button(box, "", _cycle_label, "Qué se ve arriba de los jugadores.")
+	_camera_row = _option(box, "Cámara", func() -> String:
+			var cam := _camera()
+			return cam.config.display_name if cam != null else "-",
+		func(d: int) -> void:
+			var cam := _camera()
+			if cam != null:
+				cam.set_preset(cam.preset_index + d, false),
+		"Ancha, Normal, Lejana, Vertical... (también con SELECT en el partido).")
+	_camera_row.custom_minimum_size.y = 42
+	_sub_button(box, "Pantalla", "display", "Radar, marcador y lo que se ve arriba de los jugadores.", [
+		["Radar", func() -> String: return "sí" if GameSettings.show_radar else "no",
+			func(_d: int) -> void: GameSettings.show_radar = not GameSettings.show_radar,
+			"El mapa chico de la cancha, abajo al centro."],
+		["Marcador y reloj", func() -> String: return "sí" if GameSettings.show_score else "no",
+			func(_d: int) -> void: GameSettings.show_score = not GameSettings.show_score,
+			"El resultado y el tiempo, arriba."],
+		["Sobre los jugadores", func() -> String: return GameSettings.PLAYER_LABEL_NAMES[GameSettings.player_label],
+			func(d: int) -> void:
+				GameSettings.player_label = posmod(GameSettings.player_label + d, GameSettings.PLAYER_LABEL_NAMES.size())
+				_refresh_labels(),
+			"Nombre del que manejás, números, nombres de todos o nada."],
+	])
+	_sub_button(box, "Sonido", "sound", "Volumen de los efectos y del público.", [
+		["Volumen de efectos", func() -> String: return str(GameSettings.sfx_volume),
+			func(d: int) -> void: GameSettings.sfx_volume = clampi(GameSettings.sfx_volume + d, 0, 10),
+			"Silbato del árbitro, patadas, piques, palo y red."],
+		["Volumen del público", func() -> String: return str(GameSettings.crowd_volume),
+			func(d: int) -> void: GameSettings.crowd_volume = clampi(GameSettings.crowd_volume + d, 0, 10),
+			"El murmullo de la tribuna, los cánticos, los silbidos y los \"uhh\"."],
+	])
+	_sub_button(box, "Opciones de juego", "game", "Formación, dificultad, movimiento, velocidad y arquero.", [
+		["Formación", func() -> String:
+				var t := _my_team()
+				return t.formation.formation_name if t != null and t.formation != null else "-",
+			_step_formation, "Cambiar la formación de tu equipo."],
+		["Dificultad CPU", func() -> String: return Difficulty.NAMES[GameSettings.difficulty],
+			func(d: int) -> void:
+				GameSettings.difficulty = posmod(GameSettings.difficulty + d, Difficulty.NAMES.size())
+				var m := get_parent() as MatchController
+				if m != null:
+					m.apply_difficulty(GameSettings.difficulty),
+			"Qué tan bien juega la computadora."],
+		["Movimiento", func() -> String:
+				var dirs := GameSettings.stick_directions
+				return ("%d direcciones" % dirs) if dirs > 0 else "libre",
+			func(d: int) -> void:
+				var o := GameSettings.STICK_OPTIONS
+				GameSettings.stick_directions = o[posmod(o.find(GameSettings.stick_directions) + d, o.size())],
+			"8 o 16 rumbos como en el WE, o libre."],
+		["Velocidad del juego", func() -> String: return "%+d" % GameSettings.game_speed,
+			func(d: int) -> void:
+				GameSettings.game_speed = clampi(GameSettings.game_speed + d, -2, 2)
+				Engine.time_scale = GameSettings.game_time_scale(),
+			"Más lento o más rápido (el reloj del partido no cambia)."],
+		["Arquero a los 6 s", func() -> String: return GameSettings.KEEPER_AUTO_NAMES[GameSettings.keeper_auto_action],
+			func(_d: int) -> void: GameSettings.keeper_auto_action = 1 - GameSettings.keeper_auto_action,
+			"Qué hace tu arquero si no la soltaste a tiempo."],
+	])
 	_button(box, "Salir del partido", _exit, "Volver al menú principal.")
 	_panel.visible = false
 
@@ -67,6 +122,94 @@ func _button(parent: Control, text: String, cb: Callable, help: String = "") -> 
 	b.focus_entered.connect(func() -> void: _help.text = help)
 	parent.add_child(b)
 	return b
+
+
+func _option(parent: Control, caption: String, getter: Callable, stepper: Callable, help: String) -> WEStyle.OptionRow:
+	var row := WEStyle.OptionRow.new(caption, getter, func(d: int) -> void:
+		stepper.call(d)
+		GameSettings.save_settings(), help, 470.0)
+	row.custom_minimum_size.y = 38
+	row.focus_entered.connect(func() -> void: _help.text = help)
+	parent.add_child(row)
+	_sub_rows.append(row)
+	return row
+
+
+## Botón de la pausa que abre un submenú con sus opciones (◀ ▶ las cambian;
+## "Volver" o atrás regresan a la lista).
+func _sub_button(parent: Control, text: String, key: String, help: String, rows: Array) -> void:
+	var b := _button(parent, text + "  ▶", _open_sub.bind(key), help)
+	var sub := VBoxContainer.new()
+	sub.position = Vector2(0, 136)
+	sub.add_theme_constant_override("separation", 5)
+	sub.visible = false
+	_panel.add_child(sub)
+	for r in rows:
+		_option(sub, r[0], r[1], r[2], r[3])
+	_button(sub, "Volver", _close_sub, "Volver a la pausa.")
+	_subs[key] = sub
+	_sub_opener[key] = b
+
+
+func _open_sub(key: String) -> void:
+	_box.visible = false
+	for k in _subs:
+		_subs[k].visible = k == key
+	_title.text = "%s — %s" % [_title_text(), (_sub_opener[key] as Button).text.trim_suffix("  ▶").to_upper()]
+	for r in _sub_rows:
+		r.refresh()
+	(_subs[key] as Control).get_child(0).grab_focus()
+
+
+func _close_sub() -> void:
+	var opener: Button = null
+	for k in _subs:
+		if _subs[k].visible:
+			opener = _sub_opener[k]
+		_subs[k].visible = false
+	_box.visible = true
+	_refresh()
+	if opener != null:
+		opener.grab_focus()
+
+
+func open_sub_key() -> String:
+	for k in _subs:
+		if _subs[k].visible:
+			return k
+	return ""
+
+
+func _camera() -> MatchCamera:
+	var m := get_parent() as MatchController
+	return m.camera() if m != null else null
+
+
+func _my_team() -> Team:
+	var m := get_parent() as MatchController
+	return m.teams[_my_team_index()] if m != null else null
+
+
+func _refresh_labels() -> void:
+	var m := get_parent() as MatchController
+	if m != null:
+		for p in m.all_players():
+			p.refresh_label()
+
+
+## Qué mando apretó Start: el título dice "PAUSA — MANDO N" (como el WE).
+func _pressed_pad() -> int:
+	var m := get_parent() as MatchController
+	if m == null:
+		return 0
+	for h in m.humans:
+		if Input.is_action_just_pressed(InputRouter.action_name(h.slot, &"pause")):
+			return h.slot + 1
+	return 1 if not m.humans.is_empty() else 0
+
+
+func _title_text() -> String:
+	return "PAUSA — MANDO %d" % pad if pad > 0 else "PAUSA"
 
 
 func _process(_dt: float) -> void:
@@ -84,7 +227,14 @@ func _process(_dt: float) -> void:
 	# Con la Dirección del equipo abierta, ella maneja el "atrás".
 	if _sheet.visible:
 		return
+	# En un submenú, atrás (o Start) vuelve a la lista de la pausa.
+	if open_sub_key() != "":
+		if Input.is_action_just_pressed(&"ui_cancel") or Input.is_action_just_pressed(&"pause"):
+			_close_sub()
+		return
 	if Input.is_action_just_pressed(&"pause"):
+		if not get_tree().paused:
+			pad = _pressed_pad()
 		_toggle()
 
 
@@ -92,10 +242,13 @@ func _toggle() -> void:
 	if _sheet.visible:
 		_sheet.close()
 		return
+	if open_sub_key() != "":
+		_close_sub()
 	var paused := not get_tree().paused
 	get_tree().paused = paused
 	_panel.visible = paused
 	if paused:
+		_title.text = _title_text()
 		var m := get_parent() as MatchController
 		if m != null and m.training != null:
 			_open_training(m.training)
@@ -104,28 +257,28 @@ func _toggle() -> void:
 		_resume.grab_focus()
 
 
-## Equipo del jugador 1 (el que cambia de formación desde la pausa).
+## Equipo del jugador 1 (el que cambia de formación desde la pausa); si pausó
+## el mando 2, el suyo.
 func _my_team_index() -> int:
 	var m := get_parent() as MatchController
 	if m != null and not m.humans.is_empty():
+		for h in m.humans:
+			if h.slot + 1 == pad:
+				return h.team.index
 		return m.humans[0].team.index
 	return 0
 
 
 func _refresh() -> void:
 	GameSettings.save_settings()
+	_title.text = _title_text()
 	var m := get_parent() as MatchController
 	if m == null:
 		return
 	var t := m.teams[_my_team_index()]
 	_subs_btn.text = "Dirección del equipo (%d cambios)" % t.subs_left()
-	_formation_btn.text = "Formación (%s): %s" % [t.short_name, t.formation.formation_name if t.formation else "-"]
-	_difficulty_btn.text = "Dificultad CPU: %s" % Difficulty.NAMES[GameSettings.difficulty]
-	_speed_btn.text = "Velocidad del juego: %+d" % GameSettings.game_speed
-	_keeper_btn.text = "Arquero a los 6 s: %s" % GameSettings.KEEPER_AUTO_NAMES[GameSettings.keeper_auto_action]
-	_label_btn.text = "Sobre los jugadores: %s" % GameSettings.PLAYER_LABEL_NAMES[GameSettings.player_label]
-	var dirs := GameSettings.stick_directions
-	_stick_btn.text = "Movimiento: %s" % ("%d direcciones" % dirs if dirs > 0 else "libre")
+	for r in _sub_rows:
+		r.refresh()
 
 
 # --- Dirección del equipo --------------------------------------------------------
@@ -144,7 +297,7 @@ func _close_subs() -> void:
 	_subs_btn.grab_focus()
 
 
-func _cycle_formation() -> void:
+func _step_formation(d: int) -> void:
 	var m := get_parent() as MatchController
 	if m == null:
 		return
@@ -154,45 +307,7 @@ func _cycle_formation() -> void:
 	for i in all.size():
 		if t.formation != null and all[i].formation_name == t.formation.formation_name:
 			idx = i
-	m.set_formation(t.index, all[(idx + 1) % all.size()])
-	_refresh()
-
-
-func _cycle_difficulty() -> void:
-	var m := get_parent() as MatchController
-	GameSettings.difficulty = (GameSettings.difficulty + 1) % Difficulty.NAMES.size()
-	if m != null:
-		m.apply_difficulty(GameSettings.difficulty)
-	_refresh()
-
-
-## Velocidad -2 .. +2 (se aplica al volver al partido).
-func _cycle_speed() -> void:
-	GameSettings.game_speed = GameSettings.game_speed + 1 if GameSettings.game_speed < 2 else -2
-	Engine.time_scale = GameSettings.game_time_scale()
-	_refresh()
-
-
-func _cycle_label() -> void:
-	GameSettings.player_label = (GameSettings.player_label + 1) % GameSettings.PLAYER_LABEL_NAMES.size()
-	var m := get_parent() as MatchController
-	if m != null:
-		for p in m.all_players():
-			p.refresh_label()
-	_refresh()
-
-
-func _cycle_keeper() -> void:
-	GameSettings.keeper_auto_action = 1 - GameSettings.keeper_auto_action
-	_refresh()
-
-
-## Rumbos del stick: 8 -> 16 -> libre.
-func _cycle_stick() -> void:
-	var opts := GameSettings.STICK_OPTIONS
-	var i := opts.find(GameSettings.stick_directions)
-	GameSettings.stick_directions = opts[(i + 1) % opts.size()]
-	_refresh()
+	m.set_formation(t.index, all[posmod(idx + d, all.size())])
 
 
 func _exit() -> void:

@@ -53,3 +53,52 @@ func test_arrow_shows_controller_number() -> void:
 	assert_eq(p._slot_label.text, "2")
 	p.set_human_slot(-1)
 	assert_false(p._slot_label.visible)
+
+
+func _pause_menu() -> PauseMenu:
+	for c in m.get_children():
+		if c is PauseMenu:
+			return c
+	return null
+
+
+## UI1-b: la pausa dice qué mando la pidió y tiene Cámara, Pantalla y Sonido;
+## los submenúes vuelven a la lista.
+func test_pause_title_camera_and_submenus() -> void:
+	_start(GameSettings.Mode.VS_CPU)
+	var pm := _pause_menu()
+	assert_not_null(pm)
+	pm.pad = 2
+	pm._refresh()
+	assert_eq(pm._title.text, "PAUSA — MANDO 2")
+	var cam := m.camera()
+	var before := cam.preset_index
+	pm._camera_row.change(1)
+	assert_eq(cam.preset_index, posmod(before + 1, cam.presets.size()), "cambia la cámara")
+	cam.set_preset(before, false)
+	for key in ["display", "sound", "game"]:
+		pm._open_sub(key)
+		assert_eq(pm.open_sub_key(), key)
+		assert_false(pm._box.visible)
+		pm._close_sub()
+		assert_eq(pm.open_sub_key(), "")
+		assert_true(pm._box.visible)
+
+
+## UI1-b: Pantalla apaga el radar y el marcador del HUD.
+func test_display_switches_hide_radar_and_score() -> void:
+	_start()
+	var radar0 := GameSettings.show_radar
+	var score0 := GameSettings.show_score
+	GameSettings.show_radar = false
+	GameSettings.show_score = false
+	m._hud._process(0.0)
+	assert_false(m._hud._radar.visible)
+	assert_false(m._hud._top.visible)
+	GameSettings.show_radar = true
+	GameSettings.show_score = true
+	m._hud._process(0.0)
+	assert_true(m._hud._radar.visible)
+	assert_true(m._hud._top.visible)
+	GameSettings.show_radar = radar0
+	GameSettings.show_score = score0
