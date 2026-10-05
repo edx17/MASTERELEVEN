@@ -399,6 +399,16 @@ func remove_club(country_id: String, division_id: String, club_id: String) -> vo
 	changed.emit()
 
 
+## Cuántos clubes bajan de esa división a la de abajo (y suben de la de
+## abajo) en la Liga Master.
+func set_relegation(country_id: String, division_id: String, n: int) -> void:
+	_snapshot()
+	option_file.set_relegation(country_id, division_id, n)
+	TeamDB.use_option_file(option_file)
+	dirty = true
+	changed.emit()
+
+
 ## Aplica una lista de clubes revisada (ClubImporter.analyze); se puede deshacer.
 func import_clubs(plan: Array, stadiums: bool = true) -> Dictionary:
 	_snapshot()

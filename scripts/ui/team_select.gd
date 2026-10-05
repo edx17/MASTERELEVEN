@@ -37,6 +37,8 @@ var _title: Label
 var single := false
 ## Sólo estos equipos, en un único grupo (p. ej. las 48 del Mundial).
 var only_paths: Array[String] = []
+## Sólo las divisiones de este país (Liga Master); "" = todas.
+var only_country := ""
 var _all_groups: Array[Dictionary] = []
 
 
@@ -166,7 +168,12 @@ func open() -> void:
 	_side_panels[1].visible = not single
 	_bars.get_parent().visible = not single
 	picked = [GameSettings.home_team_path, GameSettings.away_team_path]
-	if only_paths.is_empty():
+	if only_country != "":
+		groups = build_groups().filter(func(gr: Dictionary) -> bool:
+			return gr["kind"] == "division" and gr["country"] == only_country)
+		if group_of(picked[0]) < 0:
+			picked[0] = (groups[groups.size() - 1]["paths"] as Array)[0]
+	elif only_paths.is_empty():
 		groups = _all_groups
 	else:
 		var mundial := only_paths.size() == 48 and only_paths.all(func(p: String) -> bool: return p.begins_with("db:nat:"))

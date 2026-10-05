@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **444 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **451 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -18,7 +18,7 @@ además arma el `.exe` de Windows).
 | 3 — IA de partido | ✅ Implementada (se sigue ajustando con tus pruebas) | — |
 | 4 — Reglas, atributos y plantel | ✅ Implementada | — |
 | 5 — Presentación moderna (estadios, animaciones, audio, repeticiones) | 🟡 Muy avanzada; falta el pelo "Detallados" y la voz del locutor | — |
-| 6 — Liga Master | ⬜ | — |
+| 6 — Liga Master | 🟡 D1 hecho (carrera y temporadas); faltan D2–D4 | — |
 | 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) | — |
 | 8 — Pulido | ⬜ | — |
 | Entrenamiento (Club House) | ✅ | #23 |
@@ -36,6 +36,8 @@ además arma el `.exe` de Windows).
 | E2 — Editor (jugadores y equipos, edición masiva) | 🟡 Hecho, pendiente de tu prueba | #31 |
 | E3 — Editor: selecciones, ligas y copas propias | 🟡 Hecho, pendiente de tu prueba | #31 |
 | E4 — Editor: camisetas (plantilla PNG) y botines con vista 3D | 🟡 Hecho, pendiente de tu prueba | #31 |
+| Importar clubes (CSV) y Argentina sin Promocional | 🟡 Hecho, pendiente de tu prueba | #31 |
+| D1 — Liga Master: carrera, temporadas, goleadores, ascensos y descensos | 🟡 Hecho, pendiente de tu prueba | (este PR) |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -138,16 +140,44 @@ además arma el `.exe` de Windows).
    ver `docs/BASE_DE_DATOS.md`): se importa y reemplaza los planteles
    generados. La lista de clubes 2026 de Argentina que pasaste se carga
    desde el Editor (Importar > Clubes y divisiones).
-3. **Paso D — Liga Master** (en varios PR): arranca en 2.ª; en Argentina e
-   Inglaterra en la más baja (Primera C / League Two); las
-   ligas de una sola división no se eligen. Siempre a elegir entre **Equipo
-   WE** (genérico) o **Club real**, salvo con un club de primera (LPF,
-   Premier, LaLiga, Serie A, Bundesliga): ahí es obligatorio el Equipo WE.
+3. **Paso D — Liga Master**, en cuatro PR: **D1** (hecho: carrera y
+   temporadas), **D2** (tarjetas, suspensiones, lesiones, evolución por
+   edad, retiros y juveniles), **D3** (mercado de pases con puntos WE,
+   préstamos, ventanas, IA que ficha) y **D4** (menú de la carrera estilo
+   WE, noticias, historial y palmarés).
 4. Himno propio, relator y pulido final.
 5. Editores: ya hechos (E1–E4, ver `docs/EDITOR.md`); quedan solo extras
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## D1 — Liga Master: carrera y temporadas
+- **LIGA MASTER** en el menú: elegís país (los que tienen más de una
+  división), tu club y el plantel: **Plantel real** o **Equipo WE**
+  (jugadores genéricos con el nombre y la camiseta de tu club; obligatorio
+  con un club de primera).
+- Arrancás en la **Primera C** (Argentina), **League Two** (Inglaterra) o
+  la **2.ª** (el resto). Si tu club juega más arriba, baja a esa división y
+  sube un club de cada división de por medio (las ligas no cambian de
+  tamaño).
+- Cada carrera tiene sus propios planteles (fijados al crearla, cada
+  jugador con su número único): los ascensos no los cambian y las etapas
+  siguientes (lesiones, pases, evolución) los van a modificar.
+- **Temporada completa**: todas las divisiones a la vez, ida y vuelta, con
+  las fechas reales (46 en la Primera C, 70 en la Primera Nacional, 38 en
+  la Premier). Tu partido lo jugás o lo simulás; el resto se simula.
+- Pantalla de la carrera: tabla de cualquier división (◀ ▶) con la zona de
+  ascenso en verde y la de descenso en rojo, **goleadores** (los de tu
+  partido son los reales; el resto, según puesto y remate), **puntos WE**
+  (victoria 400, empate 200, derrota 100, 50 por gol, 3000 el título, 2000
+  el ascenso; se gastan en el mercado, D3), próximo partido y últimos
+  resultados.
+- **Fin de temporada**: campeón y goleador de cada división, quiénes suben y
+  quiénes bajan, cómo te fue. Ascensos y descensos automáticos: 3 en
+  Inglaterra y 2 en el resto, **editable** en el Editor (Ligas → "Bajan a
+  la de abajo").
+- Se guarda sola después de cada fecha en `saves/master` y se sigue desde
+  **CONTINUAR**.
 
 ## E1 y E2 — Option File, partidas y Editor (PR #31)
 - **Carpeta del jugador** `Documentos/MasterEleven/`: configuración,

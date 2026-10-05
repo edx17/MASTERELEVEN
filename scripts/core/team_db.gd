@@ -119,6 +119,16 @@ static func country(id: String) -> Dictionary:
 	return {}
 
 
+## Cuántos equipos bajan de la división `index` del país a la de abajo (y
+## cuántos suben de esa). Se cambia en el Editor (Ligas); si no, 3 en
+## Inglaterra y 2 en el resto.
+static func relegation_count(country_id: String, index: int) -> int:
+	var divs: Array = country(country_id).get("divisions", [])
+	if index < 0 or index >= divs.size() - 1:
+		return 0
+	return int((divs[index] as Dictionary).get("down", 3 if country_id == "eng" else 2))
+
+
 ## Club por país e id: [entrada, división].
 static func club(country_id: String, id: String) -> Array:
 	var c := country(country_id)
@@ -300,6 +310,7 @@ static func player_from_dict(d: Dictionary, team_id: String, i: int, level: int 
 	p.height = int(d.get("h", 0))
 	p.age = int(d.get("age", 0))
 	p.nationality = String(d.get("nat", ""))
+	p.pid = int(d.get("pid", 0))
 	# Aspecto (editor): -1 / ausente = automático.
 	for k in LOOK_KEYS:
 		if d.has(k):
@@ -330,6 +341,8 @@ static func player_to_dict(p: PlayerData) -> Dictionary:
 		"ft": ["R", "L", "B"][clampi(p.foot, 0, 2)], "h": p.height_cm(), "age": p.get_age(), "nat": p.nationality}
 	if not p.alt_roles.is_empty():
 		d["alt"] = ",".join(p.alt_roles)
+	if p.pid > 0:
+		d["pid"] = p.pid
 	for k in LOOK_KEYS:
 		var v := int(p.get(LOOK_KEYS[k]))
 		if v >= 0:

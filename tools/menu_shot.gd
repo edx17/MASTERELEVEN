@@ -1,7 +1,8 @@
 extends Node
 ## Captura del menú principal (para revisar su diseño):
 ## xvfb-run godot -- --menu-shot=archivo.png [--menu-page=teams]
-## Páginas: home, modes, teams, setup, options, controls.
+## Páginas: home, modes, teams, setup, options, controls, master, master_squad,
+## master_hub, master_end.
 
 var out := "user://menu.png"
 
@@ -42,6 +43,19 @@ func _run() -> void:
 				c.save()
 				GameSettings.active_save = c.file
 				page = "hub"
+			# Liga Master: carrera de ejemplo (Boca con el Equipo WE, en Primera C).
+			if page in ["master_hub", "master_end"]:
+				var m := MasterCareer.create("arg", "boca", "we", 21)
+				for i in 5:
+					m.play_round([], [], 30 + i)
+				if page == "master_end":
+					m.simulate_to_end(9)
+				m.save()
+				GameSettings.active_save = m.file
+				page = "master_hub"
+			if page == "master_squad":
+				menu.set("_master_country", "arg")
+				menu.set("_master_club", "boca")
 			if page == "teams":
 				menu.call("show_page", "modes")
 			menu.call("show_page", page)

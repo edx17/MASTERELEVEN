@@ -264,8 +264,12 @@ Criterio: capturas lado a lado con la referencia y 60 FPS con 22 jugadores.
   Maracaná, Azteca, Wembley, Bernabéu, Camp Nou, San Siro, Signal Iduna...).
 - Temporadas con fixture ida y vuelta, tabla, goleadores.
 - Ascensos y descensos automáticos al cierre de temporada.
-- Sistema de puntos al estilo WE clásico (se ganan por resultados y se usan
-  para fichar) o economía simple; dejarlo configurable.
+- **Puntos WE** al estilo clásico (se ganan por resultados y se usan para
+  fichar); decisión del dueño: sin economía.
+- El Equipo WE ocupa el lugar del club elegido (su nombre y camiseta, con
+  jugadores genéricos). Fechas reales (ida y vuelta completas).
+  Ascensos/descensos: 3 en Inglaterra y 2 en el resto, editables en el
+  Editor (Ligas).
 - Mercado de transferencias: fichajes, préstamos, venta, ventanas de pases,
   negociación simple, IA de los otros clubes que también ficha.
 - Evolución de jugadores: crecimiento en jóvenes, pico, declive por edad,

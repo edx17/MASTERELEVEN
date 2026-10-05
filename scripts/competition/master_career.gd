@@ -1,0 +1,511 @@
+class_name MasterCareer
+extends RefCounted
+## Liga Master (Paso D1): una carrera de club en un país.
+##   - Se elige país y club. Se arranca en la división de abajo (Argentina e
+##     Inglaterra) o en la 2.ª (el resto); si el club es de más arriba, baja
+##     a esa división y sube un club de cada división de por medio.
+##   - Plantel real o Equipo WE (plantel genérico con el nombre y la camiseta
+##     del club elegido); con un club de primera, el Equipo WE es obligatorio.
+##   - Cada carrera tiene su propio "mundo": un Option File con todos los
+##     clubes del país y sus planteles fijados (cada jugador con su pid), que
+##     TeamDB usa mientras se juega la carrera. Así los ascensos no cambian
+##     los planteles y las fases siguientes (lesiones, pases, evolución) los
+##     pueden modificar.
+##   - Temporada: todas las divisiones a la vez, ida y vuelta, una fecha de
+##     cada una por vez. Goleadores. Al terminar, ascensos y descensos
+##     (TeamDB.relegation_count) y la temporada siguiente.
+##   - Puntos WE: se ganan con los resultados (se gastan en el mercado, D3).
+## Se guarda en Documentos/MasterEleven/saves/master, un archivo por carrera.
+
+const FORMAT := "MasterEleven Liga Master"
+const VERSION := 1
+const START_POINTS := 3000
+const POINTS := {"win": 400, "draw": 200, "loss": 100, "goal": 50, "title": 3000, "promotion": 2000}
+## Países donde se arranca en la división más baja (en el resto, en la 2.ª).
+const START_AT_BOTTOM := ["arg", "eng"]
+## Equipo WE: un poco por debajo del nivel de la división donde arranca.
+const WE_LEVEL_PENALTY := 4
+
+var file := ""
+var title := ""
+## Option File con el que se creó (sus plantillas de camisetas se siguen usando).
+var option_file := ""
+var created := ""
+var updated := ""
+var country := ""
+var season := 1
+var first_year := 2026
+var user_club := ""
+## "real" (plantel del club) o "we" (Equipo WE).
+var squad_mode := "real"
+var points := START_POINTS
+## Mundo de la carrera (clubes del país con planteles y divisiones).
+var world := OptionFile.new()
+## Una liga por división, en orden: [{"division": id, "comp": Competition}].
+var leagues: Array = []
+## Goleadores de la temporada: {"pid": {"n", "club", "div", "goals"}}.
+var scorers: Dictionary = {}
+## Resumen de cada temporada terminada (ver _end_season).
+var history: Array = []
+## La temporada terminó y se está mostrando el resumen.
+var season_over := false
+var next_pid := 1
+
+
+# --- Creación -----------------------------------------------------------------------
+
+## Países con más de una división.
+static func eligible_countries() -> Array:
+	return TeamDB.countries().filter(func(c: Dictionary) -> bool: return (c["divisions"] as Array).size() >= 2)
+
+
+## Índice de la división donde se arranca en ese país.
+static func start_division(country_id: String) -> int:
+	var n := (TeamDB.country(country_id).get("divisions", []) as Array).size()
+	return n - 1 if START_AT_BOTTOM.has(country_id) else mini(1, n - 1)
+
+
+## Índice de la división del club en el país (o -1).
+static func division_of(country_id: String, club_id: String) -> int:
+	var divs: Array = TeamDB.country(country_id).get("divisions", [])
+	for i in divs.size():
+		for cl in divs[i]["clubs"]:
+			if String(cl["id"]) == club_id:
+				return i
+	return -1
+
+
+## ¿Con este club sólo se puede ir con el Equipo WE? (los de primera).
+static func we_forced(country_id: String, club_id: String) -> bool:
+	return division_of(country_id, club_id) == 0
+
+
+## Carrera nueva (con los datos que TeamDB tenga activos: base + Option File).
+static func create(country_id: String, club_id: String, mode: String, seed: int = 0) -> MasterCareer:
+	var m := MasterCareer.new()
+	m.country = country_id
+	m.user_club = club_id
+	m.squad_mode = "we" if we_forced(country_id, club_id) else mode
+	m.option_file = GameSettings.active_optionfile
+	m.world.name = m.option_file
+	if TeamDB.option_file != null:
+		m.world.rules = TeamDB.option_file.rules.duplicate(true)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed if seed != 0 else randi()
+	var c := TeamDB.country(country_id)
+	var divs: Array = c["divisions"]
+	var start := start_division(country_id)
+	# Divisiones y planteles fijados (con un pid por jugador).
+	var lists: Array = []
+	for d in divs:
+		var ids: Array = []
+		for cl in d["clubs"]:
+			var id := String(cl["id"])
+			var e: Dictionary = (cl as Dictionary).duplicate(true)
+			if not e.has("players") or (e["players"] as Array).is_empty():
+				var list: Array = []
+				for p in TeamDB.load_team(TeamDB.club_path(country_id, id)).players:
+					list.append(TeamDB.player_to_dict(p))
+				e["players"] = list
+			for p in e["players"]:
+				p["pid"] = m.next_pid
+				m.next_pid += 1
+			m.world.set_club(country_id, e)
+			ids.append(id)
+		lists.append(ids)
+	# El club del jugador baja a la división de inicio; para que no cambien
+	# los tamaños, sube un club de cada división de por medio (de a una).
+	var from := division_of(country_id, club_id)
+	if from >= 0 and from < start:
+		lists[from].erase(club_id)
+		for d in range(start, from, -1):
+			var pool: Array = lists[d]
+			var other: String = pool[rng.randi_range(0, pool.size() - 1)]
+			pool.erase(other)
+			lists[d - 1].append(other)
+		lists[start].append(club_id)
+	for i in divs.size():
+		m.world.set_division(country_id, String(divs[i]["id"]), lists[i])
+	if m.squad_mode == "we":
+		m._make_we_squad(int(divs[start].get("level", start + 1)), String(divs[start]["id"]), rng.randi())
+	m._new_season_leagues(rng.randi())
+	return m
+
+
+## Plantel genérico del Equipo WE (con la camiseta y el nombre del club).
+func _make_we_squad(level_index: int, division_id: String, seed: int) -> void:
+	var key := "%s:%s" % [country, user_club]
+	var e: Dictionary = world.clubs[key]
+	var co := TeamDB.country(country)
+	var t := TeamData.new()
+	var fname := String(e.get("formation", "4-4-2"))
+	var fpath := "res://data/formations/f_%s.tres" % fname
+	t.formation = load(fpath) if ResourceLoader.exists(fpath) else load("res://data/formations/f_4-4-2.tres")
+	t.id = "%s_%s_we" % [country, user_club]
+	var level := int(TeamDB.DIVISION_LEVEL.get(level_index, 56)) + int(TeamDB.LEAGUE_BONUS.get(division_id, 0)) - WE_LEVEL_PENALTY
+	TeamDB.generate_roster(t, level, String(co.get("names", "en")), co.get("skin", [40, 30, 18, 12]),
+		String(co.get("nationality", "")), seed)
+	var list: Array = []
+	for p in t.players:
+		var d := TeamDB.player_to_dict(p)
+		d["pid"] = next_pid
+		next_pid += 1
+		list.append(d)
+	e["players"] = list
+
+
+## Una liga de ida y vuelta por división, con la composición actual del mundo.
+func _new_season_leagues(seed: int) -> void:
+	leagues.clear()
+	activate()
+	var divs: Array = TeamDB.country(country)["divisions"]
+	for i in divs.size():
+		var paths: Array[String] = []
+		for cl in divs[i]["clubs"]:
+			paths.append(TeamDB.club_path(country, String(cl["id"])))
+		var me := paths.find(TeamDB.club_path(country, user_club))
+		var comp := Competition.create_league(paths, me, true, seed + i)
+		leagues.append({"division": String(divs[i]["id"]), "comp": comp})
+
+
+# --- Mundo activo ---------------------------------------------------------------------
+
+## TeamDB pasa a usar los clubes de la carrera.
+func activate() -> void:
+	if TeamDB.option_file != world:
+		TeamDB.use_option_file(world)
+
+
+## Vuelve al Option File del juego.
+static func deactivate() -> void:
+	GameSettings.apply_option_file()
+
+
+func user_path() -> String:
+	return TeamDB.club_path(country, user_club)
+
+
+func user_team() -> TeamData:
+	activate()
+	return TeamDB.load_team(user_path())
+
+
+## Índice de la liga (división) donde juega el club del jugador.
+func user_league_index() -> int:
+	for i in leagues.size():
+		if (leagues[i]["comp"] as Competition).user_team >= 0:
+			return i
+	return 0
+
+
+func user_league() -> Competition:
+	return leagues[user_league_index()]["comp"]
+
+
+func division_name(i: int) -> String:
+	var divs: Array = TeamDB.country(country).get("divisions", [])
+	return String(divs[i]["name"]) if i < divs.size() else ""
+
+
+func year_label() -> String:
+	return str(first_year + season - 1)
+
+
+## Partido del jugador en la fecha (o {} si ya terminó su liga).
+func user_match() -> Dictionary:
+	return {} if season_over else user_league().user_match()
+
+
+## Fecha de la carrera: la más avanzada de las divisiones que siguen.
+func round_text() -> String:
+	var comp := user_league()
+	if comp.finished():
+		return "Tu liga terminó · esperando a las otras divisiones"
+	return comp.round_name()
+
+
+# --- Fechas ------------------------------------------------------------------------------
+
+## Juega una fecha en todas las divisiones que no terminaron. `user_result`
+## (si el jugador jugó su partido): [goles local, goles visitante];
+## `user_scorers`: [[lado, pid]] de GameSettings.last_scorers.
+func play_round(user_result: Array = [], user_scorers: Array = [], seed: int = 0) -> void:
+	if season_over:
+		return
+	activate()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed if seed != 0 else randi()
+	var mine := user_league_index()
+	for li in leagues.size():
+		var comp: Competition = leagues[li]["comp"]
+		if comp.finished():
+			continue
+		var r := comp.current
+		var um := comp.user_match()
+		comp.complete_round(user_result if li == mine and not um.is_empty() else [], rng.randi())
+		for g in comp.rounds[r]:
+			var is_user: bool = li == mine and (g["home"] == comp.user_team or g["away"] == comp.user_team)
+			_add_scorers(comp, li, g, user_scorers if is_user and not user_result.is_empty() else [], rng)
+			if is_user:
+				_add_points(g, comp.user_team)
+	if leagues.all(func(l: Dictionary) -> bool: return (l["comp"] as Competition).finished()):
+		_end_season()
+
+
+## Simula hasta que termine la temporada (cuando la liga del jugador ya
+## terminó, o si elige simular todo).
+func simulate_to_end(seed: int = 0) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed if seed != 0 else randi()
+	var guard := 0
+	while not season_over and guard < 200:
+		play_round([], [], rng.randi())
+		guard += 1
+
+
+func _add_points(g: Dictionary, me: int) -> void:
+	var res: Array = g["result"]
+	if res.size() < 2:
+		return
+	var mine: int = res[0] if g["home"] == me else res[1]
+	var theirs: int = res[1] if g["home"] == me else res[0]
+	points += int(POINTS["win" if mine > theirs else ("draw" if mine == theirs else "loss")]) + mine * int(POINTS["goal"])
+
+
+## Anota los goles de un partido: los del partido jugado con sus autores
+## reales; el resto, repartidos entre los titulares según puesto y remate.
+func _add_scorers(comp: Competition, li: int, g: Dictionary, known: Array, rng: RandomNumberGenerator) -> void:
+	var res: Array = g["result"]
+	if res.size() < 2:
+		return
+	for side in 2:
+		var path: String = comp.team_paths[g["home"] if side == 0 else g["away"]]
+		var t := TeamDB.load_team(path)
+		var goals: int = res[side]
+		var named := 0
+		for k in known:
+			if int(k[0]) == side and int(k[1]) > 0 and named < goals:
+				var p := _player_by_pid(t, int(k[1]))
+				if p != null:
+					_credit(p, path, li)
+					named += 1
+		if not known.is_empty():
+			continue # partido jugado: los que faltan son goles en contra
+		for i in goals:
+			var p := pick_scorer(t, rng)
+			if p != null:
+				_credit(p, path, li)
+
+
+func _credit(p: PlayerData, path: String, li: int) -> void:
+	var key := str(p.pid)
+	var row: Dictionary = scorers.get_or_add(key, {"n": p.player_name, "club": path.get_slice(":", 3), "div": li, "goals": 0})
+	row["goals"] = int(row["goals"]) + 1
+	row["club"] = path.get_slice(":", 3)
+	row["div"] = li
+
+
+static func _player_by_pid(t: TeamData, pid: int) -> PlayerData:
+	for p in t.players:
+		if p.pid == pid:
+			return p
+	return null
+
+
+## Peso de cada puesto para meter goles (simulación).
+const SCORER_WEIGHT := {"CF": 4.5, "SS": 4.0, "WG": 3.5, "AMF": 3.5, "LMF": 2.5, "RMF": 2.5, "CMF": 2.0, "DMF": 1.0,
+	"LB": 0.8, "RB": 0.8, "CB": 0.7, "GK": 0.0}
+
+
+## Autor de un gol simulado: entre los titulares, según puesto y remate.
+static func pick_scorer(t: TeamData, rng: RandomNumberGenerator) -> PlayerData:
+	var xi := t.players.slice(0, mini(11, t.players.size()))
+	var total := 0.0
+	var weights: Array[float] = []
+	for p in xi:
+		var code: String = p.role_code if p.role_code != "" else ["GK", "CB", "CMF", "CF"][p.position]
+		var w := float(SCORER_WEIGHT.get(code, 1.5)) * (0.4 + float(p.shooting) / 100.0)
+		weights.append(w)
+		total += w
+	if total <= 0.0:
+		return null
+	var x := rng.randf() * total
+	for i in xi.size():
+		x -= weights[i]
+		if x <= 0.0:
+			return xi[i]
+	return xi[xi.size() - 1]
+
+
+## Goleadores ordenados (de una división o de todas con -1).
+func top_scorers(division: int = -1, n: int = 20) -> Array:
+	var out: Array = []
+	for k in scorers:
+		var row: Dictionary = scorers[k]
+		if division < 0 or int(row["div"]) == division:
+			out.append(row)
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["goals"]) > int(b["goals"]))
+	return out.slice(0, n)
+
+
+# --- Fin de temporada --------------------------------------------------------------------
+
+## Campeones, goleadores, ascensos y descensos; deja armadas las divisiones
+## de la temporada siguiente (empieza con start_next_season).
+func _end_season() -> void:
+	activate()
+	var divs: Array = TeamDB.country(country)["divisions"]
+	var ranks: Array = [] # por división: ids en el orden de la tabla
+	var summary := {"season": season, "year": year_label(), "divisions": [], "user": {}}
+	for li in leagues.size():
+		var comp: Competition = leagues[li]["comp"]
+		var ids: Array = []
+		for row in comp.standings():
+			ids.append(comp.team_paths[row["team"]].get_slice(":", 3))
+		ranks.append(ids)
+		var top := top_scorers(li, 1)
+		summary["divisions"].append({"id": leagues[li]["division"], "name": division_name(li), "champion": ids[0],
+			"top_scorer": top[0] if not top.is_empty() else {}, "up": [], "down": []})
+	var lists: Array = []
+	for ids in ranks:
+		lists.append((ids as Array).duplicate())
+	for i in ranks.size() - 1:
+		var k := mini(TeamDB.relegation_count(country, i), mini((ranks[i] as Array).size(), (ranks[i + 1] as Array).size()))
+		if k <= 0:
+			continue
+		var down: Array = (ranks[i] as Array).slice((ranks[i] as Array).size() - k)
+		var up: Array = (ranks[i + 1] as Array).slice(0, k)
+		for id in down:
+			lists[i].erase(id)
+			lists[i + 1].append(id)
+		for id in up:
+			lists[i + 1].erase(id)
+			lists[i].append(id)
+		summary["divisions"][i]["down"] = down
+		summary["divisions"][i + 1]["up"] = up
+	var mine := user_league_index()
+	var pos: int = (ranks[mine] as Array).find(user_club) + 1
+	var went := "stay"
+	if (summary["divisions"][mine]["up"] as Array).has(user_club):
+		went = "up"
+		points += int(POINTS["promotion"])
+	elif (summary["divisions"][mine]["down"] as Array).has(user_club):
+		went = "down"
+	if pos == 1:
+		points += int(POINTS["title"])
+	summary["user"] = {"division": mine, "division_name": division_name(mine), "pos": pos, "went": went}
+	for i in divs.size():
+		world.set_division(country, String(divs[i]["id"]), lists[i])
+	history.append(summary)
+	season_over = true
+	TeamDB.use_option_file(world)
+
+
+func last_summary() -> Dictionary:
+	return history[history.size() - 1] if not history.is_empty() else {}
+
+
+func start_next_season(seed: int = 0) -> void:
+	if not season_over:
+		return
+	season += 1
+	season_over = false
+	scorers = {}
+	_new_season_leagues(seed if seed != 0 else randi())
+
+
+# --- Guardado ------------------------------------------------------------------------------
+
+func to_dict() -> Dictionary:
+	var ls: Array = []
+	for l in leagues:
+		ls.append({"division": l["division"], "comp": (l["comp"] as Competition).to_dict()})
+	return {"format": FORMAT, "version": VERSION, "title": title, "option_file": option_file, "created": created,
+		"updated": updated, "country": country, "season": season, "first_year": first_year, "user_club": user_club,
+		"squad_mode": squad_mode, "points": points, "world": world.to_dict(), "leagues": ls, "scorers": scorers,
+		"history": history, "season_over": season_over, "next_pid": next_pid}
+
+
+static func from_dict(d: Dictionary) -> MasterCareer:
+	var m := MasterCareer.new()
+	m.title = String(d.get("title", ""))
+	m.option_file = String(d.get("option_file", ""))
+	m.created = String(d.get("created", ""))
+	m.updated = String(d.get("updated", ""))
+	m.country = String(d.get("country", ""))
+	m.season = int(d.get("season", 1))
+	m.first_year = int(d.get("first_year", 2026))
+	m.user_club = String(d.get("user_club", ""))
+	m.squad_mode = String(d.get("squad_mode", "real"))
+	m.points = int(d.get("points", START_POINTS))
+	m.world = OptionFile.from_dict(d.get("world", {}))
+	m.world.name = m.option_file
+	for l in d.get("leagues", []):
+		m.leagues.append({"division": String(l["division"]), "comp": Competition.from_dict(l["comp"])})
+	m.scorers = d.get("scorers", {})
+	m.history = d.get("history", [])
+	m.season_over = bool(d.get("season_over", false))
+	m.next_pid = int(d.get("next_pid", 1))
+	return m
+
+
+static func is_career_file(path: String) -> bool:
+	return path.begins_with(UserData.saves_dir("master"))
+
+
+func save() -> void:
+	if file == "":
+		file = UserData.saves_dir("master").path_join("master_%s.json" %
+			Time.get_datetime_string_from_system(false, false).replace(":", "").replace("-", "").replace("T", "_"))
+		while FileAccess.file_exists(file):
+			file = file.get_basename() + "b.json"
+	var now := Time.get_datetime_string_from_system(false, true)
+	if created == "":
+		created = now
+	updated = now
+	if title == "":
+		title = "Liga Master · %s" % user_team().team_name
+	UserData.write_text(file, JSON.stringify(to_dict()))
+
+
+static func load_saved(path: String) -> MasterCareer:
+	var d: Variant = UserData.read_json(path)
+	if not d is Dictionary or d.get("format", "") != FORMAT:
+		return null
+	var m := from_dict(d)
+	m.file = path
+	return m
+
+
+func delete_file() -> void:
+	if file != "" and FileAccess.file_exists(file):
+		DirAccess.remove_absolute(file)
+
+
+## "Temporada 2026 · Primera C · Fecha 7 de 46".
+func progress_text() -> String:
+	if season_over:
+		return "Temporada %s terminada" % year_label()
+	return "Temporada %s · %s · %s" % [year_label(), division_name(user_league_index()), user_league().round_name()]
+
+
+static func has_saves() -> bool:
+	return not UserData.files_in(UserData.saves_dir("master"), "json").is_empty()
+
+
+## Carreras guardadas: [{file, title, progress, updated, option_file}].
+static func list_saves() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for f in UserData.files_in(UserData.saves_dir("master"), "json"):
+		var d: Variant = UserData.read_json(f)
+		if not d is Dictionary or d.get("format", "") != FORMAT:
+			continue
+		var m := from_dict(d)
+		m.file = f
+		# El texto de progreso necesita los nombres de las divisiones del mundo.
+		var prev := TeamDB.option_file
+		m.activate()
+		out.append({"file": f, "title": m.title, "progress": m.progress_text(), "updated": m.updated,
+			"option_file": m.option_file, "master": true})
+		TeamDB.use_option_file(prev)
+	return out
