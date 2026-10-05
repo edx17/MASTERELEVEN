@@ -14,6 +14,10 @@ func _run() -> void:
 	for f in 10:
 		await get_tree().process_frame
 	for a in OS.get_cmdline_user_args():
+		# `--menu-home=db:nat:arg`: local elegido (la elección abre en su grupo).
+		if a.begins_with("--menu-home="):
+			GameSettings.home_team_path = a.trim_prefix("--menu-home=")
+	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--menu-page="):
 			var menu := get_tree().current_scene
 			var page := a.trim_prefix("--menu-page=")
@@ -27,6 +31,16 @@ func _run() -> void:
 				for i in (3 if page == "league" else 1):
 					c.complete_round([2, 1], 10 + i)
 				c.save()
+				GameSettings.active_save = c.file
+				page = "hub"
+			# Mundial con la fecha 1 jugada (la pantalla de grupos).
+			if page == "wc":
+				var wc: Array[String] = menu.call("world_cup_paths", GameSettings.wc_playoff)
+				var c := Competition.create_world_cup(wc, maxi(wc.find(TeamDB.nation_path("arg")), 0), 5,
+					[TeamDB.nation_path("usa"), TeamDB.nation_path("mex"), TeamDB.nation_path("can")])
+				c.complete_round([2, 0], 11)
+				c.save()
+				GameSettings.active_save = c.file
 				page = "hub"
 			if page == "teams":
 				menu.call("show_page", "modes")

@@ -30,7 +30,7 @@ const KIND_HELP := [
 	"Mantené la pelota dentro del círculo contra dos marcas. Contá pases seguidos.",
 	"10 tiros libres: ángulo marcado 3 puntos, resto del arco 1.",
 ]
-const SAVE_PATH := "user://training.json"
+## Récords: en la carpeta del jugador (UserData.records_path()).
 ## Espera antes de rearmar la jugada (s) y tope de una pelota parada después
 ## del remate.
 const RESET_DELAY := 1.6
@@ -864,9 +864,9 @@ func stats_line() -> String:
 
 func _load_best() -> void:
 	best = {}
-	if not GameSettings.persist or not FileAccess.file_exists(SAVE_PATH):
+	if not GameSettings.persist or not FileAccess.file_exists(UserData.records_path()):
 		return
-	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var f := FileAccess.open(UserData.records_path(), FileAccess.READ)
 	if f == null:
 		return
 	var data: Variant = JSON.parse_string(f.get_as_text())
@@ -877,6 +877,6 @@ func _load_best() -> void:
 func _save_best() -> void:
 	if not GameSettings.persist:
 		return
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var f := FileAccess.open(UserData.records_path(), FileAccess.WRITE)
 	if f != null:
 		f.store_string(JSON.stringify(best))

@@ -1,0 +1,46 @@
+from common import *
+W="ffffff"; B="101820"
+mx=[
+C("america","Club América","AME",K("fff200","1c3a8f","fff200"),K("1c3a8f","1c3a8f","1c3a8f"),"Estadio Ciudad de los Deportes",33000,4),
+C("atlas","Atlas","ATS",K("d71920",B,B,"halves",B),K(W,W,W),"Estadio Jalisco",55020,-2),
+C("sanluis","Atlético San Luis","ASL",K("d71920","1c3a8f",W),K(W,W,W),"Estadio Alfonso Lastras",25709,-2),
+C("cruzazul","Cruz Azul","CAZ",K("004b8d",W,"004b8d"),K(W,W,W),"Estadio Olímpico Universitario",48297,3),
+C("chivas","Guadalajara","GDL",K("d71920","1c3a8f","d71920","stripes",W),K(W,W,W),"Estadio Akron",48071,1),
+C("juarez","FC Juárez","JUA",K("00843d",W,"00843d"),K(W,W,W),"Estadio Olímpico Benito Juárez",19703,-3),
+C("leon","Club León","LEO",K("00843d",W,"00843d"),K(W,W,W),"Estadio Nou Camp",31297,0),
+C("mazatlan","Mazatlán FC","MAZ",K("6f2c91",W,"6f2c91"),K(W,W,W),"Estadio El Encanto",25000,-4),
+C("monterrey","Monterrey","MTY",K("1c3a8f","1c3a8f","1c3a8f","stripes",W),K(W,W,W),"Estadio BBVA",53500,3),
+C("necaxa","Necaxa","NEC",K("d71920",W,"d71920","stripes",W),K(W,W,W),"Estadio Victoria",23851,-3),
+C("pachuca","Pachuca","PAC",K("1c3a8f",W,"1c3a8f","stripes",W),K(W,W,W),"Estadio Hidalgo",27512,1),
+C("puebla","Puebla","PUE",K(W,"1c3a8f",W,"sash","1c3a8f"),K("1c3a8f","1c3a8f","1c3a8f"),"Estadio Cuauhtémoc",51726,-4),
+C("queretaro","Querétaro","QRO",K("1c3a8f",B,"1c3a8f","stripes",B),K(W,W,W),"Estadio Corregidora",33162,-4),
+C("santos","Santos Laguna","SAN",K("00843d",W,"00843d","halves",W),K(W,W,W),"Estadio Corona",29237,-2),
+C("tijuana","Club Tijuana","TIJ",K("d71920",B,B,"stripes",B),K(W,W,W),"Estadio Caliente",27333,-2),
+C("toluca","Toluca","TOL",K("d71920",W,"d71920"),K(W,W,W),"Estadio Nemesio Díez",30000,3),
+C("tigres","Tigres UANL","TIG",K("fdb913","1c3a8f","fdb913"),K("1c3a8f","1c3a8f","1c3a8f"),"Estadio Universitario",41886,4),
+C("pumas","Pumas UNAM","PUM",K(W,"1c3a8f",W),K("1c3a8f","1c3a8f","1c3a8f"),"Estadio Olímpico Universitario",48297,0),
+]
+br=[
+C("atleticomg","Atlético Mineiro","CAM",K(B,B,W,"stripes",W),K(W,W,W),"Arena MRV",46000,2),
+C("bahia","Bahia","BAH",K(W,"1c3a8f",W,"band","1c3a8f"),K("1c3a8f","1c3a8f","1c3a8f"),"Arena Fonte Nova",50025,1),
+C("botafogo","Botafogo","BOT",K(B,B,B,"stripes",W),K(W,W,W),"Estádio Nilton Santos",44661,3),
+C("ceara","Ceará","CEA",K(B,B,B,"stripes",W),K(W,W,W),"Arena Castelão",63903,-2),
+C("corinthians","Corinthians","COR",K(W,B,W),K(B,B,B),"Neo Química Arena",49205,1),
+C("cruzeiro","Cruzeiro","CRU",K("1c3a8f",W,W),K(W,W,W),"Mineirão",61846,2),
+C("flamengo","Flamengo","FLA",K("d71920",W,B,"hoops",B),K(W,W,W),"Maracanã",78838,5),
+C("fluminense","Fluminense","FLU",K("8a1538",W,W,"stripes","00843d"),K(W,W,W),"Maracanã",78838,1),
+C("fortaleza","Fortaleza","FOR",K("d71920",W,"1c3a8f","hoops","1c3a8f"),K(W,W,W),"Arena Castelão",63903,-1),
+C("gremio","Grêmio","GRE",K("0d80bf",B,W,"stripes",B),K(W,W,W),"Arena do Grêmio",55662,0),
+C("internacional","Internacional","INT",K("d71920",W,"d71920"),K(W,W,W),"Beira-Rio",50128,1),
+C("juventude","Juventude","JUV",K("00843d",W,W,"stripes",W),K(W,W,W),"Alfredo Jaconi",19924,-3),
+C("mirassol","Mirassol","MIR",K("f5c400","00843d","f5c400"),K("00843d","00843d","00843d"),"José Maria de Campos Maia",15000,-1),
+C("palmeiras","Palmeiras","PAL",K("006437",W,"006437"),K(W,W,W),"Allianz Parque",43713,5),
+C("bragantino","Red Bull Bragantino","RBB",K(W,W,W),K("d71920","1c2b4a","d71920"),"Nabi Abi Chedid",17022,0),
+C("santos","Santos","SAN",K(W,W,W),K(B,B,B),"Vila Belmiro",16068,0),
+C("saopaulo","São Paulo","SAO",K(W,W,W,"band","d71920"),K("d71920",B,B),"MorumBIS",66795,2),
+C("sport","Sport Recife","SPT",K(B,B,B,"hoops","d71920"),K(W,W,W),"Ilha do Retiro",32983,-3),
+C("vasco","Vasco da Gama","VAS",K(B,B,B,"sash",W),K(W,W,W,"sash",B),"São Januário",21880,-1),
+C("vitoria","Vitória","VIT",K("d71920",B,B,"stripes",B),K(W,W,W),"Barradão",30793,-2),
+]
+write("mex","México","mex","es_lat",[30,65,4,1],[D("mex1","Liga MX",1,mx,"2025-26")])
+write("bra","Brasil","bra","pt_br",[35,35,20,10],[D("bra1","Brasileirão",1,br,"2025")])

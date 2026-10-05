@@ -76,11 +76,13 @@ const KEEPER_AUTO_NAMES := ["patea", "la suelta"]
 var stick_directions: int = 8
 
 ## Configuración guardada entre sesiones (las opciones del menú y de la pausa).
-const SETTINGS_PATH := "user://settings.cfg"
+## Opciones: en la carpeta del jugador (UserData.config_path()).
+const SETTINGS_PATH := ""
 const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", "wind_choice",
 	"pitch_choice", "pitch_wear", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
 	"stick_directions", "camera_preset", "show_pass_target", "offside", "home_team_path", "away_team_path",
-	"home_kit", "away_kit", "show_replays", "replay_chances", "player_style", "sfx_volume", "crowd_volume", "music_volume"]
+	"home_kit", "away_kit", "show_replays", "replay_chances", "player_style", "sfx_volume", "crowd_volume", "music_volume",
+	"show_radar", "show_score", "wc_playoff", "active_optionfile"]
 ## Falso en los tests y las herramientas: no leen ni pisan la configuración
 ## del jugador (así los resultados no dependen de lo que eligió).
 var persist := true
@@ -104,12 +106,28 @@ var competition_match := false
 ## Entrenamiento en el Club House (TrainingSession): qué se practica al
 ## entrar (TrainingSession.Kind y, en los desafíos, TrainingSession.Challenge).
 var training := false
+## Partido > Tanda de penales: sólo la definición por penales.
+var shootout := false
+## Mundial 2026: las 6 selecciones elegidas para los cupos del repechaje
+## (de las 12 candidatas marcadas "po" en data/db/nations.json).
+var wc_playoff: Array = ["ita", "pol", "kos", "den", "cod", "irq"]
+const WC_PLAYOFF_SLOTS := 6
+## Option File activo (nombre; "" = la base del juego).
+var active_optionfile := ""
+## Archivo de la Liga / Copa / Mundial que se está jugando.
+var active_save := ""
+## El Editor se abrió desde el menú del juego (muestra "Volver al juego").
+var editor_from_game := false
+const EDITOR_SCENE := "res://scenes/editor/editor_main.tscn"
 var training_kind: int = 0
 var training_challenge: int = 0
 var human_side: int = 0
 var last_result: Array = []
 ## Volumen de efectos (silbato, pelota) y del público, 0..10.
 var sfx_volume: int = 8
+## Pantalla del partido (pausa > Pantalla): radar y marcador/reloj.
+var show_radar := true
+var show_score := true
 var crowd_volume: int = 7
 ## Volumen de la música del menú, 0..10.
 var music_volume: int = 6
@@ -122,6 +140,11 @@ func _ready() -> void:
 		tuning = Tuning.new()
 	stick_directions = tuning.stick_directions
 	persist = not _is_tool_run()
+	# Tests y herramientas: carpeta aparte (no se tocan los datos del jugador).
+	UserData.sandbox = not persist
+	if persist:
+		UserData.migrate_old()
+	UserData.ensure_dirs()
 	random_conditions = persist
 	if "--retro" in OS.get_cmdline_user_args():
 		player_style = 1
@@ -133,6 +156,11 @@ func _ready() -> void:
 	InputRouter.setup_for_mode(mode)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 	_check_capture_mode()
+	# El Editor como programa aparte (exportación "Editor", con la etiqueta
+	# editor_app) o con `-- --editor`.
+	if OS.has_feature("editor_app") or "--editor" in OS.get_cmdline_user_args():
+		get_tree().change_scene_to_file.call_deferred(EDITOR_SCENE)
+		get_window().title = "Master Eleven · Editor"
 
 
 ## Corre un test, una captura, la hoja de poses o la prueba de rendimiento
@@ -142,7 +170,7 @@ func _is_tool_run() -> bool:
 		if a.contains("gut_cmdln"):
 			return true
 	for a in OS.get_cmdline_user_args():
-		if a.begins_with("--capture=") or a.begins_with("--poses=") or a.begins_with("--stadium-thumbs=") or a.begins_with("--menu-shot=") or a == "--benchmark":
+		if a.begins_with("--capture=") or a.begins_with("--poses=") or a.begins_with("--stadium-thumbs=") or a.begins_with("--menu-shot=") or a.begins_with("--import-players=") or a.begins_with("--editor-shot=") or a == "--benchmark":
 			return true
 	return false
 
@@ -151,6 +179,9 @@ func _is_tool_run() -> bool:
 func save_settings(path: String = SETTINGS_PATH) -> void:
 	if not persist and path == SETTINGS_PATH:
 		return
+	if path == "":
+		path = UserData.config_path()
+		DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	var cfg := ConfigFile.new()
 	cfg.set_value("meta", "version", 1)
 	for key in SAVED:
@@ -158,8 +189,20 @@ func save_settings(path: String = SETTINGS_PATH) -> void:
 	cfg.save(path)
 
 
+## Activa el Option File elegido (si existe; si no, la base).
+func apply_option_file() -> void:
+	var of: OptionFile = null
+	if active_optionfile != "":
+		of = OptionFile.load_named(active_optionfile)
+		if of == null:
+			active_optionfile = ""
+	TeamDB.use_option_file(of)
+
+
 ## Lee las opciones guardadas; lo que falte o no tenga sentido queda como está.
 func load_settings(path: String = SETTINGS_PATH) -> void:
+	if path == "":
+		path = UserData.config_path()
 	var cfg := ConfigFile.new()
 	if cfg.load(path) != OK:
 		return
@@ -184,9 +227,10 @@ func load_settings(path: String = SETTINGS_PATH) -> void:
 	if not stick_directions in STICK_OPTIONS:
 		stick_directions = tuning.stick_directions
 	camera_preset = maxi(camera_preset, 0)
-	if not ResourceLoader.exists(home_team_path):
+	apply_option_file()
+	if not TeamDB.exists(home_team_path):
 		home_team_path = DEFAULT_HOME
-	if not ResourceLoader.exists(away_team_path):
+	if not TeamDB.exists(away_team_path):
 		away_team_path = DEFAULT_AWAY
 	sfx_volume = clampi(sfx_volume, 0, 10)
 	crowd_volume = clampi(crowd_volume, 0, 10)
@@ -202,6 +246,14 @@ func _check_capture_mode() -> void:
 			var poses: Node = load("res://tools/pose_sheet.gd").new()
 			poses.set("out", arg.trim_prefix("--poses="))
 			get_tree().root.add_child.call_deferred(poses)
+		if arg.begins_with("--import-players="):
+			var imp: Node = load("res://tools/import_players.gd").new()
+			imp.set("files", arg.trim_prefix("--import-players=").split(",", false))
+			get_tree().root.add_child.call_deferred(imp)
+		if arg.begins_with("--editor-shot="):
+			var es: Node = load("res://tools/editor_shot.gd").new()
+			es.set("out", arg.trim_prefix("--editor-shot="))
+			get_tree().root.add_child.call_deferred(es)
 		if arg.begins_with("--menu-shot="):
 			var shot: Node = load("res://tools/menu_shot.gd").new()
 			shot.set("out", arg.trim_prefix("--menu-shot="))
@@ -274,8 +326,8 @@ static func kits_clash(a: Color, b: Color) -> bool:
 
 
 func home_team() -> TeamData:
-	return load(home_team_path) as TeamData
+	return TeamDB.load_team(home_team_path)
 
 
 func away_team() -> TeamData:
-	return load(away_team_path) as TeamData
+	return TeamDB.load_team(away_team_path)

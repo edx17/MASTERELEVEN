@@ -123,7 +123,8 @@ var break_auto_continue := false
 var ratings := PlayerRatings.new()
 var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won": [0, 0],
 	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0], "subs": [0, 0], "injuries": [0, 0], "contacts": [0, 0],
-	"chilenas": [0, 0], "corners": [0, 0], "possession": [0.0, 0.0]}
+	"chilenas": [0, 0], "corners": [0, 0], "possession": [0.0, 0.0],
+	"free_kicks": [0, 0], "penalties": [0, 0], "goals_1st": [0, 0], "goals_2nd": [0, 0]}
 ## Atajada planificada para el último remate (ver SaveModel):
 ## {keeper, will_save, parry, point, time_left, chance}. Vacío si no hay.
 var save_plan := {}
@@ -172,6 +173,8 @@ const SET_PIECE_YAW_SPEED := 0.9
 ## Penal: zona del remate y del arquero (x = lado en z del mundo, y = altura).
 var _pk_shot_zone := Vector2i.ZERO
 var _aim_arrow: MeshInstance3D
+## Cartel 3D con la distancia al arco en los tiros libres ("23M", UI-1).
+var _distance_sign: Label3D
 var _pending: MatchRules.Outcome = null
 var _first_half_kicker: int = 0
 var _camera: MatchCamera
@@ -226,6 +229,13 @@ func _ready() -> void:
 		GameSettings.play_intro = false
 		referee.visible = false
 		training = TrainingSession.new()
+		add_child(training)
+		training.setup(self)
+		training.start()
+	elif GameSettings.shootout:
+		# Tanda de penales sola: sin presentación, directo a los penales.
+		GameSettings.play_intro = false
+		training = PenaltyShootout.new()
 		add_child(training)
 		training.setup(self)
 		training.start()
@@ -302,10 +312,9 @@ func attack_dirs() -> Array[int]:
 func _build_world() -> void:
 	# Luz, cielo y clima según las condiciones del partido.
 	# Estadio elegido (las luces de la noche dependen de su forma).
-	var st_i := GameSettings.stadium_choice
-	if st_i < 0:
-		st_i = randi() % StadiumStyles.STYLES.size()
-	StadiumStyles.current = ClubHouseBuilder.STYLE if GameSettings.training else StadiumStyles.get_style(st_i)
+	# Con un club real de local (y el estadio "al azar"), el suyo.
+	StadiumStyles.current = ClubHouseBuilder.STYLE if GameSettings.training \
+		else StadiumStyles.for_team(GameSettings.home_team(), GameSettings.stadium_choice)
 	atmosphere = Atmosphere.new()
 	atmosphere.name = "Atmosphere"
 	add_child(atmosphere)
@@ -345,6 +354,8 @@ func _build_world() -> void:
 		var pat := d.kit_pattern(kit_i)
 		team.pattern = pat[0]
 		team.pattern_color = pat[1]
+		team.socks_color = d.kit_socks(kit_i)
+		team.kit_texture = d.kit_texture(kit_i)
 		team.data = d
 		team.formation = d.formation
 		# Condición del día de todo el plantel (flechas).
@@ -459,6 +470,7 @@ func _physics_process(dt: float) -> void:
 	if goal_kick:
 		_drive_goal_kick()
 	_update_aim_arrow()
+	_update_distance_sign()
 	_hold_card_offender(dt)
 	for p in all_players():
 		p.tick(dt, ball.owner_player == p and not (goal_kick and p == restart_taker))
@@ -1388,6 +1400,28 @@ func _leave_pitch(p: Footballer) -> void:
 
 ## Distancia al arco hasta la que el tiro libre lo patea el elegido.
 const FK_TAKER_RANGE := 35.0
+## Desde acá (m al arco) el tiro libre es "largo" (pateador de los largos).
+const FK_LONG_DIST := 25.0
+
+
+## Pateador elegido para un tiro libre: el de los largos de lejos, si hay.
+static func free_kick_taker_data(team: Team, spot: Vector3) -> PlayerData:
+	var d := Vector2(team.target_goal().x - spot.x, team.target_goal().z - spot.z).length()
+	if d >= FK_LONG_DIST and team.fk_long_taker != null:
+		return team.fk_long_taker
+	return team.fk_taker
+
+
+## ¿El córner es del lado izquierdo de quien ataca? (Mirando hacia +x la
+## izquierda es -z.)
+static func corner_from_left(team: Team, spot: Vector3) -> bool:
+	return spot.z * team.attack_dir < 0.0
+
+
+static func corner_taker_data(team: Team, spot: Vector3) -> PlayerData:
+	if not corner_from_left(team, spot) and team.ck_right_taker != null:
+		return team.ck_right_taker
+	return team.ck_taker
 
 ## Minuto desde el que la CPU cambia a los cansados.
 const CPU_SUB_MINUTE := 55.0
@@ -2140,6 +2174,45 @@ func _update_aim_arrow() -> void:
 	_aim_arrow.global_transform = Transform3D(b, ball.flat_pos() + aim * 3.6 + Vector3(0.0, 0.03, 0.0))
 
 
+## Metros (enteros) de la pelota al centro del arco, como el cartel del WE.
+static func goal_distance_m(spot: Vector3, goal: Vector3) -> int:
+	return roundi(Vector2(goal.x - spot.x, goal.z - spot.z).length())
+
+
+func distance_sign_text() -> String:
+	if _distance_sign == null or not _distance_sign.visible:
+		return ""
+	return _distance_sign.text
+
+
+func _update_distance_sign() -> void:
+	var show := free_kick_camera_active() and restart_taker != null \
+		and goal_kick_stage != GoalKickStage.RUNNING
+	if not show:
+		if _distance_sign != null:
+			_distance_sign.visible = false
+		return
+	if _distance_sign == null:
+		_distance_sign = Label3D.new()
+		_distance_sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_distance_sign.font_size = 96
+		_distance_sign.outline_size = 18
+		_distance_sign.pixel_size = 0.01
+		_distance_sign.modulate = Color(1.0, 0.92, 0.25)
+		_distance_sign.outline_modulate = Color(0.05, 0.05, 0.1, 0.95)
+		_distance_sign.no_depth_test = true
+		_distance_sign.render_priority = 2
+		add_child(_distance_sign)
+	var spot := ball.flat_pos()
+	var goal := restart_taker.team.target_goal()
+	_distance_sign.visible = true
+	_distance_sign.text = "%dM" % goal_distance_m(spot, goal)
+	# Flotando entre la pelota y el arco, sobre la barrera.
+	var to := goal - spot
+	to.y = 0.0
+	_distance_sign.global_position = spot + to.normalized() * minf(6.0, to.length() * 0.3) + Vector3(0.0, 3.4, 0.0)
+
+
 func _update_one_two(dt: float) -> void:
 	if one_two.is_empty():
 		return
@@ -2589,6 +2662,7 @@ func _check_rules() -> void:
 		ratings.on_goal(goal_scorer, outcome.team, teams)
 		_show_goal(outcome.team)
 		teams[outcome.team].score += 1
+		stats["goals_1st" if clock.half == 1 else "goals_2nd"][outcome.team] += 1
 		banner_text = "¡GOL!"
 		_phase_timer = CELEBRATION_MAX
 		_goal_elapsed = 0.0
@@ -3249,6 +3323,10 @@ func _setup_kickoff(kicking_team: int) -> void:
 
 func _setup_restart(outcome: MatchRules.Outcome) -> void:
 	_make_pending_subs()
+	if outcome.type == MatchRules.Restart.FREE_KICK:
+		stats["free_kicks"][outcome.team] += 1
+	elif outcome.type == MatchRules.Restart.PENALTY:
+		stats["penalties"][outcome.team] += 1
 	var team := teams[outcome.team]
 	var spot := outcome.spot
 	var taker: Footballer
@@ -3260,7 +3338,8 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 			stand = spot - Vector3(team.attack_dir * 0.6, 0.0, 0.0)
 			look = Vector3(team.attack_dir, 0.0, 0.0)
 		MatchRules.Restart.CORNER:
-			taker = team.on_pitch(team.ck_taker) if team.ck_taker != null else team.tagged("corners")
+			var ck := corner_taker_data(team, spot)
+			taker = team.on_pitch(ck) if ck != null else team.tagged("corners")
 			if taker == null or taker.is_keeper():
 				taker = _nearest_outfield(team, spot)
 			var out := Vector3(signf(spot.x), 0.0, signf(spot.z)).normalized()
@@ -3268,7 +3347,8 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 			look = (team.target_goal() - spot).normalized()
 		MatchRules.Restart.FREE_KICK:
 			# El pateador elegido, si es para pegarle al arco; si no, el más cerca.
-			taker = (team.on_pitch(team.fk_taker) if team.fk_taker != null else team.tagged("especialista")) \
+			var fk := free_kick_taker_data(team, spot)
+			taker = (team.on_pitch(fk) if fk != null else team.tagged("especialista")) \
 					if spot.distance_to(team.target_goal()) < FK_TAKER_RANGE else null
 			if taker == null or taker.is_keeper():
 				taker = _nearest_outfield(team, spot)
@@ -3469,6 +3549,7 @@ func _exit_tree() -> void:
 
 func exit_to_menu() -> void:
 	GameSettings.training = false
+	GameSettings.shootout = false
 	# Partido de Liga / Copa: cuenta sólo si se jugó hasta el final.
 	GameSettings.last_result = [teams[0].score, teams[1].score] if phase == Phase.FULLTIME else []
 	get_tree().paused = false

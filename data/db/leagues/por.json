@@ -1,0 +1,202 @@
+{
+ "id": "por",
+ "name": "Portugal",
+ "nationality": "por",
+ "names": "pt_pt",
+ "skin": [
+  55,
+  30,
+  10,
+  5
+ ],
+ "divisions": [
+  {
+   "id": "por1",
+   "name": "Liga Portugal",
+   "level": 1,
+   "season": "2025-26",
+   "clubs": [
+    {
+     "id": "benfica",
+     "name": "SL Benfica",
+     "short": "SLB",
+     "home": "e20e17/ffffff/e20e17",
+     "away": "101820/101820/101820",
+     "stadium": "Estádio da Luz",
+     "cap": 65272,
+     "r": 4
+    },
+    {
+     "id": "porto",
+     "name": "FC Porto",
+     "short": "FCP",
+     "home": "0055a5/0055a5/ffffff|stripes|ffffff",
+     "away": "f5a623/101820/f5a623",
+     "stadium": "Estádio do Dragão",
+     "cap": 50033,
+     "r": 4
+    },
+    {
+     "id": "sporting",
+     "name": "Sporting CP",
+     "short": "SCP",
+     "home": "00843d/101820/00843d|hoops|ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Estádio José Alvalade",
+     "cap": 50095,
+     "r": 4
+    },
+    {
+     "id": "braga",
+     "name": "SC Braga",
+     "short": "SCB",
+     "home": "e20e17/ffffff/e20e17",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estádio Municipal de Braga",
+     "cap": 30286,
+     "r": 1
+    },
+    {
+     "id": "vitoria",
+     "name": "Vitória SC",
+     "short": "VSC",
+     "home": "ffffff/101820/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Estádio D. Afonso Henriques",
+     "cap": 30029,
+     "r": -1
+    },
+    {
+     "id": "santaclara",
+     "name": "Santa Clara",
+     "short": "SCL",
+     "home": "e20e17/ffffff/e20e17",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estádio de São Miguel",
+     "cap": 13277,
+     "r": -3
+    },
+    {
+     "id": "famalicao",
+     "name": "FC Famalicão",
+     "short": "FAM",
+     "home": "1c3a8f/ffffff/1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estádio Municipal 22 de Junho",
+     "cap": 5307,
+     "r": -3
+    },
+    {
+     "id": "estoril",
+     "name": "Estoril Praia",
+     "short": "EST",
+     "home": "f5c400/1c3a8f/f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estádio António Coimbra da Mota",
+     "cap": 5000,
+     "r": -3
+    },
+    {
+     "id": "casapia",
+     "name": "Casa Pia",
+     "short": "CPA",
+     "home": "101820/101820/101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estádio Pina Manique",
+     "cap": 2900,
+     "r": -4
+    },
+    {
+     "id": "gilvicente",
+     "name": "Gil Vicente",
+     "short": "GIL",
+     "home": "e20e17/1c3a8f/e20e17",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estádio Cidade de Barcelos",
+     "cap": 12046,
+     "r": -3
+    },
+    {
+     "id": "moreirense",
+     "name": "Moreirense",
+     "short": "MOR",
+     "home": "00843d/ffffff/00843d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estádio Comendador Joaquim de Almeida Freitas",
+     "cap": 6150,
+     "r": -4
+    },
+    {
+     "id": "rioave",
+     "name": "Rio Ave",
+     "short": "RAV",
+     "home": "00843d/ffffff/ffffff|stripes|ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Estádio dos Arcos",
+     "cap": 5300,
+     "r": -4
+    },
+    {
+     "id": "arouca",
+     "name": "FC Arouca",
+     "short": "ARO",
+     "home": "f5c400/1c3a8f/f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estádio Municipal de Arouca",
+     "cap": 5600,
+     "r": -4
+    },
+    {
+     "id": "nacional",
+     "name": "CD Nacional",
+     "short": "NAC",
+     "home": "ffffff/101820/ffffff|stripes|101820",
+     "away": "101820/101820/101820",
+     "stadium": "Estádio da Madeira",
+     "cap": 5132,
+     "r": -5
+    },
+    {
+     "id": "estrela",
+     "name": "Estrela da Amadora",
+     "short": "EAM",
+     "home": "e20e17/ffffff/00843d|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estádio José Gomes",
+     "cap": 9288,
+     "r": -5
+    },
+    {
+     "id": "avs",
+     "name": "AVS",
+     "short": "AVS",
+     "home": "e20e17/ffffff/e20e17",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estádio do CD das Aves",
+     "cap": 8560,
+     "r": -5
+    },
+    {
+     "id": "alverca",
+     "name": "FC Alverca",
+     "short": "ALV",
+     "home": "e20e17/ffffff/e20e17",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Complexo Desportivo do FC Alverca",
+     "cap": 7700,
+     "r": -5
+    },
+    {
+     "id": "tondela",
+     "name": "CD Tondela",
+     "short": "TON",
+     "home": "00843d/ffffff/f5c400|stripes|f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estádio João Cardoso",
+     "cap": 5000,
+     "r": -5
+    }
+   ]
+  }
+ ]
+}

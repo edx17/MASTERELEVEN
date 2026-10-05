@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **398 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **444 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -30,6 +30,12 @@ además arma el `.exe` de Windows).
 | Backlog B12 (correcciones de tu prueba) | ✅ | #29 |
 | Paso A — Jugabilidad WE2002 | 🟡 Hecho, **pendiente de tu prueba** | #30 |
 | Paso B — Jugadores low-poly WE mejorados | 🟡 Hecho, **pendiente de tu prueba** | #30 |
+| Paso UI-1 — Pantallas como el WE2002 | 🟡 Hecho, **pendiente de tu prueba** | #31 |
+| Paso C — Base de datos real y Mundial 2026 | 🟡 Hecho con planteles generados; **falta tu archivo de planteles** | #31 |
+| E1 — Option File, partidas separadas, importar desde el juego | 🟡 Hecho, pendiente de tu prueba | #31 |
+| E2 — Editor (jugadores y equipos, edición masiva) | 🟡 Hecho, pendiente de tu prueba | #31 |
+| E3 — Editor: selecciones, ligas y copas propias | 🟡 Hecho, pendiente de tu prueba | #31 |
+| E4 — Editor: camisetas (plantilla PNG) y botines con vista 3D | 🟡 Hecho, pendiente de tu prueba | #31 |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -126,30 +132,108 @@ además arma el `.exe` de Windows).
   luz y las sombras se ven distinto.
 
 ### Próximos pasos (en orden)
-1. **Tu prueba** de los Pasos A (jugabilidad WE2002) y B (jugadores).
-2. **Paso UI-1 — Pantallas como el WE2002** (propuesto; detalle en
-   `docs/UI_WE2002.md`): pantalla de título con "Press START", tanda de
-   penales sola, puestos detallados y pateadores separados en la Dirección
-   del equipo, cartel "EN VIVO" y foto de equipo en la presentación, número
-   de jugador en la flecha, distancia al arco ("23M") en la pelota parada,
-   pausa con cámara / pantalla / sonido y resultado con goles por tiempo,
-   offsides, tiros libres y penales.
-3. **Paso C — Base de datos real**: 19 selecciones (con bandera) y las ligas
-   de Inglaterra (4 divisiones), España (2), Italia (2), Portugal, Alemania
-   (2), Países Bajos, México, Argentina (5) y Brasil; hasta 23 jugadores por
-   plantel. Ver la lista en `Claude.md` (Fase 6).
-4. **Paso D — Liga Master** (en varios PR): arranca en 2.ª; en Argentina e
-   Inglaterra en la más baja (Torneo Promocional Amateur / League Two); las
+1. **Tu prueba** de los Pasos A (jugabilidad WE2002), B (jugadores), UI-1
+   (pantallas) y C (equipos reales, Mundial).
+2. **Tu archivo de planteles** (CSV de EA FC 26 / SoFIFA y Transfermarkt,
+   ver `docs/BASE_DE_DATOS.md`): se importa y reemplaza los planteles
+   generados. La lista de clubes 2026 de Argentina que pasaste se carga
+   desde el Editor (Importar > Clubes y divisiones).
+3. **Paso D — Liga Master** (en varios PR): arranca en 2.ª; en Argentina e
+   Inglaterra en la más baja (Primera C / League Two); las
    ligas de una sola división no se eligen. Siempre a elegir entre **Equipo
    WE** (genérico) o **Club real**, salvo con un club de primera (LPF,
    Premier, LaLiga, Serie A, Bundesliga): ahí es obligatorio el Equipo WE.
-5. Himno propio, relator y pulido final.
-6. **Al final — Editores** (externos si hace falta): ligas (agregar /
-   eliminar), equipos (agregar / editar / eliminar; formación, escudo,
-   colores), jugadores (agregar / editar / eliminar; atributos) y un editor
-   externo para los mapeos de las camisetas.
+4. Himno propio, relator y pulido final.
+5. Editores: ya hechos (E1–E4, ver `docs/EDITOR.md`); quedan solo extras
+   que vayan surgiendo de tus pruebas.
 
 ---
+
+## E1 y E2 — Option File, partidas y Editor (PR #31)
+- **Carpeta del jugador** `Documentos/MasterEleven/`: configuración,
+  botones, Option Files, partidas (`saves/ligas`, `saves/copas`,
+  `saves/master`), `importar/` y récords. Lo de versiones anteriores se
+  mueve solo.
+- **Option File** (`.meof`): sólo tus cambios sobre la base (clubes y
+  selecciones editados o nuevos, divisiones, borrados). OPCIONES → DATOS
+  elige el activo, importa planteles desde la carpeta `importar` y abre las
+  carpetas. Detalle en `docs/BASE_DE_DATOS.md`.
+- **Partidas separadas**: cada Liga, Copa y Mundial en su archivo;
+  **CONTINUAR** (menú principal) las lista con dónde van y activa el Option
+  File con el que se crearon.
+- **Editor** (`MasterEleven Editor.exe` o EDITOR en el menú): jugadores
+  (uno o varios a la vez, edición masiva), equipos (datos, camisetas en
+  texto, orden del plantel, altas, bajas y pases), selecciones
+  (convocatorias, nuevas, borradas), ligas (pasar de división, clubes
+  nuevos), copas propias (se juegan desde COPA), camisetas (colores, diseño,
+  plantilla PNG para pintar, vista 3D) e importar. Guía en `docs/EDITOR.md`.
+
+## Paso C — Base de datos real y Mundial 2026 (PR #31)
+
+Detalle, fuentes y formato del CSV en `docs/BASE_DE_DATOS.md`. Tests en
+`tests/unit/test_team_db.gd` y `test_import_players.gd`.
+- **59 selecciones** con bandera (dibujada por código), camisetas titular y
+  suplente con su diseño, color de arquero, formación y nivel: las 48 del
+  Mundial 2026 (42 seguras + las 12 candidatas del repechaje que pasaste) más
+  China, Rusia, Nigeria, Camerún y Turquía.
+- **9 países, 18 divisiones, 394 clubes reales**: Inglaterra (4),
+  España (2), Italia (2), Alemania (2), Portugal, Países Bajos, México,
+  Brasil y Argentina (4). Cada uno con sus colores, camisetas reales (rayas,
+  bastones, franja de Boca, banda de River, V de Vélez, cuadros...), medias,
+  estadio y capacidad.
+- **Planteles**: generados (estables, nombres del país, nivel según la
+  división) hasta que llegue tu archivo. **Importador** de CSV (EA FC /
+  SoFIFA, Transfermarkt o planilla propia): `godot --headless --
+  --import-players=archivo.csv`; convierte los atributos de FC a los del
+  juego y arma las selecciones por nacionalidad.
+- **Elección de equipos por grupos**: Selecciones, cada división de cada país
+  y Equipos WE; L1/R1 (Q/E) cambian de grupo; banderas para las selecciones
+  y escudos con el diseño de la camiseta; la camiseta del panel muestra su
+  diseño.
+- **Liga y Copa con equipos reales**: con un club, la Liga es toda su
+  división (tabla con desplazamiento); la Copa, 8 de su grupo.
+- **Mundial 2026** (menú principal): eliges los 6 cupos del repechaje y tu
+  selección; sorteo por bombos (anfitriones al frente), 12 grupos de 4, dos
+  por grupo + 8 mejores terceros, 16avos hasta la final.
+- **Estadio del local**: con un club real y el estadio "al azar", su estadio
+  con nombre real ("EN VIVO — La Bombonera") y forma según la capacidad.
+- Nuevos diseños de camiseta en el cuerpo 3D: franja en el pecho, V y
+  cuadros; las medias pueden ser de otro color que la camiseta.
+
+## Paso UI-1 — Pantallas como el WE2002 (PR #31)
+
+Detalle por pantalla en `docs/UI_WE2002.md`. Tests en `tests/unit/test_ui1.gd`.
+- **Título**: al abrir el juego, estadio de alambre azul que gira, logo
+  "MASTER ELEVEN" amarillo y rojo, "Press START Button" titilando y
+  "© 2026 VirtualFutsal". Start / Aceptar pasa al menú (al volver de un
+  partido no aparece).
+- **Partido > Tanda de penales**: sólo la definición, en el estadio elegido.
+  Cinco por equipo alternados (los mejores definidores primero, el elegido
+  para los penales encabeza) y muerte súbita; los demás esperan en el
+  círculo central. Arriba, el marcador con ● gol / ○ errado. Al final,
+  Aceptar o Start vuelven al menú.
+- **Elección de equipos**: leyenda fija de botones (□ Al azar · ✕ Aceptar ·
+  ○ Volver).
+- **Dirección del equipo**: puestos como en el WE (GK, CB, LB, RB, DMF, CMF,
+  LMF, RMF, AMF, WG, CF; también en la presentación y las repeticiones);
+  pateadores separados: **TL corto** (a menos de 25 m) y **TL largo**,
+  **córner izquierdo** y **derecho** (si falta uno, patea el otro);
+  **Copiar estrategia**: guardar / cargar la formación, los 4 botones de
+  estrategia, los pateadores y el capitán de ese equipo.
+- **Presentación**: cartel con los dos equipos y recuadro rojo "EN VIVO"
+  con estadio y clima en el calentamiento; bandera gigante del local
+  (flameando) atrás de la fila; **foto del equipo** del jugador 1 (dos
+  filas, flash) antes de las formaciones. Las selecciones van a traer su
+  bandera real (campo `flag` en el equipo, Paso C).
+- **HUD**: número de mando (1, 2) al lado de la flecha del controlado.
+- **Pelota parada**: cartel 3D con los metros al arco ("23M") en el tiro
+  libre con la cámara atrás.
+- **Pausa**: "PAUSA — MANDO N" (el que apretó Start), Cámara (◀ ▶),
+  submenúes **Pantalla** (radar, marcador y reloj, etiquetas), **Sonido**
+  (efectos, público) y **Opciones de juego** (formación, dificultad,
+  movimiento, velocidad, arquero).
+- **Resultado**: título "RESULTADO", goles de cada tiempo ("1T 1-0  2T 0-2")
+  y filas nuevas de tiros libres y penales (además de offsides).
 
 ## Paso B — Jugadores low-poly estilo WE mejorados (PR #30)
 

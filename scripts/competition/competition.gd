@@ -8,10 +8,18 @@ extends RefCounted
 ## El partido del jugador se juega; los demás se simulan con los puntajes de
 ## los equipos (TeamData.ratings). Se guarda en user:// entre sesiones.
 
-enum Kind { LEAGUE, CUP }
+enum Kind { LEAGUE, CUP, WORLD_CUP }
+## Partida suelta de versiones anteriores (las nuevas van en
+## Documentos/MasterEleven/saves/ligas o saves/copas, un archivo cada una).
 const SAVE_PATH := "user://competition.json"
-const KIND_NAMES := ["Liga", "Copa"]
-const CUP_ROUND_NAMES := {8: "Cuartos de final", 4: "Semifinales", 2: "Final"}
+const KIND_NAMES := ["Liga", "Copa", "Mundial"]
+const CUP_ROUND_NAMES := {32: "16avos de final", 16: "Octavos de final", 8: "Cuartos de final", 4: "Semifinales",
+	2: "Final"}
+## Mundial (formato 2026): 48 selecciones en 12 grupos de 4 (3 fechas); pasan
+## los dos primeros y los 8 mejores terceros a 16avos y de ahí eliminación
+## directa.
+const WC_GROUP_ROUNDS := 3
+const WC_GROUP_LETTERS := "ABCDEFGHIJKL"
 
 var kind: int = Kind.LEAGUE
 var team_paths: Array[String] = []
@@ -21,6 +29,15 @@ var double_round := false
 var rounds: Array = []
 var current := 0
 var champion := -1
+## Mundial: los 12 grupos (índices de equipos).
+var groups: Array = []
+## Archivo de esta partida, nombre para el menú CONTINUAR, Option File con
+## el que se creó y fechas.
+var file := ""
+var title := ""
+var option_file := ""
+var created := ""
+var updated := ""
 
 
 static func create_league(paths: Array[String], user: int, two_legs: bool, seed: int = 0) -> Competition:
@@ -47,6 +64,115 @@ static func create_cup(paths: Array[String], user: int, seed: int = 0) -> Compet
 		r.append({"home": order[i], "away": order[i + 1], "result": []})
 	c.rounds = [r]
 	return c
+
+
+## Mundial con 48 selecciones: bombos por nivel (el primero con los
+## anfitriones al frente) y un equipo de cada bombo por grupo.
+static func create_world_cup(paths: Array[String], user: int, seed: int = 0, hosts: Array[String] = []) -> Competition:
+	var c := Competition.new()
+	c.kind = Kind.WORLD_CUP
+	c.team_paths = paths.duplicate()
+	c.user_team = user
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed if seed != 0 else randi()
+	var order: Array = range(paths.size())
+	var level := {}
+	for i in order:
+		var r := TeamDB.load_team(paths[i]).ratings()
+		var lv := 0.0
+		for v in r:
+			lv += v
+		level[i] = lv + (100.0 if hosts.has(paths[i]) else 0.0)
+	order.sort_custom(func(a: int, b: int) -> bool: return level[a] > level[b])
+	var n_groups := paths.size() / 4
+	for gi in n_groups:
+		c.groups.append([])
+	for pot in 4:
+		var pot_teams: Array = order.slice(pot * n_groups, (pot + 1) * n_groups)
+		if pot > 0:
+			_shuffle(pot_teams, rng)
+		for gi in n_groups:
+			c.groups[gi].append(pot_teams[gi])
+	for md in WC_GROUP_ROUNDS:
+		var games := []
+		for g in c.groups:
+			var pairs: Array = [[[0, 1], [2, 3]], [[0, 2], [3, 1]], [[3, 0], [1, 2]]][md]
+			for pr in pairs:
+				games.append({"home": g[pr[0]], "away": g[pr[1]], "result": []})
+		c.rounds.append(games)
+	return c
+
+
+## Tabla de un grupo del Mundial (sólo la fase de grupos).
+func group_table(gi: int) -> Array:
+	var rows := {}
+	for t in groups[gi]:
+		rows[t] = {"team": t, "pj": 0, "g": 0, "e": 0, "p": 0, "gf": 0, "gc": 0, "dg": 0, "pts": 0}
+	for ri in mini(WC_GROUP_ROUNDS, rounds.size()):
+		for g in rounds[ri]:
+			if not rows.has(g["home"]):
+				continue
+			var res: Array = g["result"]
+			if res.size() < 2:
+				continue
+			_add(rows[g["home"]], res[0], res[1])
+			_add(rows[g["away"]], res[1], res[0])
+	var out := rows.values()
+	out.sort_custom(_better)
+	return out
+
+
+static func _better(x: Dictionary, y: Dictionary) -> bool:
+	if x["pts"] != y["pts"]:
+		return x["pts"] > y["pts"]
+	if x["dg"] != y["dg"]:
+		return x["dg"] > y["dg"]
+	if x["gf"] != y["gf"]:
+		return x["gf"] > y["gf"]
+	return x["team"] < y["team"]
+
+
+## Grupo de un equipo (o -1).
+func group_of(team_i: int) -> int:
+	for gi in groups.size():
+		if (groups[gi] as Array).has(team_i):
+			return gi
+	return -1
+
+
+## 16avos: primeros contra los 8 mejores terceros y contra segundos; los
+## segundos restantes entre sí.
+func _round_of_32() -> Array:
+	var firsts := []
+	var seconds := []
+	var thirds := []
+	for gi in groups.size():
+		var t := group_table(gi)
+		firsts.append(t[0])
+		seconds.append(t[1])
+		thirds.append(t[2])
+	thirds.sort_custom(_better)
+	thirds = thirds.slice(0, 8)
+	var games := []
+	for i in 8:
+		games.append({"home": firsts[i]["team"], "away": thirds[7 - i]["team"], "result": []})
+	for i in range(8, 12):
+		games.append({"home": firsts[i]["team"], "away": seconds[19 - i]["team"], "result": []})
+	for i in 4:
+		games.append({"home": seconds[i]["team"], "away": seconds[7 - i]["team"], "result": []})
+	return games
+
+
+## ¿El equipo sigue en carrera (Mundial / Copa)?
+func alive(team_i: int) -> bool:
+	if kind == Kind.LEAGUE or finished():
+		return kind == Kind.LEAGUE or champion == team_i
+	if kind == Kind.WORLD_CUP and current < WC_GROUP_ROUNDS:
+		return true
+	for g in rounds[current]:
+		if g["home"] == team_i or g["away"] == team_i:
+			return true
+	return false
 
 
 ## Fixture todos contra todos (método del círculo): n-1 fechas; con dos ruedas
@@ -99,13 +225,17 @@ func finished() -> bool:
 
 
 func team(i: int) -> TeamData:
-	return load(team_paths[i]) as TeamData
+	return TeamDB.load_team(team_paths[i])
 
 
 func round_name(i: int = -1) -> String:
 	if i < 0:
 		i = current
-	if kind == Kind.CUP:
+	if kind == Kind.WORLD_CUP and i < WC_GROUP_ROUNDS:
+		return "Fase de grupos · fecha %d de %d" % [i + 1, WC_GROUP_ROUNDS]
+	if kind == Kind.CUP or kind == Kind.WORLD_CUP:
+		if i >= rounds.size():
+			return "Final"
 		var teams_left := (rounds[i] as Array).size() * 2
 		return CUP_ROUND_NAMES.get(teams_left, "Ronda %d" % (i + 1))
 	return "Fecha %d de %d" % [i + 1, rounds.size()]
@@ -173,11 +303,16 @@ func complete_round(user_result: Array = [], seed: int = 0) -> void:
 			res = user_result.duplicate()
 		else:
 			res = Array(simulate_score(team(g["home"]), team(g["away"]), rng))
-		if kind == Kind.CUP and res.size() == 2 and res[0] == res[1]:
+		var knockout := kind == Kind.CUP or (kind == Kind.WORLD_CUP and current >= WC_GROUP_ROUNDS)
+		if knockout and res.size() == 2 and res[0] == res[1]:
 			res.append_array(penalty_shootout(rng))
 		g["result"] = res
 	current += 1
-	if kind == Kind.CUP:
+	if kind == Kind.WORLD_CUP and current <= WC_GROUP_ROUNDS:
+		if current == WC_GROUP_ROUNDS:
+			rounds.append(_round_of_32())
+		return
+	if kind == Kind.CUP or kind == Kind.WORLD_CUP:
 		var winners := []
 		for g in rounds[current - 1]:
 			winners.append(winner(g))
@@ -246,8 +381,10 @@ static func _add(row: Dictionary, gf: int, gc: int) -> void:
 # --- Guardado ---------------------------------------------------------------------
 
 func to_dict() -> Dictionary:
-	return {"kind": kind, "team_paths": team_paths, "user_team": user_team, "double_round": double_round,
-		"rounds": rounds, "current": current, "champion": champion}
+	return {"format": "MasterEleven Partida", "version": 1, "kind": kind, "title": title,
+		"option_file": option_file, "created": created, "updated": updated,
+		"team_paths": team_paths, "user_team": user_team, "double_round": double_round,
+		"rounds": rounds, "current": current, "champion": champion, "groups": groups}
 
 
 static func from_dict(d: Dictionary) -> Competition:
@@ -258,6 +395,15 @@ static func from_dict(d: Dictionary) -> Competition:
 	c.double_round = bool(d.get("double_round", false))
 	c.current = int(d.get("current", 0))
 	c.champion = int(d.get("champion", -1))
+	c.title = String(d.get("title", ""))
+	c.option_file = String(d.get("option_file", ""))
+	c.created = String(d.get("created", ""))
+	c.updated = String(d.get("updated", ""))
+	for g in d.get("groups", []):
+		var ids := []
+		for v in g:
+			ids.append(int(v))
+		c.groups.append(ids)
 	# JSON guarda los números como float: se pasan a int.
 	for r in d.get("rounds", []):
 		var games := []
@@ -270,19 +416,77 @@ static func from_dict(d: Dictionary) -> Competition:
 	return c
 
 
-func save(path: String = SAVE_PATH) -> void:
-	var f := FileAccess.open(path, FileAccess.WRITE)
-	if f != null:
-		f.store_string(JSON.stringify(to_dict()))
+## Carpeta de partidas de cada tipo: ligas o copas (Copa y Mundial).
+static func saves_kind_dir(k: int) -> String:
+	return UserData.saves_dir("ligas" if k == Kind.LEAGUE else "copas")
+
+
+## Guarda la partida en su archivo (la primera vez le busca uno nuevo en la
+## carpeta del jugador) o en `path` si se pasa.
+func save(path: String = "") -> void:
+	if path == "":
+		if file == "":
+			file = saves_kind_dir(kind).path_join("%s_%s.json" % [["liga", "copa", "mundial"][kind],
+				Time.get_datetime_string_from_system(false, false).replace(":", "").replace("-", "").replace("T", "_")])
+			while FileAccess.file_exists(file):
+				file = file.get_basename() + "b.json"
+		path = file
+	var now := Time.get_datetime_string_from_system(false, true)
+	if created == "":
+		created = now
+	updated = now
+	if title == "":
+		title = default_title()
+	UserData.write_text(path, JSON.stringify(to_dict()))
 
 
 static func load_saved(path: String = SAVE_PATH) -> Competition:
 	if not FileAccess.file_exists(path):
 		return null
 	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
-	return from_dict(d) if d is Dictionary else null
+	if not d is Dictionary:
+		return null
+	var c := from_dict(d)
+	c.file = path
+	return c
 
 
 static func delete_saved(path: String = SAVE_PATH) -> void:
 	if FileAccess.file_exists(path):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+func delete_file() -> void:
+	if file != "":
+		delete_saved(file)
+
+
+## "Liga · Boca Juniors", "Mundial 2026 · Argentina"...
+func default_title() -> String:
+	var who := team(user_team).team_name if user_team < team_paths.size() else ""
+	var what: String = "Mundial 2026" if kind == Kind.WORLD_CUP else KIND_NAMES[kind]
+	return "%s · %s" % [what, who] if who != "" else what
+
+
+## Dónde va: "Fecha 7 de 29", "Cuartos de final", "Terminada (campeón: ...)".
+func progress_text() -> String:
+	if finished():
+		var champ := champion if champion >= 0 else (int(standings()[0]["team"]) if kind == Kind.LEAGUE else -1)
+		return "Terminada · campeón: %s" % team(champ).team_name if champ >= 0 else "Terminada"
+	return round_name()
+
+
+## Partidas guardadas (ligas y copas), las más nuevas primero:
+## [{file, kind, title, progress, updated, finished, option_file}].
+static func list_saves() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for dir in [UserData.saves_dir("ligas"), UserData.saves_dir("copas")]:
+		for f in UserData.files_in(dir, "json"):
+			var c := load_saved(f)
+			if c == null or c.team_paths.is_empty():
+				continue
+			out.append({"file": f, "kind": c.kind, "title": c.title if c.title != "" else c.default_title(),
+				"progress": c.progress_text(), "updated": c.updated, "finished": c.finished(),
+				"option_file": c.option_file})
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return String(a["updated"]) > String(b["updated"]))
+	return out

@@ -133,3 +133,26 @@ static func names() -> Array:
 
 static func get_style(i: int) -> Dictionary:
 	return STYLES[clampi(i, 0, STYLES.size() - 1)]
+
+
+## Estadio del partido según el local: con estadio real (clubes de la base)
+## y "al azar" (choice < 0), una forma según la capacidad y el nombre real;
+## con un estadio elegido en el menú, ése. Sin estadio real, al azar.
+static func for_team(team: TeamData, choice: int, rng_pick: int = -1) -> Dictionary:
+	if choice >= 0:
+		return get_style(choice)
+	if team == null or team.stadium == "":
+		return get_style(rng_pick if rng_pick >= 0 else randi() % STYLES.size())
+	var cap := team.capacity
+	var i := 0
+	if cap >= 65000:
+		i = 4 # cuenco ovalado de cuatro bandejas
+	elif cap >= 45000:
+		i = 2
+	elif cap >= 30000:
+		i = 3
+	elif cap >= 15000:
+		i = 1
+	var st := get_style(i).duplicate()
+	st["name"] = team.stadium
+	return st

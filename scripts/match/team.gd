@@ -15,6 +15,10 @@ var keeper_color: Color = Color.YELLOW
 ## Diseño de la camiseta que se usa en este partido y su segundo color.
 var pattern: int = 0
 var pattern_color: Color = Color.BLACK
+## Plantilla de camiseta (editor) o null.
+var kit_texture: Texture2D = null
+## Medias (alfa 0 = del color de la camiseta).
+var socks_color: Color = Color(0, 0, 0, 0)
 ## +1 ataca hacia +X, -1 hacia -X. Se invierte en el entretiempo.
 var attack_dir: int = 1
 ## Los que están en la cancha (los expulsados salen de esta lista).
@@ -35,8 +39,13 @@ var pending_subs: Array[Dictionary] = []
 var conditions := {}
 ## Capitán y pateadores elegidos en la Dirección del equipo (null = automático).
 var captain: PlayerData = null
+## Tiro libre corto (cerca del área) y largo (de lejos; si no hay, el corto).
 var fk_taker: PlayerData = null
+var fk_long_taker: PlayerData = null
+## Córner desde la izquierda y desde la derecha (mirando al arco rival; si no
+## hay de la derecha, el de la izquierda).
 var ck_taker: PlayerData = null
+var ck_right_taker: PlayerData = null
 var pk_taker: PlayerData = null
 ## Estrategias asignadas a los cuatro botones y la que está activa.
 var strategy_slots: Array[int] = Strategy.DEFAULT_SLOTS.duplicate()

@@ -18,10 +18,7 @@ signal play_pressed
 
 enum Column { POSITION, ENERGY, CONDITION }
 const COLUMN_NAMES := ["Puesto", "Energía", "Condición"]
-enum Mode { SUBSTITUTE, CAPTAIN, FK, CK, PK }
-
-## Puesto en la formación (TacticalRole.Kind), con las siglas del WE.
-const ROLE_CODES := ["GK", "CB", "SB", "DH", "CH", "OH", "SH", "WG", "CF"]
+enum Mode { SUBSTITUTE, CAPTAIN, FK, CK, PK, FK_LONG, CK_RIGHT }
 const POS_CODES := ["GK", "DF", "MF", "FW"]
 const POS_COLORS := [Color(0.8, 0.72, 0.15), Color(0.2, 0.45, 0.8), Color(0.25, 0.62, 0.32), Color(0.78, 0.22, 0.2)]
 ## Flechas de condición: rojo arriba, naranja, amarillo, azul, gris abajo.
@@ -305,7 +302,7 @@ func _column_cell(e: Dictionary) -> Control:
 	var code: String = POS_CODES[d.position]
 	var pos := int(d.position)
 	if e["kind"] == "pitch" and p != null:
-		code = ROLE_CODES[clampi(p.tactical_role, 0, ROLE_CODES.size() - 1)]
+		code = role_code(p)
 		pos = TacticalRole.to_position(p.tactical_role)
 		if p.is_keeper():
 			code = "GK"
@@ -315,6 +312,11 @@ func _column_cell(e: Dictionary) -> Control:
 	sb.bg_color = POS_COLORS[pos]
 	cell.add_theme_stylebox_override("normal", sb)
 	return cell
+
+
+## Sigla del puesto en la formación, con el lado (LB/RB, LMF/RMF).
+static func role_code(p: Footballer) -> String:
+	return TacticalRole.we_code(p.tactical_role, p.base_spot.y)
 
 
 func _entry_player(i: int) -> Footballer:
@@ -344,11 +346,13 @@ func press_entry(e: Dictionary) -> void:
 				team.captain = e["d"]
 				_done_choosing("Capitán: %s" % e["d"].player_name)
 			return
-		Mode.FK, Mode.CK, Mode.PK:
+		Mode.FK, Mode.CK, Mode.PK, Mode.FK_LONG, Mode.CK_RIGHT:
 			if on_pitch:
 				match mode:
 					Mode.FK: team.fk_taker = e["d"]
+					Mode.FK_LONG: team.fk_long_taker = e["d"]
 					Mode.CK: team.ck_taker = e["d"]
+					Mode.CK_RIGHT: team.ck_right_taker = e["d"]
 					Mode.PK: team.pk_taker = e["d"]
 				_done_choosing("%s: %s" % [_mode_name(mode), e["d"].player_name])
 			return
@@ -407,11 +411,15 @@ func _build_menu() -> void:
 	_menu_button("Salir", close)
 	var subs := "Sustituir" if prematch else "Sustituir  (%d restantes)" % team.subs_left()
 	_menu_button(subs, _start_substitute)
-	_menu_button("Tiros libres: %s" % _taker_name(team.fk_taker), _choose.bind(Mode.FK))
-	_menu_button("Córners: %s" % _taker_name(team.ck_taker), _choose.bind(Mode.CK))
+	_menu_button("TL corto: %s" % _taker_name(team.fk_taker), _choose.bind(Mode.FK))
+	_menu_button("TL largo: %s" % _taker_name(team.fk_long_taker, team.fk_taker), _choose.bind(Mode.FK_LONG))
+	_menu_button("Córner izq.: %s" % _taker_name(team.ck_taker), _choose.bind(Mode.CK))
+	_menu_button("Córner der.: %s" % _taker_name(team.ck_right_taker, team.ck_taker), _choose.bind(Mode.CK_RIGHT))
 	_menu_button("Penales: %s" % _taker_name(team.pk_taker), _choose.bind(Mode.PK))
 	_menu_button("Capitán: %s" % _taker_name(team.captain, team.captain_data()), _choose.bind(Mode.CAPTAIN))
 	_menu_button("Formación: %s" % (team.formation.formation_name if team.formation else "-"), _next_formation)
+	_menu_button("Copiar estrategia: guardar", save_plan)
+	_menu_button("Copiar estrategia: cargar", load_plan)
 	for i in team.strategy_slots.size():
 		var on := "  (activa)" if team.strategy == team.strategy_slots[i] else ""
 		var sb := _menu_button("%s%s" % [Strategy.NAMES[team.strategy_slots[i]], on], cycle_strategy_slot.bind(i))
@@ -445,8 +453,10 @@ func _taker_name(d: PlayerData, auto: PlayerData = null) -> String:
 
 func _mode_name(m: int) -> String:
 	match m:
-		Mode.FK: return "Tiros libres"
-		Mode.CK: return "Córners"
+		Mode.FK: return "Tiros libres cortos"
+		Mode.FK_LONG: return "Tiros libres largos"
+		Mode.CK: return "Córners desde la izquierda"
+		Mode.CK_RIGHT: return "Córners desde la derecha"
 		Mode.PK: return "Penales"
 		Mode.CAPTAIN: return "Capitán"
 	return "Sustituir"
@@ -500,9 +510,66 @@ func _next_formation() -> void:
 		(_menu.get_child(focus_idx) as Control).grab_focus()
 
 
+# --- Copiar estrategia ------------------------------------------------------------
+
+## Planes guardados por equipo (formación, estrategias de los 4 botones,
+## pateadores y capitán): se copian al próximo partido del mismo equipo.
+## "" = la carpeta del jugador (UserData.plans_path()).
+static var plans_path := ""
+
+
+static func _plans_file() -> String:
+	return plans_path if plans_path != "" else UserData.plans_path()
+
+const PLAN_TAKERS := ["fk_taker", "fk_long_taker", "ck_taker", "ck_right_taker", "pk_taker", "captain"]
+
+
+func save_plan() -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(_plans_file())
+	var key := team.team_name
+	cfg.set_value(key, "formation", team.formation.formation_name if team.formation else "")
+	cfg.set_value(key, "strategy_slots", team.strategy_slots.duplicate())
+	for f in PLAN_TAKERS:
+		var d: PlayerData = team.get(f)
+		cfg.set_value(key, f, d.player_name if d != null else "")
+	cfg.save(_plans_file())
+	_status.text = "Estrategia guardada: se puede copiar en otro partido de %s." % team.short_name
+
+
+func load_plan() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(_plans_file()) != OK or not cfg.has_section(team.team_name):
+		_status.text = "No hay una estrategia guardada de %s." % team.short_name
+		return
+	var key := team.team_name
+	var fname: String = cfg.get_value(key, "formation", "")
+	for f in FormationLibrary.load_all():
+		if f.formation_name == fname and (team.formation == null or team.formation.formation_name != fname):
+			match_ref.set_formation(team.index, f)
+	var slots: Array = cfg.get_value(key, "strategy_slots", [])
+	if slots.size() == team.strategy_slots.size():
+		for i in slots.size():
+			team.strategy_slots[i] = int(slots[i])
+	var squad: Array[PlayerData] = []
+	for p in team.players:
+		if p.base_data != null:
+			squad.append(p.base_data)
+	squad.append_array(team.bench)
+	for f in PLAN_TAKERS:
+		var who: String = cfg.get_value(key, f, "")
+		var found: PlayerData = null
+		for d in squad:
+			if d.player_name == who:
+				found = d
+		team.set(f, found)
+	_rebuild()
+	_status.text = "Estrategia copiada."
+
+
 func _hint() -> String:
 	match mode:
-		Mode.CAPTAIN, Mode.FK, Mode.CK, Mode.PK:
+		Mode.CAPTAIN, Mode.FK, Mode.CK, Mode.PK, Mode.FK_LONG, Mode.CK_RIGHT:
 			return "%s: elegí un jugador de la cancha.   {O} / Esc: volver" % _mode_name(mode)
 	if not _marked.is_empty():
 		return "%s marcado: elegí con quién cambiarlo.   {O} / Esc: desmarcar" % _marked["d"].player_name
@@ -535,9 +602,13 @@ func _show_detail(i: int) -> void:
 	if team.captain_data() == base:
 		roles.append("Capitán")
 	if team.fk_taker == base:
-		roles.append("Tiros libres")
+		roles.append("TL corto")
+	if team.fk_long_taker == base:
+		roles.append("TL largo")
 	if team.ck_taker == base:
-		roles.append("Córners")
+		roles.append("Córner izq.")
+	if team.ck_right_taker == base:
+		roles.append("Córner der.")
 	if team.pk_taker == base:
 		roles.append("Penales")
 	if p != null and p.injury > 0:
@@ -672,10 +743,10 @@ class MiniPitch:
 			draw_arc(pos, 13.0, 0, TAU, 24, Color(0, 0, 0, 0.6), 1.5)
 			var ink := Color.BLACK if c.get_luminance() > 0.35 else Color.WHITE
 			draw_string(font, pos + Vector2(-13, 5), str(p.number), HORIZONTAL_ALIGNMENT_CENTER, 26, 14, ink)
-			var code: String = "GK" if p.is_keeper() else ROLE_CODES[clampi(p.tactical_role, 0, ROLE_CODES.size() - 1)]
+			var code: String = "GK" if p.is_keeper() else TeamSheet.role_code(p)
 			var pos_i := PlayerData.Position.GK if p.is_keeper() else TacticalRole.to_position(p.tactical_role)
-			draw_rect(Rect2(pos + Vector2(-42, -7), Vector2(25, 14)), POS_COLORS[pos_i])
-			draw_string(font, pos + Vector2(-42, 4), code, HORIZONTAL_ALIGNMENT_CENTER, 25, 11, Color.WHITE)
+			draw_rect(Rect2(pos + Vector2(-47, -7), Vector2(30, 14)), POS_COLORS[pos_i])
+			draw_string(font, pos + Vector2(-47, 4), code, HORIZONTAL_ALIGNMENT_CENTER, 30, 11, Color.WHITE)
 			var surname := p.display_name.get_slice(" ", p.display_name.get_slice_count(" ") - 1)
 			draw_string(font, pos + Vector2(-45, 26), surname, HORIZONTAL_ALIGNMENT_CENTER, 90, 12, Color.WHITE)
 

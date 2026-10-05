@@ -4,7 +4,8 @@ extends RefCounted
 ## Map del proyecto (las acciones base) y se guarda en user://controls.cfg;
 ## InputRouter lo vuelve a copiar a las acciones de cada jugador.
 
-const PATH := "user://controls.cfg"
+## "" = la carpeta del jugador (UserData.controls_path()).
+const PATH := ""
 ## Acciones que se pueden cambiar y su nombre en el menú.
 const ACTIONS: Array[StringName] = [&"pass_short", &"shoot", &"pass_long", &"pass_through",
 	&"special", &"sprint", &"brake", &"strategy", &"camera_cycle", &"pause"]
@@ -47,6 +48,8 @@ static func rebind(action: StringName, event: InputEvent) -> void:
 
 ## Vuelve a los controles de fábrica y borra lo guardado.
 static func reset(path: String = PATH) -> void:
+	if path == "":
+		path = UserData.controls_path()
 	InputMap.load_from_project_settings()
 	if FileAccess.file_exists(path):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
@@ -54,6 +57,8 @@ static func reset(path: String = PATH) -> void:
 
 
 static func save(path: String = PATH) -> void:
+	if path == "":
+		path = UserData.controls_path()
 	var cfg := ConfigFile.new()
 	for a in ACTIONS:
 		var list: Array = []
@@ -67,6 +72,8 @@ static func save(path: String = PATH) -> void:
 
 ## Aplica lo guardado (si hay algo).
 static func load_saved(path: String = PATH) -> void:
+	if path == "":
+		path = UserData.controls_path()
 	var cfg := ConfigFile.new()
 	if cfg.load(path) != OK:
 		return

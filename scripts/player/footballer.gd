@@ -115,6 +115,8 @@ var _tuning: Tuning
 var _arrow: MeshInstance3D
 var _pass_marker: MeshInstance3D
 var _control_ring: MeshInstance3D
+## Número del mando (1, 2...) al lado de la flecha, como en el WE.
+var _slot_label: Label3D
 var _label: Label3D
 ## Capa de presentación (modelo y animaciones); no afecta la simulación.
 var visual: PlayerVisual
@@ -223,7 +225,8 @@ static func long_sleeves_for(d: PlayerData, keeper: bool, cond: MatchConditions)
 
 func kit_colors() -> Dictionary:
 	var shirt := team.keeper_color if is_keeper() else team.color
-	var colors := {"shirt": shirt, "shorts": team.secondary_color, "socks": shirt, "number": number}
+	var socks := team.socks_color if team.socks_color.a > 0.0 and not is_keeper() else shirt
+	var colors := {"shirt": shirt, "shorts": team.secondary_color, "socks": socks, "number": number}
 	# Diseño de la camiseta (el arquero va liso, de su color).
 	if not is_keeper():
 		colors["pattern"] = team.pattern
@@ -547,8 +550,11 @@ func set_human_slot(slot: int) -> void:
 		return
 	_arrow.visible = slot >= 0 and not presenting
 	_control_ring.visible = slot >= 0 and not presenting
+	_slot_label.visible = slot >= 0 and not presenting
 	if slot >= 0:
 		var c := SLOT_COLORS[slot % SLOT_COLORS.size()]
+		_slot_label.text = str(slot + 1)
+		_slot_label.modulate = c
 		(_arrow.material_override as StandardMaterial3D).albedo_color = c
 		(_control_ring.material_override as StandardMaterial3D).albedo_color = Color(c, 0.9)
 
@@ -646,6 +652,9 @@ func _build_visuals() -> void:
 		if data.hair >= 0:
 			colors["hair_style"] = data.hair
 	visual.setup(colors, team.index * 100 + number)
+	# Camiseta pintada en el editor (plantilla PNG); el arquero va con la suya.
+	if visual is ModelVisual and team.kit_texture != null and not is_keeper():
+		(visual as ModelVisual).set_kit_texture(team.kit_texture)
 
 	var label := Label3D.new()
 	_label = label
@@ -680,6 +689,19 @@ func _build_visuals() -> void:
 	_arrow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_arrow.visible = false
 	add_child(_arrow)
+	_slot_label = Label3D.new()
+	_slot_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_slot_label.font_size = 48
+	_slot_label.outline_size = 12
+	_slot_label.pixel_size = 0.006
+	_slot_label.outline_modulate = Color(0, 0, 0, 0.9)
+	_slot_label.no_depth_test = true
+	_slot_label.render_priority = 2
+	_slot_label.position.y = 2.5
+	# Corrido a la derecha de la flecha (en píxeles de la etiqueta).
+	_slot_label.offset = Vector2(34, 0)
+	_slot_label.visible = false
+	add_child(_slot_label)
 
 	# Anillo en el piso del jugador controlado (del color del humano).
 	_control_ring = MeshInstance3D.new()

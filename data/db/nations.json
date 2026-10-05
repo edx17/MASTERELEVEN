@@ -1,0 +1,1753 @@
+{
+ "season": "2026",
+ "nations": [
+  {
+   "id": "usa",
+   "name": "Estados Unidos",
+   "short": "USA",
+   "conf": "CONCACAF",
+   "wc": "q",
+   "level": 76,
+   "names": "en_us",
+   "skin": [
+    40,
+    20,
+    25,
+    15
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "usa"
+   },
+   "home": "ffffff/1a2a5c/ffffff",
+   "away": "1a2a5c/1a2a5c/1a2a5c",
+   "keeper": "f2c200"
+  },
+  {
+   "id": "mex",
+   "name": "México",
+   "short": "MEX",
+   "conf": "CONCACAF",
+   "wc": "q",
+   "level": 75,
+   "names": "es_lat",
+   "skin": [
+    30,
+    65,
+    4,
+    1
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "v",
+    "c": [
+     "006847",
+     "ffffff",
+     "ce1126"
+    ],
+    "e": {
+     "k": "disc",
+     "c": "8a5a2b",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.14
+    }
+   },
+   "home": "1a6b3c/ffffff/d52b1e",
+   "away": "f2efe6/f2efe6/f2efe6",
+   "keeper": "f26d21"
+  },
+  {
+   "id": "can",
+   "name": "Canadá",
+   "short": "CAN",
+   "conf": "CONCACAF",
+   "wc": "q",
+   "level": 74,
+   "names": "en",
+   "skin": [
+    45,
+    25,
+    20,
+    10
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "vw",
+    "c": [
+     "d52b1e",
+     "ffffff",
+     "d52b1e"
+    ],
+    "w": [
+     1,
+     2,
+     1
+    ],
+    "e": {
+     "k": "star",
+     "c": "d52b1e",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.18
+    }
+   },
+   "home": "d52b1e/d52b1e/d52b1e",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "arg",
+   "name": "Argentina",
+   "short": "ARG",
+   "conf": "CONMEBOL",
+   "wc": "q",
+   "level": 88,
+   "names": "es_ar",
+   "skin": [
+    55,
+    40,
+    4,
+    1
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "h",
+    "c": [
+     "74acdf",
+     "ffffff",
+     "74acdf"
+    ],
+    "e": {
+     "k": "sun",
+     "c": "f6b40e",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.13
+    }
+   },
+   "home": "ffffff/101820/ffffff|1|75aadb",
+   "away": "1b2a5c/1b2a5c/1b2a5c",
+   "keeper": "2a2a2a"
+  },
+  {
+   "id": "bra",
+   "name": "Brasil",
+   "short": "BRA",
+   "conf": "CONMEBOL",
+   "wc": "q",
+   "level": 86,
+   "names": "pt_br",
+   "skin": [
+    35,
+    35,
+    20,
+    10
+   ],
+   "formation": "4-2-3-1",
+   "flag": {
+    "t": "brazil"
+   },
+   "home": "f7d917/1a4fa0/ffffff",
+   "away": "1a4fa0/ffffff/1a4fa0",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "uru",
+   "name": "Uruguay",
+   "short": "URU",
+   "conf": "CONMEBOL",
+   "wc": "q",
+   "level": 80,
+   "names": "es_uy",
+   "skin": [
+    70,
+    25,
+    4,
+    1
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "uruguay"
+   },
+   "home": "5fa8dc/101820/101820",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "f6d21c"
+  },
+  {
+   "id": "col",
+   "name": "Colombia",
+   "short": "COL",
+   "conf": "CONMEBOL",
+   "wc": "q",
+   "level": 79,
+   "names": "es_lat",
+   "skin": [
+    25,
+    45,
+    20,
+    10
+   ],
+   "formation": "4-2-3-1",
+   "flag": {
+    "t": "hw",
+    "c": [
+     "fcd116",
+     "003893",
+     "ce1126"
+    ],
+    "w": [
+     2,
+     1,
+     1
+    ]
+   },
+   "home": "f6d21c/14234b/ffffff",
+   "away": "14234b/14234b/14234b",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "ecu",
+   "name": "Ecuador",
+   "short": "ECU",
+   "conf": "CONMEBOL",
+   "wc": "q",
+   "level": 76,
+   "names": "es_lat",
+   "skin": [
+    10,
+    45,
+    30,
+    15
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "hw",
+    "c": [
+     "ffdd00",
+     "034ea2",
+     "ed1c24"
+    ],
+    "w": [
+     2,
+     1,
+     1
+    ],
+    "e": {
+     "k": "disc",
+     "c": "8a6a2b",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.12
+    }
+   },
+   "home": "f4d21c/1a3e8f/f4d21c",
+   "away": "1a3e8f/1a3e8f/1a3e8f",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "par",
+   "name": "Paraguay",
+   "short": "PAR",
+   "conf": "CONMEBOL",
+   "wc": "q",
+   "level": 73,
+   "names": "es_lat",
+   "skin": [
+    45,
+    50,
+    4,
+    1
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "h",
+    "c": [
+     "d52b1e",
+     "ffffff",
+     "0038a8"
+    ],
+    "e": {
+     "k": "ring",
+     "c": "1a6b3c",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.1
+    }
+   },
+   "home": "ffffff/1a3e8f/ffffff|1|d52b1e",
+   "away": "1a3e8f/1a3e8f/1a3e8f",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "bol",
+   "name": "Bolivia",
+   "short": "BOL",
+   "conf": "CONMEBOL",
+   "wc": "po",
+   "level": 64,
+   "names": "andes",
+   "skin": [
+    10,
+    85,
+    4,
+    1
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "h",
+    "c": [
+     "d52b1e",
+     "f9e300",
+     "007934"
+    ]
+   },
+   "home": "1a7a3c/ffffff/1a7a3c",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "per",
+   "name": "Perú",
+   "short": "PER",
+   "conf": "CONMEBOL",
+   "wc": "po",
+   "level": 69,
+   "names": "andes",
+   "skin": [
+    15,
+    75,
+    7,
+    3
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "v",
+    "c": [
+     "d91023",
+     "ffffff",
+     "d91023"
+    ]
+   },
+   "home": "ffffff/ffffff/ffffff|5|d91023",
+   "away": "d91023/d91023/d91023",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "chi",
+   "name": "Chile",
+   "short": "CHI",
+   "conf": "CONMEBOL",
+   "wc": "po",
+   "level": 70,
+   "names": "andes",
+   "skin": [
+    50,
+    45,
+    4,
+    1
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "chile"
+   },
+   "home": "d52b1e/1a3e8f/ffffff",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "jpn",
+   "name": "Japón",
+   "short": "JPN",
+   "conf": "AFC",
+   "wc": "q",
+   "level": 76,
+   "names": "jp",
+   "skin": [
+    60,
+    40,
+    0,
+    0
+   ],
+   "formation": "4-2-3-1",
+   "flag": {
+    "t": "disc",
+    "c": [
+     "ffffff",
+     "bc002d"
+    ]
+   },
+   "home": "1b2a6b/1b2a6b/1b2a6b",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "f2c200"
+  },
+  {
+   "id": "kor",
+   "name": "Corea del Sur",
+   "short": "KOR",
+   "conf": "AFC",
+   "wc": "q",
+   "level": 74,
+   "names": "kr",
+   "skin": [
+    60,
+    40,
+    0,
+    0
+   ],
+   "formation": "4-2-3-1",
+   "flag": {
+    "t": "korea"
+   },
+   "home": "d52b1e/101820/d52b1e",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a7a3c"
+  },
+  {
+   "id": "irn",
+   "name": "Irán",
+   "short": "IRN",
+   "conf": "AFC",
+   "wc": "q",
+   "level": 72,
+   "names": "ir_uz",
+   "skin": [
+    40,
+    55,
+    5,
+    0
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "h",
+    "c": [
+     "239f40",
+     "ffffff",
+     "da0000"
+    ],
+    "e": {
+     "k": "disc",
+     "c": "da0000",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.08
+    }
+   },
+   "home": "ffffff/ffffff/ffffff",
+   "away": "d52b1e/d52b1e/d52b1e",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "aus",
+   "name": "Australia",
+   "short": "AUS",
+   "conf": "AFC",
+   "wc": "q",
+   "level": 70,
+   "names": "au",
+   "skin": [
+    60,
+    25,
+    10,
+    5
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "ensign",
+    "c": [
+     "012169"
+    ],
+    "e": {
+     "k": "star",
+     "c": "ffffff",
+     "x": 0.72,
+     "y": 0.5,
+     "r": 0.12
+    }
+   },
+   "home": "fcd116/1a6b3c/fcd116",
+   "away": "1a6b3c/1a6b3c/1a6b3c",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "ksa",
+   "name": "Arabia Saudita",
+   "short": "KSA",
+   "conf": "AFC",
+   "wc": "q",
+   "level": 67,
+   "names": "arab",
+   "skin": [
+    0,
+    60,
+    35,
+    5
+   ],
+   "formation": "4-2-3-1",
+   "flag": {
+    "t": "plain",
+    "c": [
+     "006c35"
+    ],
+    "e": {
+     "k": "bar",
+     "c": "ffffff",
+     "x": 0.5,
+     "y": 0.62,
+     "r": 0.22
+    }
+   },
+   "home": "ffffff/ffffff/ffffff",
+   "away": "1a7a3c/1a7a3c/1a7a3c",
+   "keeper": "f2c200"
+  },
+  {
+   "id": "qat",
+   "name": "Qatar",
+   "short": "QAT",
+   "conf": "AFC",
+   "wc": "q",
+   "level": 66,
+   "names": "arab",
+   "skin": [
+    5,
+    50,
+    35,
+    10
+   ],
+   "formation": "3-5-2",
+   "flag": {
+    "t": "qatar"
+   },
+   "home": "7a1f3d/ffffff/7a1f3d",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "uzb",
+   "name": "Uzbekistán",
+   "short": "UZB",
+   "conf": "AFC",
+   "wc": "q",
+   "level": 68,
+   "names": "ir_uz",
+   "skin": [
+    50,
+    50,
+    0,
+    0
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "h",
+    "c": [
+     "1eb5e5",
+     "ffffff",
+     "1eb53a"
+    ],
+    "e": {
+     "k": "crescent",
+     "c": "ffffff",
+     "x": 0.18,
+     "y": 0.18,
+     "r": 0.1
+    }
+   },
+   "home": "ffffff/ffffff/ffffff",
+   "away": "1a4fa0/1a4fa0/1a4fa0",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "jor",
+   "name": "Jordania",
+   "short": "JOR",
+   "conf": "AFC",
+   "wc": "q",
+   "level": 66,
+   "names": "arab",
+   "skin": [
+    20,
+    75,
+    5,
+    0
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "jordan"
+   },
+   "home": "d52b1e/d52b1e/d52b1e",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "irq",
+   "name": "Irak",
+   "short": "IRQ",
+   "conf": "AFC",
+   "wc": "po",
+   "level": 65,
+   "names": "arab",
+   "skin": [
+    10,
+    80,
+    10,
+    0
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "h",
+    "c": [
+     "ce1126",
+     "ffffff",
+     "000000"
+    ],
+    "e": {
+     "k": "bar",
+     "c": "007a3d",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.16
+    }
+   },
+   "home": "ffffff/ffffff/ffffff",
+   "away": "1a7a3c/1a7a3c/1a7a3c",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "chn",
+   "name": "China",
+   "short": "CHN",
+   "conf": "AFC",
+   "wc": "",
+   "level": 60,
+   "names": "cn",
+   "skin": [
+    55,
+    45,
+    0,
+    0
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "china"
+   },
+   "home": "d52b1e/d52b1e/d52b1e",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "mar",
+   "name": "Marruecos",
+   "short": "MAR",
+   "conf": "CAF",
+   "wc": "q",
+   "level": 79,
+   "names": "arab",
+   "skin": [
+    15,
+    65,
+    15,
+    5
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "plain",
+    "c": [
+     "c1272d"
+    ],
+    "e": {
+     "k": "star",
+     "c": "006233",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.2
+    }
+   },
+   "home": "c1272d/1a6b3c/c1272d",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "sen",
+   "name": "Senegal",
+   "short": "SEN",
+   "conf": "CAF",
+   "wc": "q",
+   "level": 76,
+   "names": "africa_w",
+   "skin": [
+    0,
+    0,
+    30,
+    70
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "v",
+    "c": [
+     "00853f",
+     "fdef42",
+     "e31b23"
+    ],
+    "e": {
+     "k": "star",
+     "c": "00853f",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.13
+    }
+   },
+   "home": "ffffff/ffffff/ffffff",
+   "away": "1a7a3c/1a7a3c/1a7a3c",
+   "keeper": "f2c200"
+  },
+  {
+   "id": "tun",
+   "name": "Túnez",
+   "short": "TUN",
+   "conf": "CAF",
+   "wc": "q",
+   "level": 70,
+   "names": "arab",
+   "skin": [
+    15,
+    70,
+    10,
+    5
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "plain",
+    "c": [
+     "e70013"
+    ],
+    "e": {
+     "k": "cdisc",
+     "c": "ffffff",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.22
+    }
+   },
+   "home": "ffffff/ffffff/ffffff",
+   "away": "d52b1e/d52b1e/d52b1e",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "egy",
+   "name": "Egipto",
+   "short": "EGY",
+   "conf": "CAF",
+   "wc": "q",
+   "level": 72,
+   "names": "arab",
+   "skin": [
+    5,
+    70,
+    20,
+    5
+   ],
+   "formation": "4-2-3-1",
+   "flag": {
+    "t": "h",
+    "c": [
+     "ce1126",
+     "ffffff",
+     "000000"
+    ],
+    "e": {
+     "k": "disc",
+     "c": "c09300",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.1
+    }
+   },
+   "home": "d52b1e/ffffff/101820",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "alg",
+   "name": "Argelia",
+   "short": "ALG",
+   "conf": "CAF",
+   "wc": "q",
+   "level": 73,
+   "names": "arab",
+   "skin": [
+    20,
+    65,
+    10,
+    5
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "algeria"
+   },
+   "home": "ffffff/ffffff/ffffff",
+   "away": "1a7a3c/1a7a3c/1a7a3c",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "gha",
+   "name": "Ghana",
+   "short": "GHA",
+   "conf": "CAF",
+   "wc": "q",
+   "level": 71,
+   "names": "africa_en",
+   "skin": [
+    0,
+    0,
+    40,
+    60
+   ],
+   "formation": "4-2-3-1",
+   "flag": {
+    "t": "h",
+    "c": [
+     "ce1126",
+     "fcd116",
+     "006b3f"
+    ],
+    "e": {
+     "k": "star",
+     "c": "000000",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.14
+    }
+   },
+   "home": "ffffff/ffffff/ffffff",
+   "away": "d52b1e/d52b1e/d52b1e",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "civ",
+   "name": "Costa de Marfil",
+   "short": "CIV",
+   "conf": "CAF",
+   "wc": "q",
+   "level": 74,
+   "names": "africa_w",
+   "skin": [
+    0,
+    0,
+    40,
+    60
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "v",
+    "c": [
+     "f77f00",
+     "ffffff",
+     "009e60"
+    ]
+   },
+   "home": "f77f00/ffffff/1a9a4c",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "rsa",
+   "name": "Sudáfrica",
+   "short": "RSA",
+   "conf": "CAF",
+   "wc": "q",
+   "level": 68,
+   "names": "africa_en",
+   "skin": [
+    10,
+    10,
+    30,
+    50
+   ],
+   "formation": "4-2-3-1",
+   "flag": {
+    "t": "rsa"
+   },
+   "home": "f9d616/1a7a3c/f9d616",
+   "away": "1a7a3c/1a7a3c/1a7a3c",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "cpv",
+   "name": "Cabo Verde",
+   "short": "CPV",
+   "conf": "CAF",
+   "wc": "q",
+   "level": 66,
+   "names": "pt_pt",
+   "skin": [
+    5,
+    30,
+    45,
+    20
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "hw",
+    "c": [
+     "003893",
+     "ffffff",
+     "cf2027",
+     "ffffff",
+     "003893"
+    ],
+    "w": [
+     6,
+     1,
+     1,
+     1,
+     3
+    ],
+    "e": {
+     "k": "ring",
+     "c": "f7d116",
+     "x": 0.38,
+     "y": 0.62,
+     "r": 0.16
+    }
+   },
+   "home": "1a4fa0/1a4fa0/1a4fa0",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "cod",
+   "name": "RD del Congo",
+   "short": "COD",
+   "conf": "CAF",
+   "wc": "po",
+   "level": 70,
+   "names": "africa_c",
+   "skin": [
+    0,
+    0,
+    30,
+    70
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "plain",
+    "c": [
+     "007fff"
+    ],
+    "e": {
+     "k": "sash",
+     "c": "ce1021",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.0
+    }
+   },
+   "home": "1a8fe0/1a8fe0/1a8fe0|5|d52b1e",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "nga",
+   "name": "Nigeria",
+   "short": "NGA",
+   "conf": "CAF",
+   "wc": "",
+   "level": 75,
+   "names": "africa_en",
+   "skin": [
+    0,
+    0,
+    40,
+    60
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "v",
+    "c": [
+     "008751",
+     "ffffff",
+     "008751"
+    ]
+   },
+   "home": "1a9a4c/1a9a4c/1a9a4c",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "cmr",
+   "name": "Camerún",
+   "short": "CMR",
+   "conf": "CAF",
+   "wc": "",
+   "level": 72,
+   "names": "africa_c",
+   "skin": [
+    0,
+    0,
+    35,
+    65
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "v",
+    "c": [
+     "007a5e",
+     "ce1126",
+     "fcd116"
+    ],
+    "e": {
+     "k": "star",
+     "c": "fcd116",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.12
+    }
+   },
+   "home": "1a7a3c/d52b1e/f9d616",
+   "away": "f9d616/1a7a3c/f9d616",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "nzl",
+   "name": "Nueva Zelanda",
+   "short": "NZL",
+   "conf": "OFC",
+   "wc": "q",
+   "level": 63,
+   "names": "nz_oc",
+   "skin": [
+    55,
+    30,
+    10,
+    5
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "ensign",
+    "c": [
+     "012169"
+    ],
+    "e": {
+     "k": "star",
+     "c": "cc142b",
+     "x": 0.75,
+     "y": 0.45,
+     "r": 0.1
+    }
+   },
+   "home": "ffffff/ffffff/ffffff",
+   "away": "101820/101820/101820",
+   "keeper": "f2c200"
+  },
+  {
+   "id": "ncl",
+   "name": "Nueva Caledonia",
+   "short": "NCL",
+   "conf": "OFC",
+   "wc": "po",
+   "level": 50,
+   "names": "nz_oc",
+   "skin": [
+    10,
+    20,
+    40,
+    30
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "h",
+    "c": [
+     "0035ad",
+     "ed4135",
+     "009543"
+    ],
+    "e": {
+     "k": "disc",
+     "c": "fae600",
+     "x": 0.38,
+     "y": 0.5,
+     "r": 0.22
+    }
+   },
+   "home": "a0a4a8/d52b1e/a0a4a8",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "pan",
+   "name": "Panamá",
+   "short": "PAN",
+   "conf": "CONCACAF",
+   "wc": "q",
+   "level": 66,
+   "names": "es_lat",
+   "skin": [
+    5,
+    30,
+    40,
+    25
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "panama"
+   },
+   "home": "d52b1e/d52b1e/d52b1e",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "hai",
+   "name": "Haití",
+   "short": "HAI",
+   "conf": "CONCACAF",
+   "wc": "q",
+   "level": 60,
+   "names": "caribe",
+   "skin": [
+    0,
+    0,
+    30,
+    70
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "h",
+    "c": [
+     "00209f",
+     "d21034"
+    ],
+    "e": {
+     "k": "disc",
+     "c": "ffffff",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.14
+    }
+   },
+   "home": "1a3e8f/d52b1e/1a3e8f",
+   "away": "d52b1e/d52b1e/d52b1e",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "cuw",
+   "name": "Curazao",
+   "short": "CUW",
+   "conf": "CONCACAF",
+   "wc": "q",
+   "level": 61,
+   "names": "caribe",
+   "skin": [
+    0,
+    15,
+    45,
+    40
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "hw",
+    "c": [
+     "002b7f",
+     "f9e814",
+     "002b7f"
+    ],
+    "w": [
+     5,
+     1,
+     2
+    ],
+    "e": {
+     "k": "star",
+     "c": "ffffff",
+     "x": 0.2,
+     "y": 0.25,
+     "r": 0.08
+    }
+   },
+   "home": "1a3e8f/1a3e8f/1a3e8f",
+   "away": "f9d616/f9d616/f9d616",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "jam",
+   "name": "Jamaica",
+   "short": "JAM",
+   "conf": "CONCACAF",
+   "wc": "po",
+   "level": 64,
+   "names": "caribe",
+   "skin": [
+    0,
+    5,
+    35,
+    60
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "jamaica"
+   },
+   "home": "f6d11c/1a7a3c/f6d11c",
+   "away": "101820/101820/101820",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "sur",
+   "name": "Surinam",
+   "short": "SUR",
+   "conf": "CONCACAF",
+   "wc": "po",
+   "level": 59,
+   "names": "caribe",
+   "skin": [
+    0,
+    20,
+    40,
+    40
+   ],
+   "formation": "4-4-2",
+   "flag": {
+    "t": "hw",
+    "c": [
+     "377e3f",
+     "ffffff",
+     "b40a2d",
+     "ffffff",
+     "377e3f"
+    ],
+    "w": [
+     2,
+     1,
+     4,
+     1,
+     2
+    ],
+    "e": {
+     "k": "star",
+     "c": "ecc81d",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.14
+    }
+   },
+   "home": "ffffff/1a7a3c/ffffff",
+   "away": "d52b1e/d52b1e/d52b1e",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "eng",
+   "name": "Inglaterra",
+   "short": "ENG",
+   "conf": "UEFA",
+   "wc": "q",
+   "level": 87,
+   "names": "en",
+   "skin": [
+    60,
+    10,
+    20,
+    10
+   ],
+   "formation": "4-2-3-1",
+   "flag": {
+    "t": "cross",
+    "c": [
+     "ffffff",
+     "ce1124"
+    ]
+   },
+   "home": "ffffff/1a2a5c/ffffff",
+   "away": "d52b1e/d52b1e/d52b1e",
+   "keeper": "f2c200"
+  },
+  {
+   "id": "fra",
+   "name": "Francia",
+   "short": "FRA",
+   "conf": "UEFA",
+   "wc": "q",
+   "level": 88,
+   "names": "fr",
+   "skin": [
+    40,
+    15,
+    25,
+    20
+   ],
+   "formation": "4-2-3-1",
+   "flag": {
+    "t": "v",
+    "c": [
+     "0055a4",
+     "ffffff",
+     "ef4135"
+    ]
+   },
+   "home": "1a2a5c/ffffff/d52b1e",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "f2c200"
+  },
+  {
+   "id": "esp",
+   "name": "España",
+   "short": "ESP",
+   "conf": "UEFA",
+   "wc": "q",
+   "level": 88,
+   "names": "es_es",
+   "skin": [
+    75,
+    20,
+    4,
+    1
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "hw",
+    "c": [
+     "aa151b",
+     "f1bf00",
+     "aa151b"
+    ],
+    "w": [
+     1,
+     2,
+     1
+    ],
+    "e": {
+     "k": "disc",
+     "c": "aa151b",
+     "x": 0.33,
+     "y": 0.5,
+     "r": 0.1
+    }
+   },
+   "home": "c8102e/1a2a5c/1a2a5c",
+   "away": "f2e6c8/f2e6c8/f2e6c8",
+   "keeper": "f2c200"
+  },
+  {
+   "id": "ger",
+   "name": "Alemania",
+   "short": "GER",
+   "conf": "UEFA",
+   "wc": "q",
+   "level": 84,
+   "names": "de",
+   "skin": [
+    70,
+    15,
+    10,
+    5
+   ],
+   "formation": "4-2-3-1",
+   "flag": {
+    "t": "h",
+    "c": [
+     "000000",
+     "dd0000",
+     "ffce00"
+    ]
+   },
+   "home": "ffffff/101820/ffffff",
+   "away": "2a1f4a/2a1f4a/2a1f4a",
+   "keeper": "1a7a3c"
+  },
+  {
+   "id": "por",
+   "name": "Portugal",
+   "short": "POR",
+   "conf": "UEFA",
+   "wc": "q",
+   "level": 85,
+   "names": "pt_pt",
+   "skin": [
+    50,
+    30,
+    15,
+    5
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "vw",
+    "c": [
+     "006600",
+     "ff0000"
+    ],
+    "w": [
+     2,
+     3
+    ],
+    "e": {
+     "k": "ring",
+     "c": "ffcc00",
+     "x": 0.4,
+     "y": 0.5,
+     "r": 0.15
+    }
+   },
+   "home": "a6192e/1a5a3c/a6192e",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "ned",
+   "name": "Países Bajos",
+   "short": "NED",
+   "conf": "UEFA",
+   "wc": "q",
+   "level": 83,
+   "names": "nl",
+   "skin": [
+    55,
+    15,
+    20,
+    10
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "h",
+    "c": [
+     "ae1c28",
+     "ffffff",
+     "21468b"
+    ]
+   },
+   "home": "f36c21/f36c21/f36c21",
+   "away": "1a2a5c/1a2a5c/1a2a5c",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "bel",
+   "name": "Bélgica",
+   "short": "BEL",
+   "conf": "UEFA",
+   "wc": "q",
+   "level": 81,
+   "names": "be",
+   "skin": [
+    50,
+    15,
+    20,
+    15
+   ],
+   "formation": "3-5-2",
+   "flag": {
+    "t": "v",
+    "c": [
+     "000000",
+     "fae042",
+     "ed2939"
+    ]
+   },
+   "home": "c8102e/c8102e/c8102e",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "cro",
+   "name": "Croacia",
+   "short": "CRO",
+   "conf": "UEFA",
+   "wc": "q",
+   "level": 80,
+   "names": "balkan",
+   "skin": [
+    95,
+    5,
+    0,
+    0
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "h",
+    "c": [
+     "ff0000",
+     "ffffff",
+     "171796"
+    ],
+    "e": {
+     "k": "checks",
+     "c": "ff0000",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.16
+    }
+   },
+   "home": "ffffff/ffffff/1a3e8f|8|d52b1e",
+   "away": "1a2a5c/1a2a5c/1a2a5c",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "sui",
+   "name": "Suiza",
+   "short": "SUI",
+   "conf": "UEFA",
+   "wc": "q",
+   "level": 77,
+   "names": "ch_at",
+   "skin": [
+    60,
+    20,
+    10,
+    10
+   ],
+   "formation": "3-5-2",
+   "flag": {
+    "t": "swiss"
+   },
+   "home": "d52b1e/ffffff/d52b1e",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "aut",
+   "name": "Austria",
+   "short": "AUT",
+   "conf": "UEFA",
+   "wc": "q",
+   "level": 76,
+   "names": "ch_at",
+   "skin": [
+    75,
+    15,
+    5,
+    5
+   ],
+   "formation": "4-2-3-1",
+   "flag": {
+    "t": "h",
+    "c": [
+     "ed2939",
+     "ffffff",
+     "ed2939"
+    ]
+   },
+   "home": "d52b1e/ffffff/d52b1e",
+   "away": "ffffff/101820/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "nor",
+   "name": "Noruega",
+   "short": "NOR",
+   "conf": "UEFA",
+   "wc": "q",
+   "level": 77,
+   "names": "nordic",
+   "skin": [
+    80,
+    10,
+    5,
+    5
+   ],
+   "formation": "4-3-3",
+   "flag": {
+    "t": "nordic",
+    "c": [
+     "ba0c2f",
+     "ffffff",
+     "00205b"
+    ]
+   },
+   "home": "d52b1e/ffffff/1a2a5c",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "sco",
+   "name": "Escocia",
+   "short": "SCO",
+   "conf": "UEFA",
+   "wc": "q",
+   "level": 72,
+   "names": "scot",
+   "skin": [
+    92,
+    6,
+    1,
+    1
+   ],
+   "formation": "3-5-2",
+   "flag": {
+    "t": "saltire",
+    "c": [
+     "005eb8",
+     "ffffff"
+    ]
+   },
+   "home": "1a2a5c/ffffff/1a2a5c",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "f2c200"
+  },
+  {
+   "id": "ita",
+   "name": "Italia",
+   "short": "ITA",
+   "conf": "UEFA",
+   "wc": "po",
+   "level": 82,
+   "names": "it",
+   "skin": [
+    80,
+    15,
+    4,
+    1
+   ],
+   "formation": "3-5-2",
+   "flag": {
+    "t": "v",
+    "c": [
+     "009246",
+     "ffffff",
+     "ce2b37"
+    ]
+   },
+   "home": "1a5fb4/ffffff/1a5fb4",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "pol",
+   "name": "Polonia",
+   "short": "POL",
+   "conf": "UEFA",
+   "wc": "po",
+   "level": 75,
+   "names": "pl",
+   "skin": [
+    95,
+    5,
+    0,
+    0
+   ],
+   "formation": "3-5-2",
+   "flag": {
+    "t": "h",
+    "c": [
+     "ffffff",
+     "dc143c"
+    ]
+   },
+   "home": "ffffff/d52b1e/ffffff",
+   "away": "d52b1e/d52b1e/d52b1e",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "kos",
+   "name": "Kosovo",
+   "short": "KOS",
+   "conf": "UEFA",
+   "wc": "po",
+   "level": 69,
+   "names": "balkan",
+   "skin": [
+    90,
+    10,
+    0,
+    0
+   ],
+   "formation": "4-2-3-1",
+   "flag": {
+    "t": "plain",
+    "c": [
+     "244aa5"
+    ],
+    "e": {
+     "k": "disc",
+     "c": "d0a650",
+     "x": 0.5,
+     "y": 0.5,
+     "r": 0.2
+    }
+   },
+   "home": "1a4fa0/1a4fa0/1a4fa0",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "den",
+   "name": "Dinamarca",
+   "short": "DEN",
+   "conf": "UEFA",
+   "wc": "po",
+   "level": 78,
+   "names": "nordic",
+   "skin": [
+    80,
+    10,
+    5,
+    5
+   ],
+   "formation": "3-5-2",
+   "flag": {
+    "t": "nordic",
+    "c": [
+     "c8102e",
+     "ffffff"
+    ]
+   },
+   "home": "c8102e/ffffff/c8102e",
+   "away": "ffffff/ffffff/ffffff",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "rus",
+   "name": "Rusia",
+   "short": "RUS",
+   "conf": "UEFA",
+   "wc": "",
+   "level": 72,
+   "names": "ru",
+   "skin": [
+    95,
+    5,
+    0,
+    0
+   ],
+   "formation": "4-2-3-1",
+   "flag": {
+    "t": "h",
+    "c": [
+     "ffffff",
+     "0039a6",
+     "d52b1e"
+    ]
+   },
+   "home": "ffffff/ffffff/ffffff",
+   "away": "d52b1e/d52b1e/d52b1e",
+   "keeper": "1a1a1a"
+  },
+  {
+   "id": "tur",
+   "name": "Turquía",
+   "short": "TUR",
+   "conf": "UEFA",
+   "wc": "",
+   "level": 76,
+   "names": "tr",
+   "skin": [
+    55,
+    45,
+    0,
+    0
+   ],
+   "formation": "4-2-3-1",
+   "flag": {
+    "t": "plain",
+    "c": [
+     "e30a17"
+    ],
+    "e": {
+     "k": "cstar",
+     "c": "ffffff",
+     "x": 0.42,
+     "y": 0.5,
+     "r": 0.22
+    }
+   },
+   "home": "ffffff/ffffff/ffffff",
+   "away": "e30a17/e30a17/e30a17",
+   "keeper": "1a1a1a"
+  }
+ ]
+}

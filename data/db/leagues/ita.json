@@ -1,0 +1,425 @@
+{
+ "id": "ita",
+ "name": "Italia",
+ "nationality": "ita",
+ "names": "it",
+ "skin": [
+  80,
+  15,
+  4,
+  1
+ ],
+ "divisions": [
+  {
+   "id": "ita1",
+   "name": "Serie A",
+   "level": 1,
+   "season": "2025-26",
+   "clubs": [
+    {
+     "id": "atalanta",
+     "name": "Atalanta",
+     "short": "ATA",
+     "home": "101820/101820/101820|stripes|1e71b8",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Gewiss Stadium",
+     "cap": 24950,
+     "r": 4
+    },
+    {
+     "id": "bologna",
+     "name": "Bologna",
+     "short": "BOL",
+     "home": "a21c26/1a2a5c/1a2a5c|halves|1a2a5c",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Renato Dall'Ara",
+     "cap": 36462,
+     "r": 2
+    },
+    {
+     "id": "cagliari",
+     "name": "Cagliari",
+     "short": "CAG",
+     "home": "a21c26/1a2a5c/1a2a5c|halves|1a2a5c",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Unipol Domus",
+     "cap": 16416,
+     "r": -2
+    },
+    {
+     "id": "como",
+     "name": "Como",
+     "short": "COM",
+     "home": "1d4ea8/ffffff/1d4ea8",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Giuseppe Sinigaglia",
+     "cap": 13602,
+     "r": 2
+    },
+    {
+     "id": "cremonese",
+     "name": "Cremonese",
+     "short": "CRE",
+     "home": "a21c26/ffffff/a21c26|stripes|9e9e9e",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Giovanni Zini",
+     "cap": 16003,
+     "r": -3
+    },
+    {
+     "id": "fiorentina",
+     "name": "Fiorentina",
+     "short": "FIO",
+     "home": "50237f/ffffff/50237f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Artemio Franchi",
+     "cap": 43147,
+     "r": 2
+    },
+    {
+     "id": "genoa",
+     "name": "Genoa",
+     "short": "GEN",
+     "home": "a21c26/1a2a5c/1a2a5c|halves|1a2a5c",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Luigi Ferraris",
+     "cap": 33205,
+     "r": -1
+    },
+    {
+     "id": "verona",
+     "name": "Hellas Verona",
+     "short": "VER",
+     "home": "1c3a8f/1c3a8f/1c3a8f",
+     "away": "f5c400/1c3a8f/f5c400",
+     "stadium": "Marcantonio Bentegodi",
+     "cap": 31045,
+     "r": -2
+    },
+    {
+     "id": "inter",
+     "name": "Inter",
+     "short": "INT",
+     "home": "0068a8/101820/101820|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Giuseppe Meazza (San Siro)",
+     "cap": 75817,
+     "r": 8
+    },
+    {
+     "id": "juventus",
+     "name": "Juventus",
+     "short": "JUV",
+     "home": "ffffff/ffffff/ffffff|stripes|101820",
+     "away": "f5c400/101820/f5c400",
+     "stadium": "Allianz Stadium",
+     "cap": 41507,
+     "r": 6
+    },
+    {
+     "id": "lazio",
+     "name": "Lazio",
+     "short": "LAZ",
+     "home": "87d8f7/ffffff/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Stadio Olimpico",
+     "cap": 70634,
+     "r": 3
+    },
+    {
+     "id": "lecce",
+     "name": "Lecce",
+     "short": "LEC",
+     "home": "f5c400/1a2a5c/f5c400|stripes|d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Via del Mare",
+     "cap": 31533,
+     "r": -3
+    },
+    {
+     "id": "milan",
+     "name": "Milan",
+     "short": "MIL",
+     "home": "fb090b/ffffff/101820|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Giuseppe Meazza (San Siro)",
+     "cap": 75817,
+     "r": 6
+    },
+    {
+     "id": "napoli",
+     "name": "Napoli",
+     "short": "NAP",
+     "home": "12a0d7/ffffff/12a0d7",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Diego Armando Maradona",
+     "cap": 54726,
+     "r": 7
+    },
+    {
+     "id": "parma",
+     "name": "Parma",
+     "short": "PAR",
+     "home": "ffffff/101820/ffffff|v|101820",
+     "away": "f5c400/1a2a5c/f5c400",
+     "stadium": "Ennio Tardini",
+     "cap": 27906,
+     "r": -2
+    },
+    {
+     "id": "pisa",
+     "name": "Pisa",
+     "short": "PIS",
+     "home": "101820/101820/101820|stripes|1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Arena Garibaldi",
+     "cap": 9000,
+     "r": -3
+    },
+    {
+     "id": "roma",
+     "name": "Roma",
+     "short": "ROM",
+     "home": "8e1f2f/ffffff/101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Stadio Olimpico",
+     "cap": 70634,
+     "r": 5
+    },
+    {
+     "id": "sassuolo",
+     "name": "Sassuolo",
+     "short": "SAS",
+     "home": "00a752/101820/00a752|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Mapei Stadium",
+     "cap": 21584,
+     "r": -1
+    },
+    {
+     "id": "torino",
+     "name": "Torino",
+     "short": "TOR",
+     "home": "8a1538/ffffff/8a1538",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Olimpico Grande Torino",
+     "cap": 28177
+    },
+    {
+     "id": "udinese",
+     "name": "Udinese",
+     "short": "UDI",
+     "home": "ffffff/101820/ffffff|stripes|101820",
+     "away": "101820/101820/101820",
+     "stadium": "Bluenergy Stadium",
+     "cap": 25144
+    }
+   ]
+  },
+  {
+   "id": "ita2",
+   "name": "Serie B",
+   "level": 2,
+   "season": "2025-26",
+   "clubs": [
+    {
+     "id": "empoli",
+     "name": "Empoli",
+     "short": "EMP",
+     "home": "0057b8/ffffff/0057b8",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Carlo Castellani",
+     "cap": 16284,
+     "r": 3
+    },
+    {
+     "id": "venezia",
+     "name": "Venezia",
+     "short": "VEN",
+     "home": "101820/101820/101820|band|f5a623",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Pier Luigi Penzo",
+     "cap": 11150,
+     "r": 3
+    },
+    {
+     "id": "monza",
+     "name": "Monza",
+     "short": "MON",
+     "home": "d71920/ffffff/d71920|halves|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "U-Power Stadium",
+     "cap": 16917,
+     "r": 3
+    },
+    {
+     "id": "padova",
+     "name": "Padova",
+     "short": "PAD",
+     "home": "ffffff/ffffff/ffffff|band|d71920",
+     "away": "d71920/ffffff/d71920",
+     "stadium": "Euganeo",
+     "cap": 17000,
+     "r": -2
+    },
+    {
+     "id": "entella",
+     "name": "Virtus Entella",
+     "short": "ENT",
+     "home": "6fc3ea/ffffff/6fc3ea",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Comunale di Chiavari",
+     "cap": 5535,
+     "r": -3
+    },
+    {
+     "id": "avellino",
+     "name": "Avellino",
+     "short": "AVE",
+     "home": "00843d/ffffff/00843d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Partenio-Lombardi",
+     "cap": 26308,
+     "r": -2
+    },
+    {
+     "id": "pescara",
+     "name": "Pescara",
+     "short": "PES",
+     "home": "ffffff/ffffff/ffffff|stripes|4fa3d9",
+     "away": "4fa3d9/4fa3d9/4fa3d9",
+     "stadium": "Adriatico",
+     "cap": 20476,
+     "r": -2
+    },
+    {
+     "id": "bari",
+     "name": "Bari",
+     "short": "BAR",
+     "home": "ffffff/d71920/ffffff",
+     "away": "d71920/d71920/d71920",
+     "stadium": "San Nicola",
+     "cap": 58270
+    },
+    {
+     "id": "carrarese",
+     "name": "Carrarese",
+     "short": "CAR",
+     "home": "f5c400/0057b8/f5c400|stripes|0057b8",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "dei Marmi",
+     "cap": 9500,
+     "r": -2
+    },
+    {
+     "id": "catanzaro",
+     "name": "Catanzaro",
+     "short": "CTZ",
+     "home": "f5c400/d71920/f5c400|halves|d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Nicola Ceravolo",
+     "cap": 14650
+    },
+    {
+     "id": "cesena",
+     "name": "Cesena",
+     "short": "CES",
+     "home": "ffffff/101820/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Dino Manuzzi",
+     "cap": 23860
+    },
+    {
+     "id": "frosinone",
+     "name": "Frosinone",
+     "short": "FRO",
+     "home": "f5c400/0057b8/f5c400",
+     "away": "0057b8/0057b8/0057b8",
+     "stadium": "Benito Stirpe",
+     "cap": 16227,
+     "r": 1
+    },
+    {
+     "id": "juvestabia",
+     "name": "Juve Stabia",
+     "short": "JST",
+     "home": "ffffff/ffffff/ffffff|stripes|f5c400",
+     "away": "101820/101820/101820",
+     "stadium": "Romeo Menti",
+     "cap": 7642,
+     "r": -1
+    },
+    {
+     "id": "mantova",
+     "name": "Mantova",
+     "short": "MAN",
+     "home": "ffffff/ffffff/ffffff|band|d71920",
+     "away": "d71920/d71920/d71920",
+     "stadium": "Danilo Martelli",
+     "cap": 14884,
+     "r": -1
+    },
+    {
+     "id": "modena",
+     "name": "Modena",
+     "short": "MOD",
+     "home": "f5c400/0057b8/f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Alberto Braglia",
+     "cap": 21151,
+     "r": 1
+    },
+    {
+     "id": "palermo",
+     "name": "Palermo",
+     "short": "PAL",
+     "home": "f4a6c4/101820/f4a6c4",
+     "away": "101820/101820/101820",
+     "stadium": "Renzo Barbera",
+     "cap": 36365,
+     "r": 2
+    },
+    {
+     "id": "reggiana",
+     "name": "Reggiana",
+     "short": "REG",
+     "home": "8a1538/ffffff/8a1538",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Mapei Stadium",
+     "cap": 21584,
+     "r": -1
+    },
+    {
+     "id": "sampdoria",
+     "name": "Sampdoria",
+     "short": "SAM",
+     "home": "1c4f9c/ffffff/1c4f9c|band|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Luigi Ferraris",
+     "cap": 33205,
+     "r": 1
+    },
+    {
+     "id": "spezia",
+     "name": "Spezia",
+     "short": "SPE",
+     "home": "ffffff/101820/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Alberto Picco",
+     "cap": 10336,
+     "r": 2
+    },
+    {
+     "id": "sudtirol",
+     "name": "Südtirol",
+     "short": "SUD",
+     "home": "ffffff/d71920/ffffff",
+     "away": "d71920/d71920/d71920",
+     "stadium": "Druso",
+     "cap": 5539,
+     "r": -1
+    }
+   ]
+  }
+ ]
+}

@@ -159,6 +159,10 @@ func _process(_dt: float) -> void:
 			if c is CanvasItem:
 				(c as CanvasItem).visible = true
 	_clock.text = "%s %s" % ["1st" if _match.clock.half == 1 else "2nd", _match.clock.display()]
+	# Pausa > Pantalla: radar y marcador se pueden apagar.
+	_radar.visible = GameSettings.show_radar
+	_top.visible = GameSettings.show_score
+	_clock.visible = GameSettings.show_score
 	if _match.training != null:
 		# Entrenamiento: sin marcador ni reloj (los datos de la práctica los
 		# muestra TrainingSession).

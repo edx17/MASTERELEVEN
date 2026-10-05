@@ -100,6 +100,21 @@ vec3 kit_pattern(vec3 p) {
 		float d = abs(p.x * 0.9 - (p.y - 1.25));
 		float aa = max(fwidth(d), 0.0005);
 		k = 1.0 - smoothstep(0.06 - aa, 0.06 + aa, d);
+	} else if (pattern == 6) {
+		// Franja horizontal en el pecho (Boca).
+		float d = abs(p.y - 1.21);
+		float aa = max(fwidth(d), 0.0005);
+		k = 1.0 - smoothstep(0.065 - aa, 0.065 + aa, d);
+	} else if (pattern == 7) {
+		// V en el pecho (Vélez).
+		float d = abs(p.y - 1.2 - abs(p.x) * 1.1);
+		float aa = max(fwidth(d), 0.0005);
+		k = (p.y > 1.12 ? 1.0 : 0.0) * (1.0 - smoothstep(0.045 - aa, 0.045 + aa, d));
+	} else if (pattern == 8) {
+		// Cuadros (Croacia).
+		float cx = floor((p.x + 1.0) / 0.075);
+		float cy = floor(p.y / 0.075);
+		k = mod(cx + cy, 2.0);
 	}
 	return mix(shirt, shirt2, k);
 }
