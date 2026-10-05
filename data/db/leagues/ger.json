@@ -1,0 +1,380 @@
+{
+ "id": "ger",
+ "name": "Alemania",
+ "nationality": "ger",
+ "names": "de",
+ "skin": [
+  70,
+  15,
+  10,
+  5
+ ],
+ "divisions": [
+  {
+   "id": "ger1",
+   "name": "Bundesliga",
+   "level": 1,
+   "season": "2025-26",
+   "clubs": [
+    {
+     "id": "bayern",
+     "name": "FC Bayern München",
+     "short": "FCB",
+     "home": "dc052d/dc052d/dc052d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Allianz Arena",
+     "cap": 75024,
+     "r": 9
+    },
+    {
+     "id": "leverkusen",
+     "name": "Bayer 04 Leverkusen",
+     "short": "B04",
+     "home": "e32221/101820/101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "BayArena",
+     "cap": 30210,
+     "r": 4
+    },
+    {
+     "id": "frankfurt",
+     "name": "Eintracht Frankfurt",
+     "short": "SGE",
+     "home": "101820/101820/101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Deutsche Bank Park",
+     "cap": 58000,
+     "r": 2
+    },
+    {
+     "id": "dortmund",
+     "name": "Borussia Dortmund",
+     "short": "BVB",
+     "home": "fde100/101820/fde100",
+     "away": "101820/101820/101820",
+     "stadium": "Signal Iduna Park",
+     "cap": 81365,
+     "r": 5
+    },
+    {
+     "id": "freiburg",
+     "name": "SC Freiburg",
+     "short": "SCF",
+     "home": "e2001a/ffffff/e2001a",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Europa-Park Stadion",
+     "cap": 34700
+    },
+    {
+     "id": "mainz",
+     "name": "1. FSV Mainz 05",
+     "short": "M05",
+     "home": "ed1c24/ffffff/ed1c24",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Mewa Arena",
+     "cap": 33305,
+     "r": -1
+    },
+    {
+     "id": "leipzig",
+     "name": "RB Leipzig",
+     "short": "RBL",
+     "home": "ffffff/ffffff/ffffff",
+     "away": "0c2043/0c2043/0c2043",
+     "stadium": "Red Bull Arena",
+     "cap": 47069,
+     "r": 4
+    },
+    {
+     "id": "werder",
+     "name": "Werder Bremen",
+     "short": "SVW",
+     "home": "1d9053/ffffff/1d9053",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Weserstadion",
+     "cap": 42100,
+     "r": -1
+    },
+    {
+     "id": "stuttgart",
+     "name": "VfB Stuttgart",
+     "short": "VFB",
+     "home": "ffffff/ffffff/ffffff|band|e32219",
+     "away": "e32219/e32219/e32219",
+     "stadium": "MHPArena",
+     "cap": 60449,
+     "r": 3
+    },
+    {
+     "id": "gladbach",
+     "name": "Borussia Mönchengladbach",
+     "short": "BMG",
+     "home": "ffffff/ffffff/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Borussia-Park",
+     "cap": 54042
+    },
+    {
+     "id": "wolfsburg",
+     "name": "VfL Wolfsburg",
+     "short": "WOB",
+     "home": "65b32e/ffffff/ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Volkswagen Arena",
+     "cap": 28917
+    },
+    {
+     "id": "augsburg",
+     "name": "FC Augsburg",
+     "short": "FCA",
+     "home": "ffffff/ba3733/ffffff",
+     "away": "ba3733/ba3733/ba3733",
+     "stadium": "WWK Arena",
+     "cap": 30660,
+     "r": -2
+    },
+    {
+     "id": "union",
+     "name": "1. FC Union Berlin",
+     "short": "FCU",
+     "home": "eb1923/ffffff/eb1923",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "An der Alten Försterei",
+     "cap": 22012,
+     "r": -2
+    },
+    {
+     "id": "stpauli",
+     "name": "FC St. Pauli",
+     "short": "STP",
+     "home": "624839/ffffff/624839",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Millerntor-Stadion",
+     "cap": 29546,
+     "r": -3
+    },
+    {
+     "id": "hoffenheim",
+     "name": "TSG Hoffenheim",
+     "short": "TSG",
+     "home": "1961b5/ffffff/1961b5",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "PreZero Arena",
+     "cap": 30150
+    },
+    {
+     "id": "heidenheim",
+     "name": "1. FC Heidenheim",
+     "short": "FCH",
+     "home": "e2001a/1c2b4a/e2001a",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Voith-Arena",
+     "cap": 15000,
+     "r": -3
+    },
+    {
+     "id": "koln",
+     "name": "1. FC Köln",
+     "short": "KOE",
+     "home": "ffffff/ffffff/ffffff",
+     "away": "e32219/e32219/e32219",
+     "stadium": "RheinEnergieStadion",
+     "cap": 50000,
+     "r": -3
+    },
+    {
+     "id": "hamburg",
+     "name": "Hamburger SV",
+     "short": "HSV",
+     "home": "ffffff/d71920/ffffff",
+     "away": "1c2b4a/1c2b4a/1c2b4a",
+     "stadium": "Volksparkstadion",
+     "cap": 57000,
+     "r": -3
+    }
+   ]
+  },
+  {
+   "id": "ger2",
+   "name": "2. Bundesliga",
+   "level": 2,
+   "season": "2025-26",
+   "clubs": [
+    {
+     "id": "kiel",
+     "name": "Holstein Kiel",
+     "short": "KSV",
+     "home": "1c3a8f/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Holstein-Stadion",
+     "cap": 15034,
+     "r": 3
+    },
+    {
+     "id": "bochum",
+     "name": "VfL Bochum",
+     "short": "BOC",
+     "home": "005ca9/ffffff/005ca9",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Vonovia Ruhrstadion",
+     "cap": 26000,
+     "r": 3
+    },
+    {
+     "id": "bielefeld",
+     "name": "Arminia Bielefeld",
+     "short": "DSC",
+     "home": "101820/ffffff/ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "SchücoArena",
+     "cap": 26515
+    },
+    {
+     "id": "dresden",
+     "name": "Dynamo Dresden",
+     "short": "SGD",
+     "home": "f5c400/101820/f5c400",
+     "away": "101820/101820/101820",
+     "stadium": "Rudolf-Harbig-Stadion",
+     "cap": 32066,
+     "r": -1
+    },
+    {
+     "id": "elversberg",
+     "name": "SV Elversberg",
+     "short": "SVE",
+     "home": "ffffff/101820/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Ursapharm-Arena",
+     "cap": 10000,
+     "r": 1
+    },
+    {
+     "id": "paderborn",
+     "name": "SC Paderborn 07",
+     "short": "SCP",
+     "home": "005ca9/101820/005ca9",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Home Deluxe Arena",
+     "cap": 15000,
+     "r": 1
+    },
+    {
+     "id": "magdeburg",
+     "name": "1. FC Magdeburg",
+     "short": "FCM",
+     "home": "005ca9/ffffff/005ca9",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Avnet Arena",
+     "cap": 30098
+    },
+    {
+     "id": "dusseldorf",
+     "name": "Fortuna Düsseldorf",
+     "short": "F95",
+     "home": "e2001a/ffffff/e2001a",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Merkur Spiel-Arena",
+     "cap": 54600,
+     "r": 1
+    },
+    {
+     "id": "kaiserslautern",
+     "name": "1. FC Kaiserslautern",
+     "short": "FCK",
+     "home": "e2001a/ffffff/e2001a",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Fritz-Walter-Stadion",
+     "cap": 49327
+    },
+    {
+     "id": "karlsruhe",
+     "name": "Karlsruher SC",
+     "short": "KSC",
+     "home": "005ca9/ffffff/005ca9",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "BBBank Wildpark",
+     "cap": 34302
+    },
+    {
+     "id": "hannover",
+     "name": "Hannover 96",
+     "short": "H96",
+     "home": "e2001a/101820/101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Heinz von Heiden Arena",
+     "cap": 49000,
+     "r": 1
+    },
+    {
+     "id": "nurnberg",
+     "name": "1. FC Nürnberg",
+     "short": "FCN",
+     "home": "9b1b30/101820/9b1b30",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Max-Morlock-Stadion",
+     "cap": 50000
+    },
+    {
+     "id": "hertha",
+     "name": "Hertha BSC",
+     "short": "BSC",
+     "home": "005ca9/ffffff/ffffff|stripes|ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Olympiastadion",
+     "cap": 74475,
+     "r": 1
+    },
+    {
+     "id": "darmstadt",
+     "name": "SV Darmstadt 98",
+     "short": "D98",
+     "home": "005ca9/ffffff/005ca9",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Merck-Stadion am Böllenfalltor",
+     "cap": 17810
+    },
+    {
+     "id": "furth",
+     "name": "SpVgg Greuther Fürth",
+     "short": "SGF",
+     "home": "ffffff/00843d/ffffff",
+     "away": "00843d/00843d/00843d",
+     "stadium": "Sportpark Ronhof",
+     "cap": 16626,
+     "r": -1
+    },
+    {
+     "id": "schalke",
+     "name": "FC Schalke 04",
+     "short": "S04",
+     "home": "004d9d/ffffff/ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Veltins-Arena",
+     "cap": 62271,
+     "r": 1
+    },
+    {
+     "id": "munster",
+     "name": "Preußen Münster",
+     "short": "SCP",
+     "home": "101820/ffffff/00843d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Preußenstadion",
+     "cap": 14300,
+     "r": -2
+    },
+    {
+     "id": "braunschweig",
+     "name": "Eintracht Braunschweig",
+     "short": "EBS",
+     "home": "f5c400/005ca9/f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Eintracht-Stadion",
+     "cap": 23325,
+     "r": -1
+    }
+   ]
+  }
+ ]
+}

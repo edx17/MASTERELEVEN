@@ -1,0 +1,937 @@
+{
+ "id": "eng",
+ "name": "Inglaterra",
+ "nationality": "eng",
+ "names": "en",
+ "skin": [
+  70,
+  10,
+  12,
+  8
+ ],
+ "divisions": [
+  {
+   "id": "eng1",
+   "name": "Premier League",
+   "level": 1,
+   "season": "2025-26",
+   "clubs": [
+    {
+     "id": "arsenal",
+     "name": "Arsenal",
+     "short": "ARS",
+     "home": "db0007/ffffff/ffffff",
+     "away": "1c2b4a/1c2b4a/1c2b4a",
+     "stadium": "Emirates Stadium",
+     "cap": 60704,
+     "r": 8
+    },
+    {
+     "id": "villa",
+     "name": "Aston Villa",
+     "short": "AVL",
+     "home": "7a003c/ffffff/95bfe5",
+     "away": "ffffff/1c2b4a/ffffff",
+     "stadium": "Villa Park",
+     "cap": 42640,
+     "r": 4
+    },
+    {
+     "id": "bournemouth",
+     "name": "Bournemouth",
+     "short": "BOU",
+     "home": "da291c/101820/101820|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Vitality Stadium",
+     "cap": 11307
+    },
+    {
+     "id": "brentford",
+     "name": "Brentford",
+     "short": "BRE",
+     "home": "e30613/101820/e30613|stripes|ffffff",
+     "away": "1d3a6b/1d3a6b/1d3a6b",
+     "stadium": "Gtech Community Stadium",
+     "cap": 17250
+    },
+    {
+     "id": "brighton",
+     "name": "Brighton & Hove Albion",
+     "short": "BHA",
+     "home": "0057b8/ffffff/ffffff|stripes|ffffff",
+     "away": "f2b700/1c2b4a/f2b700",
+     "stadium": "American Express Stadium",
+     "cap": 31876,
+     "r": 1
+    },
+    {
+     "id": "burnley",
+     "name": "Burnley",
+     "short": "BUR",
+     "home": "6c1d45/ffffff/6c1d45",
+     "away": "99d6ea/99d6ea/99d6ea",
+     "stadium": "Turf Moor",
+     "cap": 21944,
+     "r": -4
+    },
+    {
+     "id": "chelsea",
+     "name": "Chelsea",
+     "short": "CHE",
+     "home": "034694/034694/ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Stamford Bridge",
+     "cap": 40343,
+     "r": 7
+    },
+    {
+     "id": "palace",
+     "name": "Crystal Palace",
+     "short": "CRY",
+     "home": "1b458f/1b458f/1b458f|stripes|c4122e",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Selhurst Park",
+     "cap": 25486,
+     "r": 1
+    },
+    {
+     "id": "everton",
+     "name": "Everton",
+     "short": "EVE",
+     "home": "003399/ffffff/ffffff",
+     "away": "f5c400/101820/f5c400",
+     "stadium": "Hill Dickinson Stadium",
+     "cap": 52888,
+     "r": -1
+    },
+    {
+     "id": "fulham",
+     "name": "Fulham",
+     "short": "FUL",
+     "home": "ffffff/101820/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Craven Cottage",
+     "cap": 29600
+    },
+    {
+     "id": "leeds",
+     "name": "Leeds United",
+     "short": "LEE",
+     "home": "ffffff/ffffff/ffffff",
+     "away": "1d428a/1d428a/1d428a",
+     "stadium": "Elland Road",
+     "cap": 37645,
+     "r": -3
+    },
+    {
+     "id": "liverpool",
+     "name": "Liverpool",
+     "short": "LIV",
+     "home": "c8102e/c8102e/c8102e",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Anfield",
+     "cap": 61276,
+     "r": 9
+    },
+    {
+     "id": "mancity",
+     "name": "Manchester City",
+     "short": "MCI",
+     "home": "6cabdd/ffffff/6cabdd",
+     "away": "1c2c5b/1c2c5b/1c2c5b",
+     "stadium": "Etihad Stadium",
+     "cap": 53400,
+     "r": 9
+    },
+    {
+     "id": "manutd",
+     "name": "Manchester United",
+     "short": "MUN",
+     "home": "da291c/ffffff/101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Old Trafford",
+     "cap": 74310,
+     "r": 4
+    },
+    {
+     "id": "newcastle",
+     "name": "Newcastle United",
+     "short": "NEW",
+     "home": "ffffff/101820/101820|stripes|101820",
+     "away": "1c2b4a/1c2b4a/1c2b4a",
+     "stadium": "St James' Park",
+     "cap": 52305,
+     "r": 5
+    },
+    {
+     "id": "forest",
+     "name": "Nottingham Forest",
+     "short": "NFO",
+     "home": "dd0000/ffffff/dd0000",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "City Ground",
+     "cap": 30404,
+     "r": 1
+    },
+    {
+     "id": "sunderland",
+     "name": "Sunderland",
+     "short": "SUN",
+     "home": "eb172b/101820/101820|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Stadium of Light",
+     "cap": 48707,
+     "r": -4
+    },
+    {
+     "id": "tottenham",
+     "name": "Tottenham Hotspur",
+     "short": "TOT",
+     "home": "ffffff/132257/ffffff",
+     "away": "132257/132257/132257",
+     "stadium": "Tottenham Hotspur Stadium",
+     "cap": 62850,
+     "r": 5
+    },
+    {
+     "id": "westham",
+     "name": "West Ham United",
+     "short": "WHU",
+     "home": "7a263a/ffffff/ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "London Stadium",
+     "cap": 62500
+    },
+    {
+     "id": "wolves",
+     "name": "Wolverhampton Wanderers",
+     "short": "WOL",
+     "home": "fdb913/101820/fdb913",
+     "away": "101820/101820/101820",
+     "stadium": "Molineux",
+     "cap": 31750,
+     "r": -1
+    }
+   ]
+  },
+  {
+   "id": "eng2",
+   "name": "Championship",
+   "level": 2,
+   "season": "2025-26",
+   "clubs": [
+    {
+     "id": "leicester",
+     "name": "Leicester City",
+     "short": "LEI",
+     "home": "003090/ffffff/ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "King Power Stadium",
+     "cap": 32261,
+     "r": 4
+    },
+    {
+     "id": "ipswich",
+     "name": "Ipswich Town",
+     "short": "IPS",
+     "home": "3a64a3/ffffff/3a64a3",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Portman Road",
+     "cap": 30311,
+     "r": 3
+    },
+    {
+     "id": "southampton",
+     "name": "Southampton",
+     "short": "SOU",
+     "home": "d71920/101820/ffffff|stripes|ffffff",
+     "away": "f5c400/1c2b4a/f5c400",
+     "stadium": "St Mary's Stadium",
+     "cap": 32384,
+     "r": 3
+    },
+    {
+     "id": "birmingham",
+     "name": "Birmingham City",
+     "short": "BIR",
+     "home": "1e3a8a/ffffff/1e3a8a",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "St Andrew's",
+     "cap": 29409,
+     "r": 2
+    },
+    {
+     "id": "wrexham",
+     "name": "Wrexham",
+     "short": "WRE",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Racecourse Ground",
+     "cap": 13341,
+     "r": 1
+    },
+    {
+     "id": "charlton",
+     "name": "Charlton Athletic",
+     "short": "CHA",
+     "home": "d4021d/ffffff/d4021d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "The Valley",
+     "cap": 27111,
+     "r": -1
+    },
+    {
+     "id": "blackburn",
+     "name": "Blackburn Rovers",
+     "short": "BLB",
+     "home": "ffffff/ffffff/ffffff|halves|009ee0",
+     "away": "d71920/101820/101820",
+     "stadium": "Ewood Park",
+     "cap": 31367
+    },
+    {
+     "id": "bristolc",
+     "name": "Bristol City",
+     "short": "BRC",
+     "home": "e21a23/ffffff/e21a23",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Ashton Gate",
+     "cap": 27000
+    },
+    {
+     "id": "coventry",
+     "name": "Coventry City",
+     "short": "COV",
+     "home": "71b2e3/ffffff/71b2e3",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Coventry Building Society Arena",
+     "cap": 32609,
+     "r": 2
+    },
+    {
+     "id": "derby",
+     "name": "Derby County",
+     "short": "DER",
+     "home": "ffffff/101820/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Pride Park",
+     "cap": 33597,
+     "r": -1
+    },
+    {
+     "id": "hull",
+     "name": "Hull City",
+     "short": "HUL",
+     "home": "f5a12d/101820/f5a12d|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "MKM Stadium",
+     "cap": 25586,
+     "r": -1
+    },
+    {
+     "id": "boro",
+     "name": "Middlesbrough",
+     "short": "MID",
+     "home": "e21a23/ffffff/e21a23",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Riverside Stadium",
+     "cap": 34742,
+     "r": 2
+    },
+    {
+     "id": "millwall",
+     "name": "Millwall",
+     "short": "MIL",
+     "home": "001a4f/ffffff/001a4f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "The Den",
+     "cap": 20146
+    },
+    {
+     "id": "norwich",
+     "name": "Norwich City",
+     "short": "NOR",
+     "home": "fff200/00a650/fff200",
+     "away": "00a650/00a650/00a650",
+     "stadium": "Carrow Road",
+     "cap": 27359,
+     "r": 1
+    },
+    {
+     "id": "oxford",
+     "name": "Oxford United",
+     "short": "OXF",
+     "home": "fff200/1c2b4a/fff200",
+     "away": "1c2b4a/1c2b4a/1c2b4a",
+     "stadium": "Kassam Stadium",
+     "cap": 12500,
+     "r": -2
+    },
+    {
+     "id": "portsmouth",
+     "name": "Portsmouth",
+     "short": "POR",
+     "home": "0a4fa1/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Fratton Park",
+     "cap": 20899,
+     "r": -1
+    },
+    {
+     "id": "preston",
+     "name": "Preston North End",
+     "short": "PNE",
+     "home": "ffffff/1c2b4a/ffffff",
+     "away": "1c2b4a/1c2b4a/1c2b4a",
+     "stadium": "Deepdale",
+     "cap": 23404
+    },
+    {
+     "id": "qpr",
+     "name": "Queens Park Rangers",
+     "short": "QPR",
+     "home": "1d5ba4/ffffff/ffffff|hoops|ffffff",
+     "away": "d71920/101820/101820",
+     "stadium": "Loftus Road",
+     "cap": 18439,
+     "r": -1
+    },
+    {
+     "id": "sheffutd",
+     "name": "Sheffield United",
+     "short": "SHU",
+     "home": "ee2737/101820/101820|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Bramall Lane",
+     "cap": 32050,
+     "r": 3
+    },
+    {
+     "id": "sheffwed",
+     "name": "Sheffield Wednesday",
+     "short": "SHW",
+     "home": "1c4d9e/101820/ffffff|stripes|ffffff",
+     "away": "f5c400/1c4d9e/f5c400",
+     "stadium": "Hillsborough",
+     "cap": 39732,
+     "r": -3
+    },
+    {
+     "id": "stoke",
+     "name": "Stoke City",
+     "short": "STK",
+     "home": "e03a3e/ffffff/ffffff|stripes|ffffff",
+     "away": "1c2b4a/1c2b4a/1c2b4a",
+     "stadium": "bet365 Stadium",
+     "cap": 30089
+    },
+    {
+     "id": "swansea",
+     "name": "Swansea City",
+     "short": "SWA",
+     "home": "ffffff/ffffff/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Swansea.com Stadium",
+     "cap": 21088,
+     "r": -1
+    },
+    {
+     "id": "watford",
+     "name": "Watford",
+     "short": "WAT",
+     "home": "fbee23/101820/101820",
+     "away": "101820/101820/101820",
+     "stadium": "Vicarage Road",
+     "cap": 22200
+    },
+    {
+     "id": "wba",
+     "name": "West Bromwich Albion",
+     "short": "WBA",
+     "home": "122f67/ffffff/ffffff|stripes|ffffff",
+     "away": "f5c400/1c4d2a/f5c400",
+     "stadium": "The Hawthorns",
+     "cap": 26850,
+     "r": 1
+    }
+   ]
+  },
+  {
+   "id": "eng3",
+   "name": "League One",
+   "level": 3,
+   "season": "2025-26",
+   "clubs": [
+    {
+     "id": "luton",
+     "name": "Luton Town",
+     "short": "LUT",
+     "home": "f78f1e/1c2b4a/ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Kenilworth Road",
+     "cap": 12000,
+     "r": 3
+    },
+    {
+     "id": "plymouth",
+     "name": "Plymouth Argyle",
+     "short": "PLY",
+     "home": "00563f/ffffff/00563f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Home Park",
+     "cap": 17900,
+     "r": 1
+    },
+    {
+     "id": "cardiff",
+     "name": "Cardiff City",
+     "short": "CAR",
+     "home": "0070b5/ffffff/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Cardiff City Stadium",
+     "cap": 33280,
+     "r": 2
+    },
+    {
+     "id": "doncaster",
+     "name": "Doncaster Rovers",
+     "short": "DON",
+     "home": "e31b23/101820/101820|hoops|ffffff",
+     "away": "1c2b4a/1c2b4a/1c2b4a",
+     "stadium": "Eco-Power Stadium",
+     "cap": 15231
+    },
+    {
+     "id": "portvale",
+     "name": "Port Vale",
+     "short": "PVA",
+     "home": "ffffff/101820/ffffff",
+     "away": "f5c400/101820/f5c400",
+     "stadium": "Vale Park",
+     "cap": 15036,
+     "r": -1
+    },
+    {
+     "id": "bradford",
+     "name": "Bradford City",
+     "short": "BRA",
+     "home": "8a1538/8a1538/8a1538|stripes|fdb913",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Valley Parade",
+     "cap": 25136
+    },
+    {
+     "id": "wimbledon",
+     "name": "AFC Wimbledon",
+     "short": "WIM",
+     "home": "1c3a8f/1c3a8f/1c3a8f",
+     "away": "f5c400/101820/f5c400",
+     "stadium": "Plough Lane",
+     "cap": 9215,
+     "r": -2
+    },
+    {
+     "id": "barnsley",
+     "name": "Barnsley",
+     "short": "BAR",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Oakwell",
+     "cap": 23009
+    },
+    {
+     "id": "blackpool",
+     "name": "Blackpool",
+     "short": "BLP",
+     "home": "f68712/ffffff/f68712",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Bloomfield Road",
+     "cap": 16616
+    },
+    {
+     "id": "bolton",
+     "name": "Bolton Wanderers",
+     "short": "BOL",
+     "home": "ffffff/1c2b4a/ffffff",
+     "away": "1c2b4a/1c2b4a/1c2b4a",
+     "stadium": "Toughsheet Community Stadium",
+     "cap": 28723,
+     "r": 2
+    },
+    {
+     "id": "burton",
+     "name": "Burton Albion",
+     "short": "BUR",
+     "home": "fdd300/101820/fdd300",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Pirelli Stadium",
+     "cap": 6912,
+     "r": -2
+    },
+    {
+     "id": "exeter",
+     "name": "Exeter City",
+     "short": "EXE",
+     "home": "e31b23/ffffff/ffffff|stripes|ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "St James Park",
+     "cap": 8696,
+     "r": -1
+    },
+    {
+     "id": "huddersfield",
+     "name": "Huddersfield Town",
+     "short": "HUD",
+     "home": "0e63ad/ffffff/ffffff|stripes|ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "John Smith's Stadium",
+     "cap": 24121,
+     "r": 2
+    },
+    {
+     "id": "orient",
+     "name": "Leyton Orient",
+     "short": "LEY",
+     "home": "e31b23/ffffff/e31b23",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Brisbane Road",
+     "cap": 9271
+    },
+    {
+     "id": "lincoln",
+     "name": "Lincoln City",
+     "short": "LIN",
+     "home": "e31b23/101820/e31b23|stripes|ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "LNER Stadium",
+     "cap": 10669
+    },
+    {
+     "id": "mansfield",
+     "name": "Mansfield Town",
+     "short": "MAN",
+     "home": "f5c400/1c4f9c/f5c400",
+     "away": "1c4f9c/1c4f9c/1c4f9c",
+     "stadium": "One Call Stadium",
+     "cap": 9186,
+     "r": -1
+    },
+    {
+     "id": "northampton",
+     "name": "Northampton Town",
+     "short": "NOR",
+     "home": "8a1538/ffffff/8a1538",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Sixfields Stadium",
+     "cap": 7798,
+     "r": -1
+    },
+    {
+     "id": "peterborough",
+     "name": "Peterborough United",
+     "short": "PET",
+     "home": "0a59a5/ffffff/0a59a5",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Weston Homes Stadium",
+     "cap": 15314
+    },
+    {
+     "id": "reading",
+     "name": "Reading",
+     "short": "REA",
+     "home": "004494/ffffff/ffffff|hoops|ffffff",
+     "away": "f5c400/1c2b4a/f5c400",
+     "stadium": "Select Car Leasing Stadium",
+     "cap": 24161
+    },
+    {
+     "id": "rotherham",
+     "name": "Rotherham United",
+     "short": "ROT",
+     "home": "e31b23/ffffff/e31b23",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "AESSEAL New York Stadium",
+     "cap": 12021
+    },
+    {
+     "id": "stevenage",
+     "name": "Stevenage",
+     "short": "STE",
+     "home": "ffffff/e31b23/ffffff|halves|e31b23",
+     "away": "1c2b4a/1c2b4a/1c2b4a",
+     "stadium": "Lamex Stadium",
+     "cap": 7800,
+     "r": -1
+    },
+    {
+     "id": "stockport",
+     "name": "Stockport County",
+     "short": "STO",
+     "home": "004c9e/ffffff/004c9e",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Edgeley Park",
+     "cap": 10841,
+     "r": 1
+    },
+    {
+     "id": "wigan",
+     "name": "Wigan Athletic",
+     "short": "WIG",
+     "home": "0f4fa3/ffffff/ffffff|stripes|ffffff",
+     "away": "e31b23/101820/101820",
+     "stadium": "Brick Community Stadium",
+     "cap": 25138
+    },
+    {
+     "id": "wycombe",
+     "name": "Wycombe Wanderers",
+     "short": "WYC",
+     "home": "75b7e5/ffffff/75b7e5|halves|1c2b4a",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Adams Park",
+     "cap": 9448,
+     "r": 1
+    }
+   ]
+  },
+  {
+   "id": "eng4",
+   "name": "League Two",
+   "level": 4,
+   "season": "2025-26",
+   "clubs": [
+    {
+     "id": "crawley",
+     "name": "Crawley Town",
+     "short": "CRA",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Broadfield Stadium",
+     "cap": 6134,
+     "r": 1
+    },
+    {
+     "id": "bristolr",
+     "name": "Bristol Rovers",
+     "short": "BRR",
+     "home": "1c4f9c/ffffff/ffffff|halves|ffffff",
+     "away": "f5c400/101820/f5c400",
+     "stadium": "Memorial Stadium",
+     "cap": 9832,
+     "r": 1
+    },
+    {
+     "id": "cambridge",
+     "name": "Cambridge United",
+     "short": "CAM",
+     "home": "f5a623/101820/f5a623",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Abbey Stadium",
+     "cap": 8127,
+     "r": 1
+    },
+    {
+     "id": "shrewsbury",
+     "name": "Shrewsbury Town",
+     "short": "SHR",
+     "home": "1c4f9c/f5c400/1c4f9c",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Croud Meadow",
+     "cap": 9875
+    },
+    {
+     "id": "barnet",
+     "name": "Barnet",
+     "short": "BNT",
+     "home": "f5a623/101820/f5a623",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "The Hive",
+     "cap": 6500,
+     "r": -1
+    },
+    {
+     "id": "oldham",
+     "name": "Oldham Athletic",
+     "short": "OLD",
+     "home": "004a9f/ffffff/004a9f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Boundary Park",
+     "cap": 13512
+    },
+    {
+     "id": "accrington",
+     "name": "Accrington Stanley",
+     "short": "ACC",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Wham Stadium",
+     "cap": 5450,
+     "r": -1
+    },
+    {
+     "id": "barrow",
+     "name": "Barrow",
+     "short": "BRW",
+     "home": "ffffff/1c2b4a/ffffff|band|1c2b4a",
+     "away": "1c2b4a/1c2b4a/1c2b4a",
+     "stadium": "Holker Street",
+     "cap": 5045,
+     "r": -1
+    },
+    {
+     "id": "bromley",
+     "name": "Bromley",
+     "short": "BRO",
+     "home": "ffffff/101820/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Hayes Lane",
+     "cap": 5000
+    },
+    {
+     "id": "cheltenham",
+     "name": "Cheltenham Town",
+     "short": "CHE",
+     "home": "d71920/ffffff/d71920|stripes|ffffff",
+     "away": "1c2b4a/1c2b4a/1c2b4a",
+     "stadium": "Whaddon Road",
+     "cap": 7066,
+     "r": -1
+    },
+    {
+     "id": "chesterfield",
+     "name": "Chesterfield",
+     "short": "CHF",
+     "home": "0a4fa1/ffffff/0a4fa1",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "SMH Group Stadium",
+     "cap": 10400,
+     "r": 1
+    },
+    {
+     "id": "colchester",
+     "name": "Colchester United",
+     "short": "COL",
+     "home": "1c4f9c/ffffff/ffffff|stripes|ffffff",
+     "away": "f5c400/101820/f5c400",
+     "stadium": "JobServe Community Stadium",
+     "cap": 10105,
+     "r": -1
+    },
+    {
+     "id": "crewe",
+     "name": "Crewe Alexandra",
+     "short": "CRE",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Gresty Road",
+     "cap": 10153
+    },
+    {
+     "id": "fleetwood",
+     "name": "Fleetwood Town",
+     "short": "FLE",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Highbury Stadium",
+     "cap": 5327
+    },
+    {
+     "id": "gillingham",
+     "name": "Gillingham",
+     "short": "GIL",
+     "home": "1c3a8f/ffffff/1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Priestfield Stadium",
+     "cap": 11582
+    },
+    {
+     "id": "grimsby",
+     "name": "Grimsby Town",
+     "short": "GRI",
+     "home": "101820/101820/ffffff|stripes|ffffff",
+     "away": "d71920/101820/101820",
+     "stadium": "Blundell Park",
+     "cap": 9052
+    },
+    {
+     "id": "harrogate",
+     "name": "Harrogate Town",
+     "short": "HAR",
+     "home": "f5c400/101820/f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Wetherby Road",
+     "cap": 5000,
+     "r": -1
+    },
+    {
+     "id": "mkdons",
+     "name": "MK Dons",
+     "short": "MKD",
+     "home": "ffffff/ffffff/ffffff",
+     "away": "d71920/101820/101820",
+     "stadium": "Stadium MK",
+     "cap": 30500,
+     "r": 1
+    },
+    {
+     "id": "newport",
+     "name": "Newport County",
+     "short": "NEW",
+     "home": "f5a623/101820/f5a623",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Rodney Parade",
+     "cap": 7850,
+     "r": -1
+    },
+    {
+     "id": "nottscounty",
+     "name": "Notts County",
+     "short": "NCO",
+     "home": "101820/101820/101820|stripes|ffffff",
+     "away": "f5c400/101820/f5c400",
+     "stadium": "Meadow Lane",
+     "cap": 19841,
+     "r": 1
+    },
+    {
+     "id": "salford",
+     "name": "Salford City",
+     "short": "SAL",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Peninsula Stadium",
+     "cap": 5108,
+     "r": 1
+    },
+    {
+     "id": "swindon",
+     "name": "Swindon Town",
+     "short": "SWI",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "County Ground",
+     "cap": 15728
+    },
+    {
+     "id": "tranmere",
+     "name": "Tranmere Rovers",
+     "short": "TRA",
+     "home": "ffffff/1c2b4a/ffffff",
+     "away": "1c2b4a/1c2b4a/1c2b4a",
+     "stadium": "Prenton Park",
+     "cap": 16587
+    },
+    {
+     "id": "walsall",
+     "name": "Walsall",
+     "short": "WAL",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Poundland Bescot Stadium",
+     "cap": 11300,
+     "r": 1
+    }
+   ]
+  }
+ ]
+}

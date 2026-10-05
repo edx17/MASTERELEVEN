@@ -1,0 +1,219 @@
+{
+ "id": "bra",
+ "name": "Brasil",
+ "nationality": "bra",
+ "names": "pt_br",
+ "skin": [
+  35,
+  35,
+  20,
+  10
+ ],
+ "divisions": [
+  {
+   "id": "bra1",
+   "name": "Brasileirão",
+   "level": 1,
+   "season": "2025",
+   "clubs": [
+    {
+     "id": "atleticomg",
+     "name": "Atlético Mineiro",
+     "short": "CAM",
+     "home": "101820/101820/ffffff|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Arena MRV",
+     "cap": 46000,
+     "r": 2
+    },
+    {
+     "id": "bahia",
+     "name": "Bahia",
+     "short": "BAH",
+     "home": "ffffff/1c3a8f/ffffff|band|1c3a8f",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Arena Fonte Nova",
+     "cap": 50025,
+     "r": 1
+    },
+    {
+     "id": "botafogo",
+     "name": "Botafogo",
+     "short": "BOT",
+     "home": "101820/101820/101820|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estádio Nilton Santos",
+     "cap": 44661,
+     "r": 3
+    },
+    {
+     "id": "ceara",
+     "name": "Ceará",
+     "short": "CEA",
+     "home": "101820/101820/101820|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Arena Castelão",
+     "cap": 63903,
+     "r": -2
+    },
+    {
+     "id": "corinthians",
+     "name": "Corinthians",
+     "short": "COR",
+     "home": "ffffff/101820/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Neo Química Arena",
+     "cap": 49205,
+     "r": 1
+    },
+    {
+     "id": "cruzeiro",
+     "name": "Cruzeiro",
+     "short": "CRU",
+     "home": "1c3a8f/ffffff/ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Mineirão",
+     "cap": 61846,
+     "r": 2
+    },
+    {
+     "id": "flamengo",
+     "name": "Flamengo",
+     "short": "FLA",
+     "home": "d71920/ffffff/101820|hoops|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Maracanã",
+     "cap": 78838,
+     "r": 5
+    },
+    {
+     "id": "fluminense",
+     "name": "Fluminense",
+     "short": "FLU",
+     "home": "8a1538/ffffff/ffffff|stripes|00843d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Maracanã",
+     "cap": 78838,
+     "r": 1
+    },
+    {
+     "id": "fortaleza",
+     "name": "Fortaleza",
+     "short": "FOR",
+     "home": "d71920/ffffff/1c3a8f|hoops|1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Arena Castelão",
+     "cap": 63903,
+     "r": -1
+    },
+    {
+     "id": "gremio",
+     "name": "Grêmio",
+     "short": "GRE",
+     "home": "0d80bf/101820/ffffff|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Arena do Grêmio",
+     "cap": 55662
+    },
+    {
+     "id": "internacional",
+     "name": "Internacional",
+     "short": "INT",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Beira-Rio",
+     "cap": 50128,
+     "r": 1
+    },
+    {
+     "id": "juventude",
+     "name": "Juventude",
+     "short": "JUV",
+     "home": "00843d/ffffff/ffffff|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Alfredo Jaconi",
+     "cap": 19924,
+     "r": -3
+    },
+    {
+     "id": "mirassol",
+     "name": "Mirassol",
+     "short": "MIR",
+     "home": "f5c400/00843d/f5c400",
+     "away": "00843d/00843d/00843d",
+     "stadium": "José Maria de Campos Maia",
+     "cap": 15000,
+     "r": -1
+    },
+    {
+     "id": "palmeiras",
+     "name": "Palmeiras",
+     "short": "PAL",
+     "home": "006437/ffffff/006437",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Allianz Parque",
+     "cap": 43713,
+     "r": 5
+    },
+    {
+     "id": "bragantino",
+     "name": "Red Bull Bragantino",
+     "short": "RBB",
+     "home": "ffffff/ffffff/ffffff",
+     "away": "d71920/1c2b4a/d71920",
+     "stadium": "Nabi Abi Chedid",
+     "cap": 17022
+    },
+    {
+     "id": "santos",
+     "name": "Santos",
+     "short": "SAN",
+     "home": "ffffff/ffffff/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Vila Belmiro",
+     "cap": 16068
+    },
+    {
+     "id": "saopaulo",
+     "name": "São Paulo",
+     "short": "SAO",
+     "home": "ffffff/ffffff/ffffff|band|d71920",
+     "away": "d71920/101820/101820",
+     "stadium": "MorumBIS",
+     "cap": 66795,
+     "r": 2
+    },
+    {
+     "id": "sport",
+     "name": "Sport Recife",
+     "short": "SPT",
+     "home": "101820/101820/101820|hoops|d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Ilha do Retiro",
+     "cap": 32983,
+     "r": -3
+    },
+    {
+     "id": "vasco",
+     "name": "Vasco da Gama",
+     "short": "VAS",
+     "home": "101820/101820/101820|sash|ffffff",
+     "away": "ffffff/ffffff/ffffff|sash|101820",
+     "stadium": "São Januário",
+     "cap": 21880,
+     "r": -1
+    },
+    {
+     "id": "vitoria",
+     "name": "Vitória",
+     "short": "VIT",
+     "home": "d71920/101820/101820|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Barradão",
+     "cap": 30793,
+     "r": -2
+    }
+   ]
+  }
+ ]
+}

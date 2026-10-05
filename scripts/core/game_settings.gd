@@ -190,9 +190,9 @@ func load_settings(path: String = SETTINGS_PATH) -> void:
 	if not stick_directions in STICK_OPTIONS:
 		stick_directions = tuning.stick_directions
 	camera_preset = maxi(camera_preset, 0)
-	if not ResourceLoader.exists(home_team_path):
+	if not TeamDB.exists(home_team_path):
 		home_team_path = DEFAULT_HOME
-	if not ResourceLoader.exists(away_team_path):
+	if not TeamDB.exists(away_team_path):
 		away_team_path = DEFAULT_AWAY
 	sfx_volume = clampi(sfx_volume, 0, 10)
 	crowd_volume = clampi(crowd_volume, 0, 10)
@@ -280,8 +280,8 @@ static func kits_clash(a: Color, b: Color) -> bool:
 
 
 func home_team() -> TeamData:
-	return load(home_team_path) as TeamData
+	return TeamDB.load_team(home_team_path)
 
 
 func away_team() -> TeamData:
-	return load(away_team_path) as TeamData
+	return TeamDB.load_team(away_team_path)

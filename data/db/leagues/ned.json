@@ -1,0 +1,201 @@
+{
+ "id": "ned",
+ "name": "Países Bajos",
+ "nationality": "ned",
+ "names": "nl",
+ "skin": [
+  60,
+  15,
+  15,
+  10
+ ],
+ "divisions": [
+  {
+   "id": "ned1",
+   "name": "Eredivisie",
+   "level": 1,
+   "season": "2025-26",
+   "clubs": [
+    {
+     "id": "psv",
+     "name": "PSV",
+     "short": "PSV",
+     "home": "e30613/ffffff/ffffff|stripes|ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Philips Stadion",
+     "cap": 35000,
+     "r": 4
+    },
+    {
+     "id": "ajax",
+     "name": "Ajax",
+     "short": "AJA",
+     "home": "ffffff/ffffff/ffffff|band|d2122e",
+     "away": "1c2b4a/1c2b4a/1c2b4a",
+     "stadium": "Johan Cruijff ArenA",
+     "cap": 55865,
+     "r": 3
+    },
+    {
+     "id": "feyenoord",
+     "name": "Feyenoord",
+     "short": "FEY",
+     "home": "ffffff/101820/101820|halves|e30613",
+     "away": "101820/101820/101820",
+     "stadium": "De Kuip",
+     "cap": 47500,
+     "r": 3
+    },
+    {
+     "id": "utrecht",
+     "name": "FC Utrecht",
+     "short": "UTR",
+     "home": "e30613/ffffff/ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Stadion Galgenwaard",
+     "cap": 23750
+    },
+    {
+     "id": "az",
+     "name": "AZ",
+     "short": "AZ",
+     "home": "e30613/ffffff/e30613",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "AFAS Stadion",
+     "cap": 19478,
+     "r": 1
+    },
+    {
+     "id": "twente",
+     "name": "FC Twente",
+     "short": "TWE",
+     "home": "e30613/ffffff/e30613",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "De Grolsch Veste",
+     "cap": 30205,
+     "r": 1
+    },
+    {
+     "id": "goahead",
+     "name": "Go Ahead Eagles",
+     "short": "GAE",
+     "home": "e30613/ffffff/ffffff|band|f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "De Adelaarshorst",
+     "cap": 10400,
+     "r": -2
+    },
+    {
+     "id": "nec",
+     "name": "NEC",
+     "short": "NEC",
+     "home": "e30613/00843d/101820|stripes|00843d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Goffertstadion",
+     "cap": 12500,
+     "r": -2
+    },
+    {
+     "id": "heerenveen",
+     "name": "sc Heerenveen",
+     "short": "HEE",
+     "home": "0057b8/ffffff/ffffff|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Abe Lenstra Stadion",
+     "cap": 27224,
+     "r": -2
+    },
+    {
+     "id": "zwolle",
+     "name": "PEC Zwolle",
+     "short": "PEC",
+     "home": "0057b8/ffffff/0057b8",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "MAC³PARK stadion",
+     "cap": 14000,
+     "r": -3
+    },
+    {
+     "id": "sittard",
+     "name": "Fortuna Sittard",
+     "short": "FOR",
+     "home": "f5c400/00843d/f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Fortuna Sittard Stadion",
+     "cap": 12500,
+     "r": -3
+    },
+    {
+     "id": "sparta",
+     "name": "Sparta Rotterdam",
+     "short": "SPA",
+     "home": "e30613/101820/101820|stripes|ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Het Kasteel",
+     "cap": 11026,
+     "r": -3
+    },
+    {
+     "id": "groningen",
+     "name": "FC Groningen",
+     "short": "GRO",
+     "home": "ffffff/00843d/ffffff|halves|00843d",
+     "away": "00843d/00843d/00843d",
+     "stadium": "Euroborg",
+     "cap": 22579,
+     "r": -2
+    },
+    {
+     "id": "heracles",
+     "name": "Heracles Almelo",
+     "short": "HER",
+     "home": "101820/ffffff/101820|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Erve Asito",
+     "cap": 12080,
+     "r": -3
+    },
+    {
+     "id": "nac",
+     "name": "NAC Breda",
+     "short": "NAC",
+     "home": "f5c400/101820/f5c400",
+     "away": "101820/101820/101820",
+     "stadium": "Rat Verlegh Stadion",
+     "cap": 19000,
+     "r": -3
+    },
+    {
+     "id": "excelsior",
+     "name": "Excelsior",
+     "short": "EXC",
+     "home": "e30613/101820/101820|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Van Donge & De Roo Stadion",
+     "cap": 4400,
+     "r": -4
+    },
+    {
+     "id": "volendam",
+     "name": "FC Volendam",
+     "short": "VOL",
+     "home": "f68712/ffffff/f68712",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Kras Stadion",
+     "cap": 6984,
+     "r": -4
+    },
+    {
+     "id": "telstar",
+     "name": "Telstar",
+     "short": "TEL",
+     "home": "ffffff/ffffff/ffffff",
+     "away": "e30613/e30613/e30613",
+     "stadium": "BUKO Stadion",
+     "cap": 5200,
+     "r": -4
+    }
+   ]
+  }
+ ]
+}

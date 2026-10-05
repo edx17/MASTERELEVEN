@@ -355,6 +355,7 @@ func _build_world() -> void:
 		var pat := d.kit_pattern(kit_i)
 		team.pattern = pat[0]
 		team.pattern_color = pat[1]
+		team.socks_color = d.kit_socks(kit_i)
 		team.data = d
 		team.formation = d.formation
 		# Condición del día de todo el plantel (flechas).

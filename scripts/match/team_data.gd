@@ -12,11 +12,19 @@ extends Resource
 @export var keeper_color: Color = Color.YELLOW
 ## Bandera (selecciones; null = una de club con sus colores).
 @export var flag: Texture2D = null
+## País (id de la base: "arg", "eng"...; "" = ficticio), estadio y capacidad.
+@export var country: String = ""
+@export var stadium: String = ""
+@export var capacity: int = 0
+## Medias de cada uniforme (alfa 0 = del color de la camiseta).
+@export var socks_color: Color = Color(0, 0, 0, 0)
+@export var away_socks: Color = Color(0, 0, 0, 0)
 ## Segundo uniforme (camiseta y pantalón).
 @export var away_color: Color = Color.WHITE
 @export var away_secondary: Color = Color.WHITE
 ## Diseño de cada camiseta (0 lisa, 1 rayas verticales, 2 rayas finitas,
-## 3 aros, 4 mitades, 5 banda diagonal) y su segundo color.
+## 3 aros, 4 mitades, 5 banda diagonal, 6 franja en el pecho, 7 V en el
+## pecho, 8 cuadros) y su segundo color.
 @export var pattern: int = 0
 @export var pattern_color: Color = Color.BLACK
 @export var away_pattern: int = 0
@@ -30,6 +38,11 @@ func kit(i: int) -> Array[Color]:
 	if i == 1:
 		return [away_color, away_secondary]
 	return [color, secondary_color]
+
+
+## Medias del uniforme 0 o 1 (alfa 0 = como la camiseta).
+func kit_socks(i: int) -> Color:
+	return away_socks if i == 1 else socks_color
 
 
 ## Diseño del uniforme 0 o 1: [diseño, segundo color].

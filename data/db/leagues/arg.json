@@ -1,0 +1,1148 @@
+{
+ "id": "arg",
+ "name": "Argentina",
+ "nationality": "arg",
+ "names": "es_ar",
+ "skin": [
+  55,
+  40,
+  4,
+  1
+ ],
+ "divisions": [
+  {
+   "id": "arg1",
+   "name": "Liga Profesional",
+   "level": 1,
+   "season": "2026",
+   "clubs": [
+    {
+     "id": "aldosivi",
+     "name": "Aldosivi",
+     "short": "ALD",
+     "home": "f5c400/00843d/f5c400|stripes|00843d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "José María Minella",
+     "cap": 35354,
+     "r": -3
+    },
+    {
+     "id": "argentinos",
+     "name": "Argentinos Juniors",
+     "short": "ARG",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Diego Armando Maradona",
+     "cap": 26000,
+     "r": 1
+    },
+    {
+     "id": "atltucuman",
+     "name": "Atlético Tucumán",
+     "short": "ATU",
+     "home": "6cb4e4/101820/ffffff|stripes|ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Monumental José Fierro",
+     "cap": 35200,
+     "r": -1
+    },
+    {
+     "id": "banfield",
+     "name": "Banfield",
+     "short": "BAN",
+     "home": "ffffff/ffffff/ffffff|stripes|00843d",
+     "away": "00843d/00843d/00843d",
+     "stadium": "Florencio Sola",
+     "cap": 34901,
+     "r": -2
+    },
+    {
+     "id": "barracas",
+     "name": "Barracas Central",
+     "short": "BAR",
+     "home": "d71920/ffffff/d71920|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Claudio Chiqui Tapia",
+     "cap": 4400,
+     "r": -2
+    },
+    {
+     "id": "belgrano",
+     "name": "Belgrano",
+     "short": "BEL",
+     "home": "6cb4e4/101820/6cb4e4",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Julio César Villagra",
+     "cap": 38000,
+     "r": 1
+    },
+    {
+     "id": "boca",
+     "name": "Boca Juniors",
+     "short": "BOC",
+     "home": "0a2a6e/0a2a6e/0a2a6e|band|f5c400",
+     "away": "ffffff/ffffff/ffffff|band|0a2a6e",
+     "stadium": "La Bombonera",
+     "cap": 54000,
+     "r": 6,
+     "keeper": "f5c400"
+    },
+    {
+     "id": "centralcba",
+     "name": "Central Córdoba (SdE)",
+     "short": "CCO",
+     "home": "101820/101820/101820|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Madre de Ciudades",
+     "cap": 30000,
+     "r": -2
+    },
+    {
+     "id": "defensa",
+     "name": "Defensa y Justicia",
+     "short": "DYJ",
+     "home": "f5c400/00843d/f5c400|halves|00843d",
+     "away": "00843d/00843d/00843d",
+     "stadium": "Norberto Tomaghello",
+     "cap": 18000
+    },
+    {
+     "id": "estudiantes",
+     "name": "Estudiantes de La Plata",
+     "short": "EDL",
+     "home": "d71920/101820/d71920|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Jorge Luis Hirschi",
+     "cap": 30018,
+     "r": 3
+    },
+    {
+     "id": "gimnasia",
+     "name": "Gimnasia y Esgrima La Plata",
+     "short": "GEL",
+     "home": "ffffff/ffffff/ffffff|band|1c2b4a",
+     "away": "1c2b4a/1c2b4a/1c2b4a",
+     "stadium": "Juan Carmelo Zerillo",
+     "cap": 21500,
+     "r": -1
+    },
+    {
+     "id": "godoycruz",
+     "name": "Godoy Cruz",
+     "short": "GCR",
+     "home": "1c3a8f/ffffff/1c3a8f|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Malvinas Argentinas",
+     "cap": 42000,
+     "r": -2
+    },
+    {
+     "id": "huracan",
+     "name": "Huracán",
+     "short": "HUR",
+     "home": "ffffff/ffffff/ffffff",
+     "away": "d71920/d71920/d71920",
+     "stadium": "Tomás Adolfo Ducó",
+     "cap": 48314,
+     "r": 1
+    },
+    {
+     "id": "independiente",
+     "name": "Independiente",
+     "short": "IND",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Libertadores de América",
+     "cap": 42069,
+     "r": 2
+    },
+    {
+     "id": "indriv",
+     "name": "Independiente Rivadavia",
+     "short": "IRM",
+     "home": "1c3a8f/ffffff/1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Bautista Gargantini",
+     "cap": 24000,
+     "r": -1
+    },
+    {
+     "id": "instituto",
+     "name": "Instituto",
+     "short": "INS",
+     "home": "d71920/ffffff/d71920|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Juan Domingo Perón",
+     "cap": 26535,
+     "r": -2
+    },
+    {
+     "id": "lanus",
+     "name": "Lanús",
+     "short": "LAN",
+     "home": "7a1f3d/ffffff/7a1f3d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Ciudad de Lanús",
+     "cap": 47027,
+     "r": 2
+    },
+    {
+     "id": "newells",
+     "name": "Newell's Old Boys",
+     "short": "NOB",
+     "home": "d71920/101820/d71920|halves|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Marcelo Bielsa",
+     "cap": 42000
+    },
+    {
+     "id": "platense",
+     "name": "Platense",
+     "short": "PLA",
+     "home": "ffffff/ffffff/ffffff|band|5a3a24",
+     "away": "5a3a24/5a3a24/5a3a24",
+     "stadium": "Ciudad de Vicente López",
+     "cap": 28530
+    },
+    {
+     "id": "racing",
+     "name": "Racing Club",
+     "short": "RAC",
+     "home": "6cb4e4/101820/ffffff|stripes|ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Presidente Perón (El Cilindro)",
+     "cap": 55880,
+     "r": 4
+    },
+    {
+     "id": "river",
+     "name": "River Plate",
+     "short": "RIV",
+     "home": "ffffff/101820/ffffff|sash|d71920",
+     "away": "d71920/101820/d71920|sash|101820",
+     "stadium": "Mâs Monumental",
+     "cap": 85018,
+     "r": 6
+    },
+    {
+     "id": "rosariocentral",
+     "name": "Rosario Central",
+     "short": "ROS",
+     "home": "1c3a8f/1c3a8f/1c3a8f|stripes|f5c400",
+     "away": "f5c400/1c3a8f/f5c400",
+     "stadium": "Gigante de Arroyito",
+     "cap": 41654,
+     "r": 2
+    },
+    {
+     "id": "sanlorenzo",
+     "name": "San Lorenzo",
+     "short": "SLO",
+     "home": "1c3a8f/ffffff/1c3a8f|stripes|d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Pedro Bidegain (Nuevo Gasómetro)",
+     "cap": 47964,
+     "r": 1
+    },
+    {
+     "id": "sanmartinsj",
+     "name": "San Martín de San Juan",
+     "short": "SMS",
+     "home": "00843d/101820/00843d|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Hilario Sánchez",
+     "cap": 19000,
+     "r": -3
+    },
+    {
+     "id": "sarmiento",
+     "name": "Sarmiento de Junín",
+     "short": "SAR",
+     "home": "00843d/ffffff/00843d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Eva Perón",
+     "cap": 22000,
+     "r": -3
+    },
+    {
+     "id": "talleres",
+     "name": "Talleres de Córdoba",
+     "short": "TAL",
+     "home": "1c3a8f/1c3a8f/1c3a8f|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Mario Alberto Kempes",
+     "cap": 57000,
+     "r": 2
+    },
+    {
+     "id": "tigre",
+     "name": "Tigre",
+     "short": "TIG",
+     "home": "1c3a8f/ffffff/1c3a8f|band|d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "José Dellagiovanna",
+     "cap": 26282
+    },
+    {
+     "id": "union",
+     "name": "Unión de Santa Fe",
+     "short": "UNI",
+     "home": "d71920/ffffff/d71920|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "15 de Abril",
+     "cap": 28000,
+     "r": -1
+    },
+    {
+     "id": "velez",
+     "name": "Vélez Sarsfield",
+     "short": "VEL",
+     "home": "ffffff/1c3a8f/ffffff|v|1c3a8f",
+     "away": "1c3a8f/1c3a8f/1c3a8f|v|ffffff",
+     "stadium": "José Amalfitani",
+     "cap": 49540,
+     "r": 3
+    },
+    {
+     "id": "riestra",
+     "name": "Deportivo Riestra",
+     "short": "RIE",
+     "home": "101820/101820/101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Guillermo Laza",
+     "cap": 3000,
+     "r": -3
+    }
+   ]
+  },
+  {
+   "id": "arg2",
+   "name": "Primera Nacional",
+   "level": 2,
+   "season": "2026",
+   "clubs": [
+    {
+     "id": "allboys",
+     "name": "All Boys",
+     "short": "ALB",
+     "home": "ffffff/101820/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Islas Malvinas",
+     "cap": 21500
+    },
+    {
+     "id": "almagro",
+     "name": "Almagro",
+     "short": "ALM",
+     "home": "1c3a8f/101820/1c3a8f|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Tres de Febrero",
+     "cap": 19000
+    },
+    {
+     "id": "almbrown",
+     "name": "Almirante Brown",
+     "short": "ABR",
+     "home": "f5c400/101820/101820|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Fragata Presidente Sarmiento",
+     "cap": 15000
+    },
+    {
+     "id": "agropecuario",
+     "name": "Agropecuario",
+     "short": "AGR",
+     "home": "1c3a8f/ffffff/1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Ofelia Rosenzuaig",
+     "cap": 4000
+    },
+    {
+     "id": "arsenal",
+     "name": "Arsenal de Sarandí",
+     "short": "ARS",
+     "home": "6cb4e4/6cb4e4/6cb4e4|sash|d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Julio Humberto Grondona",
+     "cap": 16300,
+     "r": 1
+    },
+    {
+     "id": "atlanta",
+     "name": "Atlanta",
+     "short": "ATL",
+     "home": "f5c400/1c3a8f/f5c400|stripes|1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Don León Kolbowski",
+     "cap": 14000
+    },
+    {
+     "id": "rafaela",
+     "name": "Atlético de Rafaela",
+     "short": "RAF",
+     "home": "6cb4e4/ffffff/6cb4e4|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Monumental de Barrio Alberdi",
+     "cap": 16000
+    },
+    {
+     "id": "chacarita",
+     "name": "Chacarita Juniors",
+     "short": "CHA",
+     "home": "d71920/101820/101820|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Chacarita Juniors",
+     "cap": 19000
+    },
+    {
+     "id": "chacoforever",
+     "name": "Chaco For Ever",
+     "short": "CFE",
+     "home": "101820/101820/101820|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Juan Alberto García",
+     "cap": 23000
+    },
+    {
+     "id": "colegiales",
+     "name": "Colegiales",
+     "short": "COL",
+     "home": "1c3a8f/1c3a8f/1c3a8f|stripes|d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Libertarios Unidos",
+     "cap": 4000
+    },
+    {
+     "id": "colon",
+     "name": "Colón",
+     "short": "COL",
+     "home": "d71920/101820/d71920|halves|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Brigadier General Estanislao López",
+     "cap": 40000,
+     "r": 2
+    },
+    {
+     "id": "defbelgrano",
+     "name": "Defensores de Belgrano",
+     "short": "DEF",
+     "home": "d71920/101820/d71920|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Juan Pasquale",
+     "cap": 8000
+    },
+    {
+     "id": "madryn",
+     "name": "Deportivo Madryn",
+     "short": "MAD",
+     "home": "101820/101820/101820|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Abel Sastre",
+     "cap": 4500
+    },
+    {
+     "id": "moron",
+     "name": "Deportivo Morón",
+     "short": "MOR",
+     "home": "ffffff/d71920/ffffff",
+     "away": "d71920/d71920/d71920",
+     "stadium": "Nuevo Francisco Urbano",
+     "cap": 32000
+    },
+    {
+     "id": "estcaseros",
+     "name": "Estudiantes de Buenos Aires",
+     "short": "EBA",
+     "home": "101820/101820/101820|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Ciudad de Caseros",
+     "cap": 16740
+    },
+    {
+     "id": "estrc",
+     "name": "Estudiantes de Río Cuarto",
+     "short": "ERC",
+     "home": "ffffff/101820/ffffff|band|1c3a8f",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Antonio Candini",
+     "cap": 15000
+    },
+    {
+     "id": "ferro",
+     "name": "Ferro Carril Oeste",
+     "short": "FER",
+     "home": "00843d/ffffff/00843d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Arquitecto Ricardo Etcheverri",
+     "cap": 24442,
+     "r": 1
+    },
+    {
+     "id": "gimmendoza",
+     "name": "Gimnasia y Esgrima (Mendoza)",
+     "short": "GIM",
+     "home": "ffffff/101820/ffffff|stripes|101820",
+     "away": "101820/101820/101820",
+     "stadium": "Víctor Antonio Legrotaglie",
+     "cap": 11000
+    },
+    {
+     "id": "gimtiro",
+     "name": "Gimnasia y Tiro",
+     "short": "GYT",
+     "home": "ffffff/6cb4e4/ffffff|band|6cb4e4",
+     "away": "6cb4e4/6cb4e4/6cb4e4",
+     "stadium": "Gigante del Norte",
+     "cap": 20000
+    },
+    {
+     "id": "guemes",
+     "name": "Güemes",
+     "short": "GUE",
+     "home": "6cb4e4/ffffff/6cb4e4",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Arturo Miranda",
+     "cap": 10000
+    },
+    {
+     "id": "mitre",
+     "name": "Mitre (Santiago del Estero)",
+     "short": "MIT",
+     "home": "f5c400/101820/f5c400|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "José y Antonio Castiglione",
+     "cap": 11000
+    },
+    {
+     "id": "chicago",
+     "name": "Nueva Chicago",
+     "short": "NCH",
+     "home": "00843d/101820/00843d|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "República de Mataderos",
+     "cap": 28500
+    },
+    {
+     "id": "patronato",
+     "name": "Patronato",
+     "short": "PAT",
+     "home": "d71920/101820/d71920|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Presbítero Bartolomé Grella",
+     "cap": 22000
+    },
+    {
+     "id": "quilmes",
+     "name": "Quilmes",
+     "short": "QUI",
+     "home": "ffffff/1c3a8f/ffffff",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Centenario",
+     "cap": 30200,
+     "r": 1
+    },
+    {
+     "id": "racingcba",
+     "name": "Racing de Córdoba",
+     "short": "RCO",
+     "home": "6cb4e4/ffffff/6cb4e4|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Miguel Sancho",
+     "cap": 17000
+    },
+    {
+     "id": "smtucuman",
+     "name": "San Martín de Tucumán",
+     "short": "SMT",
+     "home": "d71920/ffffff/d71920|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "La Ciudadela",
+     "cap": 30250,
+     "r": 1
+    },
+    {
+     "id": "sanmiguel",
+     "name": "San Miguel",
+     "short": "SMI",
+     "home": "f5c400/00843d/f5c400|stripes|00843d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Malvinas Argentinas (San Miguel)",
+     "cap": 4000
+    },
+    {
+     "id": "santelmo",
+     "name": "San Telmo",
+     "short": "STE",
+     "home": "6cb4e4/6cb4e4/6cb4e4|band|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Osvaldo Baletto",
+     "cap": 5000
+    },
+    {
+     "id": "tallereRE",
+     "name": "Talleres de Remedios de Escalada",
+     "short": "TRE",
+     "home": "d71920/ffffff/d71920|band|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Talleres de Remedios de Escalada",
+     "cap": 8000
+    },
+    {
+     "id": "temperley",
+     "name": "Temperley",
+     "short": "TEM",
+     "home": "6cb4e4/ffffff/6cb4e4",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Alfredo Beranger",
+     "cap": 22000
+    },
+    {
+     "id": "tristan",
+     "name": "Tristán Suárez",
+     "short": "TSU",
+     "home": "101820/101820/101820|stripes|f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "20 de Octubre",
+     "cap": 5000
+    },
+    {
+     "id": "maipu",
+     "name": "Deportivo Maipú",
+     "short": "MAI",
+     "home": "d71920/101820/d71920|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Higinio Sperdutti",
+     "cap": 9000
+    },
+    {
+     "id": "alvarado",
+     "name": "Alvarado",
+     "short": "ALV",
+     "home": "1c3a8f/ffffff/1c3a8f|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "José María Minella",
+     "cap": 35354
+    },
+    {
+     "id": "bolivar",
+     "name": "Ciudad de Bolívar",
+     "short": "CBO",
+     "home": "6cb4e4/1c2b4a/6cb4e4",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Municipal de Bolívar",
+     "cap": 6000
+    },
+    {
+     "id": "centralnorte",
+     "name": "Central Norte",
+     "short": "CNO",
+     "home": "101820/101820/101820|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Dr. Luis Güemes",
+     "cap": 14000
+    },
+    {
+     "id": "losandes",
+     "name": "Los Andes",
+     "short": "LAN",
+     "home": "ffffff/d71920/ffffff|band|d71920",
+     "away": "d71920/d71920/d71920",
+     "stadium": "Eduardo Gallardón",
+     "cap": 36000
+    }
+   ]
+  },
+  {
+   "id": "arg3",
+   "name": "Primera B Metropolitana",
+   "level": 3,
+   "season": "2026",
+   "clubs": [
+    {
+     "id": "acassuso",
+     "name": "Acassuso",
+     "short": "ACA",
+     "home": "6cb4e4/1c3a8f/6cb4e4",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Gerardo Gaetano",
+     "cap": 4500
+    },
+    {
+     "id": "argquilmes",
+     "name": "Argentino de Quilmes",
+     "short": "AQU",
+     "home": "6cb4e4/ffffff/6cb4e4|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Argentino de Quilmes",
+     "cap": 4000
+    },
+    {
+     "id": "armenio",
+     "name": "Deportivo Armenio",
+     "short": "ARM",
+     "home": "ffffff/ffffff/ffffff|hoops|d71920",
+     "away": "d71920/d71920/d71920",
+     "stadium": "Armenia",
+     "cap": 8000
+    },
+    {
+     "id": "brown",
+     "name": "Brown de Adrogué",
+     "short": "BRO",
+     "home": "f5c400/101820/f5c400|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Lorenzo Arandilla",
+     "cap": 4500
+    },
+    {
+     "id": "canuelas",
+     "name": "Cañuelas",
+     "short": "CAN",
+     "home": "d71920/ffffff/d71920|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Jorge Alberto Cañuelas",
+     "cap": 3000
+    },
+    {
+     "id": "comunicaciones",
+     "name": "Comunicaciones",
+     "short": "COM",
+     "home": "f5c400/101820/f5c400|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Alfredo Ramos",
+     "cap": 3500
+    },
+    {
+     "id": "docksud",
+     "name": "Dock Sud",
+     "short": "DOC",
+     "home": "101820/101820/101820|hoops|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "de los Inmigrantes",
+     "cap": 4000
+    },
+    {
+     "id": "excursionistas",
+     "name": "Excursionistas",
+     "short": "EXC",
+     "home": "00843d/ffffff/00843d|hoops|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Excursionistas",
+     "cap": 7200
+    },
+    {
+     "id": "fenix",
+     "name": "Fénix",
+     "short": "FEN",
+     "home": "ffffff/101820/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Carlos Barraza",
+     "cap": 3000
+    },
+    {
+     "id": "flandria",
+     "name": "Flandria",
+     "short": "FLA",
+     "home": "00843d/ffffff/00843d|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Carlos V",
+     "cap": 4500
+    },
+    {
+     "id": "ituzaingo",
+     "name": "Ituzaingó",
+     "short": "ITU",
+     "home": "00843d/ffffff/00843d|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Carlos Alberto Sacaan",
+     "cap": 3500
+    },
+    {
+     "id": "jjurquiza",
+     "name": "J. J. Urquiza",
+     "short": "URQ",
+     "home": "ffffff/ffffff/ffffff|band|1c3a8f",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Ramón Pedro Ferrari",
+     "cap": 2500
+    },
+    {
+     "id": "sacachispas",
+     "name": "Sacachispas",
+     "short": "SAC",
+     "home": "7a3fa0/ffffff/7a3fa0",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Beto Larrosa",
+     "cap": 2000
+    },
+    {
+     "id": "italiano",
+     "name": "Sportivo Italiano",
+     "short": "ITA",
+     "home": "1c3a8f/ffffff/1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "República de Italia",
+     "cap": 8000
+    },
+    {
+     "id": "uai",
+     "name": "UAI Urquiza",
+     "short": "UAI",
+     "home": "ffffff/ffffff/ffffff|band|d71920",
+     "away": "d71920/d71920/d71920",
+     "stadium": "Monte Castro",
+     "cap": 1500
+    },
+    {
+     "id": "dalmine",
+     "name": "Villa Dálmine",
+     "short": "VDA",
+     "home": "7a1f3d/ffffff/7a1f3d|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "El Coliseo de Mitre y Puccini",
+     "cap": 10000
+    },
+    {
+     "id": "villasancarlos",
+     "name": "Villa San Carlos",
+     "short": "VSC",
+     "home": "6cb4e4/ffffff/6cb4e4|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Genacio Sálice",
+     "cap": 4500
+    },
+    {
+     "id": "merlo",
+     "name": "Deportivo Merlo",
+     "short": "MER",
+     "home": "6cb4e4/ffffff/6cb4e4",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "José Manuel Moreno",
+     "cap": 6000
+    },
+    {
+     "id": "realpilar",
+     "name": "Real Pilar",
+     "short": "RPI",
+     "home": "d71920/101820/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Real Pilar",
+     "cap": 2500
+    },
+    {
+     "id": "laferrere",
+     "name": "Deportivo Laferrere",
+     "short": "LAF",
+     "home": "00843d/ffffff/00843d|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Laferrere",
+     "cap": 4000
+    }
+   ]
+  },
+  {
+   "id": "arg4",
+   "name": "Primera C",
+   "level": 4,
+   "season": "2026",
+   "clubs": [
+    {
+     "id": "atlas",
+     "name": "Atlas",
+     "short": "ATL",
+     "home": "101820/101820/101820|stripes|f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Ricardo Puga",
+     "cap": 3000
+    },
+    {
+     "id": "berazategui",
+     "name": "Berazategui",
+     "short": "BER",
+     "home": "00843d/ffffff/00843d|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Norman Lee",
+     "cap": 3000
+    },
+    {
+     "id": "centralros",
+     "name": "Central Córdoba (Rosario)",
+     "short": "CCR",
+     "home": "1c3a8f/ffffff/1c3a8f|stripes|d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Gabino Sosa",
+     "cap": 8000
+    },
+    {
+     "id": "centroespanol",
+     "name": "Centro Español",
+     "short": "CES",
+     "home": "d71920/ffffff/d71920|band|f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Centro Español",
+     "cap": 1500
+    },
+    {
+     "id": "claypole",
+     "name": "Claypole",
+     "short": "CLA",
+     "home": "ffffff/ffffff/ffffff|band|d71920",
+     "away": "d71920/d71920/d71920",
+     "stadium": "Rodolfo Capocasa",
+     "cap": 2000
+    },
+    {
+     "id": "depespanol",
+     "name": "Deportivo Español",
+     "short": "ESP",
+     "home": "d71920/ffffff/d71920|band|f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Nueva España",
+     "cap": 32500
+    },
+    {
+     "id": "cambaceres",
+     "name": "Defensores de Cambaceres",
+     "short": "CAM",
+     "home": "d71920/ffffff/d71920|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Defensores de Cambaceres",
+     "cap": 4000
+    },
+    {
+     "id": "elporvenir",
+     "name": "El Porvenir",
+     "short": "POR",
+     "home": "ffffff/101820/ffffff|stripes|101820",
+     "away": "101820/101820/101820",
+     "stadium": "Gildo Francisco Ghersinich",
+     "cap": 15000
+    },
+    {
+     "id": "midland",
+     "name": "Ferrocarril Midland",
+     "short": "MID",
+     "home": "6cb4e4/1c2b4a/6cb4e4",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Ferrocarril Midland",
+     "cap": 3000
+    },
+    {
+     "id": "lamadrid",
+     "name": "General Lamadrid",
+     "short": "LAM",
+     "home": "d71920/ffffff/d71920|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Enrique Sexto",
+     "cap": 2000
+    },
+    {
+     "id": "juventudunida",
+     "name": "Juventud Unida",
+     "short": "JUN",
+     "home": "ffffff/1c3a8f/ffffff",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Juventud Unida",
+     "cap": 2000
+    },
+    {
+     "id": "alem",
+     "name": "Leandro N. Alem",
+     "short": "ALE",
+     "home": "00843d/ffffff/00843d|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Leandro N. Alem",
+     "cap": 3000
+    },
+    {
+     "id": "lujan",
+     "name": "Luján",
+     "short": "LUJ",
+     "home": "ffffff/ffffff/ffffff|band|1c3a8f",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Luján",
+     "cap": 4000
+    },
+    {
+     "id": "burzaco",
+     "name": "San Martín de Burzaco",
+     "short": "SMB",
+     "home": "d71920/ffffff/d71920|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "San Martín",
+     "cap": 3000
+    },
+    {
+     "id": "barracasbol",
+     "name": "Sportivo Barracas",
+     "short": "SBA",
+     "home": "ffffff/d71920/ffffff|band|d71920",
+     "away": "d71920/d71920/d71920",
+     "stadium": "Luciano Coppola",
+     "cap": 1500
+    },
+    {
+     "id": "victoriano",
+     "name": "Victoriano Arenas",
+     "short": "VAR",
+     "home": "6cb4e4/ffffff/6cb4e4|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Saturnino Moure",
+     "cap": 2000
+    },
+    {
+     "id": "yupanqui",
+     "name": "Yupanqui",
+     "short": "YUP",
+     "home": "ffffff/ffffff/ffffff|band|d71920",
+     "away": "d71920/d71920/d71920",
+     "stadium": "Yupanqui",
+     "cap": 1500
+    },
+    {
+     "id": "muniz",
+     "name": "Muñiz",
+     "short": "MUN",
+     "home": "1c3a8f/ffffff/1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Muñiz",
+     "cap": 1500
+    },
+    {
+     "id": "argmerlo",
+     "name": "Argentino de Merlo",
+     "short": "AME",
+     "home": "6cb4e4/ffffff/6cb4e4|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Argentino de Merlo",
+     "cap": 3000
+    },
+    {
+     "id": "lugano",
+     "name": "Club Lugano",
+     "short": "LUG",
+     "home": "6cb4e4/ffffff/6cb4e4",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Lugano",
+     "cap": 1500
+    }
+   ]
+  },
+  {
+   "id": "arg5",
+   "name": "Torneo Promocional Amateur",
+   "level": 5,
+   "season": "2026",
+   "clubs": [
+    {
+     "id": "paraguayo",
+     "name": "Deportivo Paraguayo",
+     "short": "PAR",
+     "home": "d71920/1c3a8f/ffffff|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Deportivo Paraguayo",
+     "cap": 1500
+    },
+    {
+     "id": "puertonuevo",
+     "name": "Puerto Nuevo",
+     "short": "PNU",
+     "home": "6cb4e4/ffffff/6cb4e4",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Puerto Nuevo",
+     "cap": 1000
+    },
+    {
+     "id": "argrosario",
+     "name": "Argentino de Rosario",
+     "short": "ARO",
+     "home": "1c3a8f/ffffff/1c3a8f|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Gabino Sosa",
+     "cap": 3000
+    },
+    {
+     "id": "liniers",
+     "name": "Club Social y Deportivo Liniers",
+     "short": "LIN",
+     "home": "ffffff/d71920/ffffff",
+     "away": "d71920/d71920/d71920",
+     "stadium": "Liniers",
+     "cap": 1500
+    },
+    {
+     "id": "promo5",
+     "name": "Club por definir 5",
+     "short": "P05",
+     "home": "8c8c8c/ffffff/8c8c8c",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "",
+     "cap": 0
+    },
+    {
+     "id": "promo6",
+     "name": "Club por definir 6",
+     "short": "P06",
+     "home": "8c8c8c/ffffff/8c8c8c",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "",
+     "cap": 0
+    },
+    {
+     "id": "promo7",
+     "name": "Club por definir 7",
+     "short": "P07",
+     "home": "8c8c8c/ffffff/8c8c8c",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "",
+     "cap": 0
+    },
+    {
+     "id": "promo8",
+     "name": "Club por definir 8",
+     "short": "P08",
+     "home": "8c8c8c/ffffff/8c8c8c",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "",
+     "cap": 0
+    },
+    {
+     "id": "promo9",
+     "name": "Club por definir 9",
+     "short": "P09",
+     "home": "8c8c8c/ffffff/8c8c8c",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "",
+     "cap": 0
+    },
+    {
+     "id": "promo10",
+     "name": "Club por definir 10",
+     "short": "P10",
+     "home": "8c8c8c/ffffff/8c8c8c",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "",
+     "cap": 0
+    },
+    {
+     "id": "promo11",
+     "name": "Club por definir 11",
+     "short": "P11",
+     "home": "8c8c8c/ffffff/8c8c8c",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "",
+     "cap": 0
+    },
+    {
+     "id": "promo12",
+     "name": "Club por definir 12",
+     "short": "P12",
+     "home": "8c8c8c/ffffff/8c8c8c",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "",
+     "cap": 0
+    }
+   ]
+  }
+ ]
+}

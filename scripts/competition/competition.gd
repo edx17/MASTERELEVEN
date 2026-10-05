@@ -99,7 +99,7 @@ func finished() -> bool:
 
 
 func team(i: int) -> TeamData:
-	return load(team_paths[i]) as TeamData
+	return TeamDB.load_team(team_paths[i])
 
 
 func round_name(i: int = -1) -> String:

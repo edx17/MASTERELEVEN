@@ -225,7 +225,8 @@ static func long_sleeves_for(d: PlayerData, keeper: bool, cond: MatchConditions)
 
 func kit_colors() -> Dictionary:
 	var shirt := team.keeper_color if is_keeper() else team.color
-	var colors := {"shirt": shirt, "shorts": team.secondary_color, "socks": shirt, "number": number}
+	var socks := team.socks_color if team.socks_color.a > 0.0 and not is_keeper() else shirt
+	var colors := {"shirt": shirt, "shorts": team.secondary_color, "socks": socks, "number": number}
 	# Diseño de la camiseta (el arquero va liso, de su color).
 	if not is_keeper():
 		colors["pattern"] = team.pattern

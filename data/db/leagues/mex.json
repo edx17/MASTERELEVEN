@@ -1,0 +1,200 @@
+{
+ "id": "mex",
+ "name": "México",
+ "nationality": "mex",
+ "names": "es_lat",
+ "skin": [
+  30,
+  65,
+  4,
+  1
+ ],
+ "divisions": [
+  {
+   "id": "mex1",
+   "name": "Liga MX",
+   "level": 1,
+   "season": "2025-26",
+   "clubs": [
+    {
+     "id": "america",
+     "name": "Club América",
+     "short": "AME",
+     "home": "fff200/1c3a8f/fff200",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Estadio Ciudad de los Deportes",
+     "cap": 33000,
+     "r": 4
+    },
+    {
+     "id": "atlas",
+     "name": "Atlas",
+     "short": "ATS",
+     "home": "d71920/101820/101820|halves|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estadio Jalisco",
+     "cap": 55020,
+     "r": -2
+    },
+    {
+     "id": "sanluis",
+     "name": "Atlético San Luis",
+     "short": "ASL",
+     "home": "d71920/1c3a8f/ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estadio Alfonso Lastras",
+     "cap": 25709,
+     "r": -2
+    },
+    {
+     "id": "cruzazul",
+     "name": "Cruz Azul",
+     "short": "CAZ",
+     "home": "004b8d/ffffff/004b8d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estadio Olímpico Universitario",
+     "cap": 48297,
+     "r": 3
+    },
+    {
+     "id": "chivas",
+     "name": "Guadalajara",
+     "short": "GDL",
+     "home": "d71920/1c3a8f/d71920|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estadio Akron",
+     "cap": 48071,
+     "r": 1
+    },
+    {
+     "id": "juarez",
+     "name": "FC Juárez",
+     "short": "JUA",
+     "home": "00843d/ffffff/00843d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estadio Olímpico Benito Juárez",
+     "cap": 19703,
+     "r": -3
+    },
+    {
+     "id": "leon",
+     "name": "Club León",
+     "short": "LEO",
+     "home": "00843d/ffffff/00843d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estadio Nou Camp",
+     "cap": 31297
+    },
+    {
+     "id": "mazatlan",
+     "name": "Mazatlán FC",
+     "short": "MAZ",
+     "home": "6f2c91/ffffff/6f2c91",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estadio El Encanto",
+     "cap": 25000,
+     "r": -4
+    },
+    {
+     "id": "monterrey",
+     "name": "Monterrey",
+     "short": "MTY",
+     "home": "1c3a8f/1c3a8f/1c3a8f|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estadio BBVA",
+     "cap": 53500,
+     "r": 3
+    },
+    {
+     "id": "necaxa",
+     "name": "Necaxa",
+     "short": "NEC",
+     "home": "d71920/ffffff/d71920|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estadio Victoria",
+     "cap": 23851,
+     "r": -3
+    },
+    {
+     "id": "pachuca",
+     "name": "Pachuca",
+     "short": "PAC",
+     "home": "1c3a8f/ffffff/1c3a8f|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estadio Hidalgo",
+     "cap": 27512,
+     "r": 1
+    },
+    {
+     "id": "puebla",
+     "name": "Puebla",
+     "short": "PUE",
+     "home": "ffffff/1c3a8f/ffffff|sash|1c3a8f",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Estadio Cuauhtémoc",
+     "cap": 51726,
+     "r": -4
+    },
+    {
+     "id": "queretaro",
+     "name": "Querétaro",
+     "short": "QRO",
+     "home": "1c3a8f/101820/1c3a8f|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estadio Corregidora",
+     "cap": 33162,
+     "r": -4
+    },
+    {
+     "id": "santos",
+     "name": "Santos Laguna",
+     "short": "SAN",
+     "home": "00843d/ffffff/00843d|halves|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estadio Corona",
+     "cap": 29237,
+     "r": -2
+    },
+    {
+     "id": "tijuana",
+     "name": "Club Tijuana",
+     "short": "TIJ",
+     "home": "d71920/101820/101820|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estadio Caliente",
+     "cap": 27333,
+     "r": -2
+    },
+    {
+     "id": "toluca",
+     "name": "Toluca",
+     "short": "TOL",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Estadio Nemesio Díez",
+     "cap": 30000,
+     "r": 3
+    },
+    {
+     "id": "tigres",
+     "name": "Tigres UANL",
+     "short": "TIG",
+     "home": "fdb913/1c3a8f/fdb913",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Estadio Universitario",
+     "cap": 41886,
+     "r": 4
+    },
+    {
+     "id": "pumas",
+     "name": "Pumas UNAM",
+     "short": "PUM",
+     "home": "ffffff/1c3a8f/ffffff",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Estadio Olímpico Universitario",
+     "cap": 48297
+    }
+   ]
+  }
+ ]
+}
