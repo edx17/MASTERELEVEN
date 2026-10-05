@@ -312,10 +312,9 @@ func attack_dirs() -> Array[int]:
 func _build_world() -> void:
 	# Luz, cielo y clima según las condiciones del partido.
 	# Estadio elegido (las luces de la noche dependen de su forma).
-	var st_i := GameSettings.stadium_choice
-	if st_i < 0:
-		st_i = randi() % StadiumStyles.STYLES.size()
-	StadiumStyles.current = ClubHouseBuilder.STYLE if GameSettings.training else StadiumStyles.get_style(st_i)
+	# Con un club real de local (y el estadio "al azar"), el suyo.
+	StadiumStyles.current = ClubHouseBuilder.STYLE if GameSettings.training \
+		else StadiumStyles.for_team(GameSettings.home_team(), GameSettings.stadium_choice)
 	atmosphere = Atmosphere.new()
 	atmosphere.name = "Atmosphere"
 	add_child(atmosphere)

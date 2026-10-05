@@ -60,23 +60,38 @@ func _short(i: int) -> String:
 
 ## Tabla de posiciones (el equipo del jugador resaltado).
 func _table() -> void:
+	# Ligas reales de 20 o más: letra más chica y la tabla se desplaza.
+	var big := comp.team_paths.size() > 10
+	var fs := 15 if big else 18
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(620, 540)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_left.add_child(scroll)
 	var grid := GridContainer.new()
 	grid.columns = 10
-	grid.add_theme_constant_override("h_separation", 14)
-	_left.add_child(grid)
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 0 if big else 3)
+	scroll.add_child(grid)
 	for h in ["", "Equipo", "PJ", "G", "E", "P", "GF", "GC", "DG", "Pts"]:
-		grid.add_child(WEStyle.label(h, 17, Color(0.6, 0.8, 1.0)))
+		grid.add_child(WEStyle.label(h, fs - 1, Color(0.6, 0.8, 1.0)))
 	var pos := 1
+	var my_row: Control = null
 	for row in comp.standings():
 		var me: bool = row["team"] == comp.user_team
 		var c := Color(1.0, 0.9, 0.35) if me else Color.WHITE
-		grid.add_child(WEStyle.label(str(pos), 18, c))
-		var name := WEStyle.label(_short(row["team"]), 18, c)
-		name.custom_minimum_size = Vector2(230, 0)
+		grid.add_child(WEStyle.label(str(pos), fs, c))
+		var name := WEStyle.label(_short(row["team"]), fs, c)
+		name.custom_minimum_size = Vector2(250, 0)
+		name.clip_text = true
 		grid.add_child(name)
+		if me:
+			my_row = name
 		for k in ["pj", "g", "e", "p", "gf", "gc", "dg", "pts"]:
-			grid.add_child(WEStyle.label(str(row[k]), 18, c))
+			grid.add_child(WEStyle.label(str(row[k]), fs, c))
 		pos += 1
+	# Que se vea la fila del jugador.
+	if my_row != null and big:
+		scroll.ready.connect(func() -> void: scroll.ensure_control_visible(my_row), CONNECT_ONE_SHOT)
 
 
 ## Llaves de la copa, ronda por ronda.

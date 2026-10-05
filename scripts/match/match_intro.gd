@@ -600,7 +600,14 @@ static func flag_texture(t: TeamData) -> Texture2D:
 	if t != null and t.flag != null:
 		return t.flag
 	var img := Image.create(48, 30, false, Image.FORMAT_RGB8)
-	var cols := [t.color, t.secondary_color, t.color] if t != null else [Color.WHITE, Color.BLACK, Color.WHITE]
+	var cols := [Color.WHITE, Color.BLACK, Color.WHITE]
+	if t != null:
+		# La franja del medio: el segundo color de la camiseta (o el del
+		# pantalón, o blanco si todo es del mismo color).
+		var mid := t.pattern_color if t.pattern > 0 else t.secondary_color
+		if mid.is_equal_approx(t.color):
+			mid = Color.WHITE if t.color.get_luminance() < 0.6 else Color(0.1, 0.1, 0.12)
+		cols = [t.color, mid, t.color]
 	for x in 48:
 		for y in 30:
 			img.set_pixel(x, y, cols[mini(x / 16, 2)])

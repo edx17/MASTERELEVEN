@@ -193,12 +193,24 @@ class Crest:
 			return
 		var w := size.x
 		var h := size.y
+		# Selección: su bandera, con un borde dorado.
+		if team.flag != null:
+			var fh := minf(h * 0.8, w * 0.667)
+			var r := Rect2(Vector2(0.0, (h - fh) * 0.5), Vector2(w, fh))
+			draw_texture_rect(team.flag, r, false)
+			draw_rect(r, Color(0.95, 0.85, 0.4), false, 2.0)
+			return
 		var shield := PackedVector2Array([Vector2(w * 0.1, h * 0.06), Vector2(w * 0.9, h * 0.06),
 			Vector2(w * 0.9, h * 0.55), Vector2(w * 0.5, h * 0.95), Vector2(w * 0.1, h * 0.55)])
 		draw_colored_polygon(shield, team.color)
 		var half := PackedVector2Array([Vector2(w * 0.9, h * 0.06), Vector2(w * 0.9, h * 0.55),
 			Vector2(w * 0.5, h * 0.95), Vector2(w * 0.35, h * 0.8)])
-		draw_colored_polygon(half, team.secondary_color)
+		# La otra mitad: el segundo color del diseño de la camiseta, o el del
+		# pantalón si es lisa (o si son iguales a la camiseta).
+		var second := team.pattern_color if team.pattern > 0 else team.secondary_color
+		if second.is_equal_approx(team.color):
+			second = team.secondary_color if not team.secondary_color.is_equal_approx(team.color) else Color.WHITE
+		draw_colored_polygon(half, second)
 		shield.append(shield[0])
 		draw_polyline(shield, Color(0.95, 0.85, 0.4), 2.0)
 		var font := get_theme_default_font()
@@ -214,6 +226,19 @@ class KitIcon:
 	extends Control
 	var shirt := Color.WHITE
 	var shorts := Color.BLACK
+	## Diseño de la camiseta (TeamData.pattern) y su segundo color.
+	var pattern := 0
+	var shirt2 := Color.BLACK
+
+	## Uniforme `i` (0 titular, 1 suplente) de un equipo.
+	func set_kit(team: TeamData, i: int) -> void:
+		var k := team.kit(i)
+		shirt = k[0]
+		shorts = k[1]
+		var p := team.kit_pattern(i)
+		pattern = int(p[0])
+		shirt2 = p[1]
+		queue_redraw()
 
 	func _draw() -> void:
 		var w := size.x
@@ -223,6 +248,7 @@ class KitIcon:
 			Vector2(w * 0.74, h * 0.62), Vector2(w * 0.26, h * 0.62), Vector2(w * 0.26, h * 0.3), Vector2(w * 0.15, h * 0.36),
 			Vector2(w * 0.05, h * 0.2)])
 		draw_colored_polygon(body, shirt)
+		_draw_pattern(w, h)
 		body.append(body[0])
 		draw_polyline(body, Color(0, 0, 0, 0.6), 2.0)
 		var pants := PackedVector2Array([Vector2(w * 0.26, h * 0.64), Vector2(w * 0.74, h * 0.64), Vector2(w * 0.78, h * 0.92),
@@ -230,6 +256,40 @@ class KitIcon:
 		draw_colored_polygon(pants, shorts)
 		pants.append(pants[0])
 		draw_polyline(pants, Color(0, 0, 0, 0.6), 2.0)
+
+	## El diseño sobre el torso (rectángulo entre las mangas).
+	func _draw_pattern(w: float, h: float) -> void:
+		var x0 := w * 0.26
+		var x1 := w * 0.74
+		var y0 := h * 0.1
+		var y1 := h * 0.62
+		match pattern:
+			1, 2:
+				var n := 5 if pattern == 1 else 9
+				var bw := (x1 - x0) / n
+				for k in range(1, n, 2):
+					draw_rect(Rect2(x0 + k * bw, y0, bw * (1.0 if pattern == 1 else 0.45), y1 - y0), shirt2)
+			3:
+				var bh := (y1 - y0) / 5.0
+				for k in range(1, 5, 2):
+					draw_rect(Rect2(x0, y0 + k * bh, x1 - x0, bh), shirt2)
+			4:
+				draw_rect(Rect2((x0 + x1) * 0.5, y0, (x1 - x0) * 0.5, y1 - y0), shirt2)
+			5:
+				draw_colored_polygon(PackedVector2Array([Vector2(x1 - w * 0.1, y0), Vector2(x1, y0), Vector2(x1, y0 + h * 0.08),
+					Vector2(x0 + w * 0.1, y1), Vector2(x0, y1), Vector2(x0, y1 - h * 0.08)]), shirt2)
+			6:
+				draw_rect(Rect2(x0, y0 + (y1 - y0) * 0.3, x1 - x0, (y1 - y0) * 0.2), shirt2)
+			7:
+				var cx := (x0 + x1) * 0.5
+				draw_colored_polygon(PackedVector2Array([Vector2(x0, y0), Vector2(x0 + w * 0.08, y0), Vector2(cx, y0 + h * 0.2),
+					Vector2(x1 - w * 0.08, y0), Vector2(x1, y0), Vector2(cx, y0 + h * 0.28)]), shirt2)
+			8:
+				var cs := (x1 - x0) / 6.0
+				for gy in int((y1 - y0) / cs):
+					for gx in 6:
+						if (gx + gy) % 2 == 1:
+							draw_rect(Rect2(x0 + gx * cs, y0 + gy * cs, cs, cs), shirt2)
 
 
 ## Barras de puntaje (ataque, defensa, ...) de 0 a 1.

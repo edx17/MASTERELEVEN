@@ -270,13 +270,35 @@ func _open_competition(kind: int) -> void:
 
 
 func _start_competition(kind: int, my_team: String) -> void:
-	var paths := GameSettings.team_paths()
+	var paths := competition_paths(kind, my_team, _teams.group_paths_of(my_team))
 	var me := maxi(paths.find(my_team), 0)
 	var c := Competition.create_league(paths, me, false) if kind == Competition.Kind.LEAGUE else Competition.create_cup(paths, me)
 	c.save()
 	_history.clear()
 	_history.append("home")
 	show_page("hub", false)
+
+
+## Equipos de la Liga o la Copa según el equipo elegido: en la Liga, toda
+## su división (si es un club real) o los 8 Equipos WE; con una selección,
+## ella y 7 más. La Copa siempre es de 8 (el tuyo y 7 de su grupo al azar).
+static func competition_paths(kind: int, my_team: String, group: Array[String]) -> Array[String]:
+	var out: Array[String] = []
+	if group.is_empty() or not group.has(my_team):
+		out = GameSettings.team_paths()
+		if not out.has(my_team):
+			out[0] = my_team
+		return out
+	if kind == Competition.Kind.LEAGUE and my_team.begins_with("db:club:"):
+		return group.duplicate()
+	if group.size() <= 8:
+		return group.duplicate()
+	var others := group.filter(func(p: String) -> bool: return p != my_team)
+	others.shuffle()
+	out.append(my_team)
+	for i in 7:
+		out.append(others[i])
+	return out
 
 
 ## Jugar el partido de la fecha: pasa por la configuración del partido.

@@ -42,8 +42,12 @@ func _ready() -> void:
 		"Qué tan bien juega la computadora.")
 	_add(list, "Offside", func() -> String: return "sí" if GameSettings.offside else "no",
 		func(_d: int) -> void: GameSettings.offside = not GameSettings.offside, "Cobrar o no la posición adelantada.")
-	_add(list, "Estadio", func() -> String: return _choice(GameSettings.stadium_choice, StadiumStyles.names()),
-		_cycle.bind("stadium_choice", StadiumStyles.STYLES.size()), "Dónde se juega. Todos los estadios son inventados.")
+	_add(list, "Estadio", func() -> String:
+			if GameSettings.stadium_choice < 0 and _home != null and _home.stadium != "":
+				return "del local (%s)" % _home.stadium
+			return _choice(GameSettings.stadium_choice, StadiumStyles.names()),
+		_cycle.bind("stadium_choice", StadiumStyles.STYLES.size()),
+		"Dónde se juega. \"Al azar\" con un club real de local: su estadio (nombre real, forma según la capacidad).")
 	_add(list, "Uniforme local", func() -> String: return "titular" if GameSettings.home_kit == 0 else "alternativo",
 		func(_d: int) -> void: GameSettings.home_kit = 1 - GameSettings.home_kit, "Camiseta del local.")
 	_add(list, "Uniforme visitante", func() -> String: return "titular" if GameSettings.away_kit == 0 else "alternativo",
@@ -115,15 +119,13 @@ func _refresh() -> void:
 	if _home == null:
 		return
 	var hk := _home.kit(GameSettings.home_kit)
-	var ak := _away.kit(GameSettings.away_kit)
-	if GameSettings.kits_clash(ak[0], hk[0]):
-		ak = _away.kit(1 - GameSettings.away_kit)
-	var kits := [hk, ak]
+	var ak_i := GameSettings.away_kit
+	if GameSettings.kits_clash(_away.kit(ak_i)[0], hk[0]):
+		ak_i = 1 - ak_i
 	var names := [_home.team_name, _away.team_name]
+	_kits[0].set_kit(_home, GameSettings.home_kit)
+	_kits[1].set_kit(_away, ak_i)
 	for i in 2:
-		_kits[i].shirt = kits[i][0]
-		_kits[i].shorts = kits[i][1]
-		_kits[i].queue_redraw()
 		_kit_labels[i].text = ("LOCAL\n" if i == 0 else "VISITANTE\n") + names[i]
 
 

@@ -89,3 +89,53 @@ func test_match_starts_with_database_teams() -> void:
 	assert_eq(m.teams[0].players.size(), 11)
 	GameSettings.home_team_path = saved[0]
 	GameSettings.away_team_path = saved[1]
+
+
+## La elección de equipos se recorre por grupos: selecciones, cada división
+## y los Equipos WE.
+func test_team_select_groups() -> void:
+	var ts := TeamSelect.new()
+	add_child_autofree(ts)
+	assert_eq(ts.groups[0]["kind"], "nations")
+	assert_eq(ts.groups[-1]["kind"], "we")
+	assert_eq(ts.groups.size(), 1 + 19 + 1, "selecciones + 19 divisiones + WE")
+	var saved := [GameSettings.home_team_path, GameSettings.away_team_path]
+	GameSettings.home_team_path = TeamDB.club_path("arg", "river")
+	GameSettings.away_team_path = TeamDB.nation_path("bra")
+	ts.open()
+	GameSettings.home_team_path = saved[0]
+	GameSettings.away_team_path = saved[1]
+	assert_eq(ts.groups[ts.group]["division"], "arg1", "abre en el grupo del local")
+	ts.show_group(0)
+	assert_eq(ts.paths.size(), 59)
+	assert_not_null(ts.teams[0].flag)
+	ts._on_pick(3)
+	assert_eq(ts.side, 1)
+	watch_signals(ts)
+	ts.show_group(ts.group + 1)
+	ts._on_pick(0)
+	assert_signal_emitted(ts, "chosen")
+
+
+func test_competition_uses_the_real_division() -> void:
+	var menu: Script = load("res://scripts/ui/main_menu.gd")
+	var mine := TeamDB.club_path("eng", "wrexham")
+	var div := TeamDB.division_paths("eng", "eng2")
+	var league: Array[String] = menu.competition_paths(Competition.Kind.LEAGUE, mine, div)
+	assert_eq(league.size(), 24, "toda la Championship")
+	var cup: Array[String] = menu.competition_paths(Competition.Kind.CUP, mine, div)
+	assert_eq(cup.size(), 8)
+	assert_true(cup.has(mine))
+	var nat := TeamDB.nation_path("arg")
+	var nl: Array[String] = menu.competition_paths(Competition.Kind.LEAGUE, nat, TeamDB.nation_paths())
+	assert_eq(nl.size(), 8, "con selecciones, 8")
+
+
+func test_real_stadium_by_capacity() -> void:
+	var boca := TeamDB.load_team(TeamDB.club_path("arg", "boca"))
+	var st := StadiumStyles.for_team(boca, -1)
+	assert_eq(st["name"], "La Bombonera")
+	var mad := StadiumStyles.for_team(TeamDB.load_team(TeamDB.club_path("esp", "realmadrid")), -1)
+	assert_true(mad.get("oval", false), "los gigantes: cuenco de cuatro bandejas")
+	assert_eq(StadiumStyles.for_team(boca, 0)["name"], StadiumStyles.STYLES[0]["name"], "el elegido en el menú manda")
+	assert_eq(StadiumStyles.STYLES[2]["name"], "Gran Coliseo del Plata", "no se pisa el original")

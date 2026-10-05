@@ -14,6 +14,10 @@ func _run() -> void:
 	for f in 10:
 		await get_tree().process_frame
 	for a in OS.get_cmdline_user_args():
+		# `--menu-home=db:nat:arg`: local elegido (la elección abre en su grupo).
+		if a.begins_with("--menu-home="):
+			GameSettings.home_team_path = a.trim_prefix("--menu-home=")
+	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--menu-page="):
 			var menu := get_tree().current_scene
 			var page := a.trim_prefix("--menu-page=")

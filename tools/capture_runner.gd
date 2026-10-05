@@ -162,6 +162,13 @@ func _ready() -> void:
 	# `--retro`: jugadores con el modelo retro (estilo PS1).
 	if "--retro" in OS.get_cmdline_user_args():
 		GameSettings.player_style = 1
+	# `--teams=local,visitante` (rutas: db:club:arg:boca, db:nat:bra...).
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--teams="):
+			var tv := arg.trim_prefix("--teams=").split(",")
+			GameSettings.home_team_path = tv[0]
+			GameSettings.away_team_path = tv[1]
+			GameSettings.stadium_choice = -1
 	# `--stadium=N`: estadio (StadiumStyles).
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--stadium="):
