@@ -80,6 +80,9 @@ func _ready() -> void:
 	root.add_child(_tabs)
 	_tabs.add_child(_players_tab())
 	_tabs.add_child(_teams_tab())
+	_tabs.add_child(_nations_tab())
+	_tabs.add_child(_leagues_tab())
+	_tabs.add_child(_cups_tab())
 	_tabs.add_child(_import_tab())
 	# Barra de estado abajo: Option File, cambios sin guardar y avisos.
 	root.add_child(_status)
@@ -88,6 +91,9 @@ func _ready() -> void:
 	_fill_group(_t_group)
 	_on_p_group(0)
 	_on_t_group(0)
+	_refresh_nations()
+	_refresh_leagues()
+	_refresh_cups()
 	_update_status()
 
 
@@ -161,6 +167,7 @@ func _on_of_selected(i: int) -> void:
 func _switch_model(of: OptionFile) -> void:
 	model = EditorModel.new(of)
 	model.changed.connect(_on_changed)
+	_regroup()
 	_refresh_of_list()
 	_on_p_group(_p_group.selected)
 	_on_t_group(_t_group.selected)
@@ -225,6 +232,9 @@ func _on_changed() -> void:
 	_refill_players()
 	if _t_current != "":
 		_show_team(_t_current)
+	_refresh_nations()
+	_refresh_leagues()
+	_refresh_cups()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -721,6 +731,472 @@ func _edit_in_players() -> void:
 	var i := _group_paths(_t_group.selected).find(_t_current)
 	_p_team.select(i + 1)
 	_refill_players()
+
+
+## Vuelve a leer los grupos (selecciones nuevas, clubes que cambiaron de
+## división) sin perder la elección de los filtros.
+func _regroup() -> void:
+	_groups = TeamSelect.build_groups().filter(func(g: Dictionary) -> bool: return g["kind"] != "we")
+	for ob in [_p_group, _t_group]:
+		if ob == null:
+			continue
+		var keep: int = ob.selected
+		_fill_group(ob)
+		ob.select(clampi(keep, 0, _groups.size() - 1))
+
+
+# --- Selecciones -----------------------------------------------------------------------------
+
+var _n_list: ItemList
+var _n_paths: Array[String] = []
+var _n_form: VBoxContainer
+var _n_current := ""
+
+
+func _nations_tab() -> Control:
+	var tab := HSplitContainer.new()
+	tab.name = "Selecciones"
+	var left := VBoxContainer.new()
+	left.custom_minimum_size.x = 260
+	tab.add_child(left)
+	_n_list = ItemList.new()
+	_n_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_n_list.fixed_icon_size = Vector2i(36, 24)
+	_n_list.item_selected.connect(func(i: int) -> void: _show_nation(_n_paths[i]))
+	left.add_child(_n_list)
+	var nr := HBoxContainer.new()
+	left.add_child(nr)
+	var nname := LineEdit.new()
+	nname.placeholder_text = "Nombre"
+	nname.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nr.add_child(nname)
+	var nshort := LineEdit.new()
+	nshort.placeholder_text = "Sigla"
+	nshort.max_length = 3
+	nshort.custom_minimum_size.x = 60
+	nr.add_child(nshort)
+	left.add_child(_btn("Nueva selección", func() -> void:
+		if nname.text.strip_edges() == "":
+			_status.text = "Poné el nombre de la selección."
+			return
+		var path := model.new_nation(nname.text.strip_edges(), nshort.text.strip_edges())
+		_regroup()
+		_refresh_nations()
+		_show_nation(path), "Con un plantel generado que después editás"))
+	left.add_child(_btn("Borrar selección", func() -> void:
+		if _n_current != "":
+			model.delete_nation(_n_current)
+			_n_current = ""
+			_regroup(), "Deja de aparecer en el juego (se puede deshacer)"))
+	_n_form = VBoxContainer.new()
+	_n_form.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tab.add_child(_n_form)
+	return tab
+
+
+func _refresh_nations() -> void:
+	if _n_list == null:
+		return
+	_n_list.clear()
+	_n_paths = TeamDB.nation_paths()
+	for p in _n_paths:
+		var t := TeamDB.load_team(p)
+		_n_list.add_item(t.team_name, t.flag)
+	if _n_current == "" and not _n_paths.is_empty():
+		_n_current = _n_paths[0]
+	var i := _n_paths.find(_n_current)
+	if i >= 0:
+		_n_list.select(i)
+		_show_nation(_n_current)
+
+
+func _show_nation(path: String) -> void:
+	_n_current = path
+	for c in _n_form.get_children():
+		_n_form.remove_child(c)
+		c.queue_free()
+	var e := model.entry(path)
+	if e.is_empty():
+		return
+	var cols := HBoxContainer.new()
+	cols.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_n_form.add_child(cols)
+	var lf := VBoxContainer.new()
+	lf.custom_minimum_size.x = 360
+	cols.add_child(lf)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	lf.add_child(grid)
+	var name := LineEdit.new()
+	name.text = String(e.get("name", ""))
+	_row(grid, "Nombre", name)
+	var short := LineEdit.new()
+	short.text = String(e.get("short", ""))
+	short.max_length = 3
+	_row(grid, "Sigla", short)
+	var level := _spin(40, 95, int(e.get("level", 70)))
+	_row(grid, "Nivel (planteles generados)", level)
+	var form := OptionButton.new()
+	var fnames: Array = FormationLibrary.DEFINITIONS.keys()
+	for f in fnames:
+		form.add_item(f)
+	form.select(maxi(fnames.find(String(e.get("formation", "4-4-2"))), 0))
+	_row(grid, "Formación", form)
+	var home := LineEdit.new()
+	home.text = String(e.get("home", ""))
+	_row(grid, "Titular", home)
+	var away := LineEdit.new()
+	away.text = String(e.get("away", ""))
+	_row(grid, "Suplente", away)
+	var wc := OptionButton.new()
+	for o in ["no", "clasificada al Mundial", "repechaje"]:
+		wc.add_item(o)
+	wc.select(["", "q", "po"].find(String(e.get("wc", ""))))
+	_row(grid, "Mundial 2026", wc)
+	var flag := LineEdit.new()
+	flag.text = JSON.stringify(e.get("flag", {}))
+	flag.tooltip_text = "Bandera: {\"t\": \"h\" | \"v\" | \"hw\" | \"vw\" | \"nordic\" | \"cross\" | \"saltire\" | \"disc\" | \"plain\", \"c\": [colores], \"w\": [anchos], \"e\": {\"k\": \"star\", \"c\": \"ffffff\"}} (ver FlagPainter)"
+	_row(grid, "Bandera", flag)
+	var preview := TextureRect.new()
+	preview.texture = FlagPainter.texture(e.get("flag", {}))
+	preview.custom_minimum_size = Vector2(96, 64)
+	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	lf.add_child(preview)
+	lf.add_child(_btn("Aplicar", func() -> void:
+		var fl: Variant = JSON.parse_string(flag.text)
+		var fields := {"name": name.text.strip_edges(), "short": short.text.strip_edges().to_upper(),
+			"level": int(level.value), "formation": fnames[form.selected], "home": home.text.strip_edges(),
+			"away": away.text.strip_edges(), "wc": ["", "q", "po"][wc.selected]}
+		if fl is Dictionary:
+			fields["flag"] = fl
+		model.set_team(path, fields)
+		_status.text = "Selección actualizada.", ""))
+	# Convocatoria.
+	var rf := VBoxContainer.new()
+	rf.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cols.add_child(rf)
+	rf.add_child(_lbl("Convocatoria (los 11 primeros son los titulares)"))
+	var roster := ItemList.new()
+	roster.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var list: Array = e.get("players", [])
+	for i in list.size():
+		var d: Dictionary = list[i]
+		roster.add_item("%s%2d  %-4s %s" % ["★ " if i < 11 else "   ", int(d.get("num", 0)), String(d.get("pos", "")), String(d.get("n", ""))])
+	rf.add_child(roster)
+	var ra := HBoxContainer.new()
+	rf.add_child(ra)
+	ra.add_child(_btn("▲", func() -> void:
+		var sel := roster.get_selected_items()
+		if not sel.is_empty():
+			model.move_player([path, sel[0]], -1), ""))
+	ra.add_child(_btn("▼", func() -> void:
+		var sel := roster.get_selected_items()
+		if not sel.is_empty():
+			model.move_player([path, sel[0]], 1), ""))
+	ra.add_child(_btn("Desconvocar", func() -> void:
+		var sel := roster.get_selected_items()
+		if not sel.is_empty():
+			model.remove_player([path, sel[0]]), ""))
+	# Convocar desde un club.
+	var cu := HBoxContainer.new()
+	rf.add_child(cu)
+	cu.add_child(_lbl("Convocar de:"))
+	var g := OptionButton.new()
+	g.custom_minimum_size.x = 200
+	g.clip_text = true
+	_fill_group(g)
+	cu.add_child(g)
+	var tm := OptionButton.new()
+	tm.custom_minimum_size.x = 160
+	tm.clip_text = true
+	cu.add_child(tm)
+	var cu2 := HBoxContainer.new()
+	rf.add_child(cu2)
+	var pl := OptionButton.new()
+	pl.custom_minimum_size.x = 260
+	cu2.add_child(pl)
+	var fill_players := func(_i: int = 0) -> void:
+		pl.clear()
+		var paths := _group_paths(g.selected)
+		if tm.selected < 0 or tm.selected >= paths.size():
+			return
+		for d in model.players(paths[tm.selected]):
+			pl.add_item("%s (%s)" % [d.get("n", ""), d.get("pos", "")])
+	var fill_teams := func(_i: int = 0) -> void:
+		tm.clear()
+		for p in _group_paths(g.selected):
+			tm.add_item(String(model.entry(p).get("name", p)))
+		fill_players.call()
+	g.item_selected.connect(fill_teams)
+	tm.item_selected.connect(fill_players)
+	g.select(mini(1, _groups.size() - 1))
+	fill_teams.call()
+	cu2.add_child(_btn("Convocar", func() -> void:
+		var paths := _group_paths(g.selected)
+		if tm.selected < 0 or pl.selected < 0:
+			return
+		var d := model.player([paths[tm.selected], pl.selected])
+		var r := model.call_up(path, d)
+		_status.text = "Convocado." if not r.is_empty() else "La lista ya tiene 23: desconvocá a alguien.", ""))
+
+
+# --- Ligas ----------------------------------------------------------------------------------
+
+var _l_country: OptionButton
+var _l_divs: ItemList
+var _l_clubs: ItemList
+var _l_move: OptionButton
+
+
+func _leagues_tab() -> Control:
+	var tab := HBoxContainer.new()
+	tab.name = "Ligas"
+	var c1 := VBoxContainer.new()
+	c1.custom_minimum_size.x = 280
+	tab.add_child(c1)
+	_l_country = OptionButton.new()
+	for c in TeamDB.countries():
+		_l_country.add_item(String(c["name"]))
+	_l_country.item_selected.connect(func(_i: int) -> void: _refresh_leagues())
+	c1.add_child(_l_country)
+	c1.add_child(_lbl("Divisiones"))
+	_l_divs = ItemList.new()
+	_l_divs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_l_divs.item_selected.connect(func(_i: int) -> void: _refresh_clubs())
+	c1.add_child(_l_divs)
+	var c2 := VBoxContainer.new()
+	c2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tab.add_child(c2)
+	c2.add_child(_lbl("Clubes de la división"))
+	_l_clubs = ItemList.new()
+	_l_clubs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	c2.add_child(_l_clubs)
+	var mv := HBoxContainer.new()
+	c2.add_child(mv)
+	mv.add_child(_lbl("Pasar a:"))
+	_l_move = OptionButton.new()
+	_l_move.custom_minimum_size.x = 220
+	mv.add_child(_l_move)
+	mv.add_child(_btn("Pasar de división", _league_move, "Ascenso o descenso a mano"))
+	mv.add_child(_btn("Sacar de la liga", func() -> void:
+		var ids := _league_sel()
+		if not ids.is_empty():
+			model.remove_club(ids[0], ids[1], ids[2])
+			_regroup(), "Deja de jugar en esta división (sus datos quedan)"))
+	mv.add_child(_btn("Editar equipo", func() -> void:
+		var ids := _league_sel()
+		if ids.is_empty():
+			return
+		var path := TeamDB.club_path(ids[0], ids[2])
+		_tabs.current_tab = 1
+		for gi in _groups.size():
+			if (_groups[gi]["paths"] as Array).has(path):
+				_t_group.select(gi)
+				_on_t_group(gi)
+		_show_team(path), ""))
+	var nc := HBoxContainer.new()
+	c2.add_child(nc)
+	var cname := LineEdit.new()
+	cname.placeholder_text = "Nombre del club nuevo"
+	cname.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nc.add_child(cname)
+	var cshort := LineEdit.new()
+	cshort.placeholder_text = "Sigla"
+	cshort.max_length = 3
+	cshort.custom_minimum_size.x = 60
+	nc.add_child(cshort)
+	nc.add_child(_btn("Agregar club", func() -> void:
+		var ids := _division_sel()
+		if ids.is_empty() or cname.text.strip_edges() == "":
+			_status.text = "Elegí la división y poné el nombre del club."
+			return
+		model.new_club(ids[0], ids[1], cname.text.strip_edges(), cshort.text.strip_edges())
+		cname.text = ""
+		cshort.text = ""
+		_regroup(), "Club nuevo en esta división (plantel generado, editable)"))
+	return tab
+
+
+func _country_sel() -> Dictionary:
+	var cs := TeamDB.countries()
+	return cs[_l_country.selected] if _l_country.selected >= 0 and _l_country.selected < cs.size() else {}
+
+
+## [país, división] elegidos.
+func _division_sel() -> Array:
+	var c := _country_sel()
+	var sel := _l_divs.get_selected_items()
+	if c.is_empty() or sel.is_empty():
+		return []
+	return [String(c["id"]), String(c["divisions"][sel[0]]["id"])]
+
+
+## [país, división, club] elegidos.
+func _league_sel() -> Array:
+	var dv := _division_sel()
+	var sel := _l_clubs.get_selected_items()
+	if dv.is_empty() or sel.is_empty():
+		return []
+	var ids := model.division_ids(dv[0], dv[1])
+	return [dv[0], dv[1], ids[sel[0]]] if sel[0] < ids.size() else []
+
+
+func _refresh_leagues() -> void:
+	if _l_divs == null:
+		return
+	var keep := _l_divs.get_selected_items()
+	_l_divs.clear()
+	_l_move.clear()
+	var c := _country_sel()
+	for d in c.get("divisions", []):
+		_l_divs.add_item("%s (%d)" % [d["name"], (d["clubs"] as Array).size()])
+		_l_move.add_item(String(d["name"]))
+	if _l_divs.item_count > 0:
+		_l_divs.select(keep[0] if not keep.is_empty() and keep[0] < _l_divs.item_count else 0)
+	_refresh_clubs()
+
+
+func _refresh_clubs() -> void:
+	_l_clubs.clear()
+	var dv := _division_sel()
+	if dv.is_empty():
+		return
+	for p in TeamDB.division_paths(dv[0], dv[1]):
+		_l_clubs.add_item(TeamDB.load_team(p).team_name)
+
+
+func _league_move() -> void:
+	var ids := _league_sel()
+	var c := _country_sel()
+	if ids.is_empty() or _l_move.selected < 0:
+		return
+	var to := String(c["divisions"][_l_move.selected]["id"])
+	model.move_club(ids[0], ids[1], to, ids[2])
+	_regroup()
+	_status.text = "Club pasado de división."
+
+
+# --- Copas --------------------------------------------------------------------------------
+
+var _c_list: ItemList
+var _c_form: VBoxContainer
+
+
+func _cups_tab() -> Control:
+	var tab := HSplitContainer.new()
+	tab.name = "Copas"
+	var left := VBoxContainer.new()
+	left.custom_minimum_size.x = 280
+	tab.add_child(left)
+	left.add_child(_lbl("Copas propias (se juegan desde COPA en el juego)"))
+	_c_list = ItemList.new()
+	_c_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_c_list.item_selected.connect(func(i: int) -> void: _show_cup(i))
+	left.add_child(_c_list)
+	var nc := HBoxContainer.new()
+	left.add_child(nc)
+	var cname := LineEdit.new()
+	cname.placeholder_text = "Nombre de la copa"
+	cname.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nc.add_child(cname)
+	nc.add_child(_btn("Nueva", func() -> void:
+		if cname.text.strip_edges() == "":
+			return
+		var i := model.add_cup(cname.text.strip_edges(), "knockout", [])
+		cname.text = ""
+		_c_list.select(i)
+		_show_cup(i), ""))
+	left.add_child(_btn("Borrar copa", func() -> void:
+		var sel := _c_list.get_selected_items()
+		if not sel.is_empty():
+			model.remove_cup(sel[0]), ""))
+	_c_form = VBoxContainer.new()
+	_c_form.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tab.add_child(_c_form)
+	return tab
+
+
+func _refresh_cups() -> void:
+	if _c_list == null:
+		return
+	var keep := _c_list.get_selected_items()
+	_c_list.clear()
+	for c in model.option_file.cups:
+		var ok := EditorModel.cup_valid(c) == ""
+		_c_list.add_item("%s%s (%d)" % ["" if ok else "⚠ ", c.get("name", ""), (c.get("teams", []) as Array).size()])
+	if not keep.is_empty() and keep[0] < _c_list.item_count:
+		_c_list.select(keep[0])
+		_show_cup(keep[0])
+	elif _c_form != null:
+		for ch in _c_form.get_children():
+			ch.queue_free()
+
+
+func _show_cup(i: int) -> void:
+	for ch in _c_form.get_children():
+		_c_form.remove_child(ch)
+		ch.queue_free()
+	if i < 0 or i >= model.option_file.cups.size():
+		return
+	var c: Dictionary = model.option_file.cups[i]
+	var grid := GridContainer.new()
+	grid.columns = 2
+	_c_form.add_child(grid)
+	var name := LineEdit.new()
+	name.text = String(c.get("name", ""))
+	name.text_submitted.connect(func(t: String) -> void: model.set_cup(i, {"name": t.strip_edges()}))
+	_row(grid, "Nombre (Enter)", name)
+	var fmt := OptionButton.new()
+	fmt.add_item("Eliminación directa (4, 8, 16 o 32)")
+	fmt.add_item("Liga (todos contra todos)")
+	fmt.select(0 if String(c.get("format", "knockout")) == "knockout" else 1)
+	fmt.item_selected.connect(func(k: int) -> void: model.set_cup(i, {"format": ["knockout", "league"][k]}))
+	_row(grid, "Formato", fmt)
+	var warn := EditorModel.cup_valid(c)
+	var wl := _lbl(warn if warn != "" else "Lista para jugar.")
+	wl.add_theme_color_override("font_color", Color(1.0, 0.6, 0.4) if warn != "" else Color(0.6, 0.9, 0.6))
+	_c_form.add_child(wl)
+	var teams: Array = c.get("teams", [])
+	var tl := ItemList.new()
+	tl.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	for p in teams:
+		var t := TeamDB.load_team(p)
+		tl.add_item(t.team_name if t != null else String(p))
+	_c_form.add_child(tl)
+	_c_form.add_child(_btn("Quitar equipo", func() -> void:
+		var sel := tl.get_selected_items()
+		if sel.is_empty():
+			return
+		var nt := teams.duplicate()
+		nt.remove_at(sel[0])
+		model.set_cup(i, {"teams": nt}), ""))
+	var add := HBoxContainer.new()
+	_c_form.add_child(add)
+	var g := OptionButton.new()
+	_fill_group(g)
+	add.add_child(g)
+	var tm := OptionButton.new()
+	tm.custom_minimum_size.x = 200
+	add.add_child(tm)
+	var fill := func(_k: int = 0) -> void:
+		tm.clear()
+		for p in _group_paths(g.selected):
+			tm.add_item(TeamDB.load_team(p).team_name)
+	g.item_selected.connect(fill)
+	fill.call()
+	add.add_child(_btn("Agregar", func() -> void:
+		var paths := _group_paths(g.selected)
+		if tm.selected < 0 or tm.selected >= paths.size() or teams.has(paths[tm.selected]):
+			return
+		var nt := teams.duplicate()
+		nt.append(paths[tm.selected])
+		model.set_cup(i, {"teams": nt}), ""))
+	add.add_child(_btn("Agregar todo el grupo", func() -> void:
+		var nt := teams.duplicate()
+		for p in _group_paths(g.selected):
+			if not nt.has(p):
+				nt.append(p)
+		model.set_cup(i, {"teams": nt}), ""))
 
 
 # --- Importar -------------------------------------------------------------------------------

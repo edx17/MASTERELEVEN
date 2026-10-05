@@ -18,6 +18,9 @@ var _hub: CompetitionHub
 ## Eligiendo el equipo para una Liga / Copa nueva (Competition.Kind) o -1.
 var _new_competition := -1
 var _continue_btn: Button
+## Copa propia elegida (del Option File) o {}.
+var _custom_cup: Dictionary = {}
+var _cups_col: VBoxContainer
 var _continue_col: VBoxContainer
 var _history: Array[String] = []
 var _focus_memory := {}
@@ -36,6 +39,7 @@ func _ready() -> void:
 	_build_title()
 	_build_home()
 	_build_continue()
+	_build_cups()
 	_build_modes()
 	_build_training()
 	_build_world_cup()
@@ -88,7 +92,7 @@ func show_page(page: String, remember := true) -> void:
 	for k in _pages:
 		(_pages[k] as Control).visible = k == page
 	# Las pantallas de equipos y partido traen su propia ayuda.
-	_help.get_parent().visible = page in ["home", "modes", "training", "options", "controls", "worldcup", "continue", "data"]
+	_help.get_parent().visible = page in ["home", "modes", "training", "options", "controls", "worldcup", "continue", "data", "cups"]
 	if page == "home" and _continue_btn != null:
 		_continue_btn.disabled = Competition.list_saves().is_empty()
 	if page == "title":
@@ -102,6 +106,8 @@ func show_page(page: String, remember := true) -> void:
 			_hub.open(Competition.load_saved(GameSettings.active_save))
 		"continue":
 			_build_continue_list()
+		"cups":
+			_build_cups_list()
 		_:
 			var back_focus: Control = _focus_memory.get(page)
 			if not remember and back_focus != null and is_instance_valid(back_focus):
@@ -130,7 +136,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			leave_title()
 			get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed(&"ui_cancel") and _current() in ["modes", "options", "controls", "worldcup", "continue", "data"]:
+	if event.is_action_pressed(&"ui_cancel") and _current() in ["modes", "options", "controls", "worldcup", "continue", "data", "cups"]:
 		if _current() == "controls" and _controls_capturing():
 			return
 		go_back()
@@ -277,8 +283,13 @@ func _choose_mode(mode: int, shootout := false) -> void:
 # --- Liga / Copa -----------------------------------------------------------------
 
 ## Sigue la competición guardada de ese tipo; si no hay, elegís tu equipo.
-## Liga / Copa nueva (las guardadas se siguen desde CONTINUAR).
+## Liga / Copa nueva (las guardadas se siguen desde CONTINUAR). Si el
+## Option File trae copas propias, primero se elige cuál.
 func _open_competition(kind: int) -> void:
+	_custom_cup = {}
+	if kind == Competition.Kind.CUP and not playable_cups().is_empty():
+		show_page("cups")
+		return
 	_new_competition = kind
 	_teams.single = true
 	_teams.only_paths = []
@@ -288,6 +299,21 @@ func _open_competition(kind: int) -> void:
 func _start_competition(kind: int, my_team: String) -> void:
 	_teams.only_paths = []
 	var c: Competition
+	if not _custom_cup.is_empty():
+		var teams: Array[String] = []
+		teams.assign(_custom_cup.get("teams", []))
+		var me_i := maxi(teams.find(my_team), 0)
+		c = Competition.create_league(teams, me_i, false) if String(_custom_cup.get("format", "")) == "league" \
+			else Competition.create_cup(teams, me_i)
+		c.title = "%s · %s" % [_custom_cup.get("name", "Copa"), c.team(me_i).team_name]
+		c.option_file = GameSettings.active_optionfile
+		c.save()
+		GameSettings.active_save = c.file
+		_custom_cup = {}
+		_history.clear()
+		_history.append("home")
+		show_page("hub", false)
+		return
 	if kind == Competition.Kind.WORLD_CUP:
 		var wc := world_cup_paths(GameSettings.wc_playoff)
 		c = Competition.create_world_cup(wc, maxi(wc.find(my_team), 0), 0,
@@ -333,6 +359,49 @@ static func competition_paths(kind: int, my_team: String, group: Array[String]) 
 	for i in 7:
 		out.append(others[i])
 	return out
+
+
+# --- Copas propias (del Option File) ---------------------------------------------------
+
+## Copas del Option File activo que se pueden jugar.
+static func playable_cups() -> Array:
+	if TeamDB.option_file == null:
+		return []
+	return TeamDB.option_file.cups.filter(func(c: Dictionary) -> bool:
+		return EditorModel.cup_valid(c) == "" and (c.get("teams", []) as Array).all(func(p: String) -> bool: return TeamDB.exists(p)))
+
+
+func _build_cups() -> void:
+	var p := _page("cups")
+	var title := WEStyle.label("COPA", 30, Color(1.0, 0.9, 0.35))
+	title.position = Vector2(80, 40)
+	p.add_child(title)
+	_cups_col = _column(p, Vector2(80, 100))
+	_cups_col.add_theme_constant_override("separation", 6)
+
+
+func _build_cups_list() -> void:
+	for c in _cups_col.get_children():
+		_cups_col.remove_child(c)
+		c.queue_free()
+	_item(_cups_col, "COPA RÁPIDA", "Eliminación directa de 8: tu equipo y 7 de su grupo.", func() -> void:
+		_custom_cup = {}
+		_new_competition = Competition.Kind.CUP
+		_teams.single = true
+		_teams.only_paths = []
+		show_page("teams"), true, 640.0)
+	for cup in playable_cups():
+		var n := (cup.get("teams", []) as Array).size()
+		var fmt := "liga" if String(cup.get("format", "")) == "league" else "eliminación directa"
+		_item(_cups_col, String(cup.get("name", "Copa")).to_upper(), "Copa de tu Option File: %d equipos, %s." % [n, fmt],
+			func() -> void:
+				_custom_cup = cup
+				_new_competition = Competition.Kind.CUP
+				_teams.single = true
+				_teams.only_paths.assign(cup.get("teams", []))
+				show_page("teams"), true, 640.0)
+	_item(_cups_col, "VOLVER", "Volver al menú principal.", go_back, true, 640.0)
+	_first_focus(_cups_col)
 
 
 # --- Continuar ------------------------------------------------------------------------

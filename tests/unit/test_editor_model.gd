@@ -81,3 +81,50 @@ func test_save_and_reload_from_disk() -> void:
 	assert_eq(t.players[0].player_name, "Arquero Editado")
 	TeamDB.use_option_file(null)
 	assert_eq(TeamDB.load_team(BOCA).team_name, "Boca Juniors", "la base intacta")
+
+
+## E3: convocatoria, selección nueva y borrada.
+func test_nations_call_up_new_and_delete() -> void:
+	var arg := TeamDB.nation_path("arg")
+	m.remove_player([arg, 22])
+	var star: Dictionary = m.player([BOCA, 9]).duplicate(true)
+	star["n"] = "Convocado de Boca"
+	var ref := m.call_up(arg, star)
+	assert_eq(m.player(ref)["n"], "Convocado de Boca")
+	var nueva := m.new_nation("Groenlandia", "GRL")
+	assert_true(TeamDB.exists(nueva))
+	assert_eq(TeamDB.load_team(nueva).players.size(), 23)
+	m.delete_nation(TeamDB.nation_path("chn"))
+	assert_false(TeamDB.exists(TeamDB.nation_path("chn")))
+	assert_eq(TeamDB.nations().size(), 59, "59 + 1 nueva - 1 borrada")
+
+
+## E3: mover un club de división, club nuevo y sacar un club.
+func test_leagues_move_new_and_remove_clubs() -> void:
+	m.move_club("arg", "arg2", "arg1", "colon")
+	assert_true(TeamDB.division_paths("arg", "arg1").has(TeamDB.club_path("arg", "colon")), "ascendido")
+	assert_false(TeamDB.division_paths("arg", "arg2").has(TeamDB.club_path("arg", "colon")))
+	var path := m.new_club("arg", "arg5", "Club Atlético Mi Barrio", "CMB")
+	assert_true(TeamDB.division_paths("arg", "arg5").has(path))
+	var t := TeamDB.load_team(path)
+	assert_eq(t.team_name, "Club Atlético Mi Barrio")
+	assert_eq(t.players.size(), 23)
+	m.remove_club("arg", "arg5", "promo12")
+	assert_eq(TeamDB.division_paths("arg", "arg5").size(), 12, "12 + 1 nuevo - 1 sacado")
+	m.undo()
+	assert_eq(TeamDB.division_paths("arg", "arg5").size(), 13)
+
+
+## E3: copas propias.
+func test_custom_cups() -> void:
+	var teams := TeamDB.division_paths("eng", "eng1").slice(0, 8)
+	var i := m.add_cup("Copa de la Liga", "knockout", teams)
+	assert_eq(EditorModel.cup_valid(m.option_file.cups[i]), "")
+	m.set_cup(i, {"teams": teams.slice(0, 6)})
+	assert_ne(EditorModel.cup_valid(m.option_file.cups[i]), "", "6 no sirve para eliminación")
+	m.set_cup(i, {"format": "league"})
+	assert_eq(EditorModel.cup_valid(m.option_file.cups[i]), "")
+	m.save()
+	assert_eq(OptionFile.load_named("Editor Test").cups.size(), 1)
+	m.remove_cup(i)
+	assert_eq(m.option_file.cups.size(), 0)

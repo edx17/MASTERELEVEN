@@ -39,14 +39,34 @@ todo como estaba.
 - Plantel: los 11 primeros son los titulares; "▲ Subir" / "▼ Bajar" cambian
   el orden; "Nuevo jugador" (alta) y "Quitar" (baja).
 
+## Selecciones
+- Datos: nombre, sigla, nivel (para los planteles generados), formación,
+  camisetas, si juega el Mundial 2026 (clasificada / repechaje) y la bandera
+  (descripción simple, con vista previa).
+- **Convocatoria**: subir / bajar (los 11 primeros son titulares),
+  desconvocar y **convocar** a cualquier jugador de un club (se copia a la
+  lista; máximo 23).
+- **Nueva selección** (con plantel generado) y **Borrar selección**.
+
+## Ligas
+- Por país, sus divisiones y los clubes de cada una.
+- **Pasar de división** (ascensos y descensos a mano), **Sacar de la
+  liga**, **Agregar club** nuevo (plantel generado según la división) y
+  "Editar equipo" (lo abre en la pestaña Equipos).
+
+## Copas
+- Copas propias: nombre, formato (eliminación directa de 4, 8, 16 o 32, o
+  liga de 3 a 40 equipos) y equipos (de a uno o un grupo entero). Avisa si
+  la cantidad no sirve.
+- En el juego: **COPA** muestra "Copa rápida" y tus copas; elegís tu equipo
+  entre los de la copa.
+
 ## Importar
 Lo mismo que en el juego: copiás los CSV a la carpeta `importar`, apretás
 **Importar** y los planteles van al Option File de arriba, con el resumen de
 lo que entró y de los clubes que no se encontraron. Formato y fuentes:
 `docs/BASE_DE_DATOS.md`.
 
-## Próximas etapas
-- **E3**: Selecciones (convocatorias), Ligas (crear / borrar divisiones,
-  mover clubes) y Copas.
+## Próxima etapa
 - **E4**: Camisetas (colores, diseños, números, plantilla PNG para el mapeo)
   y botines, con vista 3D del jugador.

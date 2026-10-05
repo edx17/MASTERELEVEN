@@ -129,3 +129,19 @@ func test_settings_go_to_the_user_folder() -> void:
 	GameSettings.save_settings()
 	GameSettings.persist = was
 	assert_true(FileAccess.file_exists(UserData.config_path()))
+
+
+## E3: las copas propias del Option File se juegan desde COPA.
+func test_custom_cup_is_playable() -> void:
+	var of := OptionFile.new()
+	of.name = "Copas"
+	var teams := TeamDB.division_paths("eng", "eng1").slice(0, 4)
+	of.cups = [{"id": "c1", "name": "Copa Chica", "format": "knockout", "teams": teams},
+		{"id": "c2", "name": "Rota", "format": "knockout", "teams": teams.slice(0, 3)}]
+	TeamDB.use_option_file(of)
+	var menu: Script = load("res://scripts/ui/main_menu.gd")
+	var cups: Array = menu.playable_cups()
+	assert_eq(cups.size(), 1, "la de 3 equipos no se puede jugar")
+	assert_eq(cups[0]["name"], "Copa Chica")
+	var c := Competition.create_cup(teams as Array[String], 0, 3)
+	assert_eq(c.round_name(), "Semifinales")

@@ -285,3 +285,175 @@ func search(paths: Array, text: String = "", line: int = -1, nat: String = "") -
 				continue
 			out.append({"ref": [path, i], "d": d, "team": String(e.get("name", ""))})
 	return out
+
+
+# --- Selecciones (E3) -------------------------------------------------------------
+
+## Convoca a un jugador (copia de sus datos) a una selección.
+func call_up(nation_path: String, d: Dictionary) -> Array:
+	if not nation_path.begins_with("db:nat:") or players(nation_path).size() >= MAX_SQUAD:
+		return []
+	_snapshot()
+	var list := players(nation_path)
+	var nd := d.duplicate(true)
+	var used := {}
+	for p in list:
+		used[int(p.get("num", 0))] = true
+	var num := int(nd.get("num", 1))
+	while used.has(num):
+		num = num % 99 + 1
+	nd["num"] = num
+	list.append(nd)
+	_commit(nation_path)
+	changed.emit()
+	return [nation_path, list.size() - 1]
+
+
+## Selección nueva (con un plantel generado de nivel medio). Devuelve su ruta.
+func new_nation(name: String, short: String) -> String:
+	var id := _free_id(_slug(short if short != "" else name), func(x: String) -> bool: return not TeamDB.nation(x).is_empty())
+	_snapshot()
+	var e := {"id": id, "name": name, "short": short.to_upper().substr(0, 3), "conf": "", "wc": "", "level": 65,
+		"names": "en", "skin": [40, 30, 18, 12], "formation": "4-4-2", "flag": {"t": "h", "c": ["ffffff", "1a3e8f", "ffffff"]},
+		"home": "ffffff/1a3e8f/ffffff", "away": "1a3e8f/1a3e8f/1a3e8f", "keeper": "1a1a1a"}
+	option_file.set_nation(e)
+	TeamDB.use_option_file(option_file)
+	_entries.erase(TeamDB.nation_path(id))
+	dirty = true
+	changed.emit()
+	return TeamDB.nation_path(id)
+
+
+func delete_nation(path: String) -> void:
+	var id := path.get_slice(":", 2)
+	if id == "":
+		return
+	_snapshot()
+	option_file.nations.erase(id)
+	if not option_file.deleted_nations.has(id):
+		option_file.deleted_nations.append(id)
+	_entries.erase(path)
+	TeamDB.use_option_file(option_file)
+	dirty = true
+	changed.emit()
+
+
+# --- Ligas (E3) ---------------------------------------------------------------------
+
+## Ids de clubes de una división (con los cambios del Option File).
+func division_ids(country_id: String, division_id: String) -> Array:
+	var out: Array = []
+	for p in TeamDB.division_paths(country_id, division_id):
+		out.append(p.get_slice(":", 3))
+	return out
+
+
+## Pasa un club de una división a otra del mismo país.
+func move_club(country_id: String, from_div: String, to_div: String, club_id: String) -> void:
+	if from_div == to_div:
+		return
+	_snapshot()
+	var a := division_ids(country_id, from_div)
+	var b := division_ids(country_id, to_div)
+	a.erase(club_id)
+	if not b.has(club_id):
+		b.append(club_id)
+	option_file.set_division(country_id, from_div, a)
+	option_file.set_division(country_id, to_div, b)
+	TeamDB.use_option_file(option_file)
+	dirty = true
+	changed.emit()
+
+
+## Club nuevo en una división (colores lisos, estadio vacío; plantel
+## generado según la división). Devuelve su ruta.
+func new_club(country_id: String, division_id: String, name: String, short: String) -> String:
+	var all := {}
+	for d in TeamDB.country(country_id).get("divisions", []):
+		for cl in d["clubs"]:
+			all[String(cl["id"])] = true
+	for key in option_file.clubs:
+		all[String(key).get_slice(":", 1)] = true
+	var id := _free_id(_slug(name), func(x: String) -> bool: return all.has(x))
+	_snapshot()
+	var e := {"id": id, "name": name, "short": short.to_upper().substr(0, 3) if short != "" else name.substr(0, 3).to_upper(),
+		"home": "ffffff/101820/ffffff", "away": "101820/101820/101820", "stadium": "", "cap": 0}
+	option_file.set_club(country_id, e)
+	var ids := division_ids(country_id, division_id)
+	ids.append(id)
+	option_file.set_division(country_id, division_id, ids)
+	TeamDB.use_option_file(option_file)
+	dirty = true
+	changed.emit()
+	return TeamDB.club_path(country_id, id)
+
+
+## Saca un club de su división (deja de jugar en esa liga; sus datos quedan).
+func remove_club(country_id: String, division_id: String, club_id: String) -> void:
+	_snapshot()
+	var ids := division_ids(country_id, division_id)
+	ids.erase(club_id)
+	option_file.set_division(country_id, division_id, ids)
+	TeamDB.use_option_file(option_file)
+	dirty = true
+	changed.emit()
+
+
+# --- Copas propias (E3) -------------------------------------------------------------
+
+## Copa nueva: format "knockout" (8 o 16 equipos) o "league" (todos contra
+## todos). Devuelve su índice.
+func add_cup(name: String, format: String, teams: Array) -> int:
+	_snapshot()
+	var ids := {}
+	for c in option_file.cups:
+		ids[String(c.get("id", ""))] = true
+	var id := _free_id(_slug(name), func(x: String) -> bool: return ids.has(x))
+	option_file.cups.append({"id": id, "name": name, "format": format, "teams": teams.duplicate()})
+	dirty = true
+	changed.emit()
+	return option_file.cups.size() - 1
+
+
+func set_cup(i: int, fields: Dictionary) -> void:
+	if i < 0 or i >= option_file.cups.size():
+		return
+	_snapshot()
+	(option_file.cups[i] as Dictionary).merge(fields, true)
+	dirty = true
+	changed.emit()
+
+
+func remove_cup(i: int) -> void:
+	if i < 0 or i >= option_file.cups.size():
+		return
+	_snapshot()
+	option_file.cups.remove_at(i)
+	dirty = true
+	changed.emit()
+
+
+## ¿La copa se puede jugar? (eliminación: 4, 8, 16 o 32 equipos; liga: 3 a 40).
+static func cup_valid(c: Dictionary) -> String:
+	var n := (c.get("teams", []) as Array).size()
+	if String(c.get("format", "knockout")) == "knockout":
+		return "" if n in [4, 8, 16, 32] else "La eliminación directa necesita 4, 8, 16 o 32 equipos (hay %d)." % n
+	return "" if n >= 3 and n <= 40 else "La liga necesita entre 3 y 40 equipos (hay %d)." % n
+
+
+static func _slug(s: String) -> String:
+	var t := SquadImporter.normalize(s)
+	var out := ""
+	for ch in t:
+		if (ch >= "a" and ch <= "z") or (ch >= "0" and ch <= "9"):
+			out += ch
+	return out.substr(0, 16) if out != "" else "nuevo"
+
+
+static func _free_id(base: String, taken: Callable) -> String:
+	var id := base
+	var n := 2
+	while taken.call(id):
+		id = "%s%d" % [base, n]
+		n += 1
+	return id
