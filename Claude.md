@@ -247,9 +247,12 @@ Criterio: capturas lado a lado con la referencia y 60 FPS con 22 jugadores.
     (Eredivisie), México (Liga MX), Argentina (LPF, Primera Nacional,
     Primera B, Primera C, Torneo Promocional Amateur), Brasil (Brasileirão).
 - Inicio de la Liga Master: siempre en 2.ª división; en Argentina e
-  Inglaterra se arranca más abajo. Los países con una sola división no son
-  elegibles. Siempre se elige entre **Equipo WE** (plantel genérico) o
-  **Club real** (el plantel del club elegido).
+  Inglaterra, en la más baja (Torneo Promocional Amateur / League Two). Los
+  países con una sola división no son elegibles. Siempre se elige entre
+  **Equipo WE** (plantel genérico) o **Club real** (el plantel del club
+  elegido), salvo que el club elegido sea de primera (LPF, Premier, LaLiga,
+  Serie A, Bundesliga): ahí es obligatorio el Equipo WE (arrancar abajo con
+  el plantel de un grande sería un afano).
 - Temporadas con fixture ida y vuelta, tabla, goleadores.
 - Ascensos y descensos automáticos al cierre de temporada.
 - Sistema de puntos al estilo WE clásico (se ganan por resultados y se usan
@@ -268,6 +271,14 @@ Criterio: capturas lado a lado con la referencia y 60 FPS con 22 jugadores.
 - Mundial de selecciones cada 4 temporadas (clasificación, grupos,
   eliminatorias), con convocatoria de jugadores de la Liga Master.
 - Historial: campeones, palmarés del club, récords.
+
+### Al final — Editores (externos si hace falta)
+- **Ligas**: agregar y eliminar ligas (y sus divisiones).
+- **Equipos**: agregar, editar y eliminar equipos; formación, escudo y
+  colores.
+- **Jugadores**: agregar, editar y eliminar jugadores y sus atributos.
+- **Camisetas**: editor externo para trabajar con los mapeos (UV/plantillas)
+  de las camisetas.
 
 ### Fase 8 — Pulido
 - Editor de clubes y jugadores (nombres, atributos, camisetas).

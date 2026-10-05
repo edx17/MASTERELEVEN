@@ -160,7 +160,8 @@ func setup(colors: Dictionary, seed: int) -> void:
 		var mat := ShaderMaterial.new()
 		mat.shader = preload("res://scripts/player/player_body.gdshader")
 		var shirt: Color = colors.get("shirt", Color.WHITE)
-		var skin: Color = SKIN_TONES[rng.randi() % SKIN_TONES.size()]
+		# Piel y pelo: los del jugador (PlayerData.look); si no hay datos, al azar.
+		var skin: Color = colors.get("skin_color", SKIN_TONES[rng.randi() % SKIN_TONES.size()])
 		mat.set_shader_parameter("shirt", shirt)
 		mat.set_shader_parameter("shorts", colors.get("shorts", Color.BLACK))
 		mat.set_shader_parameter("socks", colors.get("socks", shirt))
@@ -168,9 +169,16 @@ func setup(colors: Dictionary, seed: int) -> void:
 		mat.set_shader_parameter("skin", skin)
 		# Peinado con volumen (malla aparte pegada a la cabeza). Debajo, el cuero
 		# cabelludo va del color del pelo, salvo si arriba no hay pelo.
-		var hair_color: Color = HAIR_TONES[rng.randi() % HAIR_TONES.size()]
+		var hair_color: Color = colors.get("hair_color", HAIR_TONES[rng.randi() % HAIR_TONES.size()])
+		skin_color = skin
+		beard = int(colors.get("facial_hair", 0))
+		beard_color = colors.get("beard_color", hair_color)
 		hair_style = int(colors.get("hair_style", rng.randi() % HairBuilder.Style.size()))
-		set_build(int(colors.get("build", PlayerData.Build.NORMAL)))
+		if colors.has("body"):
+			body_build = int(colors.get("build", PlayerData.Build.NORMAL))
+			set_body(colors["body"])
+		else:
+			set_build(int(colors.get("build", PlayerData.Build.NORMAL)))
 		var scalp := hair_color
 		if hair_style in [HairBuilder.Style.SHAVED, HairBuilder.Style.HORSESHOE]:
 			scalp = skin.darkened(0.08)
@@ -191,16 +199,21 @@ func setup(colors: Dictionary, seed: int) -> void:
 		# Caras planas separadas: la ropa no se "infla" (si no, se abren).
 		_body_mat.set_shader_parameter("cloth_inflate", 0.0)
 		_classic = ClassicBody.build(_skel, _body_mat)
+		# El peinado (malla de pelo) también en el cuerpo clásico (B3).
+		# Cara dibujada (ojos, cejas, boca, barba) y manga larga.
+		_body_mat.set_shader_parameter("draw_face", true)
+		_body_mat.set_shader_parameter("beard", beard)
+		_body_mat.set_shader_parameter("beard_color", beard_color)
+		_body_mat.set_shader_parameter("long_sleeves", bool(colors.get("long_sleeves", false)))
 		body.visible = false
-		if hair_node != null:
-			hair_node.visible = false
 		for extra in ["Eyebrows", "Eyes"]:
 			var em := _skel.find_child(extra, false, false) as Node3D
 			if em != null:
 				em.visible = false
 	# Modo retro (beta): el modelo de pocos polígonos sobre el mismo esqueleto.
 	if GameSettings.player_style == GameSettings.PlayerStyle.RETRO and RetroBody.available() and body != null:
-		_retro_colors = {"skin": SKIN_TONES[rng.randi() % SKIN_TONES.size()], "hair": HAIR_TONES[rng.randi() % HAIR_TONES.size()]}
+		_retro_colors = {"skin": colors.get("skin_color", SKIN_TONES[rng.randi() % SKIN_TONES.size()]),
+			"hair": colors.get("hair_color", HAIR_TONES[rng.randi() % HAIR_TONES.size()])}
 		var rc := colors.duplicate()
 		rc.merge(_retro_colors)
 		_retro = RetroBody.build(_skel, rc)
@@ -333,27 +346,75 @@ func recolor(colors: Dictionary) -> void:
 ## Fija el físico: calcula la escala de cada hueso. Escalar un hueso escala a
 ## sus hijos, así que cada hijo se compensa (en sus ejes, según su rotación de
 ## reposo) para que, por ejemplo, el pecho ancho no ensanche la cabeza.
+## Uniforme con textura (editor de camisetas; docs/KIT_UV.md). null = el
+## diseño por código.
+func set_kit_texture(tex: Texture2D) -> void:
+	if _body_mat == null:
+		return
+	_body_mat.set_shader_parameter("use_kit_tex", tex != null)
+	_body_mat.set_shader_parameter("kit_tex", tex)
+
+
+## Aspecto del jugador (B4): piel, barba (FACIAL_HAIR de PlayerData) y su color.
+var skin_color := Color(0.84, 0.64, 0.47)
+var beard := 0
+var beard_color := Color.BLACK
+
+
+## Físico por molde (compatibilidad): los parámetros base de ese físico.
 func set_build(b: int) -> void:
 	body_build = b if BUILDS.has(b) else PlayerData.Build.NORMAL
-	var d: Array = BUILDS[body_build]
-	_height = PlayerData.BUILD_HEIGHT.get(body_build, d[6])
+	var base: Array = PlayerData.BODY_BASE.get(body_build, PlayerData.BODY_BASE[PlayerData.Build.NORMAL])
+	set_body({"height": 178.0 * PlayerData.BUILD_HEIGHT.get(body_build, 1.0), "mass": base[0],
+		"muscle": base[1], "shoulders": base[2], "legs": base[3]})
+
+
+## Largo de pierna (escala de muslo y pantorrilla) por unidad de "legs".
+const LEG_RANGE := 0.045
+## Cuerpo paramétrico (PlayerData.body_params): estatura en cm (escala desde
+## la cadera), masa, músculo, hombros y largo de piernas. Las animaciones
+## compensan el paso (estatura y piernas) y la cadera sube con las piernas.
+var body := {}
+var _leg_len := 1.0
+
+func set_body(p: Dictionary) -> void:
+	body = p
+	_height = clampf(float(p.get("height", 178.0)) / 178.0, 155.0 / 178.0, 205.0 / 178.0)
+	var m := float(p.get("mass", 0.0))
+	var mu := float(p.get("muscle", 0.35))
+	var sh := float(p.get("shoulders", 0.0))
+	_leg_len = 1.0 + LEG_RANGE * float(p.get("legs", 0.0))
+	var fat := maxf(m, 0.0)
+	var thin := maxf(-m, 0.0)
+	var belly := Vector3(1.0 + 0.25 * fat - 0.1 * thin, 1.0, 1.0 + 0.45 * fat - 0.1 * thin)
+	var chest := Vector3(1.02 + 0.08 * mu + 0.2 * fat - 0.1 * thin, 1.0, 1.02 + 0.06 * mu + 0.3 * fat - 0.1 * thin)
+	var top := Vector3(1.12 + 0.18 * (mu - 0.35) + 0.12 * sh + 0.08 * fat - 0.08 * thin, 1.0,
+		1.1 + 0.12 * (mu - 0.35) + 0.1 * fat - 0.05 * thin)
+	var a := 1.0 + 0.22 * (mu - 0.35) + 0.12 * fat - 0.14 * thin
+	var t := 1.0 + 0.14 * (mu - 0.35) + 0.16 * fat - 0.12 * thin
+	var c := 1.0 + 0.1 * (mu - 0.35) + 0.08 * fat - 0.12 * thin
+	var arm := Vector3(a, 1.0, a)
+	var low := Vector3(lerpf(1.0, a, 0.7), 1.0, lerpf(1.0, a, 0.7))
+	var thigh := Vector3(t, _leg_len, t)
+	var calf := Vector3(c, _leg_len, c)
 	_build_scales.clear()
-	var arm := Vector3(d[3], 1.0, d[3])
-	var low := Vector3(lerpf(1.0, d[3], 0.7), 1.0, lerpf(1.0, d[3], 0.7))
-	var thigh := Vector3(d[4], 1.0, d[4])
-	var calf := Vector3(d[5], 1.0, d[5])
-	_chain("spine_01", Vector3.ONE, d[0])
-	_chain("spine_02", d[0], d[1])
-	_chain("spine_03", d[1], d[2])
-	_chain("neck_01", d[2], Vector3.ONE)
+	_chain("spine_01", Vector3.ONE, belly)
+	_chain("spine_02", belly, chest)
+	_chain("spine_03", chest, top)
+	_chain("neck_01", top, Vector3.ONE)
 	for side in ["l", "r"]:
-		_chain("clavicle_" + side, d[2], Vector3.ONE)
+		_chain("clavicle_" + side, top, Vector3.ONE)
 		_chain("upperarm_" + side, Vector3.ONE, arm)
 		_chain("lowerarm_" + side, arm, low)
 		_chain("hand_" + side, low, Vector3.ONE)
 		_chain("thigh_" + side, Vector3.ONE, thigh)
 		_chain("calf_" + side, thigh, calf)
 		_chain("foot_" + side, calf, BOOTS)
+
+
+## Cuánto sube la cadera por las piernas más largas (m, ya escalado).
+func _hip_lift() -> float:
+	return HIP_Y * _height * (_leg_len - 1.0)
 
 
 ## Escala de `bone` para que se vea `visible` aunque el padre esté escalado
@@ -395,10 +456,15 @@ func _add_hair(style: int, color: Color, band_color: Color) -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = m
 	mi.transform = _skel.get_bone_global_rest(head).affine_inverse()
-	mi.set_surface_override_material(0, HairBuilder.material(color))
-	if m.get_surface_count() > 1:
-		var b := band_color if band_color.get_luminance() > 0.2 else Color(0.95, 0.95, 0.95)
-		mi.set_surface_override_material(1, _band_material(b))
+	for si in m.get_surface_count():
+		match m.surface_get_name(si):
+			"cards":
+				mi.set_surface_override_material(si, HairBuilder.cards_material(color))
+			"band":
+				var b := band_color if band_color.get_luminance() > 0.2 else Color(0.95, 0.95, 0.95)
+				mi.set_surface_override_material(si, _band_material(b))
+			_:
+				mi.set_surface_override_material(si, HairBuilder.material(color))
 	att.add_child(mi)
 	hair_node = mi
 
@@ -496,7 +562,7 @@ func update(dt: float, speed: float, sprint_speed: float, pose: int, accel: floa
 		_play_locomotion(speed)
 		_place_model()
 	else:
-		_model.transform = Transform3D(Basis(Vector3.UP, _yaw) * Basis.from_scale(Vector3.ONE * _height), Vector3.ZERO)
+		_model.transform = Transform3D(Basis(Vector3.UP, _yaw) * Basis.from_scale(Vector3.ONE * _height), Vector3(0.0, _hip_lift(), 0.0))
 
 
 ## Gestos: con animación de Mixamo si está disponible; si no, por código.
@@ -786,7 +852,10 @@ func _play_locomotion(speed: float) -> void:
 		_current = anim_name
 		_anim.play(anim_name, BLEND)
 	var nominal := float(pick[2])
-	_anim.speed_scale = 1.0 if nominal <= 0.0 else clampf(speed / nominal, 0.7, 1.35)
+	# Paso: un jugador más alto (o de piernas largas) cubre más con cada
+	# zancada; si no se compensa, los pies patinan.
+	var stride := _height * _leg_len
+	_anim.speed_scale = 1.0 if nominal <= 0.0 else clampf(speed / (nominal * stride), 0.7, 1.35)
 
 
 ## Poses de cuerpo entero (barrida, caída, estirada, salto de cabeza): se
@@ -823,6 +892,7 @@ func _place_model() -> void:
 	var pivot := Vector3(0.0, HIP_Y, 0.0)
 	var basis := Basis.from_euler(rot)
 	var h := Basis.from_scale(Vector3.ONE * _height)
+	offset.y += _hip_lift()
 	_model.transform = Transform3D(basis * h, pivot * _height - basis * (pivot * _height) + offset)
 
 

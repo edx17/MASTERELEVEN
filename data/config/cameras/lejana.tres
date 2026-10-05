@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CameraConfig" format=3]
+
+[ext_resource type="Script" path="res://scripts/camera/camera_config.gd" id="1_cam"]
+
+[resource]
+script = ExtResource("1_cam")
+display_name = "Lejana"
+camera_height = 34.0
+camera_distance = 64.0
+base_fov = 32.0
+vertical_offset = -5.0
+track_factor = 0.45
+track_z = 0.45
+follow_speed = 1.8
+show_names = true

@@ -77,6 +77,10 @@ func wind_vector() -> Vector3:
 	return Vector3(cos(a), 0.0, sin(a)) * wind_speed
 
 
+## Condiciones del partido en curso (la ropa de los jugadores: manga larga).
+static var current: MatchConditions
+
+
 func is_snow() -> bool:
 	return weather == Weather.SNOW
 

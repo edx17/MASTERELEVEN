@@ -13,6 +13,7 @@ const PRESETS: Array[String] = [
 	"res://data/config/cameras/we.tres",
 	"res://data/config/cameras/tv.tres",
 	"res://data/config/cameras/amplia.tres",
+	"res://data/config/cameras/lejana.tres",
 	"res://data/config/cameras/cercana.tres",
 	"res://data/config/cameras/vertical.tres",
 	"res://data/config/cameras/dron.tres",
@@ -54,6 +55,11 @@ func set_preset(index: int, announce: bool = true) -> void:
 		GameSettings.camera_preset = preset_index
 		GameSettings.save_settings()
 	_update_occlusion()
+	# Lejana: nombres de todos arriba de la cabeza.
+	Footballer.names_override = config.show_names
+	if _match != null:
+		for p in _match.all_players():
+			p.refresh_label()
 	if announce:
 		mode_changed.emit(config.display_name)
 

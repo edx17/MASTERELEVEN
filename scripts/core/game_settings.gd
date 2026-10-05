@@ -61,7 +61,7 @@ func game_time_scale() -> float:
 ## Marca sobre los jugadores: 0 = nombre del que manejás (como el WE),
 ## 1 = número de todos, 2 = nada.
 var player_label: int = 0
-const PLAYER_LABEL_NAMES := ["nombre del controlado", "números", "nada"]
+const PLAYER_LABEL_NAMES := ["nombre del controlado", "números", "nada", "nombres de todos"]
 
 ## El próximo partido arranca con la presentación (lo pide el menú principal).
 var play_intro: bool = false

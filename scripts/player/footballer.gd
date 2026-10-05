@@ -208,6 +208,19 @@ func is_keeper() -> bool:
 
 ## Ropa según el puesto: el arquero con la camiseta y guantes de arquero
 ## (siempre con su propio número).
+## Manga larga: con nieve o lluvia todos; de noche, la mitad; si no, algunos.
+## Los arqueros, casi siempre.
+static func long_sleeves_for(d: PlayerData, keeper: bool, cond: MatchConditions) -> bool:
+	var r := float(hash(d.id + d.player_name + "sleeve") % 1000) / 1000.0 if d != null else 0.5
+	if keeper:
+		return r < 0.85
+	if cond != null and (cond.is_snow() or cond.wetness >= 0.3):
+		return true
+	if cond != null and cond.time_of_day == MatchConditions.TimeOfDay.NIGHT:
+		return r < 0.5
+	return r < 0.12
+
+
 func kit_colors() -> Dictionary:
 	var shirt := team.keeper_color if is_keeper() else team.color
 	var colors := {"shirt": shirt, "shorts": team.secondary_color, "socks": shirt, "number": number}
@@ -543,13 +556,27 @@ func set_human_slot(slot: int) -> void:
 ## Marca sobre la cabeza (GameSettings.player_label): el nombre del que
 ## maneja el humano arriba de la flecha (como en el WE), los números de todos,
 ## o nada.
+## Cámara Lejana: nombres de todos (pisa la opción de las etiquetas).
+static var names_override := false
+
+
 func refresh_label() -> void:
 	if _label == null:
 		return
 	if presenting:
 		_label.visible = false
 		return
-	match GameSettings.player_label:
+	var mode := GameSettings.player_label
+	if names_override:
+		mode = 3
+	match mode:
+		3:
+			# Nombres de todos (cámara Lejana / opción): más grandes para
+			# leerlos de lejos.
+			_label.visible = true
+			_label.text = display_name
+			_label.font_size = 96
+			_label.position.y = 2.6
 		0:
 			_label.visible = human_slot >= 0
 			# Chico y pegado a la flecha: que no tape la jugada.
@@ -613,6 +640,9 @@ func _build_visuals() -> void:
 	var colors := kit_colors()
 	if data != null:
 		colors["build"] = int(data.visual_build())
+		colors["body"] = data.body_params()
+		colors.merge(data.look(), true)
+		colors["long_sleeves"] = long_sleeves_for(data, is_keeper(), MatchConditions.current)
 		if data.hair >= 0:
 			colors["hair_style"] = data.hair
 	visual.setup(colors, team.index * 100 + number)

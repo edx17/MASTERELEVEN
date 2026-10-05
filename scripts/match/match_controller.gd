@@ -205,6 +205,7 @@ func _ready() -> void:
 	# Copia del ajuste para este partido: el clima la modifica (césped mojado,
 	# nieve, viento) sin tocar los valores base.
 	conditions = GameSettings.make_conditions()
+	MatchConditions.current = conditions
 	tuning = GameSettings.tuning.duplicate()
 	conditions.apply_to(tuning)
 	randomize()
@@ -772,6 +773,24 @@ func _plan_save_for(defenders: Team, extra_reaction: float) -> void:
 		"elapsed": 0.0, "react": react, "dive_at": dive_time(react, plan.save_time), "dove": false}
 
 
+## Probabilidad de que el rebote quede adelante (en el área, jugable).
+static func front_rebound_chance(gk: Footballer, ball_speed: float) -> float:
+	var skill := PlayerData.unit(gk.data.goalkeeping) if gk != null and gk.data != null else 0.5
+	var k := lerpf(FRONT_REBOUND_MAX, FRONT_REBOUND_MIN, skill)
+	return clampf(k * (1.25 if ball_speed > 25.0 else 1.0), 0.0, 0.8)
+
+
+## Velocidad del rebote hacia adelante: vuelve hacia la cancha, bajo, y cae
+## entre el área chica y el punto penal.
+static func front_rebound(v: Vector3) -> Vector3:
+	var back := -signf(v.x) if absf(v.x) > 0.1 else 1.0
+	return Vector3(back * randf_range(5.5, 9.0), randf_range(1.5, 3.2), randf_range(-3.5, 3.5))
+
+
+const FRONT_REBOUND_MIN := 0.15
+const FRONT_REBOUND_MAX := 0.45
+
+
 ## Cuándo se tira: cuando la pelota está por llegar (lo que dura el vuelo
 ## hasta el contacto), pero nunca después de que pasó: si reacciona tarde,
 ## igual se tira (aunque no llegue), no cuando la pelota ya entró.
@@ -1100,9 +1119,13 @@ func _try_take_loose_ball() -> void:
 	var hands := keeper_can_use_hands(best)
 	if hands:
 		if best == plan_keeper and save_plan["parry"]:
-			# Rebote hacia afuera (al costado del arco), no al medio del área.
+			# Rebote: casi siempre al costado del arco (o al córner); a veces
+			# queda adelante, en el área, jugable para el que llega (como en
+			# el WE). Un arquero flojo y un remate fuerte, más seguido.
 			var wide := signf(bp.z) if absf(bp.z) > 0.3 else (1.0 if randf() < 0.5 else -1.0)
 			var parry := Vector3(-v.x * 0.25, absf(v.y) * 0.3 + 3.0, wide * randf_range(5.0, 9.0))
+			if randf() < front_rebound_chance(best, ball.speed()):
+				parry = front_rebound(v)
 			stats["saves"][best.team.index] += 1
 			ratings.on_save(best)
 			save_plan = {}

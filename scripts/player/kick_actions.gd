@@ -325,6 +325,36 @@ var set_piece := false
 var penalty := false
 
 
+## Velocidad del remate según el nivel de potencia (6 a 9 del WE).
+const POWER_SPEED_MIN := 0.86
+const POWER_SPEED_MAX := 1.12
+## De lejos (más de LONG_RANGE m) con potencia baja pierde hasta LONG_LOSS.
+const LONG_RANGE := 24.0
+const LONG_LOSS := 0.16
+## Remate en carrera: cuánto sube (m al arco) y cuánto error suma a toda
+## velocidad; parado, un poco más preciso.
+const RUN_SHOT_LIFT := 0.55
+const RUN_SHOT_ERROR := 0.35
+const STANDING_SHOT_ERROR := 0.9
+
+
+static func power_speed_factor(lvl: float) -> float:
+	return lerpf(POWER_SPEED_MIN, POWER_SPEED_MAX, clampf((lvl - 5.5) / 3.8, 0.0, 1.0))
+
+
+## Con nivel 8 o más llega entero de 30-40 m; con 6, pierde fuerza.
+static func long_range_factor(lvl: float, dist: float) -> float:
+	var far := clampf((dist - LONG_RANGE) / 16.0, 0.0, 1.0)
+	var weak := clampf((8.0 - lvl) / 2.0, 0.0, 1.0)
+	return 1.0 - LONG_LOSS * far * weak
+
+
+## 0 = parado, 1 = a toda velocidad (sprint).
+func running_factor(player: Footballer) -> float:
+	var v := Vector3(player.velocity.x, 0.0, player.velocity.z).length()
+	return clampf((v - 1.0) / maxf(tuning.sprint_speed - 1.0, 0.1), 0.0, 1.0)
+
+
 func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, placed: bool = false,
 		power_shot: bool = false) -> void:
 	var side := player.team.attack_dir
@@ -383,9 +413,14 @@ func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, pl
 		speed *= PLACED_SPEED
 	elif power_shot:
 		speed *= POWER_SPEED
-	# Potencia de remate: +-8 % de velocidad.
-	if data != null and data.shot_power > 0 and not header:
-		speed *= lerpf(0.92, 1.08, PlayerData.unit(data.shot_power))
+	# Potencia de remate en niveles como el WE (6 a 9): el 9 sale bastante
+	# más fuerte y recto; de lejos, con poca potencia, la pelota no llega con
+	# fuerza (pierde velocidad y cae).
+	var lvl := SetPieceKicks.power_level(data)
+	var dist := to.length()
+	if not header:
+		speed *= power_speed_factor(lvl)
+		speed *= long_range_factor(lvl, dist)
 	if weak:
 		speed *= WEAK_FOOT_SPEED
 	# La potencia define a qué altura llega al arco: floja = rasante, fuerte =
@@ -393,6 +428,13 @@ func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, pl
 	var aim_height := lerpf(tuning.shot_height_min, tuning.shot_height_max, power)
 	if power > 0.95:
 		aim_height += 0.9
+	# Remate en carrera: a toda velocidad sale más alto y menos preciso;
+	# parado (o perfilado) sale más controlado.
+	var run := running_factor(player)
+	if not header and not low:
+		aim_height += RUN_SHOT_LIFT * run
+	err *= lerpf(STANDING_SHOT_ERROR, 1.0 + RUN_SHOT_ERROR, run)
+	last_error = err
 	if header:
 		aim_height = lerpf(0.3, 1.6, power)
 	elif placed:
@@ -426,8 +468,8 @@ const WEAK_FOOT_SPEED := 0.9
 ## Patea con la pierna menos hábil: la pelota está claramente del otro lado
 ## del cuerpo (con la pelota al medio usa la buena).
 static func uses_weak_foot(player: Footballer, ball_pos: Vector3) -> bool:
-	if player.data == null:
-		return false
+	if player.data == null or player.data.foot == PlayerData.Foot.BOTH:
+		return false # ambidiestro: no tiene pierna mala
 	var off := player.ball_offset_side(ball_pos)
 	if absf(off) < 0.12:
 		return false
@@ -484,13 +526,21 @@ func chip(player: Footballer, dir: Vector3, power: float) -> void:
 
 ## Despeje: largo y alto, lejos del arco propio (hacia adelante y al costado
 ## donde apunte el stick). No busca compañero.
+## Distancia del despeje (m) a potencia media y a fondo.
+const CLEAR_MIN := 28.0
+const CLEAR_MAX := 50.0
+
+
 func clearance(player: Footballer, dir: Vector3, power: float) -> void:
 	var fwd := Vector3(player.team.attack_dir, 0.0, 0.0)
 	var d := _dir_or_facing(player, dir)
 	# Nunca hacia el arco propio: se corrige hacia adelante.
 	if d.dot(fwd) < 0.3:
 		d = (d + fwd * 1.5).normalized()
-	var target := Pitch.clamp_to_field(ball.flat_pos() + d * lerpf(28.0, 45.0, maxf(power, 0.5)), 1.0)
+	# A fondo sale al campo rival (como en el WE); los fuertes, más lejos.
+	var strong := lerpf(0.9, 1.12, PlayerData.unit(player.data.strength)) if player.data != null else 1.0
+	var reach := lerpf(CLEAR_MIN, CLEAR_MAX, maxf(power, 0.5)) * strong
+	var target := Pitch.clamp_to_field(ball.flat_pos() + d * reach, 1.0)
 	ball.intended_receiver = null
 	_lob_to(player, target, 34.0, Vector3.ZERO, power)
 	ball.intended_receiver = null

@@ -43,9 +43,44 @@ func _run() -> void:
 	# Hoja de peinados ("hair" en el nombre): primer plano de cada peinado, de
 	# frente (3/4) arriba y de costado abajo.
 	var hair := out.contains("hair")
+	# Hoja de caras ("face"): piel, pelo y barba (cuerpo clásico), de frente.
+	var faces := out.contains("face")
+	# Prueba del mapeo UV del uniforme ("uv"): cada región de un color con una
+	# grilla (docs/KIT_UV.md); de frente, de espaldas y de costado.
+	var uvtest := out.contains("uvtest")
+	var uv_tex: Texture2D = null
+	if uvtest:
+		var img := Image.create(256, 256, false, Image.FORMAT_RGB8)
+		for y in 256:
+			for x in 256:
+				var u := x / 256.0
+				var vv := y / 256.0
+				var c := Color(0.2, 0.2, 0.2)
+				if vv < 0.5 and u < 0.5:
+					c = Color(0.9, 0.2, 0.2).lerp(Color(0.2, 0.3, 0.95), u * 2.0)
+				elif vv < 0.25:
+					c = Color(0.2, 0.8, 0.3) if u < 0.75 else Color(0.95, 0.85, 0.2)
+				elif vv >= 0.5 and vv < 0.75:
+					c = [Color(0.9, 0.5, 0.1), Color(0.6, 0.2, 0.8), Color(0.1, 0.8, 0.8), Color(0.9, 0.9, 0.9)][int(u * 4.0)]
+				if x % 16 == 0 or y % 16 == 0:
+					c = c.darkened(0.5)
+				img.set_pixel(x, y, c)
+		uv_tex = ImageTexture.create_from_image(img)
+		stances = [1, 1, 1]
 	# Hoja de físicos ("build" en el nombre): normal, gordo, flaco, alto, bajo,
 	# fornido y musculoso; de frente arriba y de costado abajo.
 	var builds := out.contains("build")
+	# Hoja de cuerpos paramétricos ("body"): de 1,60 a 2,03 m, flacos,
+	# normales, musculosos y pesados; de frente arriba y de costado abajo.
+	var bodies := out.contains("body")
+	var body_list := [
+		{"height": 160, "mass": -0.4, "muscle": 0.3, "shoulders": -0.3, "legs": -0.3},
+		{"height": 170, "mass": -0.7, "muscle": 0.15, "shoulders": -0.5, "legs": 0.3},
+		{"height": 178, "mass": 0.0, "muscle": 0.35, "shoulders": 0.0, "legs": 0.0},
+		{"height": 183, "mass": 0.1, "muscle": 0.95, "shoulders": 0.6, "legs": 0.0},
+		{"height": 188, "mass": 0.6, "muscle": 0.6, "shoulders": 0.3, "legs": -0.4},
+		{"height": 194, "mass": 0.95, "muscle": 0.3, "shoulders": 0.2, "legs": -0.2},
+		{"height": 203, "mass": -0.2, "muscle": 0.35, "shoulders": 0.1, "legs": 0.8}]
 	# Hoja del lateral ("throw" en el nombre): esperando con la pelota.
 	var throw := out.contains("throw")
 	# Hoja del apretón de manos ("shake"): el que espera y el que pasa.
@@ -71,10 +106,15 @@ func _run() -> void:
 		stances = [1, 1, 1, 1]
 	if throw:
 		stances = [1, 1]
-	if builds:
+	if builds or bodies:
 		stances = []
 		for k in 14:
 			stances.append(1)
+	if faces:
+		stances = [1, 1, 1, 1, 1, 1, 1, 1]
+		cam.position = Vector3(0.0, 1.66, 0.62)
+		cam.look_at(Vector3(0, 1.66, 0))
+		cam.fov = 32
 	if hair:
 		stances = []
 		for k in HairBuilder.Style.size() * 2:
@@ -94,17 +134,33 @@ func _run() -> void:
 		if builds:
 			look["build"] = i % 7
 			look["hair_style"] = HairBuilder.Style.FADE
+		if faces:
+			look["skin_color"] = PlayerData.SKIN_COLORS[i % 4]
+			look["hair_color"] = PlayerData.HAIR_COLORS[[0, 3, 1, 4, 2, 0, 5, 1][i]]
+			look["facial_hair"] = [0, 1, 2, 3, 4, 0, 4, 1][i]
+			look["beard_color"] = look["hair_color"]
+			look["hair_style"] = HairBuilder.Style.FADE
+			look["long_sleeves"] = i % 2 == 1
+		if bodies:
+			look["body"] = body_list[i % 7]
+			look["hair_style"] = HairBuilder.Style.FADE
 		if kits:
 			var td: TeamData = team_list[i % team_list.size()]
 			look = {"shirt": td.color, "shorts": td.secondary_color, "number": [10, 7, 23, 9, 5, 14, 11, 8][i % 8],
-				"pattern": td.pattern, "shirt2": td.pattern_color}
+				"pattern": td.pattern, "shirt2": td.pattern_color, "long_sleeves": (i % team_list.size()) % 2 == 1}
 		v.setup(look, 3 + i)
+		if uvtest:
+			(v as ModelVisual).set_kit_texture(uv_tex)
 		# Primero de frente, después de costado (girado 90°).
 		v.rotation.y = 0.0 if i < stances.size() / 2 else PI * 0.5
 		if kits:
 			v.rotation.y = 0.0 if i < stances.size() / 2 else PI
 		if hair:
 			v.rotation.y = 0.5 if i < stances.size() / 2 else PI * 0.85
+		if faces:
+			v.rotation.y = [0.0, 0.35, 0.0, -0.35, 0.0, 0.5, 0.0, -0.5][i]
+		if uvtest:
+			v.rotation.y = [0.0, PI, PI * 0.5][i]
 		v.stance = maxi(stances[i], 1)
 		if stances[i] < 0:
 			v.update(1.0 / 60.0, 0.0, 8.4, PlayerVisual.Pose.NORMAL, 0.0)

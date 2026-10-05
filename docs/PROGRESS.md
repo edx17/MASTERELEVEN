@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **380 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **398 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -27,7 +27,9 @@ además arma el `.exe` de Windows).
 | Backlog B11 pasos 1-2 (assets, correcciones) | ✅ | #26 |
 | Backlog B11 pasos 3-4 (pelota parada, sonidos) | ✅ | #27 |
 | Resumen y regla de un solo PR | ✅ | #28 |
-| Backlog B12 (correcciones de tu prueba) | 🟡 Hecho, **pendiente de tu prueba** | #29 |
+| Backlog B12 (correcciones de tu prueba) | ✅ | #29 |
+| Paso A — Jugabilidad WE2002 | 🟡 Hecho, **pendiente de tu prueba** | #30 |
+| Paso B — Jugadores low-poly WE mejorados | 🟡 Hecho, **pendiente de tu prueba** | #30 |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -124,21 +126,68 @@ además arma el `.exe` de Windows).
   luz y las sombras se ven distinto.
 
 ### Próximos pasos (en orden)
-1. **Tu prueba** de B12 (correcciones).
-2. **Paso A — Jugabilidad WE2002**: potencia de remate 6–9 en todo el juego,
-   remate en carrera, defensores que leen el pase en profundidad, despeje a
-   fondo, más rebotes jugables y cámara "Lejana" con nombres.
-3. **Paso B — Identidad de cada jugador**: estatura, botines y peinado
-   propios; pelo de los "Detallados".
-4. **Paso C — Base de datos real**: 19 selecciones (con bandera) y las ligas
+1. **Tu prueba** de los Pasos A (jugabilidad WE2002) y B (jugadores).
+2. **Paso UI-1 — Pantallas como el WE2002** (propuesto; detalle en
+   `docs/UI_WE2002.md`): pantalla de título con "Press START", tanda de
+   penales sola, puestos detallados y pateadores separados en la Dirección
+   del equipo, cartel "EN VIVO" y foto de equipo en la presentación, número
+   de jugador en la flecha, distancia al arco ("23M") en la pelota parada,
+   pausa con cámara / pantalla / sonido y resultado con goles por tiempo,
+   offsides, tiros libres y penales.
+3. **Paso C — Base de datos real**: 19 selecciones (con bandera) y las ligas
    de Inglaterra (4 divisiones), España (2), Italia (2), Portugal, Alemania
    (2), Países Bajos, México, Argentina (5) y Brasil; hasta 23 jugadores por
    plantel. Ver la lista en `Claude.md` (Fase 6).
-5. **Paso D — Liga Master** (en varios PR): arranca en 2.ª (más abajo en
-   Argentina e Inglaterra; las ligas de una sola división no se eligen),
-   siempre a elegir entre **Equipo WE** (genérico) o **Club real**.
-6. Editor de jugadores y equipos.
-7. Himno propio, relator y pulido final.
+4. **Paso D — Liga Master** (en varios PR): arranca en 2.ª; en Argentina e
+   Inglaterra en la más baja (Torneo Promocional Amateur / League Two); las
+   ligas de una sola división no se eligen. Siempre a elegir entre **Equipo
+   WE** (genérico) o **Club real**, salvo con un club de primera (LPF,
+   Premier, LaLiga, Serie A, Bundesliga): ahí es obligatorio el Equipo WE.
+5. Himno propio, relator y pulido final.
+6. **Al final — Editores** (externos si hace falta): ligas (agregar /
+   eliminar), equipos (agregar / editar / eliminar; formación, escudo,
+   colores), jugadores (agregar / editar / eliminar; atributos) y un editor
+   externo para los mapeos de las camisetas.
+
+---
+
+## Paso B — Jugadores low-poly estilo WE mejorados (PR #30)
+
+Detalle y estado de cada punto en `docs/JUGADORES_WE2002.md`.
+
+| Qué | Cambio |
+|---|---|
+| Cuerpo paramétrico | En vez de 7 moldes fijos, cada jugador tiene estatura en cm (155–205), masa, músculo, hombros y largo de piernas, que salen de su físico (letras A–G del WE), sus atributos (fuerza, balance) y una variación propia: dos "normales" ya no son iguales. Escala desde la cadera; con piernas largas la cadera sube (los pies siguen en el piso) y las animaciones compensan el paso. La estatura en cm cuenta también en el juego (cabezazos, cuerpo a cuerpo). |
+| Identidad guardada | Piel A–D, color de pelo (7), barba/bigote (de tres días, bigote, candado, completa) y su color, botines A–H, nacionalidad, puesto detallado y pie **ambidiestro** (sin pierna mala). Lo que no está cargado sale estable por jugador (antes piel y pelo cambiaban en cada partido). |
+| Malla más fina | Cuerpo clásico de 1600 triángulos (antes ~1000): pecho, trapecio, glúteo, rodilla, pantorrilla, antebrazo, manos con pulgar, mandíbula, nariz y orejas. Siguen las caras planas del estilo WE. |
+| Cara | Ojos, cejas, nariz, boca y barba dibujados sobre la cabeza (la barba sigue la mandíbula, con patillas). |
+| Ropa | Mapeo UV real de camiseta, mangas, short y medias (`docs/KIT_UV.md`, base del editor de camisetas). Manga larga con lluvia o nieve (de noche la mitad; arqueros casi siempre). Número en el short. |
+| Pelo | El cuerpo clásico muestra el peinado de cada jugador (antes, un casquete igual para todos). Mechones con textura de hebras y transparencia (menos "plastilina", también en los Detallados). 5 peinados nuevos: afro, trenzas pegadas, flequillo, copete y corto con raya al costado (14 en total). |
+
+Herramientas: `--poses=...body.png` (cuerpos de 1,60 a 2,03 m),
+`...face.png` (caras y barbas), `...uvtest.png` (mapeo UV), `...hair.png`.
+
+Tests: `test_backlog_b15.gd` (10). `test_model_visual` admite la malla nueva
+(hasta 2500 triángulos) y `test_we_combos` usa la estatura en cm.
+
+---
+
+## Paso A — Jugabilidad WE2002 (PR #30)
+
+| Qué | Cambio |
+|---|---|
+| Potencia de remate 6–9 | El atributo se lee como el nivel del WE (30 → 5, 58 → 7, 70 → 8, 85 o más → 9) y se muestra en la ficha, p. ej. "78 (8)". En jugada, el 9 sale ~30 % más fuerte que el 6 (antes ±8 %). De más de 24 m, con potencia menor a 8 la pelota pierde fuerza (hasta 16 % a 40 m); con 8 o más llega entera y más recta. También en los tiros libres. |
+| Remate en carrera | La velocidad del que patea cuenta: a toda carrera la pelota sale hasta 0,55 m más alta y con 35 % más de error; parado, 10 % más preciso. |
+| Defensores que leen el pase en profundidad | La marca se adelanta a la carrera del delantero que pica hacia el arco (según defensa y respuesta). Con un pase al hueco rival en el aire, el defensor que mejor lo lee sale a cortar la línea del pase si llega a tiempo (además del que va a la pelota). |
+| Despeje a fondo | Llega a 50 m (más con los fuertes): desde el área propia cae en el campo rival. |
+| Rebotes jugables | El arquero que da rebote a veces la deja adelante, en el área (15 % un buen arquero, hasta 45 % uno flojo; más con remates muy fuertes), para el segundo atacante. |
+| Cámara Lejana | Nueva cámara "Lejana" (como la Normal Far del WE): más alta y lejos, con el nombre de todos los jugadores. También hay una opción de etiquetas "nombres de todos" para cualquier cámara. |
+
+CPU vs CPU (6 partidos, semillas fijas): 8,5 remates y 2,0 goles por
+partido (antes, 3 partidos: 11 remates y 1,0 gol). Pocas muestras: hay que
+confirmarlo jugando.
+
+Tests: `test_backlog_b14.gd` (8). `test_camera` cuenta 7 cámaras.
 
 ---
 

@@ -156,6 +156,9 @@ func _ready() -> void:
 		if a.begins_with("--shot="):
 			_script = [[20, "freeze"], [21, "hide_players"], [22, "cam:" + a.trim_prefix("--shot=")],
 				[30, "shot:shot.png"], [32, "quit"]]
+	# `--far`: la cámara Lejana (con los nombres de todos) en un ataque.
+	if "--far" in OS.get_cmdline_user_args():
+		_script = [[20, "freeze"], [25, "preset:Lejana"], [30, "attack"], [80, "shot:capture_lejana.png"], [85, "quit"]]
 	# `--retro`: jugadores con el modelo retro (estilo PS1).
 	if "--retro" in OS.get_cmdline_user_args():
 		GameSettings.player_style = 1

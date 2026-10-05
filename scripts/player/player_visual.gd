@@ -61,8 +61,8 @@ var throw_pose := Vector3(-2.75, -0.35, -1.9)
 func setup(colors: Dictionary, seed: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed
-	var skin := _mat(SKIN_TONES[rng.randi() % SKIN_TONES.size()])
-	var hair := _mat(HAIR_TONES[rng.randi() % HAIR_TONES.size()])
+	var skin := _mat(colors.get("skin_color", SKIN_TONES[rng.randi() % SKIN_TONES.size()]))
+	var hair := _mat(colors.get("hair_color", HAIR_TONES[rng.randi() % HAIR_TONES.size()]))
 	var shirt := _mat(colors.get("shirt", Color.WHITE))
 	var shorts := _mat(colors.get("shorts", Color.BLACK))
 	var socks := _mat(colors.get("socks", colors.get("shirt", Color.WHITE)))

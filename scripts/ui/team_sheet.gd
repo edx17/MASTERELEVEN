@@ -524,9 +524,9 @@ func _show_detail(i: int) -> void:
 	var cond := team.condition_of(base)
 	var d: PlayerData = p.data if p != null and p.data != null else base.with_condition(cond)
 	_label(_detail, "%d  %s" % [base.number, base.player_name], 21, Color.WHITE)
-	var info := "%s  ·  %s  ·  %d cm  ·  Condición: %s" % [POS_CODES[base.position],
-		"Zurdo" if base.foot == PlayerData.Foot.LEFT else "Diestro", base.height_cm(),
-		PlayerData.CONDITION_NAMES[cond]]
+	var info := "%s  ·  %s  ·  %d cm  ·  Físico %s (%s)  ·  Condición: %s" % [POS_CODES[base.position],
+		base.foot_name(), base.height_cm(), base.physique_letter(),
+		PlayerData.BUILD_NAMES.get(base.visual_build(), ""), PlayerData.CONDITION_NAMES[cond]]
 	if p != null and e["kind"] == "pitch":
 		info += "  ·  Energía %d%%" % roundi(p.stamina_cap())
 	var il := _label(_detail, info, 13, Color(0.75, 0.85, 1.0))
@@ -559,7 +559,11 @@ func _show_detail(i: int) -> void:
 			continue
 		var nl := _label(grid, PlayerData.ATTRIBUTE_NAMES[k], 13, Color(0.85, 0.88, 0.95))
 		nl.custom_minimum_size = Vector2(150, 0)
-		var vl := _label(grid, str(v), 13, attribute_color(v))
+		# Potencia de remate: también el nivel del WE (6 a 9).
+		var txt := str(v)
+		if PlayerData.ATTRIBUTES[k] == "shot_power" and d is PlayerData:
+			txt = "%d (%d)" % [v, (d as PlayerData).shot_level()]
+		var vl := _label(grid, txt, 13, attribute_color(v))
 		vl.custom_minimum_size = Vector2(30, 0)
 	# Etiquetas (las estrellitas del WE), en una sola línea.
 	var tags := PackedStringArray()

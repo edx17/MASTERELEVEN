@@ -307,6 +307,9 @@ func test_tall_player_wins_the_header_duel() -> void:
 	small.data = small.data.duplicate()
 	tall.data.build = PlayerData.Build.TALL
 	small.data.build = PlayerData.Build.SHORT
+	# B15: la estatura en cm manda (el físico sólo la sugiere si no está cargada).
+	tall.data.height = 192
+	small.data.height = 166
 	assert_gt(tall.data.body_height(), small.data.body_height())
 	assert_gt(small.data.agility(), tall.data.agility(), "el bajo gira más cerrado")
 	# Pelota alta entre los dos: el alto llega, el bajo no.

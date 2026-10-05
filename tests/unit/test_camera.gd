@@ -30,7 +30,7 @@ func _preset(name: String) -> void:
 
 
 func test_all_presets_load() -> void:
-	assert_eq(cam.presets.size(), 6)
+	assert_eq(cam.presets.size(), 7, "WE, TV, Amplia, Lejana, Cercana, Vertical y Dron")
 
 
 func test_we_is_default_and_stick_matches_screen() -> void:

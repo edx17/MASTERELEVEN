@@ -5,7 +5,8 @@ extends Resource
 ## ni números hardcodeados.
 
 enum Position { GK, DF, MF, FW }
-enum Foot { RIGHT, LEFT }
+## BOTH = ambidiestro (sin pierna mala).
+enum Foot { RIGHT, LEFT, BOTH }
 ## Físico (sólo presentación). AUTO = según los atributos.
 enum Build { AUTO = -1, NORMAL, HEAVY, SLIM, TALL, SHORT, STOCKY, MUSCULAR }
 
@@ -22,6 +23,24 @@ enum Build { AUTO = -1, NORMAL, HEAVY, SLIM, TALL, SHORT, STOCKY, MUSCULAR }
 @export var age: int = 0
 ## Altura en cm (0 = según el físico).
 @export var height: int = 0
+## Tono de piel A-D (0 clara, 1 trigueña, 2 oscura, 3 muy oscura); -1 = auto.
+@export_range(-1, 3) var skin: int = -1
+## Color de pelo (HAIR_COLORS); -1 = auto.
+@export_range(-1, 6) var hair_color: int = -1
+## Barba / bigote (FACIAL_HAIR) y su color (-1 = el del pelo); -1 = auto.
+@export_range(-1, 4) var facial_hair: int = -1
+@export_range(-1, 6) var facial_hair_color: int = -1
+## Botines tipo A-H (BOOT_COLORS); -1 = auto.
+@export_range(-1, 7) var boots: int = -1
+
+@export_group("Identidad")
+## País (nombre, p. ej. "Argentina"); para la bandera y las selecciones.
+@export var nationality: String = ""
+## Puesto detallado como en el WE (GK, CB, LB, RB, DMF, CMF, LMF, RMF, AMF,
+## SS, LWF, RWF, CF); "" = según el puesto general y la formación.
+@export var role_code: String = ""
+## Otros puestos en los que puede jugar.
+@export var alt_roles: PackedStringArray = []
 
 @export_group("Atributos")
 @export_range(1, 99) var speed: int = 60
@@ -68,8 +87,115 @@ const BUILD_AGILITY := {Build.NORMAL: 1.0, Build.HEAVY: 0.9, Build.SLIM: 1.08, B
 	Build.SHORT: 1.15, Build.STOCKY: 0.95, Build.MUSCULAR: 1.0}
 
 
+## Altura relativa (1 = 1,78 m): la estatura en cm manda (también en el
+## juego: cabezazos y cuerpo a cuerpo).
 func body_height() -> float:
-	return BUILD_HEIGHT.get(visual_build(), 1.0)
+	return height_cm() / 178.0
+
+
+# --- Aspecto guardado (B4): piel, pelo, barba y botines ----------------------
+
+const SKIN_COLORS: Array[Color] = [Color(0.96, 0.8, 0.66), Color(0.84, 0.64, 0.47), Color(0.55, 0.37, 0.25),
+	Color(0.36, 0.24, 0.16)]
+const SKIN_NAMES := ["A (clara)", "B (trigueña)", "C (oscura)", "D (muy oscura)"]
+const HAIR_COLORS: Array[Color] = [Color(0.06, 0.05, 0.04), Color(0.2, 0.12, 0.06), Color(0.42, 0.27, 0.13),
+	Color(0.82, 0.66, 0.34), Color(0.62, 0.26, 0.1), Color(0.62, 0.62, 0.6), Color(0.85, 0.85, 0.82)]
+const HAIR_COLOR_NAMES := ["negro", "castaño oscuro", "castaño claro", "rubio", "pelirrojo", "canoso", "teñido"]
+const FACIAL_HAIR_NAMES := ["nada", "de tres días", "bigote", "candado", "barba"]
+const BOOT_COLORS: Array[Color] = [Color(0.05, 0.05, 0.06), Color(0.92, 0.92, 0.9), Color(0.7, 0.72, 0.76),
+	Color(0.15, 0.35, 0.85), Color(0.85, 0.12, 0.1), Color(0.85, 0.65, 0.15), Color(0.95, 0.45, 0.1),
+	Color(0.2, 0.7, 0.3)]
+const BOOT_NAMES := ["A negros", "B blancos", "C plateados", "D azules", "E rojos", "F dorados", "G naranjas", "H verdes"]
+
+
+## Azar estable por jugador (0..1) para lo que no está cargado.
+func _r(k: String) -> float:
+	return float(hash(id + player_name + k) % 10000) / 10000.0
+
+
+static func _pick(r: float, weights: Array) -> int:
+	var total := 0.0
+	for w in weights:
+		total += float(w)
+	var acc := 0.0
+	for i in weights.size():
+		acc += float(weights[i]) / total
+		if r < acc:
+			return i
+	return weights.size() - 1
+
+
+func skin_tone() -> int:
+	return skin if skin >= 0 else _pick(_r("skin"), [40, 30, 18, 12])
+
+
+func hair_color_index() -> int:
+	if hair_color >= 0:
+		return hair_color
+	# Más oscuro en pieles oscuras; canoso sólo en los veteranos.
+	var w := [35, 30, 15, 12, 4, 0, 1] if skin_tone() <= 1 else [80, 15, 3, 0, 0, 0, 2]
+	if get_age() >= 33:
+		w[5] = 15
+	return _pick(_r("hc"), w)
+
+
+func facial_hair_index() -> int:
+	return facial_hair if facial_hair >= 0 else _pick(_r("fh"), [58, 18, 5, 9, 10])
+
+
+func facial_hair_color_index() -> int:
+	return facial_hair_color if facial_hair_color >= 0 else hair_color_index()
+
+
+## Botines: la mayoría negros o blancos; algunos de color.
+func boots_index() -> int:
+	return boots if boots >= 0 else _pick(_r("bt"), [45, 25, 6, 7, 6, 4, 4, 3])
+
+
+func foot_name() -> String:
+	return ["Diestro", "Zurdo", "Ambidiestro"][clampi(foot, 0, 2)]
+
+
+## Aspecto para los visuales (lo lee ModelVisual / PlayerVisual).
+func look() -> Dictionary:
+	return {"skin_color": SKIN_COLORS[skin_tone()], "hair_color": HAIR_COLORS[hair_color_index()],
+		"facial_hair": facial_hair_index(), "beard_color": HAIR_COLORS[facial_hair_color_index()],
+		"boots": BOOT_COLORS[boots_index()]}
+
+
+## Letra del físico como en el WE (ficha y editor).
+const BUILD_LETTERS := {Build.SLIM: "A", Build.NORMAL: "B", Build.MUSCULAR: "C", Build.STOCKY: "D",
+	Build.HEAVY: "E", Build.SHORT: "F", Build.TALL: "G"}
+const BUILD_NAMES := {Build.SLIM: "delgado", Build.NORMAL: "estándar", Build.MUSCULAR: "musculoso",
+	Build.STOCKY: "robusto", Build.HEAVY: "corpulento", Build.SHORT: "bajo", Build.TALL: "alto"}
+
+
+func physique_letter() -> String:
+	return BUILD_LETTERS.get(visual_build(), "B")
+
+
+## Base del cuerpo por físico: [masa (-1 flaco .. 1 pesado), músculo (0..1),
+## hombros (-1..1), piernas (-1 cortas .. 1 largas)].
+const BODY_BASE := {Build.SLIM: [-0.6, 0.2, -0.4, 0.2], Build.NORMAL: [0.0, 0.35, 0.0, 0.0],
+	Build.MUSCULAR: [0.1, 0.9, 0.5, 0.0], Build.STOCKY: [0.5, 0.6, 0.3, -0.3],
+	Build.HEAVY: [0.9, 0.3, 0.2, -0.2], Build.SHORT: [0.0, 0.35, -0.1, -0.4],
+	Build.TALL: [-0.1, 0.35, 0.1, 0.5]}
+
+
+## Cuerpo paramétrico (ModelVisual.set_body): el físico da la base y los
+## atributos y una variación propia de cada jugador lo terminan, así dos
+## jugadores del mismo físico no son idénticos.
+func body_params() -> Dictionary:
+	var base: Array = BODY_BASE.get(visual_build(), BODY_BASE[Build.NORMAL])
+	var seed_str := id + player_name
+	var j := func(k: String) -> float: return float(hash(seed_str + k) % 1000) / 500.0 - 1.0
+	return {
+		"height": height_cm(),
+		"mass": clampf(float(base[0]) + 0.15 * centered(balance) + 0.12 * j.call("m"), -1.0, 1.0),
+		"muscle": clampf(float(base[1]) + 0.25 * centered(strength) + 0.1 * j.call("u"), 0.0, 1.0),
+		"shoulders": clampf(float(base[2]) + 0.15 * j.call("s"), -1.0, 1.0),
+		"legs": clampf(float(base[3]) + 0.25 * j.call("l"), -1.0, 1.0),
+	}
 
 
 func agility() -> float:
@@ -101,9 +227,9 @@ func visual_build() -> Build:
 ## variación estable).
 func height_cm() -> int:
 	if height > 0:
-		return height
+		return clampi(height, 155, 205)
 	var r := float(hash(player_name + "cm") % 1000) / 1000.0
-	return roundi(178.0 * body_height() + lerpf(-4.0, 4.0, r))
+	return clampi(roundi(178.0 * BUILD_HEIGHT.get(visual_build(), 1.0) + lerpf(-4.0, 4.0, r)), 155, 205)
 
 
 # --- Condición del día (flechas del WE) ----------------------------------------
@@ -124,6 +250,11 @@ const ATTRIBUTES := ["attack", "defense", "balance", "stamina", "speed", "accele
 const ATTRIBUTE_NAMES := ["Ataque", "Defensa", "Balance", "Estamina", "Velocidad", "Aceleración",
 	"Respuesta", "Potencia de salto", "Precisión de cabeza", "Técnica", "Precisión de pase",
 	"Potencia de remate", "Precisión de remate", "Gambeta", "Curva", "Fuerza", "Arquero"]
+
+
+## Nivel de potencia de remate como en el WE (5 a 9).
+func shot_level() -> int:
+	return clampi(roundi(SetPieceKicks.power_level(self)), 5, 9)
 
 
 static func roll_condition(rng: RandomNumberGenerator) -> int:
