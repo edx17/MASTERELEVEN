@@ -81,6 +81,7 @@ func tick(dt: float) -> void:
 		_assign_roles(ball)
 	_carrier_timer -= dt
 
+	_update_lane_cutter(ball)
 	var owner := ball.owner_player
 	# Cuadrado mantenido por el humano defendiendo: un compañero sale a presionar.
 	var helper: Footballer = null
@@ -133,6 +134,11 @@ func tick(dt: float) -> void:
 		if p == _chaser:
 			p.debug_state = "va a la pelota"
 			_chase(p, ball, false)
+			continue
+		if p == _lane_cutter:
+			p.debug_state = "corta el pase"
+			go_to(p, _lane_point, true)
+			p.look_at_point(ball.flat_pos())
 			continue
 		if p in _pressers:
 			p.debug_state = "presiona"
@@ -606,12 +612,67 @@ func _chase(p: Footballer, ball: Ball, pressing: bool) -> void:
 			p.start_slide(ball.flat_pos() - p.flat_pos())
 
 
-## Marca en zona: se ubica del lado del arco propio del rival asignado.
+## Marca en zona: se ubica del lado del arco propio del rival asignado. Si
+## el rival pica hacia nuestro arco, el que lee bien (defensa y respuesta)
+## se adelanta a su carrera y le cierra el pase en profundidad.
 func _mark(p: Footballer, o: Footballer) -> void:
 	var goal := team.own_goal()
-	var target := o.flat_pos() + (goal - o.flat_pos()).normalized() * 1.8
-	go_to(p, Pitch.clamp_to_field(target, 0.5), p.flat_pos().distance_to(target) > 4.0)
+	var to_goal := (goal - o.flat_pos()).normalized()
+	var target := o.flat_pos() + to_goal * 1.8
+	var run := Vector3(o.velocity.x, 0.0, o.velocity.z)
+	var sprint := p.flat_pos().distance_to(target) > 4.0
+	if run.dot(to_goal) > RUN_READ_SPEED:
+		var read := read_skill(p)
+		target += run * RUN_LEAD * read + to_goal * 1.5 * read
+		sprint = true
+	go_to(p, Pitch.clamp_to_field(target, 0.5), sprint)
 	p.look_at_point(_match.ball.flat_pos())
+
+
+## Qué tan bien lee la jugada un defensor (0..1): defensa y respuesta.
+static func read_skill(p: Footballer) -> float:
+	if p.data == null:
+		return 0.5
+	return PlayerData.unit(p.data.defense) * 0.6 + PlayerData.unit(p.data.reaction) * 0.4
+
+
+## Rival que pica hacia el arco a más de esto (m/s): la marca se adelanta.
+const RUN_READ_SPEED := 3.0
+## Cuánto se adelanta a la carrera (s de su velocidad, con lectura 1).
+const RUN_LEAD := 0.45
+## Ventaja (s) que le da la lectura al que corta un pase.
+const LANE_READ_BONUS := 0.3
+
+var _lane_cutter: Footballer
+var _lane_point := Vector3.ZERO
+
+
+## Pase rival en el aire (sobre todo al hueco): el defensor que mejor lo lee
+## sale a cortar la línea del pase si llega antes que el receptor (o casi,
+## según su lectura). Distinto del que va a la pelota.
+func _update_lane_cutter(ball: Ball) -> void:
+	_lane_cutter = null
+	var rec := ball.intended_receiver
+	if not ball.is_loose() or rec == null or rec.team == team or _match.is_stopped():
+		return
+	# Sólo el pase al hueco (los cortos al pie los disputa el que va a la pelota).
+	if _match.last_kick.get("kind", -1) != KickActions.Kind.THROUGH_PASS:
+		return
+	var spd := _match.tuning.sprint_speed
+	var rec_t := rec.flat_pos().distance_to(rec.pass_target if rec.has_pass_target() else ball.flat_pos()) / spd
+	var best_margin := 0.0
+	for p in team.players:
+		if p.is_keeper() or p.is_human() or p == _chaser or p.state != Footballer.State.NORMAL:
+			continue
+		if p.flat_pos().distance_to(rec.flat_pos()) > 25.0:
+			continue
+		var point := _match.loose_ball_intercept(p)
+		var t := p.flat_pos().distance_to(point) / spd
+		var margin := rec_t + LANE_READ_BONUS * read_skill(p) - t
+		if margin > best_margin:
+			best_margin = margin
+			_lane_cutter = p
+			_lane_point = point
 
 
 func _receive(p: Footballer, ball: Ball) -> void:

@@ -543,13 +543,27 @@ func set_human_slot(slot: int) -> void:
 ## Marca sobre la cabeza (GameSettings.player_label): el nombre del que
 ## maneja el humano arriba de la flecha (como en el WE), los números de todos,
 ## o nada.
+## Cámara Lejana: nombres de todos (pisa la opción de las etiquetas).
+static var names_override := false
+
+
 func refresh_label() -> void:
 	if _label == null:
 		return
 	if presenting:
 		_label.visible = false
 		return
-	match GameSettings.player_label:
+	var mode := GameSettings.player_label
+	if names_override:
+		mode = 3
+	match mode:
+		3:
+			# Nombres de todos (cámara Lejana / opción): más grandes para
+			# leerlos de lejos.
+			_label.visible = true
+			_label.text = display_name
+			_label.font_size = 96
+			_label.position.y = 2.6
 		0:
 			_label.visible = human_slot >= 0
 			# Chico y pegado a la flecha: que no tape la jugada.

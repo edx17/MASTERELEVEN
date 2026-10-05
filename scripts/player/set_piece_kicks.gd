@@ -54,10 +54,11 @@ static func fk_type(kind: int, stick: Vector3, power: float) -> int:
 	return Fk.CURL
 
 
-## Nivel de potencia como en el WE (6 a 9) a partir del atributo.
+## Nivel de potencia como en el WE (5 a 9) a partir del atributo, calibrado
+## a los valores de los planteles (30 = 5, 58 = 7, 70 = 8, 85 o más = 9).
 static func power_level(data: PlayerData) -> float:
 	var sp: int = data.shot_power if data != null and data.shot_power > 0 else 60
-	return lerpf(5.5, 9.3, PlayerData.unit(sp))
+	return lerpf(5.0, 9.3, clampf((sp - 30) / 59.0, 0.0, 1.0))
 
 
 ## Patea el tiro libre. `aim`: dirección en la cancha (la de la cámara).

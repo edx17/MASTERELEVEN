@@ -126,6 +126,11 @@ const ATTRIBUTE_NAMES := ["Ataque", "Defensa", "Balance", "Estamina", "Velocidad
 	"Potencia de remate", "Precisión de remate", "Gambeta", "Curva", "Fuerza", "Arquero"]
 
 
+## Nivel de potencia de remate como en el WE (5 a 9).
+func shot_level() -> int:
+	return clampi(roundi(SetPieceKicks.power_level(self)), 5, 9)
+
+
 static func roll_condition(rng: RandomNumberGenerator) -> int:
 	var r := rng.randf()
 	for i in CONDITION_ODDS.size():

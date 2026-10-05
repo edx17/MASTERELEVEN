@@ -34,5 +34,8 @@ enum Mode { LATERAL, VERTICAL, TOPDOWN }
 @export_range(0.0, 1.0) var track_factor: float = 0.72
 ## Cuánto sigue a la pelota a lo ancho (1 = la sigue hasta la banda cercana).
 @export_range(0.0, 1.0) var track_z: float = 0.8
+## Nombres de todos los jugadores arriba de la cabeza (cámara Lejana, como
+## la "Normal Far" con nombres del WE).
+@export var show_names: bool = false
 ## Límite del foco a lo largo de la cancha (para no mirar de más afuera).
 @export var focus_limit_x: float = 44.0

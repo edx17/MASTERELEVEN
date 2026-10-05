@@ -67,6 +67,6 @@ godot --headless -s addons/gut/gut_cmdln.gd -gconfig=.gutconfig.json
 ```
 xvfb-run -s "-screen 0 1280x720x24" godot --rendering-method gl_compatibility \
     --resolution 1280x720 -- --capture=carpeta [--quick | --intro | --replay | --foul |
-    --training | --tunnel | --sheet | --stadium=N | --cond=horario,clima |
+    --training | --tunnel | --sheet | --far | --stadium=N | --cond=horario,clima |
     --shot=x,y,z,mira_x,mira_y,mira_z] [--empty=0.5]
 ```

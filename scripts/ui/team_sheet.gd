@@ -559,7 +559,11 @@ func _show_detail(i: int) -> void:
 			continue
 		var nl := _label(grid, PlayerData.ATTRIBUTE_NAMES[k], 13, Color(0.85, 0.88, 0.95))
 		nl.custom_minimum_size = Vector2(150, 0)
-		var vl := _label(grid, str(v), 13, attribute_color(v))
+		# Potencia de remate: también el nivel del WE (6 a 9).
+		var txt := str(v)
+		if PlayerData.ATTRIBUTES[k] == "shot_power" and d is PlayerData:
+			txt = "%d (%d)" % [v, (d as PlayerData).shot_level()]
+		var vl := _label(grid, txt, 13, attribute_color(v))
 		vl.custom_minimum_size = Vector2(30, 0)
 	# Etiquetas (las estrellitas del WE), en una sola línea.
 	var tags := PackedStringArray()
