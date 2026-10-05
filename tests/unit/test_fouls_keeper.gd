@@ -240,8 +240,10 @@ func test_second_yellow_is_a_red() -> void:
 	var off: Footballer = t1.players[5]
 	off.yellow_cards = 1
 	var vic: Footballer = t0.players[9]
+	# De atrás (sin barrida): 30 % de amarilla por falta y nunca roja directa.
+	# De costado era 5 % y en 60 intentos fallaba ~1 de cada 20 corridas.
 	vic.teleport(Vector3(0, 0, 0), Vector3(1, 0, 0))
-	off.teleport(Vector3(0, 0, 1.0), Vector3(0, 0, -1))
+	off.teleport(Vector3(-1.0, 0, 0), Vector3(1, 0, 0))
 	for i in 60:
 		if off.sent_off:
 			break
