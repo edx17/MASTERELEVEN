@@ -55,7 +55,9 @@ Si esto no funciona, NO se agregan sistemas: se corrige el gameplay primero.
   clubes y jugadores están permitidos (bandera de cada selección incluida).
   Lo que NO se copia: escudos/logos de clubes, música con licencia, y
   modelos, texturas o assets de Konami u otras marcas (los escudos se
-  generan, las camisetas usan los colores del club).
+  generan). Las camisetas van **iguales a las reales** en colores y diseño
+  (rayas, bastones, franja, banda, V, cuadros), sin escudo, marca ni sponsor;
+  el detalle fino se ajusta con el editor externo de camisetas.
 - Portable para PC (Windows prioritario; Linux/Mac deseable). Objetivo: 60 FPS
   con 22 jugadores.
 - Jugable 100% con teclado o con mando (DualShock/DualSense/Xbox), con
@@ -236,11 +238,14 @@ Criterio: capturas lado a lado con la referencia y 60 FPS con 22 jugadores.
 - Esqueletos con física (ragdoll en caídas, cinemática inversa al patear).
 
 ### Fase 6 — Liga Master
-- Base de datos con nombres reales (máximo 23 jugadores por plantel):
-  - Selecciones (con bandera): Inglaterra, España, Portugal, Italia,
-    Alemania, Países Bajos; Estados Unidos, México, Argentina, Brasil,
-    Uruguay; Marruecos, Nigeria, Camerún; China, Japón, Rusia, Turquía;
-    Australia.
+- Base de datos con nombres reales (máximo 23 jugadores por plantel; Paso
+  C, ver `docs/BASE_DE_DATOS.md`):
+  - Selecciones (con bandera, 59): las 48 del Mundial 2026 (42 clasificadas
+    + 6 cupos de repechaje que se eligen entre Bolivia, Perú, Chile, Irak,
+    RD del Congo, Nueva Caledonia, Jamaica, Surinam, Italia, Polonia,
+    Kosovo y Dinamarca) más China, Rusia, Nigeria, Camerún y Turquía.
+  - Mundial 2026 con el formato real: 12 grupos de 4, pasan los dos
+    primeros y los 8 mejores terceros, 16avos y eliminación directa.
   - Ligas: Inglaterra (Premier, Championship, League One, League Two),
     España (LaLiga, LaLiga 2), Italia (Serie A, Serie B), Portugal (Liga
     Portugal), Alemania (Bundesliga, 2. Bundesliga), Países Bajos
@@ -253,6 +258,10 @@ Criterio: capturas lado a lado con la referencia y 60 FPS con 22 jugadores.
   elegido), salvo que el club elegido sea de primera (LPF, Premier, LaLiga,
   Serie A, Bundesliga): ahí es obligatorio el Equipo WE (arrancar abajo con
   el plantel de un grande sería un afano).
+- Estadios: cada club juega en su estadio (nombre real; forma generada
+  según la capacidad). En la etapa de pulido se modelan de forma especial
+  entre 20 y 30 emblemáticos (Bombonera con su lado plano, Monumental,
+  Maracaná, Azteca, Wembley, Bernabéu, Camp Nou, San Siro, Signal Iduna...).
 - Temporadas con fixture ida y vuelta, tabla, goleadores.
 - Ascensos y descensos automáticos al cierre de temporada.
 - Sistema de puntos al estilo WE clásico (se ganan por resultados y se usan

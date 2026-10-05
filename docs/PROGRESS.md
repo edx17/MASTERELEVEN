@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **410 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **424 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -31,6 +31,7 @@ además arma el `.exe` de Windows).
 | Paso A — Jugabilidad WE2002 | 🟡 Hecho, **pendiente de tu prueba** | #30 |
 | Paso B — Jugadores low-poly WE mejorados | 🟡 Hecho, **pendiente de tu prueba** | #30 |
 | Paso UI-1 — Pantallas como el WE2002 | 🟡 Hecho, **pendiente de tu prueba** | #31 |
+| Paso C — Base de datos real y Mundial 2026 | 🟡 Hecho con planteles generados; **falta tu archivo de planteles** | #31 |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -127,12 +128,11 @@ además arma el `.exe` de Windows).
   luz y las sombras se ven distinto.
 
 ### Próximos pasos (en orden)
-1. **Tu prueba** de los Pasos A (jugabilidad WE2002), B (jugadores) y
-   UI-1 (pantallas).
-2. **Paso C — Base de datos real**: 19 selecciones (con bandera) y las ligas
-   de Inglaterra (4 divisiones), España (2), Italia (2), Portugal, Alemania
-   (2), Países Bajos, México, Argentina (5) y Brasil; hasta 23 jugadores por
-   plantel. Ver la lista en `Claude.md` (Fase 6).
+1. **Tu prueba** de los Pasos A (jugabilidad WE2002), B (jugadores), UI-1
+   (pantallas) y C (equipos reales, Mundial).
+2. **Tu archivo de planteles** (CSV de EA FC 26 / SoFIFA y Transfermarkt,
+   ver `docs/BASE_DE_DATOS.md`): se importa y reemplaza los planteles
+   generados; también la lista real del Promocional Amateur.
 3. **Paso D — Liga Master** (en varios PR): arranca en 2.ª; en Argentina e
    Inglaterra en la más baja (Torneo Promocional Amateur / League Two); las
    ligas de una sola división no se eligen. Siempre a elegir entre **Equipo
@@ -145,6 +145,38 @@ además arma el `.exe` de Windows).
    externo para los mapeos de las camisetas.
 
 ---
+
+## Paso C — Base de datos real y Mundial 2026 (PR #31)
+
+Detalle, fuentes y formato del CSV en `docs/BASE_DE_DATOS.md`. Tests en
+`tests/unit/test_team_db.gd` y `test_import_players.gd`.
+- **59 selecciones** con bandera (dibujada por código), camisetas titular y
+  suplente con su diseño, color de arquero, formación y nivel: las 48 del
+  Mundial 2026 (42 seguras + las 12 candidatas del repechaje que pasaste) más
+  China, Rusia, Nigeria, Camerún y Turquía.
+- **9 países, 19 divisiones, 402 clubes reales**: Inglaterra (4),
+  España (2), Italia (2), Alemania (2), Portugal, Países Bajos, México,
+  Brasil y Argentina (5). Cada uno con sus colores, camisetas reales (rayas,
+  bastones, franja de Boca, banda de River, V de Vélez, cuadros...), medias,
+  estadio y capacidad.
+- **Planteles**: generados (estables, nombres del país, nivel según la
+  división) hasta que llegue tu archivo. **Importador** de CSV (EA FC /
+  SoFIFA, Transfermarkt o planilla propia): `godot --headless --
+  --import-players=archivo.csv`; convierte los atributos de FC a los del
+  juego y arma las selecciones por nacionalidad.
+- **Elección de equipos por grupos**: Selecciones, cada división de cada país
+  y Equipos WE; L1/R1 (Q/E) cambian de grupo; banderas para las selecciones
+  y escudos con el diseño de la camiseta; la camiseta del panel muestra su
+  diseño.
+- **Liga y Copa con equipos reales**: con un club, la Liga es toda su
+  división (tabla con desplazamiento); la Copa, 8 de su grupo.
+- **Mundial 2026** (menú principal): eliges los 6 cupos del repechaje y tu
+  selección; sorteo por bombos (anfitriones al frente), 12 grupos de 4, dos
+  por grupo + 8 mejores terceros, 16avos hasta la final.
+- **Estadio del local**: con un club real y el estadio "al azar", su estadio
+  con nombre real ("EN VIVO — La Bombonera") y forma según la capacidad.
+- Nuevos diseños de camiseta en el cuerpo 3D: franja en el pecho, V y
+  cuadros; las medias pueden ser de otro color que la camiseta.
 
 ## Paso UI-1 — Pantallas como el WE2002 (PR #31)
 
