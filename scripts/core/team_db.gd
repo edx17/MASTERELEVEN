@@ -94,7 +94,10 @@ static func base_countries() -> Array:
 ## Activa un Option File (null = la base) y vuelve a armar los equipos.
 static func use_option_file(of: OptionFile) -> void:
 	option_file = of
-	reload()
+	# La base leída (JSON) no cambia: sólo se rearman los equipos.
+	_nations = []
+	_countries = []
+	_cache = {}
 
 
 static func names() -> Dictionary:
@@ -196,6 +199,23 @@ static func load_team(path: String) -> TeamData:
 	if t != null:
 		_cache[path] = t
 	return t
+
+
+## Rearma un solo club con su entrada nueva (Liga Master: lesiones y
+## suspensiones), sin rehacer todo el país.
+static func refresh_club(country_id: String, club_id: String, entry: Dictionary) -> void:
+	_cache.erase(club_path(country_id, club_id))
+	for c in _countries:
+		if c["id"] != country_id:
+			continue
+		for d in c["divisions"]:
+			var list: Array = d["clubs"]
+			for i in list.size():
+				if String(list[i]["id"]) == club_id:
+					var e: Dictionary = entry.duplicate(true)
+					e["id"] = club_id
+					list[i] = e
+					return
 
 
 ## Olvida lo leído (después de importar o editar los JSON).
@@ -311,6 +331,10 @@ static func player_from_dict(d: Dictionary, team_id: String, i: int, level: int 
 	p.age = int(d.get("age", 0))
 	p.nationality = String(d.get("nat", ""))
 	p.pid = int(d.get("pid", 0))
+	var inj := int(d.get("inj", 0))
+	var susp := int(d.get("susp", 0))
+	p.unavailable = inj > 0 or susp > 0
+	p.status_text = ("Lesión %d" % inj) if inj > 0 else (("Susp. %d" % susp) if susp > 0 else "")
 	# Aspecto (editor): -1 / ausente = automático.
 	for k in LOOK_KEYS:
 		if d.has(k):
@@ -372,17 +396,21 @@ static func _order_for_formation(t: TeamData) -> void:
 	if t.formation == null:
 		return
 	var pool: Array[PlayerData] = t.players.duplicate()
-	pool.sort_custom(func(a: PlayerData, b: PlayerData) -> bool: return overall(a) > overall(b))
+	# Los lesionados y suspendidos (Liga Master) quedan al final: no son titulares.
+	pool.sort_custom(func(a: PlayerData, b: PlayerData) -> bool:
+		if a.unavailable != b.unavailable:
+			return b.unavailable
+		return overall(a) > overall(b))
 	var xi: Array[PlayerData] = []
 	for role in t.formation.roles:
 		var pick: PlayerData = null
 		for p in pool:
-			if p.position == role:
+			if p.position == role and not p.unavailable:
 				pick = p
 				break
 		if pick == null and role != PlayerData.Position.GK:
 			for p in pool:
-				if p.position != PlayerData.Position.GK:
+				if p.position != PlayerData.Position.GK and not p.unavailable:
 					pick = p
 					break
 		if pick == null and not pool.is_empty():

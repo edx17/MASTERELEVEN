@@ -228,14 +228,28 @@ func round_text() -> String:
 
 ## Juega una fecha en todas las divisiones que no terminaron. `user_result`
 ## (si el jugador jugó su partido): [goles local, goles visitante];
-## `user_scorers`: [[lado, pid]] de GameSettings.last_scorers.
-func play_round(user_result: Array = [], user_scorers: Array = [], seed: int = 0) -> void:
+## `user_scorers`: [[lado, pid]] de GameSettings.last_scorers;
+## `user_events`: tarjetas y lesiones (GameSettings.last_events).
+func play_round(user_result: Array = [], user_scorers: Array = [], seed: int = 0, user_events: Array = []) -> void:
 	if season_over:
 		return
 	activate()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed if seed != 0 else randi()
 	var mine := user_league_index()
+	# Los que no podían jugar esta fecha cumplen una (después de jugarla).
+	var serving: Array[Dictionary] = []
+	_dirty.clear()
+	for li in leagues.size():
+		var comp: Competition = leagues[li]["comp"]
+		if comp.finished():
+			continue
+		for g in comp.rounds[comp.current]:
+			for side in ["home", "away"]:
+				var club: String = comp.team_paths[g[side]].get_slice(":", 3)
+				for d in club_players(club):
+					if int(d.get("inj", 0)) > 0 or int(d.get("susp", 0)) > 0:
+						serving.append({"d": d, "club": club})
 	for li in leagues.size():
 		var comp: Competition = leagues[li]["comp"]
 		if comp.finished():
@@ -245,9 +259,23 @@ func play_round(user_result: Array = [], user_scorers: Array = [], seed: int = 0
 		comp.complete_round(user_result if li == mine and not um.is_empty() else [], rng.randi())
 		for g in comp.rounds[r]:
 			var is_user: bool = li == mine and (g["home"] == comp.user_team or g["away"] == comp.user_team)
-			_add_scorers(comp, li, g, user_scorers if is_user and not user_result.is_empty() else [], rng)
+			var played: bool = is_user and not user_result.is_empty()
+			_add_scorers(comp, li, g, user_scorers if played else [], rng)
+			_add_events(comp, g, user_events if played else [], played, rng)
 			if is_user:
 				_add_points(g, comp.user_team)
+	for sv in serving:
+		var d: Dictionary = sv["d"]
+		if int(d.get("inj", 0)) > 0:
+			d["inj"] = int(d["inj"]) - 1
+		elif int(d.get("susp", 0)) > 0:
+			d["susp"] = int(d["susp"]) - 1
+		# Vuelve a estar disponible: el club se rearma.
+		if int(d.get("inj", 0)) == 0 and int(d.get("susp", 0)) == 0:
+			_dirty[sv["club"]] = true
+	# Los planteles con altas o bajas nuevas se rearman.
+	for club in _dirty:
+		TeamDB.refresh_club(country, club, world.clubs["%s:%s" % [country, club]])
 	if leagues.all(func(l: Dictionary) -> bool: return (l["comp"] as Competition).finished()):
 		_end_season()
 
@@ -295,6 +323,115 @@ func _add_scorers(comp: Competition, li: int, g: Dictionary, known: Array, rng: 
 			var p := pick_scorer(t, rng)
 			if p != null:
 				_credit(p, path, li)
+
+
+# --- Tarjetas, suspensiones y lesiones (D2) ---------------------------------------------
+
+## Clubes cuyo plantel cambió en la fecha (se rearman en TeamDB).
+var _dirty := {}
+
+## Amarillas para una fecha de suspensión.
+const YELLOW_LIMIT := 5
+## Por equipo y partido simulado: amarillas en promedio, chance de roja y de
+## lesión.
+const SIM_YELLOWS := 1.9
+const SIM_RED := 0.05
+const SIM_INJURY := 0.07
+## Quién se hace amonestar más (simulación).
+const CARD_WEIGHT := {"CB": 1.5, "DMF": 1.6, "LB": 1.3, "RB": 1.3, "CMF": 1.1, "GK": 0.2}
+
+
+## Jugadores (datos del mundo) de un club de la carrera.
+func club_players(club_id: String) -> Array:
+	var e: Dictionary = world.clubs.get("%s:%s" % [country, club_id], {})
+	return e.get("players", [])
+
+
+func _player_dict(club_id: String, pid: int) -> Dictionary:
+	for d in club_players(club_id):
+		if int(d.get("pid", 0)) == pid:
+			return d
+	return {}
+
+
+## Tarjetas y lesiones de un partido: las reales en el partido jugado; si no,
+## simuladas entre los titulares.
+func _add_events(comp: Competition, g: Dictionary, known: Array, played: bool, rng: RandomNumberGenerator) -> void:
+	for side in 2:
+		var path: String = comp.team_paths[g["home"] if side == 0 else g["away"]]
+		var club := path.get_slice(":", 3)
+		if played:
+			for ev in known:
+				if int(ev[0]) != side:
+					continue
+				var d := _player_dict(club, int(ev[1]))
+				if not d.is_empty():
+					_apply_event(d, String(ev[2]), rng)
+					_dirty[club] = true
+			continue
+		var xi := TeamDB.load_team(path).starters()
+		if xi.is_empty():
+			continue
+		var weights: Array[float] = []
+		for p in xi:
+			weights.append(float(CARD_WEIGHT.get(p.role_code, 0.8)))
+		for i in Competition._poisson(SIM_YELLOWS, rng):
+			var d := _player_dict(club, _weighted(xi, weights, rng).pid)
+			_apply_event(d, "y", rng)
+			if int(d.get("susp", 0)) > 0:
+				_dirty[club] = true
+		if rng.randf() < SIM_RED:
+			_apply_event(_player_dict(club, _weighted(xi, weights, rng).pid), "r", rng)
+			_dirty[club] = true
+		if rng.randf() < SIM_INJURY:
+			_apply_event(_player_dict(club, xi[rng.randi_range(0, xi.size() - 1)].pid), "i2", rng)
+			_dirty[club] = true
+
+
+static func _weighted(list: Array, weights: Array[float], rng: RandomNumberGenerator) -> PlayerData:
+	var total := 0.0
+	for w in weights:
+		total += w
+	var x := rng.randf() * total
+	for i in list.size():
+		x -= weights[i]
+		if x <= 0.0:
+			return list[i]
+	return list[list.size() - 1]
+
+
+## Anota una tarjeta o lesión: 5 amarillas = 1 fecha; roja = 1 (a veces 2);
+## golpe = a veces 1 fecha; lesión = 1 a 3 fechas casi siempre, a veces
+## hasta 8 o, rara vez, hasta 20.
+static func _apply_event(d: Dictionary, kind: String, rng: RandomNumberGenerator) -> void:
+	if d.is_empty():
+		return
+	match kind:
+		"y":
+			d["yc"] = int(d.get("yc", 0)) + 1
+			if int(d["yc"]) >= YELLOW_LIMIT:
+				d["yc"] = 0
+				d["susp"] = int(d.get("susp", 0)) + 1
+		"r":
+			d["susp"] = int(d.get("susp", 0)) + (2 if rng.randf() < 0.25 else 1)
+		"i1":
+			if rng.randf() < 0.4:
+				d["inj"] = maxi(int(d.get("inj", 0)), 1)
+		"i2":
+			var x := rng.randf()
+			var n := rng.randi_range(1, 3) if x < 0.75 else (rng.randi_range(4, 8) if x < 0.95 else rng.randi_range(9, 20))
+			d["inj"] = maxi(int(d.get("inj", 0)), n)
+
+
+## Bajas del club del jugador: [{n, why}] ("Lesión 3", "Susp. 1").
+func user_absences() -> Array:
+	var out: Array = []
+	for d in club_players(user_club):
+		if int(d.get("inj", 0)) > 0:
+			out.append({"n": d["n"], "why": "lesionado, %d fecha%s" % [d["inj"], "" if int(d["inj"]) == 1 else "s"]})
+		elif int(d.get("susp", 0)) > 0:
+			out.append({"n": d["n"], "why": "suspendido, %d fecha%s" % [d["susp"], "" if int(d["susp"]) == 1 else "s"]})
+	return out
 
 
 func _credit(p: PlayerData, path: String, li: int) -> void:
@@ -394,11 +531,166 @@ func _end_season() -> void:
 	if pos == 1:
 		points += int(POINTS["title"])
 	summary["user"] = {"division": mine, "division_name": division_name(mine), "pos": pos, "went": went}
+	# Cambio de año: edad, evolución, retiros y juveniles (con las divisiones
+	# de la temporada que viene).
+	var report := _new_year(lists, divs)
+	summary["user"]["retired"] = report["retired"]
+	summary["user"]["youth"] = report["youth"]
+	summary["user"]["risers"] = report["risers"]
 	for i in divs.size():
 		world.set_division(country, String(divs[i]["id"]), lists[i])
 	history.append(summary)
 	season_over = true
 	TeamDB.use_option_file(world)
+
+
+# --- Cambio de año (D2) -----------------------------------------------------------------
+
+## Cambio de atributos por edad (antes de cumplir el año): los jóvenes
+## crecen, el pico es entre los 27 y los 29 y después declinan.
+static func growth_for_age(age: int) -> int:
+	if age <= 20:
+		return 3
+	if age <= 23:
+		return 2
+	if age <= 26:
+		return 1
+	if age <= 29:
+		return 0
+	if age <= 31:
+		return -1
+	if age <= 33:
+		return -2
+	return -3
+
+
+## Chance de retirarse al terminar la temporada (los arqueros, dos años más).
+static func retire_chance(age: int, keeper: bool) -> float:
+	var a := age - (2 if keeper else 0)
+	if a < 33:
+		return 0.0
+	if a >= 39:
+		return 1.0
+	return [0.15, 0.3, 0.5, 0.7, 0.85, 0.95][a - 33]
+
+
+## Mínimo por puesto al reponer con juveniles: [arqueros, defensores,
+## volantes, delanteros] (23 en total).
+const SQUAD_LINES := [3, 8, 7, 5]
+
+
+## Todos cumplen un año: evolucionan, algunos se retiran y cada club repone
+## con juveniles (17 a 19 años) hasta 23. Devuelve lo del club del jugador:
+## {retired: [nombres], youth: [nombres], risers: [[nombre, +n]]}.
+func _new_year(lists: Array, divs: Array) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("%s_%d_%d" % [country, season, next_pid])
+	var report := {"retired": [], "youth": [], "risers": []}
+	var co := TeamDB.country(country)
+	for di in lists.size():
+		var div: Dictionary = divs[di]
+		var level := int(TeamDB.DIVISION_LEVEL.get(int(div.get("level", di + 1)), 56)) + int(TeamDB.LEAGUE_BONUS.get(String(div["id"]), 0))
+		for club in lists[di]:
+			var mine: bool = club == user_club
+			var e: Dictionary = world.clubs["%s:%s" % [country, club]]
+			var kept: Array = []
+			for d in e["players"]:
+				var age := int(d.get("age", 25))
+				var keeper := String(d.get("pos", "")) == "GK"
+				if rng.randf() < retire_chance(age, keeper):
+					if mine:
+						report["retired"].append(d["n"])
+					continue
+				var before := _avg(d)
+				_evolve(d, age, rng)
+				d["age"] = age + 1
+				d["yc"] = 0
+				d["susp"] = 0
+				d["inj"] = maxi(0, int(d.get("inj", 0)) - 4)
+				if mine and _avg(d) - before >= 2:
+					report["risers"].append([d["n"], _avg(d) - before])
+				kept.append(d)
+			e["players"] = kept
+			for n in _add_youth(e, level - 10, String(co.get("names", "en")), co.get("skin", [40, 30, 18, 12]),
+					String(co.get("nationality", "")), rng):
+				if mine:
+					report["youth"].append(n)
+	(report["risers"] as Array).sort_custom(func(a: Array, b: Array) -> bool: return a[1] > b[1])
+	report["risers"] = (report["risers"] as Array).slice(0, 5)
+	return report
+
+
+static func _avg(d: Dictionary) -> int:
+	var a: Dictionary = d.get("a", {})
+	var total := 0
+	for k in a:
+		if k != "goalkeeping" or String(d.get("pos", "")) == "GK":
+			total += int(a[k])
+	return roundi(float(total) / maxf(a.size() - (0 if String(d.get("pos", "")) == "GK" else 1), 1.0))
+
+
+## Un año más de un jugador: todos sus atributos se mueven según la edad
+## (con algo de azar); los físicos caen un poco más desde los 30.
+static func _evolve(d: Dictionary, age: int, rng: RandomNumberGenerator) -> void:
+	var a: Dictionary = d.get("a", {})
+	var base := growth_for_age(age)
+	for k in a:
+		var delta := base + rng.randi_range(-1, 1)
+		if age >= 30 and k in ["speed", "acceleration", "stamina"]:
+			delta -= 1
+		a[k] = clampi(int(a[k]) + delta, 20, 99)
+
+
+## Repone el plantel hasta 23 con juveniles de los puestos que faltan.
+## Devuelve sus nombres.
+func _add_youth(e: Dictionary, level: int, names_group: String, skin: Array, nationality: String,
+		rng: RandomNumberGenerator) -> Array:
+	var players: Array = e["players"]
+	var need := 23 - players.size()
+	if need <= 0:
+		return []
+	var count := [0, 0, 0, 0]
+	var numbers := {}
+	for d in players:
+		count[TeamDB.position_of_code(String(d.get("pos", "CMF")))] += 1
+		numbers[int(d.get("num", 0))] = true
+	var t := TeamData.new()
+	t.id = "youth_%d" % next_pid
+	t.formation = load("res://data/formations/f_4-4-2.tres")
+	TeamDB.generate_roster(t, level, names_group, skin, nationality, rng.randi())
+	var pool := t.players.duplicate()
+	var out: Array = []
+	while need > 0 and not pool.is_empty():
+		# El puesto más corto respecto del mínimo (si no falta ninguno, el que haya).
+		var line := 0
+		var worst := -99
+		for l in 4:
+			var gap: int = SQUAD_LINES[l] - count[l]
+			if gap > worst:
+				worst = gap
+				line = l
+		var pick: PlayerData = null
+		for p in pool:
+			if p.position == line:
+				pick = p
+				break
+		if pick == null:
+			pick = pool[0]
+		pool.erase(pick)
+		var d := TeamDB.player_to_dict(pick)
+		d["pid"] = next_pid
+		next_pid += 1
+		d["age"] = rng.randi_range(17, 19)
+		var num := 2
+		while numbers.has(num) and num < 99:
+			num += 1
+		d["num"] = num
+		numbers[num] = true
+		players.append(d)
+		out.append(d["n"])
+		count[pick.position] += 1
+		need -= 1
+	return out
 
 
 func last_summary() -> Dictionary:

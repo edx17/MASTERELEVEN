@@ -126,6 +126,8 @@ var last_result: Array = []
 ## Goles del partido jugado: [[lado (0 local / 1 visitante), pid del autor
 ## (0 si no se sabe o fue en contra)]]. Lo usa la Liga Master.
 var last_scorers: Array = []
+## Tarjetas y lesiones del partido jugado: [[lado, pid, "y" | "r" | "i1" | "i2"]].
+var last_events: Array = []
 ## Partido de la Liga Master en curso (active_save es la carrera).
 var master_match := false
 ## Volumen de efectos (silbato, pelota) y del público, 0..10.

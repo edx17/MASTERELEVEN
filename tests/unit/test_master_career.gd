@@ -118,3 +118,67 @@ func test_list_saves() -> void:
 	assert_eq(saves.size(), 1)
 	assert_string_contains(String(saves[0]["progress"]), "League Two")
 	assert_true(MasterCareer.is_career_file(m.file))
+
+
+## D2: amarillas, rojas y lesiones.
+func test_cards_and_injuries_rules() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4
+	var d := {"n": "X"}
+	for i in 4:
+		MasterCareer._apply_event(d, "y", rng)
+	assert_eq(int(d.get("susp", 0)), 0)
+	MasterCareer._apply_event(d, "y", rng)
+	assert_eq(int(d["susp"]), 1, "5 amarillas = 1 fecha")
+	assert_eq(int(d["yc"]), 0)
+	MasterCareer._apply_event(d, "r", rng)
+	assert_between(int(d["susp"]), 2, 3)
+	MasterCareer._apply_event(d, "i2", rng)
+	assert_gt(int(d["inj"]), 0)
+
+
+## D2: el lesionado no es titular y cumple las fechas.
+func test_unavailable_player_sits_out_and_serves() -> void:
+	var m := MasterCareer.create("esp", String(TeamDB.country("esp")["divisions"][1]["clubs"][0]["id"]), "real", 31)
+	var star: PlayerData = m.user_team().starters()[5]
+	var d := m._player_dict(m.user_club, star.pid)
+	d["susp"] = 1
+	TeamDB.use_option_file(m.world)
+	var xi := m.user_team().starters().map(func(p: PlayerData) -> int: return p.pid)
+	assert_false(xi.has(star.pid), "suspendido: fuera del once")
+	assert_true(m.user_absences().size() >= 1)
+	m.play_round([], [], 8)
+	assert_eq(int(m._player_dict(m.user_club, star.pid)["susp"]), 0, "cumplió la fecha")
+	MasterCareer.deactivate()
+
+
+## D2: cambio de año (edad, evolución, retiros y juveniles).
+func test_new_year_ages_retires_and_refills() -> void:
+	var m := MasterCareer.create("arg", "lugano", "real", 41)
+	var players: Array = m.club_players("lugano")
+	var veteran: Dictionary = players[3]
+	veteran["age"] = 40
+	var kid: Dictionary = players[4]
+	kid["age"] = 18
+	var kid_before := MasterCareer._avg(kid)
+	var kid_pid := int(kid["pid"])
+	m.simulate_to_end(12)
+	assert_true(m.season_over)
+	var now: Array = m.club_players("lugano")
+	assert_eq(now.size(), 23, "repuesto con juveniles")
+	assert_false(now.any(func(p: Dictionary) -> bool: return int(p["pid"]) == int(veteran["pid"])), "el de 40 se retiró")
+	var u: Dictionary = m.last_summary()["user"]
+	assert_true((u["retired"] as Array).has(veteran["n"]))
+	assert_false((u["youth"] as Array).is_empty())
+	var k: Array = now.filter(func(p: Dictionary) -> bool: return int(p["pid"]) == kid_pid)
+	if not k.is_empty():
+		assert_eq(int(k[0]["age"]), 19)
+		assert_gt(MasterCareer._avg(k[0]), kid_before, "el pibe creció")
+	# Durante la temporada hubo suspensiones o lesiones en algún club.
+	var hurt := 0
+	for key in m.world.clubs:
+		for p in m.world.clubs[key]["players"]:
+			if int(p.get("inj", 0)) > 0:
+				hurt += 1
+	gut.p("Lesionados al final (después de la pretemporada): %d" % hurt)
+	MasterCareer.deactivate()

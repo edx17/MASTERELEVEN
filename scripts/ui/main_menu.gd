@@ -102,11 +102,12 @@ func _ready() -> void:
 		var m := MasterCareer.load_saved(GameSettings.active_save)
 		if m != null:
 			if not GameSettings.last_result.is_empty():
-				m.play_round(GameSettings.last_result, GameSettings.last_scorers)
+				m.play_round(GameSettings.last_result, GameSettings.last_scorers, 0, GameSettings.last_events)
 				m.save()
 			show_page("master_hub")
 		GameSettings.last_result = []
 		GameSettings.last_scorers = []
+		GameSettings.last_events = []
 
 
 # --- Navegación -------------------------------------------------------------------
@@ -620,6 +621,7 @@ func _on_master_match(home: String, away: String, side: int) -> void:
 	GameSettings.competition_match = false
 	GameSettings.master_match = true
 	GameSettings.last_scorers = []
+	GameSettings.last_events = []
 
 
 func _on_teams_chosen(home: String, away: String) -> void:

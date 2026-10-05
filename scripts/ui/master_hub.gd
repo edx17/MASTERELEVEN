@@ -191,6 +191,13 @@ func _next_match() -> void:
 	_right.add_child(WEStyle.label(career.user_team().team_name, 24, GOLD))
 	_right.add_child(WEStyle.label("%s  ·  %s" % [career.division_name(career.user_league_index()), career.round_text()], 18))
 	_right.add_child(WEStyle.label("Puntos WE: %d" % career.points, 18, BLUE))
+	# Bajas: lesionados y suspendidos (no entran en el once).
+	var abs := career.user_absences()
+	if not abs.is_empty():
+		var txt := "Bajas: " + ", ".join(abs.slice(0, 3).map(func(a: Dictionary) -> String: return "%s (%s)" % [a["n"], a["why"]]))
+		if abs.size() > 3:
+			txt += " y %d más" % (abs.size() - 3)
+		_right.add_child(_wrap(txt, DOWN))
 	var g := career.user_match()
 	var first: Button = null
 	if g.is_empty():
@@ -266,12 +273,23 @@ func _season_summary() -> void:
 		_right.add_child(WEStyle.label("Descendiste.", 20, DOWN))
 	_right.add_child(WEStyle.label("Puntos WE: %d" % career.points, 18, BLUE))
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(490, 330)
+	scroll.custom_minimum_size = Vector2(490, 300)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_right.add_child(scroll)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 1)
 	scroll.add_child(box)
+	# Tu plantel en el cambio de año: retiros, juveniles y los que más crecieron.
+	box.add_child(WEStyle.label("Tu plantel", 17, BLUE))
+	if not (u.get("retired", []) as Array).is_empty():
+		box.add_child(_wrap("  Se retiraron: " + ", ".join(u["retired"]), DOWN))
+	if not (u.get("youth", []) as Array).is_empty():
+		box.add_child(_wrap("  Juveniles: " + ", ".join(u["youth"]), UP))
+	if not (u.get("risers", []) as Array).is_empty():
+		box.add_child(_wrap("  Crecieron: " + ", ".join((u["risers"] as Array).map(func(r: Array) -> String:
+			return "%s (+%d)" % [r[0], int(r[1])])), Color.WHITE))
+	if (u.get("retired", []) as Array).is_empty() and (u.get("youth", []) as Array).is_empty():
+		box.add_child(WEStyle.label("  Sin retiros.", 15))
 	for d in s.get("divisions", []):
 		box.add_child(WEStyle.label(String(d["name"]), 17, BLUE))
 		box.add_child(WEStyle.label("  Campeón: %s" % _name(String(d["champion"])), 15, GOLD))

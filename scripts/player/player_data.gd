@@ -14,6 +14,11 @@ enum Build { AUTO = -1, NORMAL, HEAVY, SLIM, TALL, SHORT, STOCKY, MUSCULAR }
 ## Número único del jugador dentro de una Liga Master (0 = fuera de una
 ## carrera): sigue al jugador aunque cambie de club u orden en el plantel.
 @export var pid: int = 0
+## Liga Master: lesionado o suspendido para el próximo partido (no entra en
+## el once titular).
+@export var unavailable := false
+## Texto corto del motivo ("Lesión 3", "Susp. 1") o "".
+@export var status_text := ""
 @export var player_name: String = ""
 @export var number: int = 1
 @export var position: Position = Position.MF

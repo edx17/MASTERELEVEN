@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **451 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **454 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -18,7 +18,7 @@ además arma el `.exe` de Windows).
 | 3 — IA de partido | ✅ Implementada (se sigue ajustando con tus pruebas) | — |
 | 4 — Reglas, atributos y plantel | ✅ Implementada | — |
 | 5 — Presentación moderna (estadios, animaciones, audio, repeticiones) | 🟡 Muy avanzada; falta el pelo "Detallados" y la voz del locutor | — |
-| 6 — Liga Master | 🟡 D1 hecho (carrera y temporadas); faltan D2–D4 | — |
+| 6 — Liga Master | 🟡 D1 y D2 hechos; faltan D3 (mercado) y D4 (pantallas) | #32 |
 | 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) | — |
 | 8 — Pulido | ⬜ | — |
 | Entrenamiento (Club House) | ✅ | #23 |
@@ -37,7 +37,8 @@ además arma el `.exe` de Windows).
 | E3 — Editor: selecciones, ligas y copas propias | 🟡 Hecho, pendiente de tu prueba | #31 |
 | E4 — Editor: camisetas (plantilla PNG) y botines con vista 3D | 🟡 Hecho, pendiente de tu prueba | #31 |
 | Importar clubes (CSV) y Argentina sin Promocional | 🟡 Hecho, pendiente de tu prueba | #31 |
-| D1 — Liga Master: carrera, temporadas, goleadores, ascensos y descensos | 🟡 Hecho, pendiente de tu prueba | (este PR) |
+| D1 — Liga Master: carrera, temporadas, goleadores, ascensos y descensos | 🟡 Hecho, pendiente de tu prueba | #32 |
+| D2 — Liga Master: tarjetas, lesiones, evolución, retiros y juveniles | 🟡 Hecho, pendiente de tu prueba | (este PR) |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -141,8 +142,8 @@ además arma el `.exe` de Windows).
    generados. La lista de clubes 2026 de Argentina que pasaste se carga
    desde el Editor (Importar > Clubes y divisiones).
 3. **Paso D — Liga Master**, en cuatro PR: **D1** (hecho: carrera y
-   temporadas), **D2** (tarjetas, suspensiones, lesiones, evolución por
-   edad, retiros y juveniles), **D3** (mercado de pases con puntos WE,
+   temporadas), **D2** (hecho: tarjetas, suspensiones, lesiones, evolución
+   por edad, retiros y juveniles), **D3** (mercado de pases con puntos WE,
    préstamos, ventanas, IA que ficha) y **D4** (menú de la carrera estilo
    WE, noticias, historial y palmarés).
 4. Himno propio, relator y pulido final.
@@ -150,6 +151,25 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## D2 — Liga Master: el plantel con el paso del tiempo
+- **Tarjetas y suspensiones**: 5 amarillas = 1 fecha; roja (o doble
+  amarilla) = 1 fecha, a veces 2. En tu partido cuentan las que sacó el
+  árbitro; en el resto, simuladas (más a los defensores y volantes
+  centrales).
+- **Lesiones**: en tu partido, las del juego (un golpe a veces deja afuera
+  una fecha; una lesión, de 1 a 3 casi siempre, a veces hasta 8 y rara vez
+  hasta 20); en los simulados, al azar.
+- Los lesionados y suspendidos **no entran en el once** (quedan al final del
+  plantel) y la pantalla de la carrera muestra tus bajas. Cumplen las fechas
+  solas.
+- **Cambio de año** (al terminar la temporada): todos cumplen un año; los
+  atributos suben hasta los 26, se mantienen hasta los 29 y bajan desde los
+  30 (los físicos, un poco más). **Retiros** desde los 33 (los arqueros
+  desde los 35; a los 39, seguro). Cada club **repone con juveniles** de 17
+  a 19 años hasta tener 23, con los puestos que le faltan.
+- El resumen de fin de temporada muestra tu plantel: quiénes se retiraron,
+  los juveniles nuevos y los que más crecieron.
 
 ## D1 — Liga Master: carrera y temporadas
 - **LIGA MASTER** en el menú: elegís país (los que tienen más de una
