@@ -240,6 +240,12 @@ static func _base_team(e: Dictionary) -> TeamData:
 	t.away_pattern = away["pattern"]
 	t.away_pattern_color = away["pattern_color"]
 	t.keeper_color = Color.html(String(e.get("keeper", "1a1a1a")))
+	# Plantillas de camiseta del Option File (editor de camisetas).
+	if option_file != null:
+		for i in 2:
+			var f := String(e.get(["home_tex", "away_tex"][i], ""))
+			if f != "":
+				t.kit_textures[i] = KitTemplate.load_texture(option_file.kits_dir().path_join(f))
 	var fname := String(e.get("formation", "4-4-2"))
 	var path := "res://data/formations/f_%s.tres" % fname
 	t.formation = load(path) if ResourceLoader.exists(path) else load("res://data/formations/f_4-4-2.tres")

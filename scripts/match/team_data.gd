@@ -16,6 +16,8 @@ extends Resource
 @export var country: String = ""
 @export var stadium: String = ""
 @export var capacity: int = 0
+## Plantillas de camiseta (editor de camisetas; null = el diseño por código).
+var kit_textures: Array = [null, null]
 ## Medias de cada uniforme (alfa 0 = del color de la camiseta).
 @export var socks_color: Color = Color(0, 0, 0, 0)
 @export var away_socks: Color = Color(0, 0, 0, 0)
@@ -38,6 +40,10 @@ func kit(i: int) -> Array[Color]:
 	if i == 1:
 		return [away_color, away_secondary]
 	return [color, secondary_color]
+
+
+func kit_texture(i: int) -> Texture2D:
+	return kit_textures[clampi(i, 0, 1)]
 
 
 ## Medias del uniforme 0 o 1 (alfa 0 = como la camiseta).

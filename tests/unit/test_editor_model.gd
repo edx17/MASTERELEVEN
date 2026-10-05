@@ -128,3 +128,36 @@ func test_custom_cups() -> void:
 	assert_eq(OptionFile.load_named("Editor Test").cups.size(), 1)
 	m.remove_cup(i)
 	assert_eq(m.option_file.cups.size(), 0)
+
+
+## E4: plantilla PNG de la camiseta: se exporta con el diseño, se importa al
+## Option File y el equipo la usa en el partido.
+func test_kit_template_round_trip() -> void:
+	var img := KitTemplate.render(Color.RED, Color.WHITE, Color.BLACK, 1, Color.BLUE, 256)
+	assert_eq(img.get_width(), 256)
+	# Torso a rayas: hay rojo y azul en la franja del torso.
+	var reds := 0
+	var blues := 0
+	for x in range(0, 128, 2):
+		var c := img.get_pixel(x, 64)
+		if c.r > 0.8 and c.b < 0.2:
+			reds += 1
+		elif c.b > 0.8 and c.r < 0.2:
+			blues += 1
+	assert_gt(reds, 10)
+	assert_gt(blues, 10)
+	assert_eq(img.get_pixel(32, 160), Color.WHITE, "short")
+	DirAccess.make_dir_recursive_absolute(m.option_file.kits_dir())
+	var f := m.option_file.kits_dir().path_join("boca_titular.png")
+	img.save_png(f)
+	m.set_team(BOCA, {"home_tex": "boca_titular.png"})
+	var t := TeamDB.load_team(BOCA)
+	assert_not_null(t.kit_texture(0))
+	assert_null(t.kit_texture(1))
+	GameSettings.home_team_path = BOCA
+	GameSettings.set_mode(GameSettings.Mode.CPU_VS_CPU)
+	var mc: MatchController = load("res://scenes/match/match.tscn").instantiate()
+	add_child_autofree(mc)
+	mc.set_physics_process(false)
+	assert_not_null(mc.teams[0].kit_texture, "el partido usa la camiseta pintada")
+	GameSettings.home_team_path = GameSettings.DEFAULT_HOME

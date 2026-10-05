@@ -56,6 +56,9 @@ var _imp_text: Label
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	get_tree().paused = false
+	# Los desplegables no se ensanchan hasta su opción más larga (si no, los
+	# nombres de las divisiones empujan los paneles fuera de la ventana).
+	get_tree().node_added.connect(_on_node_added)
 	var th := Theme.new()
 	th.default_font_size = 15
 	theme = th
@@ -83,6 +86,7 @@ func _ready() -> void:
 	_tabs.add_child(_nations_tab())
 	_tabs.add_child(_leagues_tab())
 	_tabs.add_child(_cups_tab())
+	_tabs.add_child(_kits_tab())
 	_tabs.add_child(_import_tab())
 	# Barra de estado abajo: Option File, cambios sin guardar y avisos.
 	root.add_child(_status)
@@ -94,6 +98,10 @@ func _ready() -> void:
 	_refresh_nations()
 	_refresh_leagues()
 	_refresh_cups()
+	if _k_current != "":
+		_show_kit(_k_current)
+	_fill_group(_k_group)
+	_on_k_group(0)
 	_update_status()
 
 
@@ -108,6 +116,14 @@ func _load_active() -> OptionFile:
 		if existing != null:
 			of = existing
 	return of
+
+
+func _on_node_added(n: Node) -> void:
+	if n is OptionButton and is_ancestor_of(n):
+		(n as OptionButton).fit_to_longest_item = false
+		(n as OptionButton).clip_text = true
+		if (n as OptionButton).custom_minimum_size.x < 120:
+			(n as OptionButton).custom_minimum_size.x = 120
 
 
 # --- Barra de arriba ----------------------------------------------------------------
@@ -291,30 +307,34 @@ func _group_paths(i: int) -> Array[String]:
 # --- Jugadores ------------------------------------------------------------------------
 
 func _players_tab() -> Control:
-	var tab := HSplitContainer.new()
+	var tab := HBoxContainer.new()
 	tab.name = "Jugadores"
 	var left := VBoxContainer.new()
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.size_flags_stretch_ratio = 1.7
+	left.size_flags_stretch_ratio = 1.9
 	tab.add_child(left)
-	var filters := HBoxContainer.new()
+	# Filtros: si no entran en un renglón, pasan al siguiente.
+	var filters := HFlowContainer.new()
 	left.add_child(filters)
 	_p_group = OptionButton.new()
-	_p_group.custom_minimum_size.x = 260
+	_p_group.custom_minimum_size.x = 220
+	_p_group.clip_text = true
 	_p_group.item_selected.connect(_on_p_group)
 	filters.add_child(_p_group)
 	_p_team = OptionButton.new()
-	_p_team.custom_minimum_size.x = 200
+	_p_team.custom_minimum_size.x = 170
+	_p_team.clip_text = true
 	_p_team.item_selected.connect(func(_i: int) -> void: _refill_players())
 	filters.add_child(_p_team)
 	_p_line = OptionButton.new()
+	_p_line.custom_minimum_size.x = 170
 	for l in LINES:
 		_p_line.add_item(l)
 	_p_line.item_selected.connect(func(_i: int) -> void: _refill_players())
 	filters.add_child(_p_line)
 	_p_search = LineEdit.new()
 	_p_search.placeholder_text = "Buscar nombre..."
-	_p_search.custom_minimum_size.x = 160
+	_p_search.custom_minimum_size.x = 130
 	_p_search.text_changed.connect(func(_t: String) -> void: _refill_players())
 	filters.add_child(_p_search)
 	_tree = Tree.new()
@@ -323,17 +343,19 @@ func _players_tab() -> Control:
 	_tree.column_titles_visible = true
 	_tree.hide_root = true
 	_tree.select_mode = Tree.SELECT_MULTI
+	# Anchos chicos: la tabla se estira pero deja lugar a la ficha.
+	var widths := [90, 34, 140, 46, 70, 40, 50, 90, 46]
 	for i in COLUMNS.size():
 		_tree.set_column_title(i, COLUMNS[i])
 		_tree.set_column_expand(i, i in [0, 2, 7])
-	_tree.set_column_custom_minimum_width(2, 180)
-	_tree.set_column_custom_minimum_width(4, 90)
-	_tree.set_column_custom_minimum_width(1, 40)
+		_tree.set_column_custom_minimum_width(i, widths[i])
+		_tree.set_column_clip_content(i, true)
 	_tree.multi_selected.connect(_on_tree_selected)
 	left.add_child(_tree)
 	var right := ScrollContainer.new()
-	right.custom_minimum_size.x = 380
+	right.custom_minimum_size.x = 400
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right.size_flags_stretch_ratio = 1.0
 	right.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	tab.add_child(right)
 	_form_box = VBoxContainer.new()
@@ -435,6 +457,18 @@ func _on_selection() -> void:
 ## memoria (Ctrl+S al Option File).
 func _player_form(ref: Array) -> void:
 	var d := model.player(ref)
+	# Vista 3D: el jugador con su aspecto, botines y la camiseta del equipo.
+	var prev := KitPreview.new()
+	prev.custom_minimum_size = Vector2(220, 300)
+	_form_box.add_child(prev)
+	var pd := TeamDB.player_from_dict(d, "prev", 0)
+	var colors := _kit_colors(ref[0], 0)
+	colors.merge(pd.look(), true)
+	colors["build"] = int(pd.visual_build())
+	colors["body"] = pd.body_params()
+	if pd.hair >= 0:
+		colors["hair_style"] = pd.hair
+	prev.show_player(colors, _kit_tex(ref[0], 0))
 	var grid := GridContainer.new()
 	grid.columns = 2
 	_form_box.add_child(grid)
@@ -507,10 +541,12 @@ func _player_form(ref: Array) -> void:
 	tr.add_child(_lbl("Pasar a:"))
 	var dg := OptionButton.new()
 	dg.custom_minimum_size.x = 150
+	dg.clip_text = true
 	_fill_group(dg)
 	tr.add_child(dg)
 	var dt := OptionButton.new()
-	dt.custom_minimum_size.x = 150
+	dt.custom_minimum_size.x = 120
+	dt.clip_text = true
 	tr.add_child(dt)
 	var fill_dt := func(gi: int) -> void:
 		dt.clear()
@@ -600,6 +636,10 @@ func _mass_form(refs: Array) -> void:
 func _row(grid: GridContainer, caption: String, ctrl: Control) -> void:
 	grid.add_child(_lbl(caption))
 	ctrl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Que las opciones largas no ensanchen el panel.
+	if ctrl is OptionButton:
+		(ctrl as OptionButton).clip_text = true
+		ctrl.custom_minimum_size.x = maxf(ctrl.custom_minimum_size.x, 140)
 	grid.add_child(ctrl)
 
 
@@ -737,7 +777,7 @@ func _edit_in_players() -> void:
 ## división) sin perder la elección de los filtros.
 func _regroup() -> void:
 	_groups = TeamSelect.build_groups().filter(func(g: Dictionary) -> bool: return g["kind"] != "we")
-	for ob in [_p_group, _t_group]:
+	for ob in [_p_group, _t_group, _k_group]:
 		if ob == null:
 			continue
 		var keep: int = ob.selected
@@ -1197,6 +1237,174 @@ func _show_cup(i: int) -> void:
 			if not nt.has(p):
 				nt.append(p)
 		model.set_cup(i, {"teams": nt}), ""))
+
+
+# --- Camisetas -----------------------------------------------------------------------------
+
+const PATTERN_NAMES := ["Lisa", "Rayas / bastones", "Rayas finitas", "Aros", "Mitades", "Banda diagonal",
+	"Franja en el pecho", "V en el pecho", "Cuadros"]
+var _k_group: OptionButton
+var _k_list: ItemList
+var _k_paths: Array[String] = []
+var _k_form: VBoxContainer
+var _k_preview: KitPreview
+var _k_current := ""
+var _k_kit := 0
+
+
+func _kits_tab() -> Control:
+	var tab := HBoxContainer.new()
+	tab.name = "Camisetas"
+	var left := VBoxContainer.new()
+	left.custom_minimum_size.x = 260
+	tab.add_child(left)
+	_k_group = OptionButton.new()
+	_k_group.item_selected.connect(_on_k_group)
+	left.add_child(_k_group)
+	_k_list = ItemList.new()
+	_k_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_k_list.item_selected.connect(func(i: int) -> void: _show_kit(_k_paths[i]))
+	left.add_child(_k_list)
+	_k_form = VBoxContainer.new()
+	_k_form.custom_minimum_size.x = 420
+	tab.add_child(_k_form)
+	var right := VBoxContainer.new()
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tab.add_child(right)
+	_k_preview = KitPreview.new()
+	_k_preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right.add_child(_k_preview)
+	var rot := HBoxContainer.new()
+	right.add_child(rot)
+	var spin := CheckBox.new()
+	spin.text = "Girar"
+	spin.button_pressed = true
+	spin.toggled.connect(func(on: bool) -> void: _k_preview.spin = on)
+	rot.add_child(spin)
+	rot.add_child(_btn("Frente", func() -> void:
+		_k_preview.spin = false
+		spin.button_pressed = false
+		_k_preview.angle = 0.0, ""))
+	rot.add_child(_btn("Espalda", func() -> void:
+		_k_preview.spin = false
+		spin.button_pressed = false
+		_k_preview.angle = PI, ""))
+	return tab
+
+
+func _on_k_group(i: int) -> void:
+	if _k_list == null:
+		return
+	_k_list.clear()
+	_k_paths = _group_paths(i)
+	for p in _k_paths:
+		_k_list.add_item(TeamDB.load_team(p).team_name)
+	if not _k_paths.is_empty():
+		_k_list.select(0)
+		_show_kit(_k_paths[0])
+
+
+## Colores del uniforme `kit` de un equipo para el modelo (como Footballer).
+func _kit_colors(path: String, kit: int) -> Dictionary:
+	var t := TeamDB.load_team(path)
+	if t == null:
+		return {}
+	var k := t.kit(kit)
+	var pat := t.kit_pattern(kit)
+	var socks := t.kit_socks(kit)
+	return {"shirt": k[0], "shorts": k[1], "socks": socks if socks.a > 0.0 else k[0], "pattern": pat[0],
+		"shirt2": pat[1], "number": 10, "hair_style": HairBuilder.Style.FADE}
+
+
+func _kit_tex(path: String, kit: int) -> Texture2D:
+	var t := TeamDB.load_team(path)
+	return t.kit_texture(kit) if t != null else null
+
+
+func _kit_file_name(path: String, kit: int) -> String:
+	return "%s_%s.png" % [path.trim_prefix("db:").replace(":", "_"), ["titular", "suplente"][kit]]
+
+
+func _show_kit(path: String) -> void:
+	_k_current = path
+	for c in _k_form.get_children():
+		_k_form.remove_child(c)
+		c.queue_free()
+	var e := model.entry(path)
+	if e.is_empty():
+		return
+	var key: String = ["home", "away"][_k_kit]
+	var kit := TeamDB.parse_kit(String(e.get(key, "ffffff/ffffff/ffffff")))
+	var which := OptionButton.new()
+	which.add_item("Titular")
+	which.add_item("Suplente")
+	which.select(_k_kit)
+	which.item_selected.connect(func(i: int) -> void:
+		_k_kit = i
+		_show_kit(path))
+	_k_form.add_child(which)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	_k_form.add_child(grid)
+	var shirt := ColorPickerButton.new()
+	shirt.color = kit["shirt"]
+	_row(grid, "Camiseta", shirt)
+	var shorts := ColorPickerButton.new()
+	shorts.color = kit["shorts"]
+	_row(grid, "Pantalón", shorts)
+	var socks := ColorPickerButton.new()
+	socks.color = kit["socks"]
+	_row(grid, "Medias", socks)
+	var pat := OptionButton.new()
+	for n in PATTERN_NAMES:
+		pat.add_item(n)
+	pat.select(int(kit["pattern"]))
+	_row(grid, "Diseño", pat)
+	var p2 := ColorPickerButton.new()
+	p2.color = kit["pattern_color"]
+	_row(grid, "Segundo color", p2)
+	var keeper := ColorPickerButton.new()
+	keeper.color = Color.html(String(e.get("keeper", "1a1a1a")))
+	_row(grid, "Arquero", keeper)
+	for cp in [shirt, shorts, socks, p2, keeper]:
+		cp.custom_minimum_size = Vector2(120, 30)
+	var apply := func() -> void:
+		var s := "%s/%s/%s" % [shirt.color.to_html(false), shorts.color.to_html(false), socks.color.to_html(false)]
+		if pat.selected > 0:
+			s += "|%d|%s" % [pat.selected, p2.color.to_html(false)]
+		model.set_team(path, {key: s, "keeper": keeper.color.to_html(false)})
+	_k_form.add_child(_btn("Aplicar colores", apply, ""))
+	_k_form.add_child(HSeparator.new())
+	var tex_name := String(e.get(key + "_tex", ""))
+	var info := _lbl(("Plantilla PNG: %s" % tex_name) if tex_name != "" else "Sin plantilla: se usa el diseño de arriba.")
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_k_form.add_child(info)
+	var how := _lbl("Para pintarla a mano: Exportar plantilla → se abre la carpeta \"plantillas\" con el PNG → pintalo con cualquier programa (Paint, GIMP, Photoshop) sin moverle las piezas → guardalo con el mismo nombre → Importar plantilla.")
+	how.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	how.add_theme_color_override("font_color", Color(0.65, 0.7, 0.8))
+	_k_form.add_child(how)
+	var fname := _kit_file_name(path, _k_kit)
+	var row := HBoxContainer.new()
+	_k_form.add_child(row)
+	row.add_child(_btn("Exportar plantilla", func() -> void:
+		var img := KitTemplate.render(shirt.color, shorts.color, socks.color, pat.selected, p2.color)
+		var out := UserData.templates_dir().path_join(fname)
+		DirAccess.make_dir_recursive_absolute(UserData.templates_dir())
+		img.save_png(out)
+		UserData.open_folder(UserData.templates_dir())
+		_status.text = "Plantilla exportada: %s" % out, "Guarda el PNG con los colores actuales en la carpeta plantillas"))
+	row.add_child(_btn("Importar plantilla", func() -> void:
+		var src := UserData.templates_dir().path_join(fname)
+		if not FileAccess.file_exists(src):
+			_status.text = "No está %s en la carpeta plantillas." % fname
+			return
+		DirAccess.make_dir_recursive_absolute(model.option_file.kits_dir())
+		DirAccess.copy_absolute(src, model.option_file.kits_dir().path_join(fname))
+		model.set_team(path, {key + "_tex": fname})
+		_status.text = "Plantilla importada (se guarda con el Option File).", "Usa el PNG pintado en el juego"))
+	row.add_child(_btn("Quitar plantilla", func() -> void: model.set_team(path, {key + "_tex": ""}), ""))
+	_k_form.add_child(_btn("Abrir carpeta de plantillas", func() -> void: UserData.open_folder(UserData.templates_dir()), ""))
+	_k_preview.show_player(_kit_colors(path, _k_kit), _kit_tex(path, _k_kit))
 
 
 # --- Importar -------------------------------------------------------------------------------

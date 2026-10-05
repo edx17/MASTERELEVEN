@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **439 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **440 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -35,7 +35,7 @@ además arma el `.exe` de Windows).
 | E1 — Option File, partidas separadas, importar desde el juego | 🟡 Hecho, pendiente de tu prueba | #31 |
 | E2 — Editor (jugadores y equipos, edición masiva) | 🟡 Hecho, pendiente de tu prueba | #31 |
 | E3 — Editor: selecciones, ligas y copas propias | 🟡 Hecho, pendiente de tu prueba | #31 |
-| E4 — Editor: camisetas y botines con vista 3D | ⬜ | — |
+| E4 — Editor: camisetas (plantilla PNG) y botines con vista 3D | 🟡 Hecho, pendiente de tu prueba | #31 |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -137,18 +137,14 @@ además arma el `.exe` de Windows).
 2. **Tu archivo de planteles** (CSV de EA FC 26 / SoFIFA y Transfermarkt,
    ver `docs/BASE_DE_DATOS.md`): se importa y reemplaza los planteles
    generados; también la lista real del Promocional Amateur.
-3. **Editor E4**: camisetas (plantilla PNG) y botines con vista 3D. Ver
-   `docs/EDITOR.md`.
-4. **Paso D — Liga Master** (en varios PR): arranca en 2.ª; en Argentina e
+3. **Paso D — Liga Master** (en varios PR): arranca en 2.ª; en Argentina e
    Inglaterra en la más baja (Torneo Promocional Amateur / League Two); las
    ligas de una sola división no se eligen. Siempre a elegir entre **Equipo
    WE** (genérico) o **Club real**, salvo con un club de primera (LPF,
    Premier, LaLiga, Serie A, Bundesliga): ahí es obligatorio el Equipo WE.
-5. Himno propio, relator y pulido final.
-6. **Al final — Editores** (externos si hace falta): ligas (agregar /
-   eliminar), equipos (agregar / editar / eliminar; formación, escudo,
-   colores), jugadores (agregar / editar / eliminar; atributos) y un editor
-   externo para los mapeos de las camisetas.
+4. Himno propio, relator y pulido final.
+5. Editores: ya hechos (E1–E4, ver `docs/EDITOR.md`); quedan solo extras
+   que vayan surgiendo de tus pruebas.
 
 ---
 
@@ -168,8 +164,8 @@ además arma el `.exe` de Windows).
   (uno o varios a la vez, edición masiva), equipos (datos, camisetas en
   texto, orden del plantel, altas, bajas y pases), selecciones
   (convocatorias, nuevas, borradas), ligas (pasar de división, clubes
-  nuevos), copas propias (se juegan desde COPA) e importar. Guía en
-  `docs/EDITOR.md`.
+  nuevos), copas propias (se juegan desde COPA), camisetas (colores, diseño,
+  plantilla PNG para pintar, vista 3D) e importar. Guía en `docs/EDITOR.md`.
 
 ## Paso C — Base de datos real y Mundial 2026 (PR #31)
 

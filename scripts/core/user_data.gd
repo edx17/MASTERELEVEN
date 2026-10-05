@@ -12,12 +12,13 @@ extends RefCounted
 ##   saves/copas/        cada Copa / Mundial en curso
 ##   saves/master/       Liga Master (ranuras)
 ##   importar/           donde se dejan los CSV de planteles
+##   plantillas/         plantillas PNG de camisetas para pintar
 ##
 ## Los tests y las herramientas usan una carpeta aparte (sandbox) para no
 ## tocar los datos del jugador.
 
 const FOLDER := "MasterEleven"
-const SUBDIRS := ["optionfiles", "saves/ligas", "saves/copas", "saves/master", "importar"]
+const SUBDIRS := ["optionfiles", "saves/ligas", "saves/copas", "saves/master", "importar", "plantillas"]
 
 ## Raíz forzada (tests); "" = la de siempre.
 static var root_override := ""
@@ -62,6 +63,10 @@ static func plans_path() -> String:
 
 static func optionfiles_dir() -> String:
 	return path("optionfiles")
+
+
+static func templates_dir() -> String:
+	return path("plantillas")
 
 
 static func import_dir() -> String:

@@ -15,6 +15,8 @@ var keeper_color: Color = Color.YELLOW
 ## Diseño de la camiseta que se usa en este partido y su segundo color.
 var pattern: int = 0
 var pattern_color: Color = Color.BLACK
+## Plantilla de camiseta (editor) o null.
+var kit_texture: Texture2D = null
 ## Medias (alfa 0 = del color de la camiseta).
 var socks_color: Color = Color(0, 0, 0, 0)
 ## +1 ataca hacia +X, -1 hacia -X. Se invierte en el entretiempo.

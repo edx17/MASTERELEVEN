@@ -61,12 +61,30 @@ todo como estaba.
 - En el juego: **COPA** muestra "Copa rápida" y tus copas; elegís tu equipo
   entre los de la copa.
 
+## Camisetas
+- Por equipo (selecciones o clubes), **Titular** o **Suplente**: color de
+  camiseta, pantalón, medias, diseño (lisa, rayas, rayas finitas, aros,
+  mitades, banda diagonal, franja en el pecho, V, cuadros), segundo color y
+  color del arquero. "Aplicar colores".
+- **Vista 3D** del jugador con la camiseta (gira sola; botones Frente /
+  Espalda).
+- **Plantilla PNG** para pintarla a mano: "Exportar plantilla" guarda el PNG
+  con los colores actuales en `Documentos/MasterEleven/plantillas/` y abre la
+  carpeta; lo pintás con cualquier programa (Paint, GIMP, Photoshop) **sin
+  mover las piezas** (torso, mangas, short, medias: ver `docs/KIT_UV.md`),
+  lo guardás con el mismo nombre y apretás "Importar plantilla". El juego
+  la usa en lugar del diseño (el número y el escudo van encima). "Quitar
+  plantilla" vuelve al diseño por colores.
+
+## Botines y aspecto
+En la ficha de cada jugador (pestaña Jugadores) hay una vista 3D con su
+aspecto, sus botines y la camiseta del equipo; los botines (A-H), piel,
+peinado, color de pelo, barba y físico se eligen ahí (o para muchos a la vez
+con la edición masiva).
+
 ## Importar
 Lo mismo que en el juego: copiás los CSV a la carpeta `importar`, apretás
 **Importar** y los planteles van al Option File de arriba, con el resumen de
 lo que entró y de los clubes que no se encontraron. Formato y fuentes:
 `docs/BASE_DE_DATOS.md`.
 
-## Próxima etapa
-- **E4**: Camisetas (colores, diseños, números, plantilla PNG para el mapeo)
-  y botines, con vista 3D del jugador.

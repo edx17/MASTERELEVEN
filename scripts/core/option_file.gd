@@ -29,6 +29,11 @@ var deleted_nations: Array = []
 var cups: Array = []
 
 
+## Carpeta con las plantillas de camisetas de este Option File.
+func kits_dir() -> String:
+	return UserData.optionfiles_dir().path_join(sanitize(name) + "_camisetas")
+
+
 static func file_for(of_name: String) -> String:
 	return UserData.optionfiles_dir().path_join(sanitize(of_name) + "." + EXT)
 

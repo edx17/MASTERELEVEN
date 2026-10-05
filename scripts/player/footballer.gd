@@ -652,6 +652,9 @@ func _build_visuals() -> void:
 		if data.hair >= 0:
 			colors["hair_style"] = data.hair
 	visual.setup(colors, team.index * 100 + number)
+	# Camiseta pintada en el editor (plantilla PNG); el arquero va con la suya.
+	if visual is ModelVisual and team.kit_texture != null and not is_keeper():
+		(visual as ModelVisual).set_kit_texture(team.kit_texture)
 
 	var label := Label3D.new()
 	_label = label
