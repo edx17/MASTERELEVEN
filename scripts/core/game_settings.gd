@@ -76,12 +76,13 @@ const KEEPER_AUTO_NAMES := ["patea", "la suelta"]
 var stick_directions: int = 8
 
 ## Configuración guardada entre sesiones (las opciones del menú y de la pausa).
-const SETTINGS_PATH := "user://settings.cfg"
+## Opciones: en la carpeta del jugador (UserData.config_path()).
+const SETTINGS_PATH := ""
 const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", "wind_choice",
 	"pitch_choice", "pitch_wear", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
 	"stick_directions", "camera_preset", "show_pass_target", "offside", "home_team_path", "away_team_path",
 	"home_kit", "away_kit", "show_replays", "replay_chances", "player_style", "sfx_volume", "crowd_volume", "music_volume",
-	"show_radar", "show_score", "wc_playoff"]
+	"show_radar", "show_score", "wc_playoff", "active_optionfile"]
 ## Falso en los tests y las herramientas: no leen ni pisan la configuración
 ## del jugador (así los resultados no dependen de lo que eligió).
 var persist := true
@@ -111,6 +112,8 @@ var shootout := false
 ## (de las 12 candidatas marcadas "po" en data/db/nations.json).
 var wc_playoff: Array = ["ita", "pol", "kos", "den", "cod", "irq"]
 const WC_PLAYOFF_SLOTS := 6
+## Option File activo (nombre; "" = la base del juego).
+var active_optionfile := ""
 var training_kind: int = 0
 var training_challenge: int = 0
 var human_side: int = 0
@@ -132,6 +135,11 @@ func _ready() -> void:
 		tuning = Tuning.new()
 	stick_directions = tuning.stick_directions
 	persist = not _is_tool_run()
+	# Tests y herramientas: carpeta aparte (no se tocan los datos del jugador).
+	UserData.sandbox = not persist
+	if persist:
+		UserData.migrate_old()
+	UserData.ensure_dirs()
 	random_conditions = persist
 	if "--retro" in OS.get_cmdline_user_args():
 		player_style = 1
@@ -161,6 +169,9 @@ func _is_tool_run() -> bool:
 func save_settings(path: String = SETTINGS_PATH) -> void:
 	if not persist and path == SETTINGS_PATH:
 		return
+	if path == "":
+		path = UserData.config_path()
+		DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	var cfg := ConfigFile.new()
 	cfg.set_value("meta", "version", 1)
 	for key in SAVED:
@@ -168,8 +179,20 @@ func save_settings(path: String = SETTINGS_PATH) -> void:
 	cfg.save(path)
 
 
+## Activa el Option File elegido (si existe; si no, la base).
+func apply_option_file() -> void:
+	var of: OptionFile = null
+	if active_optionfile != "":
+		of = OptionFile.load_named(active_optionfile)
+		if of == null:
+			active_optionfile = ""
+	TeamDB.use_option_file(of)
+
+
 ## Lee las opciones guardadas; lo que falte o no tenga sentido queda como está.
 func load_settings(path: String = SETTINGS_PATH) -> void:
+	if path == "":
+		path = UserData.config_path()
 	var cfg := ConfigFile.new()
 	if cfg.load(path) != OK:
 		return
@@ -194,6 +217,7 @@ func load_settings(path: String = SETTINGS_PATH) -> void:
 	if not stick_directions in STICK_OPTIONS:
 		stick_directions = tuning.stick_directions
 	camera_preset = maxi(camera_preset, 0)
+	apply_option_file()
 	if not TeamDB.exists(home_team_path):
 		home_team_path = DEFAULT_HOME
 	if not TeamDB.exists(away_team_path):

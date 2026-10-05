@@ -514,27 +514,32 @@ func _next_formation() -> void:
 
 ## Planes guardados por equipo (formación, estrategias de los 4 botones,
 ## pateadores y capitán): se copian al próximo partido del mismo equipo.
-static var plans_path := "user://plans.cfg"
+## "" = la carpeta del jugador (UserData.plans_path()).
+static var plans_path := ""
+
+
+static func _plans_file() -> String:
+	return plans_path if plans_path != "" else UserData.plans_path()
 
 const PLAN_TAKERS := ["fk_taker", "fk_long_taker", "ck_taker", "ck_right_taker", "pk_taker", "captain"]
 
 
 func save_plan() -> void:
 	var cfg := ConfigFile.new()
-	cfg.load(plans_path)
+	cfg.load(_plans_file())
 	var key := team.team_name
 	cfg.set_value(key, "formation", team.formation.formation_name if team.formation else "")
 	cfg.set_value(key, "strategy_slots", team.strategy_slots.duplicate())
 	for f in PLAN_TAKERS:
 		var d: PlayerData = team.get(f)
 		cfg.set_value(key, f, d.player_name if d != null else "")
-	cfg.save(plans_path)
+	cfg.save(_plans_file())
 	_status.text = "Estrategia guardada: se puede copiar en otro partido de %s." % team.short_name
 
 
 func load_plan() -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(plans_path) != OK or not cfg.has_section(team.team_name):
+	if cfg.load(_plans_file()) != OK or not cfg.has_section(team.team_name):
 		_status.text = "No hay una estrategia guardada de %s." % team.short_name
 		return
 	var key := team.team_name

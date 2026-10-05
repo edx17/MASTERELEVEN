@@ -36,6 +36,10 @@ static var _nations: Array = []
 static var _countries: Array = []
 static var _names: Dictionary = {}
 static var _cache: Dictionary = {}
+static var _base_nations: Array = []
+static var _base_countries: Array = []
+## Option File activo (cambios del jugador sobre la base) o null = la base.
+static var option_file: OptionFile = null
 
 
 # --- Lectura -------------------------------------------------------------------------
@@ -49,27 +53,48 @@ static func _read_json(path: String) -> Variant:
 	return JSON.parse_string(f.get_as_text())
 
 
+## Selecciones (la base con el Option File activo aplicado).
 static func nations() -> Array:
 	if _nations.is_empty():
-		var d: Variant = _read_json(NATIONS_FILE)
-		if d is Dictionary:
-			_nations = d.get("nations", [])
+		_nations = option_file.apply_nations(base_nations()) if option_file != null else base_nations()
 	return _nations
 
 
+## Selecciones de la base del juego (sin cambios del jugador).
+static func base_nations() -> Array:
+	if _base_nations.is_empty():
+		var d: Variant = _read_json(NATIONS_FILE)
+		if d is Dictionary:
+			_base_nations = d.get("nations", [])
+	return _base_nations
+
+
 ## Países con ligas: [{id, name, divisions: [{id, name, level, clubs: [...]}]}],
-## en el orden de los archivos.
+## en el orden de los archivos (con el Option File activo aplicado).
 static func countries() -> Array:
 	if _countries.is_empty():
+		_countries = option_file.apply_countries(base_countries()) if option_file != null else base_countries()
+	return _countries
+
+
+static func base_countries() -> Array:
+	if _base_countries.is_empty():
 		var dir := DirAccess.open(LEAGUES_DIR)
 		if dir != null:
-			var files := Array(dir.get_files()).filter(func(f: String) -> bool: return f.ends_with(".json"))
+			var files := Array(dir.get_files()).map(func(f: String) -> String: return f.trim_suffix(".remap")) \
+				.filter(func(f: String) -> bool: return f.ends_with(".json"))
 			files.sort()
 			for f in files:
 				var d: Variant = _read_json(LEAGUES_DIR + f)
 				if d is Dictionary:
-					_countries.append(d)
-	return _countries
+					_base_countries.append(d)
+	return _base_countries
+
+
+## Activa un Option File (null = la base) y vuelve a armar los equipos.
+static func use_option_file(of: OptionFile) -> void:
+	option_file = of
+	reload()
 
 
 static func names() -> Dictionary:
@@ -167,6 +192,8 @@ static func load_team(path: String) -> TeamData:
 static func reload() -> void:
 	_nations = []
 	_countries = []
+	_base_nations = []
+	_base_countries = []
 	_names = {}
 	_cache = {}
 

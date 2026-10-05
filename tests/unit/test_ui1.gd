@@ -188,7 +188,7 @@ func test_copy_strategy_saves_and_loads() -> void:
 	assert_eq(t.strategy_slots, slots)
 	sheet.close()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TeamSheet.plans_path))
-	TeamSheet.plans_path = "user://plans.cfg"
+	TeamSheet.plans_path = ""
 
 
 ## UI1-e: cuándo queda decidida la tanda.

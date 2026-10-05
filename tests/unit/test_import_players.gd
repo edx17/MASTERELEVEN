@@ -1,7 +1,7 @@
 extends GutTest
 ## Paso C: importador de planteles (CSV de EA FC / SoFIFA, Transfermarkt o propio).
 
-const Imp := preload("res://tools/import_players.gd")
+const Imp := SquadImporter
 
 
 func _csv(text: String) -> String:
