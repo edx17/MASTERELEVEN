@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **457 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **459 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -18,7 +18,7 @@ además arma el `.exe` de Windows).
 | 3 — IA de partido | ✅ Implementada (se sigue ajustando con tus pruebas) | — |
 | 4 — Reglas, atributos y plantel | ✅ Implementada | — |
 | 5 — Presentación moderna (estadios, animaciones, audio, repeticiones) | 🟡 Muy avanzada; falta el pelo "Detallados" y la voz del locutor | — |
-| 6 — Liga Master | 🟡 D1–D3 hechos; faltan D4 (mercado de pases) y D5 (noticias, historial) | #32, #33 |
+| 6 — Liga Master | 🟡 D1–D4 hechos; falta D5 (noticias, historial y palmarés) | #32, #33 |
 | 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) | — |
 | 8 — Pulido | ⬜ | — |
 | Entrenamiento (Club House) | ✅ | #23 |
@@ -41,6 +41,7 @@ además arma el `.exe` de Windows).
 | D2 — Liga Master: tarjetas, lesiones, evolución, retiros y juveniles | 🟡 Hecho, pendiente de tu prueba | #33 |
 | Menús: todo entra, tablas con el mando, cabeceras del Mundial | 🟡 Hecho, pendiente de tu prueba | #33 |
 | D3 — Liga Master: Plantel, Dirección guardada, Calendario; escudos PNG | 🟡 Hecho, pendiente de tu prueba | #33 |
+| D4 — Liga Master: mercado de pases con puntos WE | 🟡 Hecho, pendiente de tu prueba | #33 |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -146,13 +147,34 @@ además arma el `.exe` de Windows).
 3. **Paso D — Liga Master**: **D1** (hecho: carrera y temporadas), **D2**
    (hecho: tarjetas, lesiones, evolución, retiros y juveniles), **D3**
    (hecho: Plantel, Dirección guardada, Calendario y escudos), **D4**
-   (mercado de pases con puntos WE, préstamos, ventanas, IA que ficha) y
-   **D5** (noticias, historial y palmarés).
+   (hecho: mercado de pases con puntos WE, préstamos, ventanas, IA que
+   ficha) y **D5** (noticias, historial y palmarés).
 4. Himno propio, relator y pulido final.
 5. Editores: ya hechos (E1–E4, ver `docs/EDITOR.md`); quedan solo extras
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## D4 — Liga Master: mercado de pases (puntos WE)
+- **Mercado de pases** (botón en la pantalla de la carrera y en el resumen
+  de fin de temporada). Abre en las **primeras 4 fechas**, en las **4
+  alrededor de la mitad** y al **terminar la temporada**; si está cerrado,
+  dice cuándo abre.
+- **Comprar**: todos los jugadores del país, con filtros (puesto, división)
+  y orden (media, edad, precio). El **precio** sale de la media y la edad
+  (los jóvenes valen más; desde los 32, mucho menos) y el club pide 50 %
+  más por sus tres mejores. Se puede **pagar lo que piden**, **ofertar el 80
+  %** (aceptan a veces) o pedirlo a **préstamo** hasta fin de temporada (un
+  cuarto del valor; vuelve solo a su club).
+- **Vender**: un club al que le falta ese puesto ofrece entre 70 y 110 % del
+  valor (aceptás o no); también **dejar libre** o devolver un préstamo.
+- Límites: tu plantel entre 16 y 30 (al partido van 23); un club no vende
+  si le quedan 18 o menos.
+- **Los otros clubes también fichan** en la pretemporada y a mitad de
+  temporada (uno de cada cuatro, de su división o de la de abajo; el que
+  vende repone con un juvenil).
+- **Pases de la temporada**: la lista de todo el país, con los tuyos en
+  dorado.
 
 ## D3 — Liga Master: Plantel, Dirección y Calendario; escudos propios
 - **Plantel y Dirección** (botón en la pantalla de la carrera): la

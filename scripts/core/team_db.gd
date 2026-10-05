@@ -304,7 +304,8 @@ static func parse_kit(s: String) -> Dictionary:
 static func _fill_players(t: TeamData, e: Dictionary, level: int, names_group: String, skin: Array, nationality: String) -> void:
 	var listed: Array = e.get("players", [])
 	if not listed.is_empty():
-		for i in mini(listed.size(), 23):
+		# Hasta 30 (Liga Master); los importados se recortan a 23 al importar.
+		for i in mini(listed.size(), 30):
 			var p := player_from_dict(listed[i], t.id, i, level)
 			if p.nationality == "":
 				p.nationality = nationality

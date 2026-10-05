@@ -21,6 +21,7 @@ var view_division := 0
 var view_mode := 0
 const VIEW_NAMES := ["Tabla", "Goleadores", "Calendario"]
 var _squad: MasterSquad
+var _market: MasterMarket
 var _left: VBoxContainer
 var _right: VBoxContainer
 var _abandon_armed := false
@@ -275,6 +276,7 @@ func _next_match() -> void:
 			career.save()
 			_rebuild(), 480.0, 22))
 	_right.add_child(WEStyle.bar("Plantel y Dirección", _open_squad, 480.0, 22))
+	_right.add_child(WEStyle.bar("Mercado de pases%s" % ("" if career.market_open() else " (cerrado)"), _open_market, 480.0, 22))
 	_right.add_child(WEStyle.bar("Guardar y salir", func() -> void:
 		career.save()
 		back.emit(), 480.0, 22))
@@ -292,7 +294,7 @@ func _next_match() -> void:
 		var last: Array = comp.rounds[comp.current - 1]
 		var mine := last.filter(func(pg: Dictionary) -> bool: return pg["home"] == comp.user_team or pg["away"] == comp.user_team)
 		var rest := last.filter(func(pg: Dictionary) -> bool: return not mine.has(pg))
-		for pg in (mine + rest).slice(0, 3):
+		for pg in (mine + rest).slice(0, 2):
 			var l := WEStyle.label(result_text(comp, pg), 15, GOLD if mine.has(pg) else Color.WHITE)
 			l.clip_text = true
 			l.custom_minimum_size = Vector2(480, 0)
@@ -318,7 +320,7 @@ func _season_summary() -> void:
 		_right.add_child(WEStyle.label("Descendiste.", 20, DOWN))
 	_right.add_child(WEStyle.label("Puntos WE: %d" % career.points, 18, BLUE))
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(490, 300)
+	scroll.custom_minimum_size = Vector2(490, 250)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_right.add_child(scroll)
 	var box := VBoxContainer.new()
@@ -351,6 +353,7 @@ func _season_summary() -> void:
 		view_division = career.user_league_index()
 		_rebuild(), 480.0, 22)
 	_right.add_child(next)
+	_right.add_child(WEStyle.bar("Mercado de pases (pretemporada)", _open_market, 480.0, 22))
 	_right.add_child(WEStyle.bar("Guardar y salir", func() -> void:
 		career.save()
 		back.emit(), 480.0, 22))
@@ -369,17 +372,31 @@ func _open_squad() -> void:
 	if _squad == null:
 		_squad = MasterSquad.new()
 		add_child(_squad)
-		_squad.closed.connect(func() -> void:
-			_left.get_parent().visible = true
-			_right.get_parent().visible = true
-			_rebuild())
+		_squad.closed.connect(_overlay_closed)
 	_left.get_parent().visible = false
 	_right.get_parent().visible = false
 	_squad.open(career)
 
 
+## Mercado de pases (pantalla aparte).
+func _open_market() -> void:
+	if _market == null:
+		_market = MasterMarket.new()
+		add_child(_market)
+		_market.closed.connect(_overlay_closed)
+	_left.get_parent().visible = false
+	_right.get_parent().visible = false
+	_market.open(career)
+
+
+func _overlay_closed() -> void:
+	_left.get_parent().visible = true
+	_right.get_parent().visible = true
+	_rebuild()
+
+
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible or (_squad != null and _squad.visible):
+	if not visible or (_squad != null and _squad.visible) or (_market != null and _market.visible):
 		return
 	if event.is_action_pressed(&"ui_cancel"):
 		career.save()

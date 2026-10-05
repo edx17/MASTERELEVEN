@@ -53,6 +53,9 @@ var next_pid := 1
 ## Atributos de tus jugadores al empezar la temporada ({pid: {attr: valor}}),
 ## para mostrar cuánto crecieron.
 var season_start: Dictionary = {}
+## Pases de la carrera: [{season, n, from, to, price, kind ("compra",
+## "préstamo", "venta", "libre", "ia", "vuelta")}].
+var transfers: Array = []
 
 
 # --- Creación -----------------------------------------------------------------------
@@ -280,6 +283,13 @@ func play_round(user_result: Array = [], user_scorers: Array = [], seed: int = 0
 	# Los planteles con altas o bajas nuevas se rearman.
 	for club in _dirty:
 		TeamDB.refresh_club(country, club, world.clubs["%s:%s" % [country, club]])
+	# Mitad de temporada: mercado de invierno de los otros clubes.
+	var uc := user_league()
+	if uc.current == uc.rounds.size() / 2:
+		var lists: Array = []
+		for l in leagues:
+			lists.append((l["comp"] as Competition).team_paths.map(func(pth: String) -> String: return pth.get_slice(":", 3)))
+		_ai_window(rng, lists, TeamDB.country(country)["divisions"])
 	if leagues.all(func(l: Dictionary) -> bool: return (l["comp"] as Competition).finished()):
 		_end_season()
 
@@ -591,6 +601,7 @@ func _new_year(lists: Array, divs: Array) -> Dictionary:
 	rng.seed = hash("%s_%d_%d" % [country, season, next_pid])
 	var report := {"retired": [], "youth": [], "risers": []}
 	var co := TeamDB.country(country)
+	_return_loans()
 	for di in lists.size():
 		var div: Dictionary = divs[di]
 		var level := int(TeamDB.DIVISION_LEVEL.get(int(div.get("level", di + 1)), 56)) + int(TeamDB.LEAGUE_BONUS.get(String(div["id"]), 0))
@@ -621,6 +632,8 @@ func _new_year(lists: Array, divs: Array) -> Dictionary:
 					report["youth"].append(n)
 	(report["risers"] as Array).sort_custom(func(a: Array, b: Array) -> bool: return a[1] > b[1])
 	report["risers"] = (report["risers"] as Array).slice(0, 5)
+	# Pretemporada: los otros clubes también se refuerzan.
+	_ai_window(rng, lists, divs)
 	return report
 
 
@@ -648,9 +661,9 @@ static func _evolve(d: Dictionary, age: int, rng: RandomNumberGenerator) -> void
 ## Repone el plantel hasta 23 con juveniles de los puestos que faltan.
 ## Devuelve sus nombres.
 func _add_youth(e: Dictionary, level: int, names_group: String, skin: Array, nationality: String,
-		rng: RandomNumberGenerator) -> Array:
+		rng: RandomNumberGenerator, target: int = 23) -> Array:
 	var players: Array = e["players"]
-	var need := 23 - players.size()
+	var need := target - players.size()
 	if need <= 0:
 		return []
 	var count := [0, 0, 0, 0]
@@ -789,6 +802,309 @@ func calendar() -> Array:
 	return out
 
 
+# --- Mercado de pases (D4) ---------------------------------------------------------------
+
+## Plantel máximo del jugador y mínimo de un club que vende.
+const MAX_SQUAD := 30
+const MIN_SQUAD := 18
+## Préstamo: una parte del valor, por lo que queda de la temporada.
+const LOAN_SHARE := 0.25
+## Ofertar por debajo del precio: chance de que acepten.
+const LOWBALL_SHARE := 0.8
+const LOWBALL_CHANCE := 0.45
+
+
+## Media de un jugador en datos (igual que TeamDB.overall).
+static func dict_overall(d: Dictionary) -> int:
+	var a: Dictionary = d.get("a", {})
+	var g := func(k: String) -> float: return float(a.get(k, 50))
+	if String(d.get("pos", "")) == "GK":
+		return roundi((g.call("goalkeeping") * 2 + g.call("reaction")) / 3.0)
+	return roundi((g.call("speed") + g.call("passing") + g.call("shooting") + g.call("technique") + g.call("ball_control")
+		+ g.call("defense") * 0.6 + g.call("stamina") * 0.4) / 6.0)
+
+
+## Valor en puntos WE según la media y la edad (los jóvenes valen más).
+static func player_value(d: Dictionary) -> int:
+	var ovr := dict_overall(d)
+	var age := int(d.get("age", 25))
+	var base := pow(maxf(ovr - 40, 1), 2) * 5.0
+	var k := 1.3 if age <= 23 else (1.0 if age <= 28 else (0.7 if age <= 31 else 0.4))
+	return maxi(100, int(round(base * k / 50.0)) * 50)
+
+
+## Ventanas de pases: las primeras 4 fechas, 4 alrededor de la mitad y al
+## terminar la temporada.
+func market_open() -> bool:
+	if season_over:
+		return true
+	var comp := user_league()
+	var half := comp.rounds.size() / 2
+	return comp.current < 4 or absi(comp.current - half) <= 2
+
+
+func market_text() -> String:
+	if market_open():
+		return "Mercado ABIERTO"
+	var comp := user_league()
+	var half := comp.rounds.size() / 2
+	var next := half - 2 if comp.current < half - 2 else -1
+	return "Mercado cerrado (abre en la fecha %d)" % (next + 1) if next >= 0 else "Mercado cerrado (abre al terminar la temporada)"
+
+
+## Club de cada jugador del país: [{d, club, div}], con filtros. `line`:
+## -1 todos, 0 arqueros... 3 delanteros; `division` -1 todas; orden "ovr",
+## "age" o "value".
+func market_list(line: int = -1, division: int = -1, sort: String = "ovr", limit: int = 80) -> Array:
+	var out: Array = []
+	for li in leagues.size():
+		if division >= 0 and li != division:
+			continue
+		for pth in (leagues[li]["comp"] as Competition).team_paths:
+			var club := String(pth).get_slice(":", 3)
+			if club == user_club:
+				continue
+			for d in club_players(club):
+				if d.has("loan_from"):
+					continue
+				if line >= 0 and TeamDB.position_of_code(String(d.get("pos", "CMF"))) != line:
+					continue
+				out.append({"d": d, "club": club, "div": li})
+	match sort:
+		"age":
+			out.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return int(x["d"].get("age", 0)) < int(y["d"].get("age", 0)))
+		"value":
+			out.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return player_value(x["d"]) < player_value(y["d"]))
+		_:
+			out.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return dict_overall(x["d"]) > dict_overall(y["d"]))
+	return out.slice(0, limit)
+
+
+## Lo que pide el club: el valor, o 50 % más si es de sus tres mejores.
+func asking_price(club: String, d: Dictionary) -> int:
+	var best: Array = club_players(club).map(func(x: Dictionary) -> int: return dict_overall(x))
+	best.sort()
+	best.reverse()
+	var star := best.size() >= 3 and dict_overall(d) >= int(best[2])
+	return int(player_value(d) * (1.5 if star else 1.0) / 50.0) * 50
+
+
+## Por qué no se puede comprar (o "" si se puede).
+func cannot_buy(club: String, cost: int) -> String:
+	if not market_open():
+		return "El mercado está cerrado."
+	if club_players(user_club).size() >= MAX_SQUAD:
+		return "Tu plantel ya tiene %d jugadores." % MAX_SQUAD
+	if club_players(club).size() <= MIN_SQUAD:
+		return "No lo venden: les quedaría el plantel corto."
+	if cost > points:
+		return "No te alcanzan los puntos (faltan %d)." % (cost - points)
+	return ""
+
+
+## Compra al precio pedido. Devuelve "" o el motivo.
+func buy(club: String, pid: int) -> String:
+	var d := _player_dict(club, pid)
+	if d.is_empty():
+		return "Ese jugador ya no está."
+	var price := asking_price(club, d)
+	var why := cannot_buy(club, price)
+	if why != "":
+		return why
+	points -= price
+	_move_player(club, user_club, d)
+	transfers.append({"season": season, "n": d["n"], "from": club, "to": user_club, "price": price, "kind": "compra"})
+	return ""
+
+
+## Oferta por debajo del precio (80 %): a veces aceptan. Devuelve
+## "aceptada", "rechazada" o el motivo por el que no se puede.
+func lowball(club: String, pid: int, rng: RandomNumberGenerator = null) -> String:
+	var d := _player_dict(club, pid)
+	if d.is_empty():
+		return "Ese jugador ya no está."
+	var price := int(asking_price(club, d) * LOWBALL_SHARE)
+	var why := cannot_buy(club, price)
+	if why != "":
+		return why
+	var r := rng.randf() if rng != null else randf()
+	if r >= LOWBALL_CHANCE:
+		return "rechazada"
+	points -= price
+	_move_player(club, user_club, d)
+	transfers.append({"season": season, "n": d["n"], "from": club, "to": user_club, "price": price, "kind": "compra"})
+	return "aceptada"
+
+
+func loan_price(d: Dictionary) -> int:
+	return maxi(50, int(player_value(d) * LOAN_SHARE / 50.0) * 50)
+
+
+## Préstamo hasta fin de temporada (vuelve a su club en el cambio de año).
+func loan_in(club: String, pid: int) -> String:
+	var d := _player_dict(club, pid)
+	if d.is_empty():
+		return "Ese jugador ya no está."
+	var price := loan_price(d)
+	var why := cannot_buy(club, price)
+	if why != "":
+		return why
+	points -= price
+	d["loan_from"] = club
+	_move_player(club, user_club, d)
+	transfers.append({"season": season, "n": d["n"], "from": club, "to": user_club, "price": price, "kind": "préstamo"})
+	return ""
+
+
+## Oferta de otro club por un jugador tuyo: {club, price} (o {} si nadie
+## lo quiere): un club al que le falta ese puesto paga entre 70 y 110 % del valor.
+func sell_offer(pid: int, rng: RandomNumberGenerator = null) -> Dictionary:
+	var d := _player_dict(user_club, pid)
+	if d.is_empty() or d.has("loan_from"):
+		return {}
+	var r := rng if rng != null else RandomNumberGenerator.new()
+	if rng == null:
+		r.randomize()
+	var line := TeamDB.position_of_code(String(d.get("pos", "CMF")))
+	var best := ""
+	var best_need := -99.0
+	for l in leagues:
+		for pth in (l["comp"] as Competition).team_paths:
+			var club := String(pth).get_slice(":", 3)
+			if club == user_club or club_players(club).size() >= MAX_SQUAD:
+				continue
+			var have := club_players(club).filter(func(x: Dictionary) -> bool:
+				return TeamDB.position_of_code(String(x.get("pos", "CMF"))) == line).size()
+			var need: float = SQUAD_LINES[line] - have + r.randf() * 2.0
+			if need > best_need:
+				best_need = need
+				best = club
+	if best == "":
+		return {}
+	return {"club": best, "price": int(player_value(d) * r.randf_range(0.7, 1.1) / 50.0) * 50}
+
+
+func sell(pid: int, club: String, price: int) -> String:
+	if not market_open():
+		return "El mercado está cerrado."
+	var d := _player_dict(user_club, pid)
+	if d.is_empty():
+		return "Ese jugador ya no está."
+	if club_players(user_club).size() <= 16:
+		return "No podés quedarte con menos de 16 jugadores."
+	points += price
+	_move_player(user_club, club, d)
+	transfers.append({"season": season, "n": d["n"], "from": user_club, "to": club, "price": price, "kind": "venta"})
+	return ""
+
+
+## Deja libre a un jugador (se va del país; un préstamo vuelve a su club).
+func release(pid: int) -> String:
+	var d := _player_dict(user_club, pid)
+	if d.is_empty():
+		return "Ese jugador ya no está."
+	if club_players(user_club).size() <= 16:
+		return "No podés quedarte con menos de 16 jugadores."
+	if d.has("loan_from"):
+		var back := String(d["loan_from"])
+		d.erase("loan_from")
+		_move_player(user_club, back, d)
+		transfers.append({"season": season, "n": d["n"], "from": user_club, "to": back, "price": 0, "kind": "vuelta"})
+		return ""
+	club_players(user_club).erase(d)
+	_refresh_user()
+	transfers.append({"season": season, "n": d["n"], "from": user_club, "to": "", "price": 0, "kind": "libre"})
+	return ""
+
+
+## Pasa un jugador de un club a otro (con un número libre) y rearma los dos.
+func _move_player(from: String, to: String, d: Dictionary) -> void:
+	club_players(from).erase(d)
+	var dest: Array = club_players(to)
+	var used := {}
+	for x in dest:
+		used[int(x.get("num", 0))] = true
+	if used.has(int(d.get("num", 0))):
+		var n := 2
+		while used.has(n) and n < 99:
+			n += 1
+		d["num"] = n
+	dest.append(d)
+	for c in [from, to]:
+		TeamDB.refresh_club(country, c, world.clubs["%s:%s" % [country, c]])
+
+
+## Los préstamos vuelven a su club.
+func _return_loans() -> void:
+	for key in world.clubs:
+		var club := String(key).get_slice(":", 1)
+		for d in (world.clubs[key]["players"] as Array).duplicate():
+			if d.has("loan_from"):
+				var back := String(d["loan_from"])
+				d.erase("loan_from")
+				if world.clubs.has("%s:%s" % [country, back]):
+					_move_player(club, back, d)
+					transfers.append({"season": season, "n": d["n"], "from": club, "to": back, "price": 0, "kind": "vuelta"})
+
+
+## Mercado de los otros clubes: algunos compran a un jugador mejor que el
+## peor titular de su puesto más flojo, de un club de su misma división o de
+## una más abajo (el vendedor repone con un juvenil si queda corto).
+func _ai_window(rng: RandomNumberGenerator, lists: Array, divs: Array) -> void:
+	var co := TeamDB.country(country)
+	for di in lists.size():
+		for club in lists[di]:
+			if club == user_club or rng.randf() > 0.25:
+				continue
+			var mine: Array = club_players(club)
+			if mine.size() >= MAX_SQUAD:
+				continue
+			var line := rng.randi_range(0, 3)
+			var same: Array = mine.filter(func(x: Dictionary) -> bool: return TeamDB.position_of_code(String(x.get("pos", "CMF"))) == line)
+			var floor_ovr := 99
+			for x in same:
+				floor_ovr = mini(floor_ovr, dict_overall(x))
+			if same.is_empty():
+				floor_ovr = 0
+			var pick: Dictionary = {}
+			var from := ""
+			for dj in range(di, mini(di + 2, lists.size())):
+				for other in lists[dj]:
+					if other == club or other == user_club or club_players(other).size() <= MIN_SQUAD:
+						continue
+					for x in club_players(other):
+						if x.has("loan_from") or TeamDB.position_of_code(String(x.get("pos", "CMF"))) != line:
+							continue
+						if dict_overall(x) > floor_ovr + 2 and (pick.is_empty() or dict_overall(x) > dict_overall(pick)) and rng.randf() < 0.5:
+							pick = x
+							from = other
+				if not pick.is_empty():
+					break
+			if pick.is_empty():
+				continue
+			_move_player(from, club, pick)
+			transfers.append({"season": season, "n": pick["n"], "from": from, "to": club, "price": player_value(pick), "kind": "ia"})
+			var e: Dictionary = world.clubs["%s:%s" % [country, from]]
+			var div: Dictionary = divs[mini(dj_of(lists, from), divs.size() - 1)]
+			var level := int(TeamDB.DIVISION_LEVEL.get(int(div.get("level", 1)), 56)) - 10
+			_add_youth(e, level, String(co.get("names", "en")), co.get("skin", [40, 30, 18, 12]),
+				String(co.get("nationality", "")), rng, MIN_SQUAD + 2)
+
+
+static func dj_of(lists: Array, club: String) -> int:
+	for i in lists.size():
+		if (lists[i] as Array).has(club):
+			return i
+	return 0
+
+
+## Pases de esta temporada (los más nuevos primero).
+func season_transfers() -> Array:
+	var out := transfers.filter(func(t: Dictionary) -> bool: return int(t["season"]) == season)
+	out.reverse()
+	return out
+
+
 func last_summary() -> Dictionary:
 	return history[history.size() - 1] if not history.is_empty() else {}
 
@@ -813,7 +1129,7 @@ func to_dict() -> Dictionary:
 		"updated": updated, "country": country, "season": season, "first_year": first_year, "user_club": user_club,
 		"squad_mode": squad_mode, "points": points, "world": world.to_dict(), "leagues": ls, "scorers": scorers,
 		"history": history, "season_over": season_over, "next_pid": next_pid,
-		"season_start": season_start}
+		"season_start": season_start, "transfers": transfers}
 
 
 static func from_dict(d: Dictionary) -> MasterCareer:
@@ -837,6 +1153,7 @@ static func from_dict(d: Dictionary) -> MasterCareer:
 	m.season_over = bool(d.get("season_over", false))
 	m.next_pid = int(d.get("next_pid", 1))
 	m.season_start = d.get("season_start", {})
+	m.transfers = d.get("transfers", [])
 	return m
 
 

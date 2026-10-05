@@ -2,7 +2,8 @@ extends Node
 ## Captura del menú principal (para revisar su diseño):
 ## xvfb-run godot -- --menu-shot=archivo.png [--menu-page=teams]
 ## Páginas: home, modes, teams, setup, options, controls, master, master_squad,
-## master_hub, master_end, master_plantel, master_cal.
+## master_hub, master_end, master_plantel, master_cal,
+## master_market, master_sell, master_pases.
 
 var out := "user://menu.png"
 
@@ -45,7 +46,7 @@ func _run() -> void:
 				page = "hub"
 			# Liga Master: carrera de ejemplo (Boca con el Equipo WE, en Primera C).
 			var master_view := ""
-			if page in ["master_plantel", "master_cal"]:
+			if page in ["master_plantel", "master_cal", "master_market", "master_sell", "master_pases"]:
 				master_view = page
 				page = "master_hub"
 			if page in ["master_hub", "master_end"]:
@@ -68,8 +69,13 @@ func _run() -> void:
 				if master_view == "master_cal":
 					hub.view_mode = 2
 					hub.call("_rebuild")
-				else:
+				elif master_view == "master_plantel":
 					hub.call("_open_squad")
+				else:
+					hub.call("_open_market")
+					var mk: MasterMarket = hub.get("_market")
+					mk.mode = {"master_market": 0, "master_sell": 1, "master_pases": 2}[master_view]
+					mk.call("_rebuild")
 	for f in 20:
 		await get_tree().process_frame
 	var img := get_tree().root.get_texture().get_image()

@@ -374,8 +374,9 @@ func _build_world() -> void:
 			p.tactical_role = formation.tactical_role(n)
 			team.players.append(p)
 			team.roster.append(p)
-		# Suplentes: los que siguen en la lista (se crean al entrar).
-		for n in range(starters.size(), d.players.size()):
+		# Suplentes: los que siguen en la lista, hasta completar 23 (los
+		# planteles de la Liga Master pueden tener hasta 30; se crean al entrar).
+		for n in range(starters.size(), mini(d.players.size(), 23)):
 			team.bench.append(d.players[n])
 
 	_camera = MatchCamera.new()

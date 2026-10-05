@@ -81,6 +81,8 @@ func _rebuild() -> void:
 		_list.add_child(_row(i))
 		if i == 10:
 			_list.add_child(WEStyle.label("  Suplentes", 14, BLUE))
+		if i == 22 and _players.size() > 23:
+			_list.add_child(WEStyle.label("  Fuera de la lista (al partido van 23)", 14, BLUE))
 	var btns := HBoxContainer.new()
 	btns.add_theme_constant_override("separation", 8)
 	left.add_child(btns)

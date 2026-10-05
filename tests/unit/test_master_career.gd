@@ -229,3 +229,56 @@ func test_saved_lineup_and_formation() -> void:
 	assert_false(back.has_custom_lineup())
 	assert_eq(back.calendar().size(), 46)
 	MasterCareer.deactivate()
+
+
+## D4: mercado de pases.
+func test_market_buy_loan_sell_and_ai() -> void:
+	var m := MasterCareer.create("arg", "lugano", "real", 61)
+	assert_true(m.market_open(), "abierto en la fecha 1")
+	m.points = 100000
+	var list := m.market_list(3, 3, "ovr", 10)
+	assert_false(list.is_empty())
+	var it: Dictionary = list[0]
+	var pid := int(it["d"]["pid"])
+	var price := m.asking_price(it["club"], it["d"])
+	var before := m.club_players("lugano").size()
+	assert_eq(m.buy(it["club"], pid), "")
+	assert_eq(m.points, 100000 - price)
+	assert_eq(m.club_players("lugano").size(), before + 1)
+	assert_true(m.user_team().players.any(func(p: PlayerData) -> bool: return p.pid == pid), "ya juega en tu club")
+	# Préstamo: vuelve al terminar la temporada.
+	var it2: Dictionary = m.market_list(2, 3, "ovr", 10)[0]
+	var loan_pid := int(it2["d"]["pid"])
+	assert_eq(m.loan_in(it2["club"], loan_pid), "")
+	assert_false(m._player_dict("lugano", loan_pid).is_empty())
+	# Venta y libre.
+	var mine: Dictionary = m.club_players("lugano")[5]
+	var offer := m.sell_offer(int(mine["pid"]))
+	assert_true(offer.has("club"))
+	var pts := m.points
+	assert_eq(m.sell(int(mine["pid"]), offer["club"], int(offer["price"])), "")
+	assert_eq(m.points, pts + int(offer["price"]))
+	assert_false(m._player_dict(offer["club"], int(mine["pid"])).is_empty())
+	assert_eq(m.release(int(m.club_players("lugano")[6]["pid"])), "")
+	# Cerrado a mitad de la primera rueda.
+	for i in 8:
+		m.play_round([], [], 70 + i)
+	assert_false(m.market_open())
+	assert_ne(m.buy(it2["club"], int(m.market_list(-1, -1, "ovr", 1)[0]["d"]["pid"])), "", "no se puede comprar")
+	m.simulate_to_end(4)
+	assert_true(m._player_dict("lugano", loan_pid).is_empty(), "el préstamo volvió")
+	assert_false(m._player_dict(it2["club"], loan_pid).is_empty())
+	var ai := m.transfers.filter(func(t: Dictionary) -> bool: return t["kind"] == "ia")
+	assert_gt(ai.size(), 5, "los otros clubes también ficharon")
+	# Nadie quedó con el plantel corto.
+	for key in m.world.clubs:
+		assert_true((m.world.clubs[key]["players"] as Array).size() >= 16, key)
+	MasterCareer.deactivate()
+
+
+func test_player_value_by_age() -> void:
+	var a := {"speed": 70, "passing": 70, "shooting": 70, "technique": 70, "ball_control": 70, "defense": 70, "stamina": 70}
+	var young := MasterCareer.player_value({"pos": "CMF", "age": 21, "a": a})
+	var old := MasterCareer.player_value({"pos": "CMF", "age": 33, "a": a})
+	assert_gt(young, old * 2)
+	assert_eq(young % 50, 0)
