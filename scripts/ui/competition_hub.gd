@@ -173,7 +173,7 @@ func _next_match() -> void:
 			var won: String = "el Mundial" if comp.kind == Competition.Kind.WORLD_CUP else "la " + Competition.KIND_NAMES[comp.kind].to_lower()
 			_right.add_child(WEStyle.label("¡Ganaste %s!" % won, 20, Color(0.6, 1.0, 0.6)))
 		_right.add_child(WEStyle.bar("Terminar", func() -> void:
-			Competition.delete_saved()
+			comp.delete_file()
 			back.emit(), 460.0, 22))
 		(_right.get_child(_right.get_child_count() - 1) as Control).grab_focus()
 		return
@@ -211,7 +211,7 @@ func _next_match() -> void:
 	var ab := WEStyle.bar("Abandonar", Callable(), 460.0, 22)
 	ab.pressed.connect(func() -> void:
 		if _abandon_armed:
-			Competition.delete_saved()
+			comp.delete_file()
 			back.emit()
 		else:
 			_abandon_armed = true

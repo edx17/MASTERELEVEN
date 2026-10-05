@@ -95,3 +95,37 @@ func test_import_folder_goes_to_the_option_file() -> void:
 	TeamDB.use_option_file(OptionFile.load_named("Importado"))
 	var boca := TeamDB.load_team(TeamDB.club_path("arg", "boca"))
 	assert_eq(boca.players[0].player_name, "J. Real", "el arquero importado, titular")
+
+
+## Cada Liga / Copa / Mundial en su archivo; CONTINUAR las lista con dónde va.
+func test_saves_are_separate_and_listed() -> void:
+	var paths := TeamDB.division_paths("eng", "eng1")
+	var liga := Competition.create_league(paths, 0, false, 3)
+	liga.save()
+	var copa := Competition.create_cup(GameSettings.team_paths(), 2, 4)
+	copa.option_file = "Algo"
+	copa.save()
+	assert_true(liga.file.begins_with(UserData.saves_dir("ligas")))
+	assert_true(copa.file.begins_with(UserData.saves_dir("copas")))
+	assert_ne(liga.file, copa.file)
+	liga.complete_round([1, 0], 9)
+	liga.save()
+	var saves := Competition.list_saves()
+	assert_eq(saves.size(), 2)
+	var titles := saves.map(func(s: Dictionary) -> String: return s["title"])
+	assert_true(titles.any(func(t: String) -> bool: return t.begins_with("Liga · ")), str(titles))
+	var lsave: Dictionary = saves.filter(func(s: Dictionary) -> bool: return s["kind"] == Competition.Kind.LEAGUE)[0]
+	assert_eq(lsave["progress"], "Fecha 2 de 19")
+	var back := Competition.load_saved(liga.file)
+	assert_eq(back.current, 1)
+	back.delete_file()
+	assert_eq(Competition.list_saves().size(), 1)
+
+
+## El juego guarda la configuración en la carpeta del jugador.
+func test_settings_go_to_the_user_folder() -> void:
+	var was := GameSettings.persist
+	GameSettings.persist = true
+	GameSettings.save_settings()
+	GameSettings.persist = was
+	assert_true(FileAccess.file_exists(UserData.config_path()))

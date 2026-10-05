@@ -114,6 +114,8 @@ var wc_playoff: Array = ["ita", "pol", "kos", "den", "cod", "irq"]
 const WC_PLAYOFF_SLOTS := 6
 ## Option File activo (nombre; "" = la base del juego).
 var active_optionfile := ""
+## Archivo de la Liga / Copa / Mundial que se está jugando.
+var active_save := ""
 var training_kind: int = 0
 var training_challenge: int = 0
 var human_side: int = 0

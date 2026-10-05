@@ -31,6 +31,7 @@ func _run() -> void:
 				for i in (3 if page == "league" else 1):
 					c.complete_round([2, 1], 10 + i)
 				c.save()
+				GameSettings.active_save = c.file
 				page = "hub"
 			# Mundial con la fecha 1 jugada (la pantalla de grupos).
 			if page == "wc":
@@ -39,6 +40,7 @@ func _run() -> void:
 					[TeamDB.nation_path("usa"), TeamDB.nation_path("mex"), TeamDB.nation_path("can")])
 				c.complete_round([2, 0], 11)
 				c.save()
+				GameSettings.active_save = c.file
 				page = "hub"
 			if page == "teams":
 				menu.call("show_page", "modes")

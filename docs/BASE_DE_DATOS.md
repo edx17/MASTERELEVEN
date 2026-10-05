@@ -65,7 +65,16 @@ sobran se ignoran; separador `,` o `;`):
 | Selección (opcional) | `seleccion`, `national_team`: marca la convocatoria real |
 | Atributos (opcional) | los de FC: `movement_sprint_speed`, `attacking_finishing`, `skill_ball_control`, `defending_standing_tackle`, `goalkeeping_*`, ... (o `pace`, `shooting`, `passing`, `dribbling`, `defending`, `physic`) |
 
-### Cómo se importa
+### Cómo se importa (desde el juego)
+1. **OPCIONES → DATOS → ABRIR CARPETA DE IMPORTAR** (abre
+   `Documentos/MasterEleven/importar/` en el Explorador).
+2. Copiá ahí tus CSV.
+3. **IMPORTAR PLANTELES**: muestra el resumen (jugadores, clubes,
+   selecciones y los clubes que no encontró) y guarda todo en el **Option
+   File** activo (si no hay, crea "Mi Option File"). La base no se toca.
+
+Para quien trabaja en el proyecto también está la versión de consola, que
+escribe en la base (`data/db`):
 ```
 godot --headless -- --import-players=planteles.csv[,otro.csv]
 ```
@@ -77,6 +86,28 @@ godot --headless -- --import-players=planteles.csv[,otro.csv]
   marcada en la columna `seleccion`.
 - Al final lista los clubes del CSV que no encontró (también en
   `user://import_report.txt`) para corregir el nombre.
+
+## Option File y carpeta del juego
+Todo lo del jugador va en `Documentos/MasterEleven/`:
+
+| Qué | Dónde |
+|---|---|
+| Configuración y botones | `config.cfg`, `controles.cfg` |
+| Option Files (tus cambios sobre la base) | `optionfiles/*.meof` |
+| Ligas en curso | `saves/ligas/` (un archivo cada una) |
+| Copas y Mundiales en curso | `saves/copas/` |
+| Liga Master (próximamente) | `saves/master/` |
+| CSV para importar | `importar/` |
+| Récords del entrenamiento y estrategias guardadas | `records.json`, `planes.cfg` |
+
+- El **Option File** guarda sólo los cambios: clubes y selecciones
+  editados o nuevos, qué clubes juegan cada división y selecciones
+  borradas. Se elige en OPCIONES → DATOS ("Option File activo"); "VOLVER A
+  LA BASE" deja de usarlo sin borrarlo. Para pasarlo a otra PC, copiá el
+  `.meof` a la carpeta `optionfiles` (aparece solo en la lista).
+- **CONTINUAR** (menú principal) lista las Ligas, Copas y Mundiales
+  guardados con dónde van ("Fecha 7 de 29", "Cuartos de final"); al seguir
+  una, se activa el Option File con el que se creó.
 
 ## Mundial 2026
 Menú principal → **MUNDIAL 2026**: se eligen los 6 cupos del repechaje entre

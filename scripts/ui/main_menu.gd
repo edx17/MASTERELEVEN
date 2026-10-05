@@ -17,6 +17,8 @@ var _setup: MatchSetup
 var _hub: CompetitionHub
 ## Eligiendo el equipo para una Liga / Copa nueva (Competition.Kind) o -1.
 var _new_competition := -1
+var _continue_btn: Button
+var _continue_col: VBoxContainer
 var _history: Array[String] = []
 var _focus_memory := {}
 ## La pantalla de título (Press START) sale sólo al abrir el juego.
@@ -33,10 +35,12 @@ func _ready() -> void:
 	_help = WEStyle.help_box(self)
 	_build_title()
 	_build_home()
+	_build_continue()
 	_build_modes()
 	_build_training()
 	_build_world_cup()
 	_build_options()
+	_build_data()
 	_build_controls()
 	_teams = TeamSelect.new()
 	add_child(_teams)
@@ -63,7 +67,7 @@ func _ready() -> void:
 	# Volviendo de un partido de Liga / Copa: se anota el resultado.
 	if GameSettings.competition_match:
 		GameSettings.competition_match = false
-		var c := Competition.load_saved()
+		var c := Competition.load_saved(GameSettings.active_save)
 		if c != null:
 			if not GameSettings.last_result.is_empty():
 				c.complete_round(GameSettings.last_result)
@@ -84,7 +88,9 @@ func show_page(page: String, remember := true) -> void:
 	for k in _pages:
 		(_pages[k] as Control).visible = k == page
 	# Las pantallas de equipos y partido traen su propia ayuda.
-	_help.get_parent().visible = page in ["home", "modes", "training", "options", "controls", "worldcup"]
+	_help.get_parent().visible = page in ["home", "modes", "training", "options", "controls", "worldcup", "continue", "data"]
+	if page == "home" and _continue_btn != null:
+		_continue_btn.disabled = Competition.list_saves().is_empty()
 	if page == "title":
 		return
 	match page:
@@ -93,7 +99,9 @@ func show_page(page: String, remember := true) -> void:
 		"setup":
 			_setup.open()
 		"hub":
-			_hub.open(Competition.load_saved())
+			_hub.open(Competition.load_saved(GameSettings.active_save))
+		"continue":
+			_build_continue_list()
 		_:
 			var back_focus: Control = _focus_memory.get(page)
 			if not remember and back_focus != null and is_instance_valid(back_focus):
@@ -122,7 +130,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			leave_title()
 			get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed(&"ui_cancel") and _current() in ["modes", "options", "controls", "worldcup"]:
+	if event.is_action_pressed(&"ui_cancel") and _current() in ["modes", "options", "controls", "worldcup", "continue", "data"]:
 		if _current() == "controls" and _controls_capturing():
 			return
 		go_back()
@@ -204,7 +212,10 @@ func leave_title() -> void:
 
 func _build_home() -> void:
 	var p := _page("home")
-	var col := _column(p, Vector2(80, 80))
+	var col := _column(p, Vector2(80, 60))
+	col.add_theme_constant_override("separation", 6)
+	_continue_btn = _item(col, "CONTINUAR", "Seguir una Liga, Copa o Mundial guardados (cada uno en su archivo).",
+		show_page.bind("continue"))
 	_item(col, "PARTIDO", "Jugá un partido amistoso: contra la CPU, de a dos o mirá CPU contra CPU.", show_page.bind("modes"))
 	_item(col, "LIGA", "Campeonato todos contra todos con los 8 equipos. Se guarda entre partidos.",
 		_open_competition.bind(Competition.Kind.LEAGUE))
@@ -263,11 +274,8 @@ func _choose_mode(mode: int, shootout := false) -> void:
 # --- Liga / Copa -----------------------------------------------------------------
 
 ## Sigue la competición guardada de ese tipo; si no hay, elegís tu equipo.
+## Liga / Copa nueva (las guardadas se siguen desde CONTINUAR).
 func _open_competition(kind: int) -> void:
-	var saved := Competition.load_saved()
-	if saved != null and saved.kind == kind and not saved.finished():
-		show_page("hub")
-		return
 	_new_competition = kind
 	_teams.single = true
 	_teams.only_paths = []
@@ -281,7 +289,9 @@ func _start_competition(kind: int, my_team: String) -> void:
 		var wc := world_cup_paths(GameSettings.wc_playoff)
 		c = Competition.create_world_cup(wc, maxi(wc.find(my_team), 0), 0,
 			[TeamDB.nation_path("usa"), TeamDB.nation_path("mex"), TeamDB.nation_path("can")])
+		c.option_file = GameSettings.active_optionfile
 		c.save()
+		GameSettings.active_save = c.file
 		_history.clear()
 		_history.append("home")
 		show_page("hub", false)
@@ -289,7 +299,12 @@ func _start_competition(kind: int, my_team: String) -> void:
 	var paths := competition_paths(kind, my_team, _teams.group_paths_of(my_team))
 	var me := maxi(paths.find(my_team), 0)
 	c = Competition.create_league(paths, me, false) if kind == Competition.Kind.LEAGUE else Competition.create_cup(paths, me)
+	c.option_file = GameSettings.active_optionfile
+	var g := _teams.group_of(my_team)
+	if g >= 0 and _teams.groups[g].get("kind", "") == "division":
+		c.title = "%s · %s" % [String(_teams.groups[g]["name"]).get_slice("·", 1).strip_edges(), c.team(me).team_name]
 	c.save()
+	GameSettings.active_save = c.file
 	_history.clear()
 	_history.append("home")
 	show_page("hub", false)
@@ -315,6 +330,57 @@ static func competition_paths(kind: int, my_team: String, group: Array[String]) 
 	for i in 7:
 		out.append(others[i])
 	return out
+
+
+# --- Continuar ------------------------------------------------------------------------
+
+func _build_continue() -> void:
+	var p := _page("continue")
+	var title := WEStyle.label("CONTINUAR", 30, Color(1.0, 0.9, 0.35))
+	title.position = Vector2(80, 40)
+	p.add_child(title)
+	var scroll := ScrollContainer.new()
+	scroll.position = Vector2(80, 96)
+	scroll.size = Vector2(1000, 500)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	p.add_child(scroll)
+	_continue_col = VBoxContainer.new()
+	_continue_col.add_theme_constant_override("separation", 6)
+	scroll.add_child(_continue_col)
+
+
+## Lista de partidas guardadas: "Liga Profesional · Boca — Fecha 7 de 29".
+func _build_continue_list() -> void:
+	for c in _continue_col.get_children():
+		_continue_col.remove_child(c)
+		c.queue_free()
+	var saves := Competition.list_saves()
+	for sv in saves:
+		var text := "%s   —   %s" % [sv["title"], sv["progress"]]
+		var help := "Guardada %s." % String(sv["updated"]).replace("T", " ")
+		if String(sv["option_file"]) != "":
+			help += " Option File: %s." % sv["option_file"]
+		_item(_continue_col, text, help, open_save.bind(String(sv["file"])), true, 960.0)
+	_item(_continue_col, "VOLVER", "Volver al menú principal.", go_back, true, 960.0)
+	if saves.is_empty():
+		_help.text = "No hay partidas guardadas."
+	_first_focus(_continue_col)
+
+
+## Sigue una partida guardada (con el Option File con el que se creó).
+func open_save(file: String) -> void:
+	var c := Competition.load_saved(file)
+	if c == null:
+		return
+	if c.option_file != GameSettings.active_optionfile and (c.option_file == "" or OptionFile.load_named(c.option_file) != null):
+		GameSettings.active_optionfile = c.option_file
+		GameSettings.apply_option_file()
+		GameSettings.save_settings()
+	GameSettings.active_save = file
+	_history.clear()
+	_history.append("home")
+	show_page("hub", false)
 
 
 # --- Mundial 2026 ------------------------------------------------------------------
@@ -391,10 +457,6 @@ func _refresh_world_cup() -> void:
 
 
 func _open_world_cup() -> void:
-	var saved := Competition.load_saved()
-	if saved != null and saved.kind == Competition.Kind.WORLD_CUP and not saved.finished():
-		show_page("hub")
-		return
 	show_page("worldcup")
 
 
@@ -478,9 +540,11 @@ func _build_options() -> void:
 	var title := WEStyle.label("OPCIONES", 30, Color(1.0, 0.9, 0.35))
 	title.position = Vector2(80, 40)
 	p.add_child(title)
-	var col := _column(p, Vector2(80, 100))
-	col.add_theme_constant_override("separation", 6)
+	var col := _column(p, Vector2(80, 92))
+	col.add_theme_constant_override("separation", 3)
 	_item(col, "CONTROLES", "Qué hace cada botón al atacar y al defender.", show_page.bind("controls"), true, 640.0)
+	_item(col, "DATOS", "Option File (tus cambios sobre la base), importar planteles y carpetas del juego.",
+		show_page.bind("data"), true, 640.0)
 	var rows := [
 		["Velocidad del juego", func() -> String: return "%+d" % GameSettings.game_speed,
 			func(d: int) -> void: GameSettings.game_speed = clampi(GameSettings.game_speed + d, -2, 2),
@@ -524,11 +588,94 @@ func _build_options() -> void:
 			(r[2] as Callable).call(d)
 			GameSettings.save_settings(), r[3], 640.0)
 		var help: String = r[3]
+		row.custom_minimum_size.y = 36
 		row.focus_entered.connect(func() -> void: _help.text = help)
 		col.add_child(row)
 	_item(col, "PRUEBA DE RENDIMIENTO (30 s)", "Mide los cuadros por segundo de tu máquina con un partido CPU vs CPU.",
 		GameSettings.start_benchmark, true, 640.0)
 	_item(col, "VOLVER", "Volver al menú principal.", go_back, true, 640.0)
+
+
+# --- Datos: Option File, importar planteles, carpetas ------------------------------
+
+var _data_rows: Array[WEStyle.OptionRow] = []
+var _data_status: Label
+
+
+func _build_data() -> void:
+	var p := _page("data")
+	var title := WEStyle.label("DATOS", 30, Color(1.0, 0.9, 0.35))
+	title.position = Vector2(80, 40)
+	p.add_child(title)
+	var col := _column(p, Vector2(80, 100))
+	col.add_theme_constant_override("separation", 6)
+	var of_row := WEStyle.OptionRow.new("Option File activo", func() -> String:
+			return GameSettings.active_optionfile if GameSettings.active_optionfile != "" else "ninguno (base del juego)",
+		func(d: int) -> void:
+			var names := [""]
+			for o in OptionFile.list():
+				names.append(o["name"])
+			var i := names.find(GameSettings.active_optionfile)
+			_set_option_file(names[posmod(i + d, names.size())]),
+		"Tus cambios (planteles importados, ediciones) van al Option File activo. La base del juego no se toca.", 760.0)
+	of_row.focus_entered.connect(func() -> void: _help.text = of_row.help)
+	col.add_child(of_row)
+	_data_rows.append(of_row)
+	_item(col, "IMPORTAR PLANTELES", "Lee todos los CSV de la carpeta \"importar\" (EA FC / SoFIFA, Transfermarkt o tu planilla) y los guarda en el Option File activo (si no hay, crea \"Mi Option File\").",
+		_import_squads, true, 760.0)
+	_item(col, "ABRIR CARPETA DE IMPORTAR", "Abre la carpeta donde dejás los CSV de planteles.",
+		func() -> void: UserData.open_folder(UserData.import_dir()), true, 760.0)
+	_item(col, "ABRIR CARPETA DE OPTION FILES", "Para copiar un Option File (.meof) de otra PC o pasarle el tuyo a alguien: aparecen solos en la lista.",
+		func() -> void: UserData.open_folder(UserData.optionfiles_dir()), true, 760.0)
+	_item(col, "ABRIR CARPETA DEL JUEGO", "Documentos/MasterEleven: configuración, Option Files, partidas guardadas e importar.",
+		func() -> void: UserData.open_folder(UserData.root()), true, 760.0)
+	_item(col, "VOLVER A LA BASE", "Deja de usar el Option File (no lo borra: lo podés volver a elegir).",
+		func() -> void: _set_option_file(""), true, 760.0)
+	_item(col, "VOLVER", "Volver a Opciones.", go_back, true, 760.0)
+	_data_status = WEStyle.label("", 18, Color(0.75, 0.9, 0.75))
+	_data_status.position = Vector2(880, 100)
+	_data_status.size = Vector2(360, 480)
+	_data_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	p.add_child(_data_status)
+
+
+func _set_option_file(name: String) -> void:
+	GameSettings.active_optionfile = name
+	GameSettings.apply_option_file()
+	GameSettings.save_settings()
+	_teams.groups = TeamSelect.build_groups()
+	for r in _data_rows:
+		r.refresh()
+	_data_status.text = "Usando: %s" % (name if name != "" else "la base del juego")
+
+
+func _import_squads() -> void:
+	var of: OptionFile = null
+	if GameSettings.active_optionfile != "":
+		of = OptionFile.load_named(GameSettings.active_optionfile)
+	if of == null:
+		of = OptionFile.new()
+		of.name = "Mi Option File"
+	_data_status.text = "Importando..."
+	var imp := SquadImporter.new()
+	# Se reparte sobre la base con lo que ya tenga este Option File.
+	TeamDB.use_option_file(of)
+	var res := imp.import_folder(UserData.import_dir(), of)
+	if int(res["files"]) == 0:
+		_data_status.text = "No hay archivos CSV en la carpeta de importar.\n\n%s" % UserData.import_dir()
+		GameSettings.apply_option_file()
+		return
+	_set_option_file(of.name)
+	var lines := ["Listo: %d archivo(s), %d filas." % [res["files"], res["rows"]],
+		"%d jugadores en %d clubes." % [res["players"], res["clubs"]],
+		"%d selecciones armadas." % res["nations"],
+		"Guardado en el Option File \"%s\"." % of.name]
+	if int(res["unmatched_clubs"]) > 0:
+		lines.append("")
+		lines.append("%d clubes del archivo no están en la base:" % res["unmatched_clubs"])
+		for l in imp.report.slice(1, 13):
+			lines.append(l.strip_edges())
+	_data_status.text = "\n".join(lines)
 
 
 # --- Controles ------------------------------------------------------------------
