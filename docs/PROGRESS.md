@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **460 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **462 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -19,7 +19,7 @@ además arma el `.exe` de Windows).
 | 4 — Reglas, atributos y plantel | ✅ Implementada | — |
 | 5 — Presentación moderna (estadios, animaciones, audio, repeticiones) | 🟡 Muy avanzada; falta el pelo "Detallados" y la voz del locutor | — |
 | 6 — Liga Master | 🟡 D1–D5 hechos, **pendiente de tu prueba** | #32, #33 |
-| 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) | — |
+| 7 — Torneos | 🟡 Hecho en la Liga Master (copa nacional, continental, Mundial cada 4 años), **pendiente de tu prueba** | #33 |
 | 8 — Pulido | ⬜ | — |
 | Entrenamiento (Club House) | ✅ | #23 |
 | Backlog B1–B9 | ✅ | #24 |
@@ -150,13 +150,36 @@ además arma el `.exe` de Windows).
    (hecho: Plantel, Dirección guardada, Calendario y escudos), **D4**
    (hecho: mercado de pases con puntos WE, préstamos, ventanas, IA que
    ficha) y **D5** (hecho: noticias, historial y palmarés).
-4. **Fase 7 — Torneos**: copa nacional, copa continental y Mundial cada 4
-   temporadas con convocados de la carrera (plan antes de arrancar).
+4. **Fase 7 — Torneos**: hecho (copa nacional, copa continental y Mundial
+   cada 4 temporadas con convocados de la carrera), pendiente de tu prueba.
 5. Himno propio, relator y pulido final.
 6. Editores: ya hechos (E1–E4, ver `docs/EDITOR.md`); quedan solo extras
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Fase 7 — Torneos (en la Liga Master)
+- **Copa nacional** cada temporada (Copa Argentina, FA Cup, Copa del Rey,
+  Coppa Italia, DFB-Pokal...): eliminación directa a un partido (penales si
+  empatan), cuadro de 64 (Argentina, Inglaterra) o 32 con todos los de
+  primera y el resto por sorteo; **tu club siempre está**. Las rondas se
+  juegan **entre fechas de la liga** (la pantalla de la carrera avisa
+  "Copa Argentina · Octavos de final"); tu partido lo jugás o lo simulás, y
+  si quedaste afuera se simula la fecha de copa.
+- **Copa continental de clubes** (América: Argentina con Brasil; Europa:
+  los seis países europeos): 16 equipos, 4 grupos de 4, cuartos, semis y
+  final. Van los **4 primeros de primera** de la temporada anterior (en la
+  primera, los 4 más fuertes) y los mejores de los otros países.
+- Premios en puntos WE: copa nacional 3000, continental 5000.
+- **Mundial cada 4 años** (2030, 2034...) al terminar la temporada:
+  simulado, con la selección del país armada con **los mejores 23 entre su
+  plantel y los jugadores de la carrera** de esa nacionalidad; avisa a qué
+  jugadores de tu club convocaron y hasta dónde llegó.
+- Pantalla de la carrera: vista **Copas** (estado, grupos o llaves y tu
+  camino); el resumen de fin de temporada y el **Historial** muestran los
+  campeones de las copas y del Mundial, cómo te fue en la copa y el
+  **récord de goles** en una temporada.
+- En el menú principal dice **MUNDIAL** (sin el año).
 
 ## D5 — Liga Master: noticias, historial y palmarés
 - **Noticias** (Ver ◀ ▶ en la pantalla de la carrera): lesiones y

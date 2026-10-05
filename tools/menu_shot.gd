@@ -3,7 +3,8 @@ extends Node
 ## xvfb-run godot -- --menu-shot=archivo.png [--menu-page=teams]
 ## Páginas: home, modes, teams, setup, options, controls, master, master_squad,
 ## master_hub, master_end, master_plantel, master_cal,
-## master_market, master_sell, master_pases, master_news, master_hist.
+## master_market, master_sell, master_pases, master_news, master_hist,
+## master_cups.
 
 var out := "user://menu.png"
 
@@ -46,7 +47,7 @@ func _run() -> void:
 				page = "hub"
 			# Liga Master: carrera de ejemplo (Boca con el Equipo WE, en Primera C).
 			var master_view := ""
-			if page in ["master_plantel", "master_cal", "master_market", "master_sell", "master_pases", "master_news", "master_hist"]:
+			if page in ["master_plantel", "master_cal", "master_market", "master_sell", "master_pases", "master_news", "master_hist", "master_cups"]:
 				master_view = page
 				page = "master_hub"
 			if master_view in ["master_news", "master_hist"]:
@@ -56,6 +57,7 @@ func _run() -> void:
 				for i in 5:
 					m.play_round([], [], 30 + i)
 				if page == "master_end":
+					m.first_year = 2030 # con Mundial al final
 					m.simulate_to_end(9)
 				m.save()
 				GameSettings.active_save = m.file
@@ -68,8 +70,8 @@ func _run() -> void:
 			menu.call("show_page", page)
 			if master_view != "":
 				var hub: MasterHub = menu.get("_master_hub")
-				if master_view in ["master_cal", "master_news", "master_hist"]:
-					hub.view_mode = {"master_cal": 2, "master_news": 3, "master_hist": 4}[master_view]
+				if master_view in ["master_cal", "master_cups", "master_news", "master_hist"]:
+					hub.view_mode = {"master_cal": 2, "master_cups": 3, "master_news": 4, "master_hist": 5}[master_view]
 					hub.call("_rebuild")
 				elif master_view == "master_plantel":
 					hub.call("_open_squad")

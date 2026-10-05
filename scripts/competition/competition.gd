@@ -13,7 +13,7 @@ enum Kind { LEAGUE, CUP, WORLD_CUP }
 ## Documentos/MasterEleven/saves/ligas o saves/copas, un archivo cada una).
 const SAVE_PATH := "user://competition.json"
 const KIND_NAMES := ["Liga", "Copa", "Mundial"]
-const CUP_ROUND_NAMES := {32: "16avos de final", 16: "Octavos de final", 8: "Cuartos de final", 4: "Semifinales",
+const CUP_ROUND_NAMES := {64: "32avos de final", 32: "16avos de final", 16: "Octavos de final", 8: "Cuartos de final", 4: "Semifinales",
 	2: "Final"}
 ## Mundial (formato 2026): 48 selecciones en 12 grupos de 4 (3 fechas); pasan
 ## los dos primeros y los 8 mejores terceros a 16avos y de ahí eliminación
@@ -103,6 +103,25 @@ static func create_world_cup(paths: Array[String], user: int, seed: int = 0, hos
 	return c
 
 
+## Las 48 del Mundial: las 42 clasificadas y las 6 elegidas del repechaje (si
+## la elección no son 6 válidas, las primeras 6 candidatas por nivel).
+static func world_cup_paths(picks: Array) -> Array[String]:
+	var out: Array[String] = []
+	var candidates: Array = []
+	for n in TeamDB.nations():
+		if n["wc"] == "q":
+			out.append(TeamDB.nation_path(n["id"]))
+		elif n["wc"] == "po":
+			candidates.append(n)
+	var chosen := candidates.filter(func(n: Dictionary) -> bool: return picks.has(n["id"]))
+	if chosen.size() != GameSettings.WC_PLAYOFF_SLOTS:
+		candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["level"]) > int(b["level"]))
+		chosen = candidates.slice(0, GameSettings.WC_PLAYOFF_SLOTS)
+	for n in chosen:
+		out.append(TeamDB.nation_path(n["id"]))
+	return out
+
+
 ## Tabla de un grupo del Mundial (sólo la fase de grupos).
 func group_table(gi: int) -> Array:
 	var rows := {}
@@ -140,9 +159,19 @@ func group_of(team_i: int) -> int:
 	return -1
 
 
-## 16avos: primeros contra los 8 mejores terceros y contra segundos; los
-## segundos restantes entre sí.
+## Después de los grupos. Con 12 grupos (Mundial), 16avos: primeros contra
+## los 8 mejores terceros y contra segundos; los segundos restantes entre sí.
+## Con otra cantidad (copa continental de 4 u 8 grupos): pasan los dos
+## primeros, cruzados (1.º A contra 2.º B...).
 func _round_of_32() -> Array:
+	if groups.size() != 12:
+		var out := []
+		for gi in range(0, groups.size(), 2):
+			var a := group_table(gi)
+			var b := group_table(gi + 1)
+			out.append({"home": a[0]["team"], "away": b[1]["team"], "result": []})
+			out.append({"home": b[0]["team"], "away": a[1]["team"], "result": []})
+		return out
 	var firsts := []
 	var seconds := []
 	var thirds := []
@@ -466,7 +495,7 @@ func delete_file() -> void:
 ## "Liga · Boca Juniors", "Mundial 2026 · Argentina"...
 func default_title() -> String:
 	var who := team(user_team).team_name if user_team < team_paths.size() else ""
-	var what: String = "Mundial 2026" if kind == Kind.WORLD_CUP else KIND_NAMES[kind]
+	var what: String = "Mundial" if kind == Kind.WORLD_CUP else KIND_NAMES[kind]
 	return "%s · %s" % [what, who] if who != "" else what
 
 

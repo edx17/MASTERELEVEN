@@ -20,7 +20,7 @@ var view_division := 0
 ## Qué se ve a la izquierda: 0 tabla, 1 goleadores, 2 calendario,
 ## 3 noticias, 4 historial y palmarés.
 var view_mode := 0
-const VIEW_NAMES := ["Tabla", "Goleadores", "Calendario", "Noticias", "Historial"]
+const VIEW_NAMES := ["Tabla", "Goleadores", "Calendario", "Copas", "Noticias", "Historial"]
 var _squad: MasterSquad
 var _market: MasterMarket
 var _left: VBoxContainer
@@ -100,8 +100,10 @@ func _rebuild_left() -> void:
 		2:
 			_calendar(body)
 		3:
-			_news(body)
+			_cups(body)
 		4:
+			_news(body)
+		5:
 			_history(body)
 		_:
 			_table(body)
@@ -117,6 +119,62 @@ func _scroll_box(body: Control, h: float = 480.0) -> VBoxContainer:
 	box.add_theme_constant_override("separation", 2)
 	scroll.add_child(box)
 	return box
+
+
+## Copas de la temporada: la nacional (tu camino y la última ronda) y la
+## continental (grupos o llaves).
+func _cups(body: Control) -> void:
+	var box := _scroll_box(body)
+	var specs := [[career.national_cup, career.national_cup_name()], [career.continental, career.cont_name]]
+	for spec in specs:
+		var comp: Competition = spec[0]
+		if comp == null:
+			continue
+		box.add_child(WEStyle.label(String(spec[1]), 18, GOLD))
+		var me := comp.user_team
+		var status := ""
+		if comp.finished():
+			status = "Campeón: %s" % comp.team(comp.champion).team_name
+		else:
+			status = comp.round_name()
+		if me >= 0:
+			var reach := MasterCareer.cup_reach(comp, me)
+			status += "  ·  Tu equipo: %s" % (("sigue en carrera" if comp.alive(me) else "eliminado en " + reach) if reach != "Campeón" else "¡campeón!")
+		else:
+			status += "  ·  Tu equipo no la juega"
+		var st := WEStyle.label(status, 15)
+		st.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		st.custom_minimum_size = Vector2(610, 0)
+		box.add_child(st)
+		if comp.kind == Competition.Kind.WORLD_CUP and comp.current < Competition.WC_GROUP_ROUNDS:
+			for gi in comp.groups.size():
+				var line := "Grupo %s: " % Competition.WC_GROUP_LETTERS[gi]
+				var parts: Array = []
+				for row in comp.group_table(gi):
+					parts.append("%s %d" % [comp.team(row["team"]).team_name, int(row["pts"])])
+				var gl := WEStyle.label(line + ", ".join(parts), 14, GOLD if comp.group_of(me) == gi and me >= 0 else Color.WHITE)
+				gl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				gl.custom_minimum_size = Vector2(610, 0)
+				box.add_child(gl)
+		elif comp.current > 0:
+			var r := mini(comp.current, comp.rounds.size()) - 1
+			box.add_child(WEStyle.label(comp.round_name(r), 15, BLUE))
+			var games: Array = comp.rounds[r]
+			var mine := games.filter(func(gm: Dictionary) -> bool: return gm["home"] == me or gm["away"] == me)
+			var rest := games.filter(func(gm: Dictionary) -> bool: return not mine.has(gm))
+			for gm in (mine + rest).slice(0, 8):
+				var res: Array = gm["result"]
+				var txt := result_text(comp, gm)
+				if res.size() >= 4:
+					txt += "  (pen. %d-%d)" % [res[2], res[3]]
+				box.add_child(WEStyle.label(txt, 14, GOLD if mine.has(gm) else Color.WHITE))
+	if career.national_cup == null:
+		box.add_child(WEStyle.label("Las copas empiezan la temporada que viene.", 16))
+	var wc_y := career.first_year + career.season - 1
+	var next_wc := MasterCareer.WORLD_CUP_FIRST
+	while next_wc < wc_y:
+		next_wc += 4
+	box.add_child(WEStyle.label("Mundial: al terminar la temporada %d (con convocados de la carrera)." % next_wc, 15, BLUE))
 
 
 ## Noticias de la carrera, las más nuevas arriba.
@@ -152,23 +210,43 @@ func _history(body: Control) -> void:
 		box.add_child(WEStyle.label("Todavía no terminó ninguna temporada.", 15))
 	else:
 		var grid := GridContainer.new()
-		grid.columns = 5
-		grid.add_theme_constant_override("h_separation", 14)
+		grid.columns = 6
+		grid.add_theme_constant_override("h_separation", 12)
 		grid.add_theme_constant_override("v_separation", 0)
 		box.add_child(grid)
-		for h in ["Año", "División", "Pos", "", "Goleador"]:
+		for h in ["Año", "División", "Pos", "", "Copa", "Goleador"]:
 			grid.add_child(WEStyle.label(h, 14, BLUE))
 		for r in rows:
 			var went: String = {"up": "Ascenso", "down": "Descenso"}.get(r["went"], "")
 			var c: Color = GOLD if r["champion"] else (UP if r["went"] == "up" else (DOWN if r["went"] == "down" else Color.WHITE))
 			grid.add_child(WEStyle.label(str(r["year"]), 15, c))
 			var dn := WEStyle.label(String(r["division"]), 15, c)
-			dn.custom_minimum_size = Vector2(190, 0)
+			dn.custom_minimum_size = Vector2(150, 0)
+			dn.clip_text = true
 			grid.add_child(dn)
 			grid.add_child(WEStyle.label("%d.º" % r["pos"], 15, c))
 			grid.add_child(WEStyle.label("Campeón" if r["champion"] else went, 15, c))
+			grid.add_child(WEStyle.label(String(r["cup"]), 15, GOLD if r["cup"] == "Campeón" else c))
 			var sc: Dictionary = r["scorer"]
 			grid.add_child(WEStyle.label("%s (%d)" % [sc["n"], int(sc["goals"])] if not sc.is_empty() else "", 15, c))
+	var rec := career.goal_record()
+	if not rec.is_empty():
+		box.add_child(WEStyle.label("Récord de goles en una temporada: %s (%s), %d en %s" % [rec["n"], _name(String(rec["club"])),
+			int(rec["goals"]), rec["year"]], 15, BLUE))
+	for s in career.history:
+		var cups: Dictionary = s.get("cups", {})
+		var parts: Array = []
+		for k in ["national", "continental"]:
+			if cups.has(k):
+				parts.append("%s: %s" % [cups[k]["name"], cups[k]["champion"]])
+		if s.has("world_cup"):
+			var wc: Dictionary = s["world_cup"]
+			parts.append("Mundial: %s (%s: %s)" % [wc["champion"], wc["nation"], wc["reach"]])
+		if not parts.is_empty():
+			var l := WEStyle.label("%s · %s" % [s.get("year", ""), " · ".join(parts)], 14)
+			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			l.custom_minimum_size = Vector2(610, 0)
+			box.add_child(l)
 	var most := career.most_titles(8)
 	if not most.is_empty():
 		box.add_child(WEStyle.label("Más campeones de la carrera", 17, BLUE))
@@ -307,9 +385,13 @@ func result_text(comp: Competition, g: Dictionary) -> String:
 
 
 func _next_match() -> void:
-	var comp := career.user_league()
+	var comp := career.current_comp()
+	var cup_day := career.pending_event() != ""
 	_right.add_child(WEStyle.label(career.user_team().team_name, 24, GOLD))
-	_right.add_child(WEStyle.label("%s  ·  %s" % [career.division_name(career.user_league_index()), career.round_text()], 18))
+	var where := WEStyle.label("%s  ·  %s" % [career.current_comp_name(), career.round_text()], 18, GOLD if cup_day else Color.WHITE)
+	where.clip_text = true
+	where.custom_minimum_size = Vector2(480, 0)
+	_right.add_child(where)
 	_right.add_child(WEStyle.label("Puntos WE: %d" % career.points, 18, BLUE))
 	# Bajas: lesionados y suspendidos (no entran en el once).
 	var abs := career.user_absences()
@@ -320,7 +402,14 @@ func _next_match() -> void:
 		_right.add_child(_wrap(txt, DOWN))
 	var g := career.user_match()
 	var first: Button = null
-	if g.is_empty():
+	if g.is_empty() and cup_day:
+		_right.add_child(WEStyle.label("Fecha de copa: tu equipo no la juega.", 17))
+		first = WEStyle.bar("Simular la fecha de copa", func() -> void:
+			career.play_round()
+			career.save()
+			_rebuild(), 480.0, 22)
+		_right.add_child(first)
+	elif g.is_empty():
 		_right.add_child(WEStyle.label("Tu liga terminó: faltan fechas de otras divisiones.", 17))
 		first = WEStyle.bar("Simular hasta el final", func() -> void:
 			career.simulate_to_end()
@@ -364,13 +453,14 @@ func _next_match() -> void:
 			_abandon_armed = true
 			ab.text = "¿Seguro? Se borra la carrera (X otra vez)")
 	_right.add_child(ab)
-	if comp.current > 0:
+	var league := career.user_league()
+	if league.current > 0:
 		_right.add_child(WEStyle.label("Última fecha:", 17, BLUE))
-		var last: Array = comp.rounds[comp.current - 1]
-		var mine := last.filter(func(pg: Dictionary) -> bool: return pg["home"] == comp.user_team or pg["away"] == comp.user_team)
+		var last: Array = league.rounds[league.current - 1]
+		var mine := last.filter(func(pg: Dictionary) -> bool: return pg["home"] == league.user_team or pg["away"] == league.user_team)
 		var rest := last.filter(func(pg: Dictionary) -> bool: return not mine.has(pg))
 		for pg in (mine + rest).slice(0, 2):
-			var l := WEStyle.label(result_text(comp, pg), 15, GOLD if mine.has(pg) else Color.WHITE)
+			var l := WEStyle.label(result_text(league, pg), 15, GOLD if mine.has(pg) else Color.WHITE)
 			l.clip_text = true
 			l.custom_minimum_size = Vector2(480, 0)
 			_right.add_child(l)
@@ -412,6 +502,19 @@ func _season_summary() -> void:
 			return "%s (+%d)" % [r[0], int(r[1])])), Color.WHITE))
 	if (u.get("retired", []) as Array).is_empty() and (u.get("youth", []) as Array).is_empty():
 		box.add_child(WEStyle.label("  Sin retiros.", 15))
+	# Copas y Mundial.
+	var cups: Dictionary = s.get("cups", {})
+	for k in ["national", "continental"]:
+		if cups.has(k):
+			var cp: Dictionary = cups[k]
+			box.add_child(WEStyle.label(String(cp["name"]), 17, BLUE))
+			box.add_child(_wrap("  Campeón: %s%s" % [cp["champion"], ("  ·  Tu equipo: %s" % cp["user"]) if String(cp["user"]) != "" else ""], GOLD))
+	if s.has("world_cup"):
+		var wc: Dictionary = s["world_cup"]
+		box.add_child(WEStyle.label("Mundial %s" % wc["year"], 17, BLUE))
+		box.add_child(_wrap("  Campeón: %s  ·  %s: %s" % [wc["champion"], wc["nation"], wc["reach"]], GOLD))
+		if not (wc["called"] as Array).is_empty():
+			box.add_child(_wrap("  Convocados de tu club: " + ", ".join(wc["called"]), UP))
 	for d in s.get("divisions", []):
 		box.add_child(WEStyle.label(String(d["name"]), 17, BLUE))
 		box.add_child(WEStyle.label("  Campeón: %s" % _name(String(d["champion"])), 15, GOLD))

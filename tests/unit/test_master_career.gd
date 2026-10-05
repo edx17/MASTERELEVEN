@@ -313,3 +313,56 @@ func test_news_history_and_honours() -> void:
 	var back := MasterCareer.load_saved(m.file)
 	assert_eq(back.news.size(), m.news.size())
 	MasterCareer.deactivate()
+
+
+## Fase 7: copa nacional y continental intercaladas con la liga, y Mundial.
+func test_cups_and_world_cup() -> void:
+	var m := MasterCareer.create("eng", String(TeamDB.country("eng")["divisions"][3]["clubs"][0]["id"]), "real", 91)
+	assert_not_null(m.national_cup)
+	assert_eq(m.national_cup.team_paths.size(), 64, "Inglaterra: cuadro de 64")
+	assert_true(m.national_cup.team_paths.has(m.user_path()), "tu club siempre está")
+	assert_not_null(m.continental)
+	assert_eq(m.continental.team_paths.size(), 16)
+	assert_eq(m.cont_name, "Copa Continental de Clubes (Europa)")
+	# Jugar la primera fecha de copa con resultado propio.
+	var guard := 0
+	while m.pending_event() != "cup" and guard < 20:
+		m.play_round([], [], 200 + guard)
+		guard += 1
+	assert_eq(m.pending_event(), "cup")
+	var g := m.user_match()
+	var comp := m.current_comp()
+	assert_eq(comp, m.national_cup)
+	var league_before := m.user_league().current
+	var me_home: bool = g["home"] == comp.user_team
+	m.play_round([3, 0] if me_home else [0, 3], [], 300)
+	assert_eq(m.user_league().current, league_before, "la fecha de copa no mueve la liga")
+	assert_true(comp.alive(comp.user_team), "ganó y sigue")
+	# Mundial al final de esta temporada.
+	m.first_year = 2030
+	m.simulate_to_end(5)
+	var s := m.last_summary()
+	assert_true((s["cups"] as Dictionary).has("national"))
+	assert_true((s["cups"] as Dictionary).has("continental"))
+	assert_ne(String(s["cups"]["national"]["user"]), "")
+	assert_true(s.has("world_cup"))
+	assert_ne(String(s["world_cup"]["champion"]), "")
+	assert_eq((TeamDB.nation("eng")["players"] as Array).size(), 23, "convocados")
+	# Temporada siguiente: los 4 primeros de la Premier van a la continental.
+	m.start_next_season(6)
+	var qual: Array = s["qualified"]
+	for id in qual:
+		assert_true(m.continental.team_paths.has(TeamDB.club_path("eng", String(id))))
+	assert_false(m.world_cup_year(), "el próximo, en 4 años")
+	MasterCareer.deactivate()
+
+
+func test_cup_spread_before_last_rounds() -> void:
+	var s := MasterCareer.spread(6, 46)
+	assert_eq(s.size(), 6)
+	for v in s:
+		assert_between(int(v), 1, 44)
+	var prev := 0
+	for v in s:
+		assert_gte(int(v), prev)
+		prev = int(v)

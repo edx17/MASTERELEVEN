@@ -58,6 +58,13 @@ var season_start: Dictionary = {}
 var transfers: Array = []
 ## Noticias de la carrera (las más nuevas al final): [{season, round, text, kind}].
 var news: Array = []
+## Copas de la temporada (Fase 7): la nacional y la continental, con la
+## fecha de la liga después de la que se juega cada ronda.
+var national_cup: Competition = null
+var cup_after: Array = []
+var continental: Competition = null
+var cont_after: Array = []
+var cont_name := ""
 const NEWS_MAX := 120
 ## Pase "bombazo" (noticia aunque no sea de tu club): desde este valor.
 const BIG_TRANSFER := 12000
@@ -178,6 +185,7 @@ func _new_season_leagues(seed: int) -> void:
 		var me := paths.find(TeamDB.club_path(country, user_club))
 		var comp := Competition.create_league(paths, me, true, seed + i)
 		leagues.append({"division": String(divs[i]["id"]), "comp": comp})
+	_new_season_cups(seed + 100)
 
 
 # --- Mundo activo ---------------------------------------------------------------------
@@ -225,11 +233,32 @@ func year_label() -> String:
 
 ## Partido del jugador en la fecha (o {} si ya terminó su liga).
 func user_match() -> Dictionary:
-	return {} if season_over else user_league().user_match()
+	if season_over:
+		return {}
+	return current_comp().user_match()
+
+
+## La competición de la próxima fecha: la liga o una fecha de copa.
+func current_comp() -> Competition:
+	var ev := pending_event()
+	return event_comp(ev) if ev != "" else user_league()
+
+
+## Nombre de la competición de la próxima fecha.
+func current_comp_name() -> String:
+	match pending_event():
+		"cup":
+			return national_cup_name()
+		"cont":
+			return cont_name
+	return division_name(user_league_index())
 
 
 ## Fecha de la carrera: la más avanzada de las divisiones que siguen.
 func round_text() -> String:
+	var ev := pending_event()
+	if ev != "":
+		return event_comp(ev).round_name()
 	var comp := user_league()
 	if comp.finished():
 		return "Tu liga terminó · esperando a las otras divisiones"
@@ -248,6 +277,11 @@ func play_round(user_result: Array = [], user_scorers: Array = [], seed: int = 0
 	activate()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed if seed != 0 else randi()
+	# Fecha de copa (se juega entre fechas de la liga).
+	var ev := pending_event()
+	if ev != "":
+		_play_cup_round(ev, user_result, rng)
+		return
 	var mine := user_league_index()
 	# Los que no podían jugar esta fecha cumplen una (después de jugarla).
 	var serving: Array[Dictionary] = []
@@ -512,6 +546,7 @@ func top_scorers(division: int = -1, n: int = 20) -> Array:
 ## de la temporada siguiente (empieza con start_next_season).
 func _end_season() -> void:
 	activate()
+	_finish_cups()
 	var divs: Array = TeamDB.country(country)["divisions"]
 	var ranks: Array = [] # por división: ids en el orden de la tabla
 	var summary := {"season": season, "year": year_label(), "divisions": [], "user": {}}
@@ -552,6 +587,11 @@ func _end_season() -> void:
 	if pos == 1:
 		points += int(POINTS["title"])
 	summary["user"] = {"division": mine, "division_name": division_name(mine), "pos": pos, "went": went}
+	# Copas de la temporada, clasificados a la continental y Mundial.
+	summary["qualified"] = (ranks[0] as Array).slice(0, CONT_SLOTS_OWN)
+	_cups_summary(summary)
+	if world_cup_year():
+		_play_world_cup(summary)
 	# Cambio de año: edad, evolución, retiros y juveniles (con las divisiones
 	# de la temporada que viene).
 	var report := _new_year(lists, divs)
@@ -1138,6 +1178,248 @@ func season_transfers() -> Array:
 	return out
 
 
+# --- Copas y Mundial (Fase 7) -------------------------------------------------------------
+
+## Nombre de la copa nacional de cada país.
+const NATIONAL_CUPS := {"arg": "Copa Argentina", "eng": "FA Cup", "esp": "Copa del Rey", "ita": "Coppa Italia",
+	"ger": "DFB-Pokal", "por": "Taça de Portugal", "ned": "KNVB Beker", "mex": "Copa MX", "bra": "Copa do Brasil"}
+## Copa continental: con qué países se juega.
+const CONTINENT := {"arg": ["bra"], "bra": ["arg"], "mex": [],
+	"eng": ["esp", "ita", "ger", "por", "ned"], "esp": ["eng", "ita", "ger", "por", "ned"],
+	"ita": ["eng", "esp", "ger", "por", "ned"], "ger": ["eng", "esp", "ita", "por", "ned"],
+	"por": ["eng", "esp", "ita", "ger", "ned"], "ned": ["eng", "esp", "ita", "ger", "por"]}
+## Copa continental: 16 equipos (4 grupos de 4, cuartos, semis y final);
+## los 4 primeros de la primera división del país de la carrera.
+const CONT_TEAMS := 16
+const CONT_SLOTS_OWN := 4
+const CUP_POINTS := {"national": 3000, "continental": 5000}
+## Primer Mundial de la carrera (después, cada 4 años).
+const WORLD_CUP_FIRST := 2030
+
+
+func national_cup_name() -> String:
+	return String(NATIONAL_CUPS.get(country, "Copa Nacional"))
+
+
+func event_comp(ev: String) -> Competition:
+	return national_cup if ev == "cup" else (continental if ev == "cont" else null)
+
+
+## ¿Toca una fecha de copa? "cup" (nacional), "cont" (continental) o "".
+func pending_event() -> String:
+	if leagues.is_empty() or season_over:
+		return ""
+	var at := user_league().current
+	if national_cup != null and not national_cup.finished() and national_cup.current < cup_after.size() \
+			and at >= int(cup_after[national_cup.current]):
+		return "cup"
+	if continental != null and not continental.finished() and continental.current < cont_after.size() \
+			and at >= int(cont_after[continental.current]):
+		return "cont"
+	return ""
+
+
+## Rondas repartidas entre las fechas de la liga (todas antes de las dos últimas).
+static func spread(rounds: int, league_rounds: int, offset: int = 0) -> Array:
+	var out: Array = []
+	var span := maxi(league_rounds - 2, rounds + 1)
+	for r in rounds:
+		out.append(clampi(int(float(r + 1) * span / (rounds + 1)) + offset, 1, maxi(1, league_rounds - 2)))
+	return out
+
+
+func _strength(path: String) -> float:
+	var t := TeamDB.load_team(path)
+	var total := 0.0
+	for v in t.ratings():
+		total += v
+	return total
+
+
+## Copa nacional (todos los de primera y el resto por sorteo, en un cuadro de
+## 16, 32 o 64; tu club siempre está) y copa continental (si el país tiene).
+func _new_season_cups(seed: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var first: Array[String] = []
+	first.assign((leagues[0]["comp"] as Competition).team_paths)
+	var rest: Array[String] = []
+	for li in range(1, leagues.size()):
+		rest.append_array((leagues[li]["comp"] as Competition).team_paths)
+	Competition._shuffle(rest, rng)
+	var total := first.size() + rest.size()
+	var size := 64 if total >= 64 else (32 if total >= 32 else 16)
+	var pool: Array[String] = []
+	pool.append_array(first)
+	pool.append_array(rest)
+	pool = pool.slice(0, size)
+	if not pool.has(user_path()):
+		pool[pool.size() - 1] = user_path()
+	national_cup = Competition.create_cup(pool, pool.find(user_path()), rng.randi())
+	var league_rounds := user_league().rounds.size()
+	cup_after = spread(int(round(log(size) / log(2))), league_rounds)
+	# Continental: los 4 primeros de primera (la temporada pasada; en la
+	# primera, los 4 más fuertes) y los mejores de los otros países.
+	continental = null
+	cont_after = []
+	cont_name = ""
+	var others: Array = CONTINENT.get(country, [])
+	if others.is_empty():
+		return
+	var own: Array[String] = []
+	var last := last_summary()
+	if last.has("qualified"):
+		for id in last["qualified"]:
+			own.append(TeamDB.club_path(country, String(id)))
+	else:
+		var ranked := first.duplicate()
+		ranked.sort_custom(func(a: String, b: String) -> bool: return _strength(a) > _strength(b))
+		own.assign(ranked.slice(0, CONT_SLOTS_OWN))
+	var paths: Array[String] = own.duplicate()
+	var need := CONT_TEAMS - paths.size()
+	for k in others.size():
+		var take := need / others.size() + (1 if k < need % others.size() else 0)
+		var c := TeamDB.country(String(others[k]))
+		if c.is_empty():
+			continue
+		var ids: Array[String] = []
+		for cl in c["divisions"][0]["clubs"]:
+			ids.append(TeamDB.club_path(String(others[k]), String(cl["id"])))
+		ids.sort_custom(func(a: String, b: String) -> bool: return _strength(a) > _strength(b))
+		paths.append_array(ids.slice(0, take))
+	if paths.size() != CONT_TEAMS:
+		return
+	cont_name = "Copa Continental de Clubes (%s)" % ("Europa" if country in ["eng", "esp", "ita", "ger", "por", "ned"] else "América")
+	continental = Competition.create_world_cup(paths, paths.find(user_path()), rng.randi())
+	cont_after = spread(Competition.WC_GROUP_ROUNDS + 3, league_rounds, 1)
+
+
+## Juega una fecha de copa (tu partido con `user_result`, si jugás).
+func _play_cup_round(ev: String, user_result: Array, rng: RandomNumberGenerator) -> void:
+	var comp := event_comp(ev)
+	var um := comp.user_match()
+	var r := comp.current
+	comp.complete_round(user_result if not um.is_empty() else [], rng.randi())
+	if not um.is_empty() and r < comp.rounds.size():
+		for g in comp.rounds[r]:
+			if g["home"] == comp.user_team or g["away"] == comp.user_team:
+				_add_points(g, comp.user_team)
+				var won := Competition.winner(g) == comp.user_team
+				var knockout := comp.kind == Competition.Kind.CUP or r >= Competition.WC_GROUP_ROUNDS
+				if knockout and not won:
+					add_news("Quedaste afuera de la %s (%s)." % [national_cup_name() if ev == "cup" else cont_name, comp.round_name(r)], "club")
+	if comp.finished():
+		var champ := comp.team(comp.champion).team_name
+		var name := national_cup_name() if ev == "cup" else cont_name
+		add_news("%s %s: campeón %s." % [name, year_label(), champ], "temporada")
+		if comp.champion == comp.user_team:
+			points += int(CUP_POINTS["national" if ev == "cup" else "continental"])
+			add_news("¡Ganaste la %s!" % name, "temporada")
+
+
+## Si quedó alguna ronda de copa sin jugar, se simula.
+func _finish_cups() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("%s_cups_%d" % [country, season])
+	for comp in [national_cup, continental]:
+		var guard := 0
+		while comp != null and not comp.finished() and guard < 12:
+			_play_cup_round("cup" if comp == national_cup else "cont", [], rng)
+			guard += 1
+
+
+## Hasta dónde llegó un equipo en una copa: "Campeón", "Final", "Semifinales"...
+static func cup_reach(comp: Competition, team_i: int) -> String:
+	if comp == null or team_i < 0:
+		return ""
+	if comp.champion == team_i:
+		return "Campeón"
+	var reach := ""
+	for i in comp.rounds.size():
+		for g in comp.rounds[i]:
+			if g["home"] == team_i or g["away"] == team_i:
+				reach = comp.round_name(i)
+	if comp.kind == Competition.Kind.WORLD_CUP and reach.begins_with("Fase de grupos"):
+		return "Fase de grupos"
+	return reach
+
+
+func _cups_summary(summary: Dictionary) -> void:
+	var cups := {}
+	if national_cup != null and national_cup.champion >= 0:
+		cups["national"] = {"name": national_cup_name(), "champion": national_cup.team(national_cup.champion).team_name,
+			"user": cup_reach(national_cup, national_cup.user_team)}
+	if continental != null and continental.champion >= 0:
+		cups["continental"] = {"name": cont_name, "champion": continental.team(continental.champion).team_name,
+			"user": cup_reach(continental, continental.user_team)}
+	summary["cups"] = cups
+
+
+func world_cup_year() -> bool:
+	var y := first_year + season - 1
+	return y >= WORLD_CUP_FIRST and (y - WORLD_CUP_FIRST) % 4 == 0
+
+
+## Mundial (simulado): la selección del país de la carrera convoca a los
+## mejores 23 entre los de su plantel y los de la carrera de esa nacionalidad.
+func _play_world_cup(summary: Dictionary) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("%s_wc_%d" % [country, season])
+	var nat := TeamDB.nation(country)
+	var called_mine: Array = []
+	if not nat.is_empty():
+		var nat_name := SquadImporter.normalize(String(nat["name"]))
+		var pool: Array = []
+		for p in TeamDB.load_team(TeamDB.nation_path(country)).players:
+			pool.append(TeamDB.player_to_dict(p))
+		var origin := {}
+		for key in world.clubs:
+			for d in world.clubs[key]["players"]:
+				var pn := SquadImporter.normalize(String(d.get("nat", "")))
+				if pn == country or pn == nat_name or pn == "":
+					var c: Dictionary = d.duplicate(true)
+					pool.append(c)
+					origin[c] = String(key).get_slice(":", 1)
+		var squad := SquadImporter.pick_squad(pool, 23, [3, 8, 7, 5])
+		for d in squad:
+			if origin.get(d, "") == user_club:
+				called_mine.append(d["n"])
+		var entry: Dictionary = nat.duplicate(true)
+		entry["players"] = squad.map(func(d: Dictionary) -> Dictionary:
+			var c := d.duplicate(true)
+			c.erase("pid")
+			return c)
+		world.set_nation(entry)
+		TeamDB.use_option_file(world)
+	var paths := Competition.world_cup_paths(GameSettings.wc_playoff)
+	var wc := Competition.create_world_cup(paths, -1, rng.randi())
+	var guard := 0
+	while not wc.finished() and guard < 12:
+		wc.complete_round([], rng.randi())
+		guard += 1
+	var champ := wc.team(wc.champion).team_name if wc.champion >= 0 else ""
+	var mine := paths.find(TeamDB.nation_path(country))
+	var reach := cup_reach(wc, mine) if mine >= 0 else "no clasificó"
+	summary["world_cup"] = {"year": year_label(), "champion": champ, "nation": String(nat.get("name", "")),
+		"reach": reach, "called": called_mine}
+	add_news("Mundial %s: campeón %s." % [year_label(), champ], "temporada")
+	if not nat.is_empty():
+		add_news("%s en el Mundial: %s." % [nat["name"], reach], "temporada")
+	if not called_mine.is_empty():
+		add_news("Convocados de tu club al Mundial: %s." % ", ".join(called_mine), "club")
+
+
+## Récord de goles en una temporada (de la carrera): {n, club, goals, year} o {}.
+func goal_record() -> Dictionary:
+	var best := {}
+	for s in history:
+		for d in s.get("divisions", []):
+			var ts: Dictionary = d.get("top_scorer", {})
+			if not ts.is_empty() and (best.is_empty() or int(ts["goals"]) > int(best["goals"])):
+				best = {"n": ts["n"], "club": ts["club"], "goals": int(ts["goals"]), "year": s.get("year", "")}
+	return best
+
+
 # --- Noticias, historial y palmarés (D5) ---------------------------------------------------
 
 ## Agrega una noticia (kind: "lesion", "susp", "pase", "bombazo", "temporada", "club").
@@ -1210,9 +1492,12 @@ func club_history() -> Array:
 	var out: Array = []
 	for s in history:
 		var u: Dictionary = s.get("user", {})
+		var cups: Dictionary = s.get("cups", {})
 		out.append({"season": s["season"], "year": s.get("year", ""), "division": u.get("division_name", ""),
 			"pos": int(u.get("pos", 0)), "went": String(u.get("went", "stay")), "champion": int(u.get("pos", 0)) == 1,
-			"scorer": u.get("scorer", {})})
+			"scorer": u.get("scorer", {}),
+			"cup": String((cups.get("national", {}) as Dictionary).get("user", "")),
+			"cont": String((cups.get("continental", {}) as Dictionary).get("user", ""))})
 	return out
 
 
@@ -1224,6 +1509,10 @@ func club_honours() -> Dictionary:
 	for h in club_history():
 		if h["champion"]:
 			titles.append("%s %s" % [h["division"], h["year"]])
+		if h["cup"] == "Campeón":
+			titles.append("%s %s" % [national_cup_name(), h["year"]])
+		if h["cont"] == "Campeón":
+			titles.append("Copa Continental %s" % h["year"])
 		if h["went"] == "up":
 			ups += 1
 		elif h["went"] == "down":
@@ -1269,7 +1558,10 @@ func to_dict() -> Dictionary:
 		"updated": updated, "country": country, "season": season, "first_year": first_year, "user_club": user_club,
 		"squad_mode": squad_mode, "points": points, "world": world.to_dict(), "leagues": ls, "scorers": scorers,
 		"history": history, "season_over": season_over, "next_pid": next_pid,
-		"season_start": season_start, "transfers": transfers, "news": news}
+		"season_start": season_start, "transfers": transfers, "news": news,
+		"national_cup": national_cup.to_dict() if national_cup != null else {}, "cup_after": cup_after,
+		"continental": continental.to_dict() if continental != null else {}, "cont_after": cont_after,
+		"cont_name": cont_name}
 
 
 static func from_dict(d: Dictionary) -> MasterCareer:
@@ -1295,6 +1587,13 @@ static func from_dict(d: Dictionary) -> MasterCareer:
 	m.season_start = d.get("season_start", {})
 	m.transfers = d.get("transfers", [])
 	m.news = d.get("news", [])
+	if not (d.get("national_cup", {}) as Dictionary).is_empty():
+		m.national_cup = Competition.from_dict(d["national_cup"])
+	m.cup_after = d.get("cup_after", []).map(func(x: Variant) -> int: return int(x))
+	if not (d.get("continental", {}) as Dictionary).is_empty():
+		m.continental = Competition.from_dict(d["continental"])
+	m.cont_after = d.get("cont_after", []).map(func(x: Variant) -> int: return int(x))
+	m.cont_name = String(d.get("cont_name", ""))
 	return m
 
 

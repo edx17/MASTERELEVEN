@@ -177,7 +177,7 @@ func open() -> void:
 		groups = _all_groups
 	else:
 		var mundial := only_paths.size() == 48 and only_paths.all(func(p: String) -> bool: return p.begins_with("db:nat:"))
-		groups = [{"name": "MUNDIAL 2026" if mundial else "ELEGÍ TU EQUIPO", "sub": "%d equipos" % only_paths.size(),
+		groups = [{"name": "MUNDIAL" if mundial else "ELEGÍ TU EQUIPO", "sub": "%d equipos" % only_paths.size(),
 			"paths": only_paths, "kind": "nations" if mundial else "custom"}]
 		if not only_paths.has(picked[0]):
 			picked[0] = only_paths[0]

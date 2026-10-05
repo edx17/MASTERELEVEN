@@ -266,7 +266,7 @@ func _build_home() -> void:
 		_open_competition.bind(Competition.Kind.LEAGUE))
 	_item(col, "COPA", "Eliminación directa: cuartos, semis y final (con penales si empatan). Se guarda entre partidos.",
 		_open_competition.bind(Competition.Kind.CUP))
-	_item(col, "MUNDIAL 2026", "48 selecciones: 12 grupos de 4, pasan dos por grupo y los 8 mejores terceros, después 16avos hasta la final.",
+	_item(col, "MUNDIAL", "48 selecciones: 12 grupos de 4, pasan dos por grupo y los 8 mejores terceros, después 16avos hasta la final.",
 		_open_world_cup)
 	_item(col, "LIGA MASTER", "Carrera de club: elegí país y club, arrancá abajo y llevalo a primera. Temporadas completas, ascensos y descensos, goleadores y puntos WE.",
 		show_page.bind("master"))
@@ -519,20 +519,7 @@ func open_save(file: String) -> void:
 ## Las 48 del Mundial: las 42 clasificadas y las 6 elegidas del repechaje (si
 ## la elección no son 6 válidas, las primeras 6 candidatas por nivel).
 static func world_cup_paths(picks: Array) -> Array[String]:
-	var out: Array[String] = []
-	var candidates: Array = []
-	for n in TeamDB.nations():
-		if n["wc"] == "q":
-			out.append(TeamDB.nation_path(n["id"]))
-		elif n["wc"] == "po":
-			candidates.append(n)
-	var chosen := candidates.filter(func(n: Dictionary) -> bool: return picks.has(n["id"]))
-	if chosen.size() != GameSettings.WC_PLAYOFF_SLOTS:
-		candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["level"]) > int(b["level"]))
-		chosen = candidates.slice(0, GameSettings.WC_PLAYOFF_SLOTS)
-	for n in chosen:
-		out.append(TeamDB.nation_path(n["id"]))
-	return out
+	return Competition.world_cup_paths(picks)
 
 
 var _wc_rows: Array[Button] = []
@@ -542,7 +529,7 @@ var _wc_count: Label
 ## Página del Mundial: elegir los 6 cupos del repechaje y después tu selección.
 func _build_world_cup() -> void:
 	var p := _page("worldcup")
-	var title := WEStyle.label("MUNDIAL 2026", 30, Color(1.0, 0.9, 0.35))
+	var title := WEStyle.label("MUNDIAL", 30, Color(1.0, 0.9, 0.35))
 	title.position = Vector2(80, 40)
 	p.add_child(title)
 	_wc_count = WEStyle.label("", 20, Color(0.75, 0.85, 1.0))

@@ -45,7 +45,7 @@ func _clear(box: Control) -> void:
 func _rebuild() -> void:
 	_clear(_left)
 	_clear(_right)
-	var title := "MUNDIAL 2026" if comp.kind == Competition.Kind.WORLD_CUP else "%s MASTER ELEVEN" % Competition.KIND_NAMES[comp.kind].to_upper()
+	var title := "MUNDIAL" if comp.kind == Competition.Kind.WORLD_CUP else "%s MASTER ELEVEN" % Competition.KIND_NAMES[comp.kind].to_upper()
 	_left.add_child(WEStyle.label(title, 26, Color(1.0, 0.9, 0.35)))
 	if comp.kind == Competition.Kind.LEAGUE:
 		_table()
