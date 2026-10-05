@@ -27,7 +27,8 @@ además arma el `.exe` de Windows).
 | Backlog B11 pasos 1-2 (assets, correcciones) | ✅ | #26 |
 | Backlog B11 pasos 3-4 (pelota parada, sonidos) | ✅ | #27 |
 | Resumen y regla de un solo PR | ✅ | #28 |
-| Backlog B12 (correcciones de tu prueba) | 🟡 Hecho, **pendiente de tu prueba** | #29 |
+| Backlog B12 (correcciones de tu prueba) | ✅ | #29 |
+| Paso A — Jugabilidad WE2002 | 🟡 En curso | #30 |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -134,11 +135,16 @@ además arma el `.exe` de Windows).
    de Inglaterra (4 divisiones), España (2), Italia (2), Portugal, Alemania
    (2), Países Bajos, México, Argentina (5) y Brasil; hasta 23 jugadores por
    plantel. Ver la lista en `Claude.md` (Fase 6).
-5. **Paso D — Liga Master** (en varios PR): arranca en 2.ª (más abajo en
-   Argentina e Inglaterra; las ligas de una sola división no se eligen),
-   siempre a elegir entre **Equipo WE** (genérico) o **Club real**.
-6. Editor de jugadores y equipos.
-7. Himno propio, relator y pulido final.
+5. **Paso D — Liga Master** (en varios PR): arranca en 2.ª; en Argentina e
+   Inglaterra en la más baja (Torneo Promocional Amateur / League Two); las
+   ligas de una sola división no se eligen. Siempre a elegir entre **Equipo
+   WE** (genérico) o **Club real**, salvo con un club de primera (LPF,
+   Premier, LaLiga, Serie A, Bundesliga): ahí es obligatorio el Equipo WE.
+6. Himno propio, relator y pulido final.
+7. **Al final — Editores** (externos si hace falta): ligas (agregar /
+   eliminar), equipos (agregar / editar / eliminar; formación, escudo,
+   colores), jugadores (agregar / editar / eliminar; atributos) y un editor
+   externo para los mapeos de las camisetas.
 
 ---
 
