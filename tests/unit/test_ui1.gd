@@ -227,3 +227,37 @@ func test_shootout_plays_to_a_winner() -> void:
 	assert_ne(so.goals_of(0), so.goals_of(1))
 	assert_true(absi(so.kicks[0].size() - so.kicks[1].size()) <= 1)
 	assert_eq(first_shooter, 0)
+
+
+## UI1-f: presentación con el cartel de equipos, "EN VIVO", la bandera
+## gigante en la formación y la foto del equipo con flash.
+func test_presentation_banner_live_flag_and_photo() -> void:
+	GameSettings.set_mode(GameSettings.Mode.VS_CPU)
+	GameSettings.play_intro = true
+	m = load("res://scenes/match/match.tscn").instantiate()
+	add_child_autofree(m)
+	m.set_physics_process(false)
+	var intro := m.intro
+	intro._enter(MatchIntro.Step.WARMUP)
+	assert_true(intro._banner.visible, "cartel de los equipos")
+	assert_true(intro._live.visible, "EN VIVO")
+	assert_string_contains(intro.live_text(), String(StadiumStyles.current["name"]))
+	intro._enter(MatchIntro.Step.LINEUP)
+	assert_false(intro._banner.visible)
+	assert_not_null(intro.flag_mesh)
+	assert_true(intro.flag_mesh.visible, "bandera gigante")
+	intro._enter(MatchIntro.Step.PHOTO)
+	assert_eq(intro.photo_team, m.humans[0].team)
+	var zs := {}
+	for p in intro.photo_team.players:
+		zs[snappedf(p.flat_pos().z, 0.1)] = true
+	assert_eq(zs.size(), 2, "dos filas")
+	var flashed := false
+	for i in int(3.0 / dt):
+		m._physics_process(dt)
+		if intro._flash.color.a > 0.5:
+			flashed = true
+	assert_true(flashed, "flash de la foto")
+	intro._enter(MatchIntro.Step.DONE)
+	assert_null(intro.flag_mesh)
+	assert_eq(m.phase, MatchController.Phase.RESTART)

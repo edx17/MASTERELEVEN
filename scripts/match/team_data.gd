@@ -10,6 +10,8 @@ extends Resource
 @export var color: Color = Color.WHITE
 @export var secondary_color: Color = Color.BLACK
 @export var keeper_color: Color = Color.YELLOW
+## Bandera (selecciones; null = una de club con sus colores).
+@export var flag: Texture2D = null
 ## Segundo uniforme (camiseta y pantalón).
 @export var away_color: Color = Color.WHITE
 @export var away_secondary: Color = Color.WHITE

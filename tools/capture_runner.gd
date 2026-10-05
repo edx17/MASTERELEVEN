@@ -110,7 +110,7 @@ func _ready() -> void:
 	if "--tunnel" in OS.get_cmdline_user_args():
 		GameSettings.play_intro = true
 		_script = [[5, "freeze"], [10, "intro:2"], [11, "simulate:2.5"], [20, "shot:intro_tunnel_mouth.png"],
-			[25, "intro:6"], [40, "shot:capture_tv.png"], [45, "quit"]]
+			[25, "intro:8"], [40, "shot:capture_tv.png"], [45, "quit"]]
 	# `--late`: con el reloj en el segundo tiempo (minuto ~72).
 	if "--late" in OS.get_cmdline_user_args():
 		_script.insert(1, [21, "late"])
@@ -176,10 +176,13 @@ func _ready() -> void:
 			[63, "simulate:6"], [70, "shot:intro_tunnel.png"],
 			[75, "intro:3"], [76, "simulate:1"], [84, "shot:intro_lineup.png"],
 			[85, "simulate:2"], [92, "shot:intro_lineup2.png"],
+			[93, "simulate:0.6"], [94, "shot:intro_flag.png"],
 			[95, "intro:4"], [96, "simulate:1.5"], [110, "shot:intro_present.png"],
 			[111, "simulate:4"], [118, "shot:intro_present2.png"],
 			[119, "intro:5"], [120, "simulate:6"], [126, "shot:intro_present_away.png"],
-			[135, "intro:6"], [136, "simulate:0.3"], [145, "shot:intro_formation.png"], [150, "quit"]]
+			[127, "intro:6"], [128, "simulate:1.2"], [132, "shot:intro_photo.png"],
+			[133, "simulate:0.45"], [134, "shot:intro_photo_flash.png"],
+			[135, "intro:7"], [136, "simulate:0.3"], [145, "shot:intro_formation.png"], [150, "quit"]]
 	GameSettings.set_mode(GameSettings.Mode.VS_CPU)
 	GameSettings.camera_preset = 0
 	_match = load("res://scenes/match/match.tscn").instantiate()

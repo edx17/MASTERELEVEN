@@ -10,7 +10,10 @@ extends Node
 ##      pasa por delante del otro).
 ##   5. Presentación: la cámara recorre de frente a los 11 de cada equipo y el
 ##      locutor los nombra uno por uno (señal `player_announced`).
-##   6. Pantalla con las formaciones de los dos equipos.
+##   6. Foto del equipo (el del jugador 1): dos filas y el flash.
+##   7. Pantalla con las formaciones de los dos equipos.
+## Arriba, el cartel con los dos equipos y el recuadro "EN VIVO" con el
+## estadio y el clima; en la formación protocolar, la bandera gigante.
 ## X / Start saltea la etapa (en el menú previo, X elige la opción).
 ## Sólo presentación: no toca la pelota ni el reloj; al terminar, el partido
 ## arranca con el saque del medio.
@@ -19,7 +22,7 @@ signal finished
 ## La cámara de la presentación llega a `player` (el locutor lo nombra).
 signal player_announced(player: Footballer)
 
-enum Step { MENU, WARMUP, TUNNEL, LINEUP, PRESENT_HOME, PRESENT_AWAY, FORMATION, DONE }
+enum Step { MENU, WARMUP, TUNNEL, LINEUP, PRESENT_HOME, PRESENT_AWAY, PHOTO, FORMATION, DONE }
 
 ## Velocidades (m/s) iguales para todos: así las filas no se desarman.
 const WALK := 1.9
@@ -36,7 +39,12 @@ const DOLLY_DIST := 3.4
 const TUNNEL_CUT := 4.5
 ## Duración de cada etapa (s); el menú espera al jugador.
 const DURATION := {Step.WARMUP: 6.0, Step.TUNNEL: 9.0, Step.LINEUP: 4.0,
-		Step.PRESENT_HOME: PER_PLAYER * 11.0 + 0.6, Step.PRESENT_AWAY: PER_PLAYER * 11.0 + 0.6, Step.FORMATION: 5.0}
+		Step.PRESENT_HOME: PER_PLAYER * 11.0 + 0.6, Step.PRESENT_AWAY: PER_PLAYER * 11.0 + 0.6, Step.PHOTO: 4.0, Step.FORMATION: 5.0}
+## Foto del equipo: centro de las dos filas y cuándo salta el flash.
+const PHOTO_X := -8.0
+const PHOTO_FLASH := 1.6
+## Bandera gigante desplegada atrás de la formación protocolar (m).
+const FLAG_SIZE := Vector2(26.0, 16.0)
 ## Rondo: radio de la ronda y velocidad del pase (m/s).
 const RONDO_RADIUS := 4.5
 const RONDO_PASS_SPEED := 9.0
@@ -71,6 +79,13 @@ var _formation: Control
 var sheet: TeamSheet
 ## Cartel con los once titulares durante la formación (como en el WE).
 var _lineup: PanelContainer
+## Cartel con los dos equipos (al empezar) y recuadro "EN VIVO".
+var _banner: Control
+var _live: Control
+var _flash: ColorRect
+var flag_mesh: MeshInstance3D
+## Equipo de la foto.
+var photo_team: Team
 var _lineup_team := -1
 var _rng := RandomNumberGenerator.new()
 
@@ -97,6 +112,7 @@ func tick(dt: float) -> void:
 	if step != Step.MENU and _t > 0.3 and (Input.is_action_just_pressed(&"ui_accept") or Input.is_action_just_pressed(&"pause")):
 		_enter(step + 1)
 		return
+	_tick_overlays(dt)
 	match step:
 		Step.MENU:
 			# La cámara recorre el estadio por dentro, a la altura de la bandeja
@@ -138,6 +154,13 @@ func tick(dt: float) -> void:
 			var k := clampf(_t / DURATION[Step.LINEUP], 0.0, 1.0)
 			var x := lerpf(-14.0, 14.0, smoothstep(0.0, 1.0, k))
 			_cam.set_shot(Vector3(x, 2.1, ROW_Z + 8.5), Vector3(x * 0.85, 1.3, ROW_Z), 40.0, 0.0 if _t <= dt else 3.0)
+			# Al final, la bandera gigante detrás de las filas, desde arriba.
+			if _t > DURATION[Step.LINEUP] * 0.72:
+				_cam.set_shot(Vector3(0.0, 14.0, ROW_Z + 22.0), Vector3(0.0, 0.0, ROW_Z - 8.0), 42.0, 2.0)
+		Step.PHOTO:
+			for p in photo_team.players:
+				p.desired_move = Vector3.ZERO
+				p.facing = Vector3.BACK
 	if DURATION.has(step) and _t >= DURATION[step]:
 		_enter(step + 1)
 
@@ -155,6 +178,10 @@ func _enter(s: int) -> void:
 	if s >= Step.TUNNEL:
 		_clear_warmup()
 	_hint.visible = s != Step.MENU and s != Step.DONE
+	_banner.visible = s == Step.WARMUP
+	_live.visible = s in [Step.WARMUP, Step.TUNNEL]
+	if flag_mesh != null:
+		flag_mesh.visible = s in [Step.LINEUP, Step.PRESENT_HOME, Step.PRESENT_AWAY]
 	match s:
 		Step.MENU:
 			_setup_warmup()
@@ -166,11 +193,17 @@ func _enter(s: int) -> void:
 			_assign_stances()
 		Step.LINEUP:
 			_set_lineup_targets()
+			_show_flag()
+		Step.PHOTO:
+			_setup_photo()
 		Step.FORMATION:
 			_formation.queue_redraw()
 			_cam.set_shot(Vector3(0, 60, 40), Vector3(0, 0, 0), 45.0)
 		Step.DONE:
 			_ui.visible = false
+			if flag_mesh != null:
+				flag_mesh.queue_free()
+				flag_mesh = null
 			for p in _match.all_players():
 				p.set_presenting(false)
 				p.desired_move = Vector3.ZERO
@@ -559,6 +592,98 @@ func _move(p: Footballer, tgt: Vector3, speed: float) -> void:
 	p.wants_sprint = false
 
 
+# --- Bandera gigante y foto ----------------------------------------------------------
+
+## Bandera del equipo: la de la selección si tiene, si no tres franjas con
+## los colores del club.
+static func flag_texture(t: TeamData) -> Texture2D:
+	if t != null and t.flag != null:
+		return t.flag
+	var img := Image.create(48, 30, false, Image.FORMAT_RGB8)
+	var cols := [t.color, t.secondary_color, t.color] if t != null else [Color.WHITE, Color.BLACK, Color.WHITE]
+	for x in 48:
+		for y in 30:
+			img.set_pixel(x, y, cols[mini(x / 16, 2)])
+	return ImageTexture.create_from_image(img)
+
+
+## La hinchada despliega la bandera del local en el césped, detrás de las
+## filas (ondea un poco).
+func _show_flag() -> void:
+	if flag_mesh == null:
+		flag_mesh = MeshInstance3D.new()
+		var pm := PlaneMesh.new()
+		pm.size = FLAG_SIZE
+		pm.subdivide_width = 24
+		pm.subdivide_depth = 12
+		flag_mesh.mesh = pm
+		var sh := Shader.new()
+		sh.code = """shader_type spatial;
+uniform sampler2D flag_tex : source_color, filter_nearest;
+void vertex() {
+	VERTEX.y += 0.18 + 0.16 * sin(VERTEX.x * 0.7 + TIME * 2.3) * cos(VERTEX.z * 0.5 + TIME * 1.7);
+}
+void fragment() {
+	ALBEDO = texture(flag_tex, UV).rgb;
+	ROUGHNESS = 0.9;
+}
+"""
+		var mat := ShaderMaterial.new()
+		mat.shader = sh
+		mat.set_shader_parameter("flag_tex", flag_texture(_match.teams[0].data))
+		flag_mesh.material_override = mat
+		flag_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_match.add_child(flag_mesh)
+	flag_mesh.position = Vector3(0.0, 0.0, ROW_Z - FLAG_SIZE.y * 0.5 - 4.0)
+	flag_mesh.visible = true
+
+
+## Foto del equipo del jugador 1: seis atrás y cinco adelante, de frente a
+## la cámara; a los PHOTO_FLASH segundos, el flash.
+func _setup_photo() -> void:
+	photo_team = _match.humans[0].team if not _match.humans.is_empty() else _match.teams[0]
+	var row: Array[Footballer] = photo_team.players.duplicate()
+	for i in row.size():
+		var p := row[i]
+		var back := i < 6
+		var n := 6 if back else row.size() - 6
+		var k := (i if back else i - 6) - (n - 1) * 0.5
+		var pos := Vector3(PHOTO_X + k * (0.9 if back else 1.15), 0.0, ROW_Z + (0.0 if back else 1.1))
+		p.teleport(pos, Vector3.BACK)
+		_targets.erase(p)
+		if p.visual is ModelVisual:
+			(p.visual as ModelVisual).stance = ModelVisual.Stance.BEHIND if back else ModelVisual.Stance.HIPS
+			(p.visual as ModelVisual).look_yaw = 0.0
+	# El otro equipo, fuera de cuadro.
+	for p in _match.teams[1 - photo_team.index].players:
+		_targets.erase(p)
+		p.teleport(Vector3(-PHOTO_X + (p.number % 11) * 1.0, 0.0, ROW_Z - 6.0), Vector3.BACK)
+	_cam.set_shot(Vector3(PHOTO_X, 1.6, ROW_Z + 10.5), Vector3(PHOTO_X, 1.05, ROW_Z), 34.0)
+	_caption_text("FOTO DEL EQUIPO", photo_team.team_name)
+
+
+func _caption_text(title: String, sub: String) -> void:
+	for c in _caption.get_children():
+		_caption.remove_child(c)
+		c.queue_free()
+	var box := VBoxContainer.new()
+	_caption.add_child(box)
+	box.add_child(WEStyle.label(title, 30, Color.WHITE))
+	box.add_child(WEStyle.label(sub, 18, Color(0.85, 0.88, 0.95)))
+	_caption.visible = true
+
+
+## Flash de la foto y el cartel de equipos que se desvanece.
+func _tick_overlays(_dt: float) -> void:
+	if step == Step.PHOTO:
+		var since := _t - PHOTO_FLASH
+		_flash.color.a = clampf(1.0 - since / 0.45, 0.0, 1.0) if since >= 0.0 else 0.0
+	else:
+		_flash.color.a = 0.0
+	if step == Step.WARMUP:
+		_banner.modulate.a = clampf(minf(_t / 0.4, (DURATION[Step.WARMUP] - _t) / 0.6), 0.0, 1.0)
+
+
 # --- Cámara ---------------------------------------------------------------------
 
 func _cut_wide() -> void:
@@ -625,10 +750,89 @@ func _build_ui() -> void:
 	_caption.position = Vector2(60, 540)
 	_caption.visible = false
 	_ui.add_child(_caption)
+	_build_tv_graphics()
 	_formation = FormationBoard.new()
 	(_formation as FormationBoard).match_ref = _match
 	_formation.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_ui.add_child(_formation)
+
+
+## Cartel de los dos equipos (abajo al centro, como en la TV) y el recuadro
+## "EN VIVO" con el estadio y el clima (arriba a la izquierda).
+func _build_tv_graphics() -> void:
+	var t0 := _match.teams[0]
+	var t1 := _match.teams[1]
+	var banner := PanelContainer.new()
+	var bsb := StyleBoxFlat.new()
+	bsb.bg_color = Color(0.03, 0.05, 0.14, 0.88)
+	bsb.border_color = Color(1.0, 0.85, 0.25)
+	bsb.border_width_top = 3
+	bsb.border_width_bottom = 3
+	bsb.content_margin_left = 22
+	bsb.content_margin_right = 22
+	bsb.content_margin_top = 8
+	bsb.content_margin_bottom = 8
+	banner.add_theme_stylebox_override("panel", bsb)
+	banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	banner.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	banner.position.y -= 70
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	banner.add_child(row)
+	for t in [t0, t1]:
+		if t == t1:
+			row.add_child(WEStyle.label("vs", 26, Color(1.0, 0.85, 0.25)))
+		var chip := ColorRect.new()
+		chip.color = t.color
+		chip.custom_minimum_size = Vector2(14, 40)
+		if t == t0:
+			row.add_child(chip)
+		var name := WEStyle.label(t.team_name.to_upper(), 34, Color.WHITE)
+		row.add_child(name)
+		if t == t1:
+			row.add_child(chip)
+	banner.visible = false
+	_ui.add_child(banner)
+	_banner = banner
+	var live := PanelContainer.new()
+	var lsb := StyleBoxFlat.new()
+	lsb.bg_color = Color(0.02, 0.02, 0.06, 0.8)
+	lsb.set_content_margin_all(8)
+	live.add_theme_stylebox_override("panel", lsb)
+	live.position = Vector2(30, 24)
+	var lrow := HBoxContainer.new()
+	lrow.add_theme_constant_override("separation", 12)
+	live.add_child(lrow)
+	var tag := Label.new()
+	tag.text = " EN VIVO "
+	tag.add_theme_font_size_override("font_size", 20)
+	var tsb := StyleBoxFlat.new()
+	tsb.bg_color = Color(0.85, 0.08, 0.08)
+	tag.add_theme_stylebox_override("normal", tsb)
+	lrow.add_child(tag)
+	var info := VBoxContainer.new()
+	info.add_theme_constant_override("separation", 0)
+	lrow.add_child(info)
+	info.add_child(WEStyle.label(String(StadiumStyles.current.get("name", "")), 20, Color.WHITE))
+	if _match.conditions != null:
+		info.add_child(WEStyle.label(_match.conditions.describe(), 16, Color(0.8, 0.85, 0.95)))
+	live.visible = false
+	_ui.add_child(live)
+	_live = live
+	_flash = ColorRect.new()
+	_flash.color = Color(1, 1, 1, 0)
+	_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(_flash)
+
+
+func live_text() -> String:
+	var parts := []
+	for l in _live.get_child(0).get_child(1).get_children():
+		parts.append((l as Label).text)
+	return " · ".join(parts)
 
 
 ## Previa: la Dirección del equipo del jugador 1 (cambios libres).
