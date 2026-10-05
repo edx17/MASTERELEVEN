@@ -225,7 +225,10 @@ func _build_home() -> void:
 		_open_world_cup)
 	_item(col, "LIGA MASTER", "Próximamente (Fase 6): armá tu equipo, con mercado de pases, y llevalo a la cima.", Callable(), false)
 	_item(col, "ENTRENAMIENTO", "Club House: práctica libre, pelota parada y desafíos con récord.", show_page.bind("training"))
-	_item(col, "EDITOR", "Próximamente: crear y editar jugadores y equipos.", Callable(), false)
+	_item(col, "EDITOR", "Jugadores, planteles y equipos: altas, bajas, pases y edición masiva (también se abre aparte: MasterEleven Editor).",
+		func() -> void:
+			GameSettings.editor_from_game = true
+			get_tree().change_scene_to_file(GameSettings.EDITOR_SCENE))
 	_item(col, "OPCIONES", "Controles, velocidad del juego, ayudas y prueba de rendimiento.", show_page.bind("options"))
 	_item(col, "SALIR", "Cerrar el juego.", get_tree().quit)
 	var logo := Logo.new()

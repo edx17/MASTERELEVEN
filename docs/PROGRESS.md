@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **424 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **435 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -32,6 +32,9 @@ además arma el `.exe` de Windows).
 | Paso B — Jugadores low-poly WE mejorados | 🟡 Hecho, **pendiente de tu prueba** | #30 |
 | Paso UI-1 — Pantallas como el WE2002 | 🟡 Hecho, **pendiente de tu prueba** | #31 |
 | Paso C — Base de datos real y Mundial 2026 | 🟡 Hecho con planteles generados; **falta tu archivo de planteles** | #31 |
+| E1 — Option File, partidas separadas, importar desde el juego | 🟡 Hecho, pendiente de tu prueba | #31 |
+| E2 — Editor (jugadores y equipos, edición masiva) | 🟡 Hecho, pendiente de tu prueba | #31 |
+| E3 / E4 — Editor: selecciones, ligas, copas; camisetas y botines 3D | ⬜ | — |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -133,18 +136,37 @@ además arma el `.exe` de Windows).
 2. **Tu archivo de planteles** (CSV de EA FC 26 / SoFIFA y Transfermarkt,
    ver `docs/BASE_DE_DATOS.md`): se importa y reemplaza los planteles
    generados; también la lista real del Promocional Amateur.
-3. **Paso D — Liga Master** (en varios PR): arranca en 2.ª; en Argentina e
+3. **Editor E3 y E4**: selecciones, ligas y copas; camisetas (plantilla
+   PNG) y botines con vista 3D. Ver `docs/EDITOR.md`.
+4. **Paso D — Liga Master** (en varios PR): arranca en 2.ª; en Argentina e
    Inglaterra en la más baja (Torneo Promocional Amateur / League Two); las
    ligas de una sola división no se eligen. Siempre a elegir entre **Equipo
    WE** (genérico) o **Club real**, salvo con un club de primera (LPF,
    Premier, LaLiga, Serie A, Bundesliga): ahí es obligatorio el Equipo WE.
-4. Himno propio, relator y pulido final.
-5. **Al final — Editores** (externos si hace falta): ligas (agregar /
+5. Himno propio, relator y pulido final.
+6. **Al final — Editores** (externos si hace falta): ligas (agregar /
    eliminar), equipos (agregar / editar / eliminar; formación, escudo,
    colores), jugadores (agregar / editar / eliminar; atributos) y un editor
    externo para los mapeos de las camisetas.
 
 ---
+
+## E1 y E2 — Option File, partidas y Editor (PR #31)
+- **Carpeta del jugador** `Documentos/MasterEleven/`: configuración,
+  botones, Option Files, partidas (`saves/ligas`, `saves/copas`,
+  `saves/master`), `importar/` y récords. Lo de versiones anteriores se
+  mueve solo.
+- **Option File** (`.meof`): sólo tus cambios sobre la base (clubes y
+  selecciones editados o nuevos, divisiones, borrados). OPCIONES → DATOS
+  elige el activo, importa planteles desde la carpeta `importar` y abre las
+  carpetas. Detalle en `docs/BASE_DE_DATOS.md`.
+- **Partidas separadas**: cada Liga, Copa y Mundial en su archivo;
+  **CONTINUAR** (menú principal) las lista con dónde van y activa el Option
+  File con el que se crearon.
+- **Editor** (`MasterEleven Editor.exe` o EDITOR en el menú): jugadores
+  (uno o varios a la vez, edición masiva), equipos (datos, camisetas en
+  texto, orden del plantel, altas, bajas y pases) e importar. Guía en
+  `docs/EDITOR.md`.
 
 ## Paso C — Base de datos real y Mundial 2026 (PR #31)
 

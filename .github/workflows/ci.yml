@@ -82,8 +82,10 @@ jobs:
           timeout 600 ~/godot/godot --headless --import || true
           mkdir -p build/windows
           ~/godot/godot --headless --export-release "Windows Desktop" build/windows/MasterEleven.exe
+          ~/godot/godot --headless --export-release "Windows Editor" "build/windows/MasterEleven Editor.exe"
           ls -la build/windows
           test -s build/windows/MasterEleven.exe
+          test -s "build/windows/MasterEleven Editor.exe"
 
       - name: Nombre del build
         id: name

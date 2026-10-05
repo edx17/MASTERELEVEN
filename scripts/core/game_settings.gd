@@ -116,6 +116,9 @@ const WC_PLAYOFF_SLOTS := 6
 var active_optionfile := ""
 ## Archivo de la Liga / Copa / Mundial que se está jugando.
 var active_save := ""
+## El Editor se abrió desde el menú del juego (muestra "Volver al juego").
+var editor_from_game := false
+const EDITOR_SCENE := "res://scenes/editor/editor_main.tscn"
 var training_kind: int = 0
 var training_challenge: int = 0
 var human_side: int = 0
@@ -153,6 +156,11 @@ func _ready() -> void:
 	InputRouter.setup_for_mode(mode)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 	_check_capture_mode()
+	# El Editor como programa aparte (exportación "Editor", con la etiqueta
+	# editor_app) o con `-- --editor`.
+	if OS.has_feature("editor_app") or "--editor" in OS.get_cmdline_user_args():
+		get_tree().change_scene_to_file.call_deferred(EDITOR_SCENE)
+		get_window().title = "Master Eleven · Editor"
 
 
 ## Corre un test, una captura, la hoja de poses o la prueba de rendimiento
@@ -162,7 +170,7 @@ func _is_tool_run() -> bool:
 		if a.contains("gut_cmdln"):
 			return true
 	for a in OS.get_cmdline_user_args():
-		if a.begins_with("--capture=") or a.begins_with("--poses=") or a.begins_with("--stadium-thumbs=") or a.begins_with("--menu-shot=") or a.begins_with("--import-players=") or a == "--benchmark":
+		if a.begins_with("--capture=") or a.begins_with("--poses=") or a.begins_with("--stadium-thumbs=") or a.begins_with("--menu-shot=") or a.begins_with("--import-players=") or a.begins_with("--editor-shot=") or a == "--benchmark":
 			return true
 	return false
 
@@ -242,6 +250,10 @@ func _check_capture_mode() -> void:
 			var imp: Node = load("res://tools/import_players.gd").new()
 			imp.set("files", arg.trim_prefix("--import-players=").split(",", false))
 			get_tree().root.add_child.call_deferred(imp)
+		if arg.begins_with("--editor-shot="):
+			var es: Node = load("res://tools/editor_shot.gd").new()
+			es.set("out", arg.trim_prefix("--editor-shot="))
+			get_tree().root.add_child.call_deferred(es)
 		if arg.begins_with("--menu-shot="):
 			var shot: Node = load("res://tools/menu_shot.gd").new()
 			shot.set("out", arg.trim_prefix("--menu-shot="))

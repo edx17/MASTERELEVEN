@@ -294,6 +294,10 @@ static func player_from_dict(d: Dictionary, team_id: String, i: int, level: int 
 	p.height = int(d.get("h", 0))
 	p.age = int(d.get("age", 0))
 	p.nationality = String(d.get("nat", ""))
+	# Aspecto (editor): -1 / ausente = automático.
+	for k in LOOK_KEYS:
+		if d.has(k):
+			p.set(LOOK_KEYS[k], int(d[k]))
 	var a: Dictionary = d.get("a", {})
 	for k in a:
 		if k in p:
@@ -307,6 +311,28 @@ static func player_from_dict(d: Dictionary, team_id: String, i: int, level: int 
 	p.abilities = p.suggested_abilities()
 	p.fill_extended()
 	return p
+
+
+## Claves del aspecto en el formato de la base -> campo de PlayerData.
+const LOOK_KEYS := {"skin": "skin", "hair": "hair", "hc": "hair_color", "fh": "facial_hair",
+	"fhc": "facial_hair_color", "boots": "boots", "build": "build"}
+
+
+## Jugador -> formato de la base (lo que guarda el editor en el Option File).
+static func player_to_dict(p: PlayerData) -> Dictionary:
+	var d := {"n": p.player_name, "num": p.number, "pos": p.role_code if p.role_code != "" else ["GK", "CB", "CMF", "CF"][p.position],
+		"ft": ["R", "L", "B"][clampi(p.foot, 0, 2)], "h": p.height_cm(), "age": p.get_age(), "nat": p.nationality}
+	if not p.alt_roles.is_empty():
+		d["alt"] = ",".join(p.alt_roles)
+	for k in LOOK_KEYS:
+		var v := int(p.get(LOOK_KEYS[k]))
+		if v >= 0:
+			d[k] = v
+	var a := {}
+	for attr in PlayerData.ATTRIBUTES:
+		a[attr] = int(p.get(attr))
+	d["a"] = a
+	return d
 
 
 ## Puesto general de una sigla del WE.
