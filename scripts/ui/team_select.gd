@@ -35,11 +35,15 @@ var _side_panels: Array[Control] = []
 var _title: Label
 ## Elegir un solo equipo (el tuyo, para la Liga o la Copa).
 var single := false
+## Sólo estos equipos, en un único grupo (p. ej. las 48 del Mundial).
+var only_paths: Array[String] = []
+var _all_groups: Array[Dictionary] = []
 
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	groups = build_groups()
+	_all_groups = build_groups()
+	groups = _all_groups
 	picked = [GameSettings.home_team_path, GameSettings.away_team_path]
 	_title = WEStyle.label("ELEGÍ LOS EQUIPOS", 30, Color(1.0, 0.9, 0.35))
 	_title.position = Vector2(70, 30)
@@ -162,6 +166,12 @@ func open() -> void:
 	_side_panels[1].visible = not single
 	_bars.get_parent().visible = not single
 	picked = [GameSettings.home_team_path, GameSettings.away_team_path]
+	if only_paths.is_empty():
+		groups = _all_groups
+	else:
+		groups = [{"name": "MUNDIAL 2026", "sub": "%d selecciones" % only_paths.size(), "paths": only_paths, "kind": "nations"}]
+		if not only_paths.has(picked[0]):
+			picked[0] = only_paths[0]
 	for i in 2:
 		if not TeamDB.exists(picked[i]):
 			picked[i] = GameSettings.DEFAULT_HOME if i == 0 else GameSettings.DEFAULT_AWAY

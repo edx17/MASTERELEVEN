@@ -35,6 +35,7 @@ func _ready() -> void:
 	_build_home()
 	_build_modes()
 	_build_training()
+	_build_world_cup()
 	_build_options()
 	_build_controls()
 	_teams = TeamSelect.new()
@@ -83,7 +84,7 @@ func show_page(page: String, remember := true) -> void:
 	for k in _pages:
 		(_pages[k] as Control).visible = k == page
 	# Las pantallas de equipos y partido traen su propia ayuda.
-	_help.get_parent().visible = page in ["home", "modes", "training", "options", "controls"]
+	_help.get_parent().visible = page in ["home", "modes", "training", "options", "controls", "worldcup"]
 	if page == "title":
 		return
 	match page:
@@ -121,7 +122,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			leave_title()
 			get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed(&"ui_cancel") and _current() in ["modes", "options", "controls"]:
+	if event.is_action_pressed(&"ui_cancel") and _current() in ["modes", "options", "controls", "worldcup"]:
 		if _current() == "controls" and _controls_capturing():
 			return
 		go_back()
@@ -209,6 +210,8 @@ func _build_home() -> void:
 		_open_competition.bind(Competition.Kind.LEAGUE))
 	_item(col, "COPA", "Eliminación directa: cuartos, semis y final (con penales si empatan). Se guarda entre partidos.",
 		_open_competition.bind(Competition.Kind.CUP))
+	_item(col, "MUNDIAL 2026", "48 selecciones: 12 grupos de 4, pasan dos por grupo y los 8 mejores terceros, después 16avos hasta la final.",
+		_open_world_cup)
 	_item(col, "LIGA MASTER", "Próximamente (Fase 6): armá tu equipo, con mercado de pases, y llevalo a la cima.", Callable(), false)
 	_item(col, "ENTRENAMIENTO", "Club House: práctica libre, pelota parada y desafíos con récord.", show_page.bind("training"))
 	_item(col, "EDITOR", "Próximamente: crear y editar jugadores y equipos.", Callable(), false)
@@ -253,6 +256,7 @@ func _choose_mode(mode: int, shootout := false) -> void:
 	GameSettings.competition_match = false
 	_new_competition = -1
 	_teams.single = false
+	_teams.only_paths = []
 	show_page("teams")
 
 
@@ -266,13 +270,25 @@ func _open_competition(kind: int) -> void:
 		return
 	_new_competition = kind
 	_teams.single = true
+	_teams.only_paths = []
 	show_page("teams")
 
 
 func _start_competition(kind: int, my_team: String) -> void:
+	_teams.only_paths = []
+	var c: Competition
+	if kind == Competition.Kind.WORLD_CUP:
+		var wc := world_cup_paths(GameSettings.wc_playoff)
+		c = Competition.create_world_cup(wc, maxi(wc.find(my_team), 0), 0,
+			[TeamDB.nation_path("usa"), TeamDB.nation_path("mex"), TeamDB.nation_path("can")])
+		c.save()
+		_history.clear()
+		_history.append("home")
+		show_page("hub", false)
+		return
 	var paths := competition_paths(kind, my_team, _teams.group_paths_of(my_team))
 	var me := maxi(paths.find(my_team), 0)
-	var c := Competition.create_league(paths, me, false) if kind == Competition.Kind.LEAGUE else Competition.create_cup(paths, me)
+	c = Competition.create_league(paths, me, false) if kind == Competition.Kind.LEAGUE else Competition.create_cup(paths, me)
 	c.save()
 	_history.clear()
 	_history.append("home")
@@ -299,6 +315,97 @@ static func competition_paths(kind: int, my_team: String, group: Array[String]) 
 	for i in 7:
 		out.append(others[i])
 	return out
+
+
+# --- Mundial 2026 ------------------------------------------------------------------
+
+## Las 48 del Mundial: las 42 clasificadas y las 6 elegidas del repechaje (si
+## la elección no son 6 válidas, las primeras 6 candidatas por nivel).
+static func world_cup_paths(picks: Array) -> Array[String]:
+	var out: Array[String] = []
+	var candidates: Array = []
+	for n in TeamDB.nations():
+		if n["wc"] == "q":
+			out.append(TeamDB.nation_path(n["id"]))
+		elif n["wc"] == "po":
+			candidates.append(n)
+	var chosen := candidates.filter(func(n: Dictionary) -> bool: return picks.has(n["id"]))
+	if chosen.size() != GameSettings.WC_PLAYOFF_SLOTS:
+		candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["level"]) > int(b["level"]))
+		chosen = candidates.slice(0, GameSettings.WC_PLAYOFF_SLOTS)
+	for n in chosen:
+		out.append(TeamDB.nation_path(n["id"]))
+	return out
+
+
+var _wc_rows: Array[Button] = []
+var _wc_count: Label
+
+
+## Página del Mundial: elegir los 6 cupos del repechaje y después tu selección.
+func _build_world_cup() -> void:
+	var p := _page("worldcup")
+	var title := WEStyle.label("MUNDIAL 2026", 30, Color(1.0, 0.9, 0.35))
+	title.position = Vector2(80, 40)
+	p.add_child(title)
+	_wc_count = WEStyle.label("", 20, Color(0.75, 0.85, 1.0))
+	_wc_count.position = Vector2(80, 82)
+	p.add_child(_wc_count)
+	# Las 12 candidatas en dos columnas y abajo los botones.
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.position = Vector2(80, 120)
+	grid.add_theme_constant_override("h_separation", 20)
+	grid.add_theme_constant_override("v_separation", 6)
+	p.add_child(grid)
+	for n in TeamDB.nations():
+		if n["wc"] != "po":
+			continue
+		var id: String = n["id"]
+		var cell := VBoxContainer.new()
+		grid.add_child(cell)
+		var b := _item(cell, "", "Repechaje: elegí cuáles 6 de estas 12 juegan el Mundial.", func() -> void:
+			if GameSettings.wc_playoff.has(id):
+				GameSettings.wc_playoff.erase(id)
+			elif GameSettings.wc_playoff.size() < GameSettings.WC_PLAYOFF_SLOTS:
+				GameSettings.wc_playoff.append(id)
+			GameSettings.save_settings()
+			_refresh_world_cup(), true, 360.0)
+		b.custom_minimum_size.y = 34
+		b.add_theme_font_size_override("font_size", 19)
+		b.set_meta("nation", id)
+		b.set_meta("label", n["name"])
+		_wc_rows.append(b)
+	var col := _column(p, Vector2(80, 400))
+	_item(col, "ELEGIR MI SELECCIÓN", "Las 42 clasificadas más las 6 del repechaje. Después, el sorteo de los grupos.",
+		_world_cup_pick_team, true, 460.0)
+	_item(col, "VOLVER", "Volver al menú principal.", go_back, true, 460.0)
+	_refresh_world_cup()
+
+
+func _refresh_world_cup() -> void:
+	for b in _wc_rows:
+		var on := GameSettings.wc_playoff.has(b.get_meta("nation"))
+		b.text = "%s  %s" % ["■" if on else "□", b.get_meta("label")]
+	_wc_count.text = "Cupos del repechaje: %d de %d elegidos" % [GameSettings.wc_playoff.size(), GameSettings.WC_PLAYOFF_SLOTS]
+
+
+func _open_world_cup() -> void:
+	var saved := Competition.load_saved()
+	if saved != null and saved.kind == Competition.Kind.WORLD_CUP and not saved.finished():
+		show_page("hub")
+		return
+	show_page("worldcup")
+
+
+func _world_cup_pick_team() -> void:
+	if GameSettings.wc_playoff.size() != GameSettings.WC_PLAYOFF_SLOTS:
+		_help.text = "Elegí exactamente %d selecciones del repechaje." % GameSettings.WC_PLAYOFF_SLOTS
+		return
+	_new_competition = Competition.Kind.WORLD_CUP
+	_teams.single = true
+	_teams.only_paths = world_cup_paths(GameSettings.wc_playoff)
+	show_page("teams")
 
 
 ## Jugar el partido de la fecha: pasa por la configuración del partido.

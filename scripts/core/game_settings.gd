@@ -81,7 +81,7 @@ const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", 
 	"pitch_choice", "pitch_wear", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
 	"stick_directions", "camera_preset", "show_pass_target", "offside", "home_team_path", "away_team_path",
 	"home_kit", "away_kit", "show_replays", "replay_chances", "player_style", "sfx_volume", "crowd_volume", "music_volume",
-	"show_radar", "show_score"]
+	"show_radar", "show_score", "wc_playoff"]
 ## Falso en los tests y las herramientas: no leen ni pisan la configuración
 ## del jugador (así los resultados no dependen de lo que eligió).
 var persist := true
@@ -107,6 +107,10 @@ var competition_match := false
 var training := false
 ## Partido > Tanda de penales: sólo la definición por penales.
 var shootout := false
+## Mundial 2026: las 6 selecciones elegidas para los cupos del repechaje
+## (de las 12 candidatas marcadas "po" en data/db/nations.json).
+var wc_playoff: Array = ["ita", "pol", "kos", "den", "cod", "irq"]
+const WC_PLAYOFF_SLOTS := 6
 var training_kind: int = 0
 var training_challenge: int = 0
 var human_side: int = 0

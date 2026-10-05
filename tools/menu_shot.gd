@@ -32,6 +32,14 @@ func _run() -> void:
 					c.complete_round([2, 1], 10 + i)
 				c.save()
 				page = "hub"
+			# Mundial con la fecha 1 jugada (la pantalla de grupos).
+			if page == "wc":
+				var wc: Array[String] = menu.call("world_cup_paths", GameSettings.wc_playoff)
+				var c := Competition.create_world_cup(wc, maxi(wc.find(TeamDB.nation_path("arg")), 0), 5,
+					[TeamDB.nation_path("usa"), TeamDB.nation_path("mex"), TeamDB.nation_path("can")])
+				c.complete_round([2, 0], 11)
+				c.save()
+				page = "hub"
 			if page == "teams":
 				menu.call("show_page", "modes")
 			menu.call("show_page", page)
