@@ -46,6 +46,17 @@ func _run() -> void:
 	# Hoja de físicos ("build" en el nombre): normal, gordo, flaco, alto, bajo,
 	# fornido y musculoso; de frente arriba y de costado abajo.
 	var builds := out.contains("build")
+	# Hoja de cuerpos paramétricos ("body"): de 1,60 a 2,03 m, flacos,
+	# normales, musculosos y pesados; de frente arriba y de costado abajo.
+	var bodies := out.contains("body")
+	var body_list := [
+		{"height": 160, "mass": -0.4, "muscle": 0.3, "shoulders": -0.3, "legs": -0.3},
+		{"height": 170, "mass": -0.7, "muscle": 0.15, "shoulders": -0.5, "legs": 0.3},
+		{"height": 178, "mass": 0.0, "muscle": 0.35, "shoulders": 0.0, "legs": 0.0},
+		{"height": 183, "mass": 0.1, "muscle": 0.95, "shoulders": 0.6, "legs": 0.0},
+		{"height": 188, "mass": 0.6, "muscle": 0.6, "shoulders": 0.3, "legs": -0.4},
+		{"height": 194, "mass": 0.95, "muscle": 0.3, "shoulders": 0.2, "legs": -0.2},
+		{"height": 203, "mass": -0.2, "muscle": 0.35, "shoulders": 0.1, "legs": 0.8}]
 	# Hoja del lateral ("throw" en el nombre): esperando con la pelota.
 	var throw := out.contains("throw")
 	# Hoja del apretón de manos ("shake"): el que espera y el que pasa.
@@ -71,7 +82,7 @@ func _run() -> void:
 		stances = [1, 1, 1, 1]
 	if throw:
 		stances = [1, 1]
-	if builds:
+	if builds or bodies:
 		stances = []
 		for k in 14:
 			stances.append(1)
@@ -93,6 +104,9 @@ func _run() -> void:
 			v.throw_hold = true
 		if builds:
 			look["build"] = i % 7
+			look["hair_style"] = HairBuilder.Style.FADE
+		if bodies:
+			look["body"] = body_list[i % 7]
 			look["hair_style"] = HairBuilder.Style.FADE
 		if kits:
 			var td: TeamData = team_list[i % team_list.size()]

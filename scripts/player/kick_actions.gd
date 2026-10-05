@@ -468,8 +468,8 @@ const WEAK_FOOT_SPEED := 0.9
 ## Patea con la pierna menos hábil: la pelota está claramente del otro lado
 ## del cuerpo (con la pelota al medio usa la buena).
 static func uses_weak_foot(player: Footballer, ball_pos: Vector3) -> bool:
-	if player.data == null:
-		return false
+	if player.data == null or player.data.foot == PlayerData.Foot.BOTH:
+		return false # ambidiestro: no tiene pierna mala
 	var off := player.ball_offset_side(ball_pos)
 	if absf(off) < 0.12:
 		return false

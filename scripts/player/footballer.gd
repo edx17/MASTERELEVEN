@@ -627,6 +627,8 @@ func _build_visuals() -> void:
 	var colors := kit_colors()
 	if data != null:
 		colors["build"] = int(data.visual_build())
+		colors["body"] = data.body_params()
+		colors.merge(data.look(), true)
 		if data.hair >= 0:
 			colors["hair_style"] = data.hair
 	visual.setup(colors, team.index * 100 + number)
