@@ -50,6 +50,9 @@ var history: Array = []
 ## La temporada terminó y se está mostrando el resumen.
 var season_over := false
 var next_pid := 1
+## Atributos de tus jugadores al empezar la temporada ({pid: {attr: valor}}),
+## para mostrar cuánto crecieron.
+var season_start: Dictionary = {}
 
 
 # --- Creación -----------------------------------------------------------------------
@@ -129,6 +132,7 @@ static func create(country_id: String, club_id: String, mode: String, seed: int 
 	if m.squad_mode == "we":
 		m._make_we_squad(int(divs[start].get("level", start + 1)), String(divs[start]["id"]), rng.randi())
 	m._new_season_leagues(rng.randi())
+	m._snapshot_season()
 	return m
 
 
@@ -693,6 +697,98 @@ func _add_youth(e: Dictionary, level: int, names_group: String, skin: Array, nat
 	return out
 
 
+# --- Plantel y Dirección del equipo (D3) ---------------------------------------------------
+
+const FORMATIONS := ["4-4-2", "4-3-3", "4-2-3-1", "3-5-2", "5-3-2"]
+
+
+func _user_entry() -> Dictionary:
+	return world.clubs["%s:%s" % [country, user_club]]
+
+
+func _refresh_user() -> void:
+	TeamDB.refresh_club(country, user_club, _user_entry())
+
+
+func formation_name() -> String:
+	return String(_user_entry().get("formation", "4-4-2"))
+
+
+## Cambia la formación (los titulares se vuelven a elegir solos).
+func set_formation(name: String) -> void:
+	var e := _user_entry()
+	e["formation"] = name
+	e.erase("lineup")
+	_refresh_user()
+
+
+## Intercambia dos jugadores del plantel (titular con titular: cambian de
+## puesto; titular con suplente: entra el suplente). Queda guardado para los
+## partidos que vienen.
+func swap_players(pid_a: int, pid_b: int) -> void:
+	activate()
+	var order: Array = user_team().players.map(func(p: PlayerData) -> int: return p.pid)
+	var ia := order.find(pid_a)
+	var ib := order.find(pid_b)
+	if ia < 0 or ib < 0 or ia == ib:
+		return
+	order[ia] = pid_b
+	order[ib] = pid_a
+	_user_entry()["lineup"] = order.slice(0, 11)
+	_refresh_user()
+
+
+## Vuelve a la alineación automática (los mejores de cada puesto).
+func auto_lineup() -> void:
+	_user_entry().erase("lineup")
+	_refresh_user()
+
+
+func has_custom_lineup() -> bool:
+	return _user_entry().has("lineup")
+
+
+## Guarda los atributos de tus jugadores al empezar la temporada.
+func _snapshot_season() -> void:
+	season_start = {}
+	for d in club_players(user_club):
+		season_start[str(d["pid"])] = (d.get("a", {}) as Dictionary).duplicate()
+
+
+## Cuánto cambió un atributo desde que empezó la temporada.
+func attr_delta(pid: int, attr: String, now: int) -> int:
+	var a: Dictionary = season_start.get(str(pid), {})
+	return now - int(a[attr]) if a.has(attr) else 0
+
+
+## Goles del jugador en la temporada.
+func goals_of(pid: int) -> int:
+	return int((scorers.get(str(pid), {}) as Dictionary).get("goals", 0))
+
+
+## Datos del mundo de un jugador de tu club (estado, amarillas...).
+func user_player_dict(pid: int) -> Dictionary:
+	return _player_dict(user_club, pid)
+
+
+## Calendario de tu liga: [{round, home (bool), rival, result: [gf, gc] o [], current}].
+func calendar() -> Array:
+	var comp := user_league()
+	var out: Array = []
+	for r in comp.rounds.size():
+		for g in comp.rounds[r]:
+			var home: bool = g["home"] == comp.user_team
+			if not home and g["away"] != comp.user_team:
+				continue
+			var res: Array = g["result"]
+			var mine: Array = []
+			if res.size() >= 2:
+				mine = [res[0], res[1]] if home else [res[1], res[0]]
+			out.append({"round": r + 1, "home": home, "rival": comp.team(g["away"] if home else g["home"]).team_name,
+				"result": mine, "current": r == comp.current})
+	return out
+
+
 func last_summary() -> Dictionary:
 	return history[history.size() - 1] if not history.is_empty() else {}
 
@@ -704,6 +800,7 @@ func start_next_season(seed: int = 0) -> void:
 	season_over = false
 	scorers = {}
 	_new_season_leagues(seed if seed != 0 else randi())
+	_snapshot_season()
 
 
 # --- Guardado ------------------------------------------------------------------------------
@@ -715,7 +812,8 @@ func to_dict() -> Dictionary:
 	return {"format": FORMAT, "version": VERSION, "title": title, "option_file": option_file, "created": created,
 		"updated": updated, "country": country, "season": season, "first_year": first_year, "user_club": user_club,
 		"squad_mode": squad_mode, "points": points, "world": world.to_dict(), "leagues": ls, "scorers": scorers,
-		"history": history, "season_over": season_over, "next_pid": next_pid}
+		"history": history, "season_over": season_over, "next_pid": next_pid,
+		"season_start": season_start}
 
 
 static func from_dict(d: Dictionary) -> MasterCareer:
@@ -738,6 +836,7 @@ static func from_dict(d: Dictionary) -> MasterCareer:
 	m.history = d.get("history", [])
 	m.season_over = bool(d.get("season_over", false))
 	m.next_pid = int(d.get("next_pid", 1))
+	m.season_start = d.get("season_start", {})
 	return m
 
 

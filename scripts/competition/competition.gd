@@ -193,8 +193,10 @@ static func round_robin(n: int, two_legs: bool, seed: int = 0) -> Array:
 			var b: int = ids[m - 1 - i]
 			if a < 0 or b < 0:
 				continue
-			# Alterna la localía para que nadie juegue siempre de local.
-			if (r + i) % 2 == 0:
+			# Localía como en las tablas de Berger: el fijo alterna fecha a fecha
+			# y el resto según su lugar, así nadie juega más de dos seguidas de
+			# local o de visitante.
+			if (r % 2 == 0) if i == 0 else (i % 2 == 1):
 				games.append({"home": a, "away": b, "result": []})
 			else:
 				games.append({"home": b, "away": a, "result": []})

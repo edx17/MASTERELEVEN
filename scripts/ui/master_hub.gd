@@ -17,7 +17,10 @@ const DOWN := Color(1.0, 0.55, 0.5)
 var career: MasterCareer
 ## División que se muestra a la izquierda y si se ven los goleadores.
 var view_division := 0
-var view_scorers := false
+## Qué se ve a la izquierda: 0 tabla, 1 goleadores, 2 calendario.
+var view_mode := 0
+const VIEW_NAMES := ["Tabla", "Goleadores", "Calendario"]
+var _squad: MasterSquad
 var _left: VBoxContainer
 var _right: VBoxContainer
 var _abandon_armed := false
@@ -43,7 +46,7 @@ func open(c: MasterCareer) -> void:
 	career = c
 	career.activate()
 	view_division = career.user_league_index()
-	view_scorers = false
+	view_mode = 0
 	_abandon_armed = false
 	visible = true
 	_rebuild()
@@ -66,10 +69,10 @@ func _rebuild() -> void:
 			view_division = wrapi(view_division + dir, 0, divs)
 			_rebuild_left(), "Izquierda / derecha: ver otra división.", 636.0))
 	_left.add_child(WEStyle.OptionRow.new("Ver",
-		func() -> String: return "Goleadores" if view_scorers else "Tabla",
-		func(_dir: int) -> void:
-			view_scorers = not view_scorers
-			_rebuild_left(), "Tabla de posiciones o goleadores.", 636.0))
+		func() -> String: return VIEW_NAMES[view_mode],
+		func(dir: int) -> void:
+			view_mode = wrapi(view_mode + dir, 0, VIEW_NAMES.size())
+			_rebuild_left(), "Tabla de posiciones, goleadores o tu calendario.", 636.0))
 	var body := VBoxContainer.new()
 	body.name = "Body"
 	_left.add_child(body)
@@ -89,10 +92,50 @@ func _rebuild_left() -> void:
 	for ch in _left.get_children():
 		if ch is WEStyle.OptionRow:
 			(ch as WEStyle.OptionRow).refresh()
-	if view_scorers:
-		_scorers(body)
-	else:
-		_table(body)
+	match view_mode:
+		1:
+			_scorers(body)
+		2:
+			_calendar(body)
+		_:
+			_table(body)
+
+
+## Tus partidos de la temporada: fecha, local o visitante, rival y resultado.
+func _calendar(body: Control) -> void:
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(636, 480)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	WEStyle.pad_scroll(scroll)
+	body.add_child(scroll)
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 18)
+	grid.add_theme_constant_override("v_separation", 0)
+	scroll.add_child(grid)
+	for h in ["Fecha", "", "Rival", "Resultado"]:
+		grid.add_child(WEStyle.label(h, 14, BLUE))
+	var now_row: Control = null
+	for m in career.calendar():
+		var res: Array = m["result"]
+		var c := Color.WHITE
+		if res.size() == 2:
+			c = UP if res[0] > res[1] else (DOWN if res[0] < res[1] else Color(0.85, 0.85, 0.85))
+		if m["current"]:
+			c = GOLD
+		grid.add_child(WEStyle.label(str(m["round"]), 15, c))
+		grid.add_child(WEStyle.label("L" if m["home"] else "V", 15, c))
+		var rival := WEStyle.label(String(m["rival"]), 15, c)
+		rival.custom_minimum_size = Vector2(330, 0)
+		rival.clip_text = true
+		grid.add_child(rival)
+		grid.add_child(WEStyle.label("%d - %d" % [res[0], res[1]] if res.size() == 2 else ("próxima" if m["current"] else ""), 15, c))
+		if m["current"]:
+			now_row = rival
+	body.add_child(WEStyle.label("L: local · V: visitante · Verde ganado, rojo perdido · Stick derecho o RePág / AvPág: mover", 14,
+		Color(0.75, 0.8, 0.9)))
+	if now_row != null:
+		_scroll_to.call_deferred(scroll, now_row)
 
 
 func _name(club_id: String) -> String:
@@ -216,7 +259,7 @@ func _next_match() -> void:
 		for side in ["home", "away"]:
 			var crest := WEStyle.Crest.new()
 			crest.team = comp.team(g[side])
-			crest.custom_minimum_size = Vector2(96, 112)
+			crest.custom_minimum_size = Vector2(80, 92)
 			row.add_child(crest)
 			if side == "home":
 				row.add_child(WEStyle.label("vs", 26))
@@ -231,6 +274,7 @@ func _next_match() -> void:
 			career.play_round()
 			career.save()
 			_rebuild(), 480.0, 22))
+	_right.add_child(WEStyle.bar("Plantel y Dirección", _open_squad, 480.0, 22))
 	_right.add_child(WEStyle.bar("Guardar y salir", func() -> void:
 		career.save()
 		back.emit(), 480.0, 22))
@@ -248,7 +292,7 @@ func _next_match() -> void:
 		var last: Array = comp.rounds[comp.current - 1]
 		var mine := last.filter(func(pg: Dictionary) -> bool: return pg["home"] == comp.user_team or pg["away"] == comp.user_team)
 		var rest := last.filter(func(pg: Dictionary) -> bool: return not mine.has(pg))
-		for pg in (mine + rest).slice(0, 4):
+		for pg in (mine + rest).slice(0, 3):
 			var l := WEStyle.label(result_text(comp, pg), 15, GOLD if mine.has(pg) else Color.WHITE)
 			l.clip_text = true
 			l.custom_minimum_size = Vector2(480, 0)
@@ -320,8 +364,22 @@ func _wrap(text: String, color: Color) -> Label:
 	return l
 
 
+## Plantel y Dirección del equipo (pantalla aparte, encima del hub).
+func _open_squad() -> void:
+	if _squad == null:
+		_squad = MasterSquad.new()
+		add_child(_squad)
+		_squad.closed.connect(func() -> void:
+			_left.get_parent().visible = true
+			_right.get_parent().visible = true
+			_rebuild())
+	_left.get_parent().visible = false
+	_right.get_parent().visible = false
+	_squad.open(career)
+
+
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible:
+	if not visible or (_squad != null and _squad.visible):
 		return
 	if event.is_action_pressed(&"ui_cancel"):
 		career.save()

@@ -270,8 +270,11 @@ static func _base_team(e: Dictionary) -> TeamData:
 	t.away_pattern = away["pattern"]
 	t.away_pattern_color = away["pattern_color"]
 	t.keeper_color = Color.html(String(e.get("keeper", "1a1a1a")))
-	# Plantillas de camiseta del Option File (editor de camisetas).
+	# Plantillas de camiseta y escudo del Option File (Editor > Camisetas).
 	if option_file != null:
+		var cf := String(e.get("crest", ""))
+		if cf != "":
+			t.crest = KitTemplate.load_texture(option_file.kits_dir().path_join(cf))
 		for i in 2:
 			var f := String(e.get(["home_tex", "away_tex"][i], ""))
 			if f != "":
@@ -306,7 +309,7 @@ static func _fill_players(t: TeamData, e: Dictionary, level: int, names_group: S
 			if p.nationality == "":
 				p.nationality = nationality
 			t.players.append(p)
-		_order_for_formation(t)
+		_order_for_formation(t, e.get("lineup", []))
 	else:
 		generate_roster(t, level, names_group, skin, nationality, hash(t.id))
 	var cap := PlayerData.pick_captain(t.players)
@@ -392,17 +395,35 @@ static func position_of_code(code: String) -> int:
 
 ## Titulares según la formación: para cada puesto, el mejor libre de ese
 ## puesto general (si no hay, el mejor de los que quedan).
-static func _order_for_formation(t: TeamData) -> void:
+## Con `lineup` (pids en el orden de los puestos de la formación, Liga
+## Master), esos son los titulares; si alguno no puede jugar, entra el mejor
+## libre de su puesto.
+static func _order_for_formation(t: TeamData, lineup: Array = []) -> void:
 	if t.formation == null:
 		return
 	var pool: Array[PlayerData] = t.players.duplicate()
+	# Titulares guardados (los que pueden jugar).
+	var fixed: Array = []
+	for i in t.formation.roles.size() if not lineup.is_empty() else 0:
+		var pid := int(lineup[i]) if i < lineup.size() else -1
+		var hit: PlayerData = null
+		for p in pool:
+			if p.pid == pid and pid > 0 and not p.unavailable:
+				hit = p
+		fixed.append(hit)
+		if hit != null:
+			pool.erase(hit)
 	# Los lesionados y suspendidos (Liga Master) quedan al final: no son titulares.
 	pool.sort_custom(func(a: PlayerData, b: PlayerData) -> bool:
 		if a.unavailable != b.unavailable:
 			return b.unavailable
 		return overall(a) > overall(b))
 	var xi: Array[PlayerData] = []
-	for role in t.formation.roles:
+	for ri in t.formation.roles.size():
+		var role: int = t.formation.roles[ri]
+		if ri < fixed.size() and fixed[ri] != null:
+			xi.append(fixed[ri])
+			continue
 		var pick: PlayerData = null
 		for p in pool:
 			if p.position == role and not p.unavailable:

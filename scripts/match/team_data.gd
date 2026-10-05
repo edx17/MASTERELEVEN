@@ -18,6 +18,8 @@ extends Resource
 @export var capacity: int = 0
 ## Plantillas de camiseta (editor de camisetas; null = el diseño por código).
 var kit_textures: Array = [null, null]
+## Escudo propio (PNG importado en el Editor) o null: se dibuja el generado.
+var crest: Texture2D = null
 ## Medias de cada uniforme (alfa 0 = del color de la camiseta).
 @export var socks_color: Color = Color(0, 0, 0, 0)
 @export var away_socks: Color = Color(0, 0, 0, 0)

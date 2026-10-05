@@ -182,3 +182,50 @@ func test_new_year_ages_retires_and_refills() -> void:
 				hurt += 1
 	gut.p("Lesionados al final (después de la pretemporada): %d" % hurt)
 	MasterCareer.deactivate()
+
+
+## Fixture: nadie juega más de dos fechas seguidas de local o de visitante.
+func test_fixture_alternates_home_and_away() -> void:
+	for n in [8, 20, 24, 36]:
+		var rounds := Competition.round_robin(n, true, 5)
+		for t in n:
+			var seq: Array = []
+			for r in rounds:
+				for g in r:
+					if g["home"] == t or g["away"] == t:
+						seq.append(g["home"] == t)
+			var streak := 1
+			var worst := 1
+			for k in range(1, seq.size()):
+				streak = streak + 1 if seq[k] == seq[k - 1] else 1
+				worst = maxi(worst, streak)
+			assert_lte(worst, 3, "%d equipos, equipo %d" % [n, t])
+
+
+## D3: alineación y formación guardadas.
+func test_saved_lineup_and_formation() -> void:
+	var m := MasterCareer.create("arg", "lugano", "real", 52)
+	var t := m.user_team()
+	var starter := t.players[9]
+	var bench := t.players[20]
+	m.swap_players(starter.pid, bench.pid)
+	var xi := m.user_team().starters().map(func(p: PlayerData) -> int: return p.pid)
+	assert_true(xi.has(bench.pid), "el suplente entra")
+	assert_false(xi.has(starter.pid))
+	assert_eq(xi[9], bench.pid, "en el mismo puesto")
+	# Guardado en el archivo.
+	m.save()
+	var back := MasterCareer.load_saved(m.file)
+	assert_true(back.user_team().starters().map(func(p: PlayerData) -> int: return p.pid).has(bench.pid))
+	# Si se lesiona, juega otro; al volver, vuelve a su lugar.
+	back.user_player_dict(bench.pid)["inj"] = 2
+	back._refresh_user()
+	assert_false(back.user_team().starters().map(func(p: PlayerData) -> int: return p.pid).has(bench.pid))
+	back.user_player_dict(bench.pid)["inj"] = 0
+	back._refresh_user()
+	assert_true(back.user_team().starters().map(func(p: PlayerData) -> int: return p.pid).has(bench.pid))
+	back.set_formation("4-3-3")
+	assert_eq(back.user_team().formation.resource_path.get_file(), "f_4-3-3.tres")
+	assert_false(back.has_custom_lineup())
+	assert_eq(back.calendar().size(), 46)
+	MasterCareer.deactivate()

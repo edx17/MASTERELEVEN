@@ -170,3 +170,16 @@ func test_relegation_rule() -> void:
 	assert_eq(TeamDB.relegation_count("arg", 0), 3)
 	m.undo()
 	assert_eq(TeamDB.relegation_count("arg", 0), 2)
+
+
+## Escudo propio: un PNG en la carpeta de camisetas del Option File.
+func test_imported_crest() -> void:
+	var img := Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0.8, 0.1, 0.1))
+	DirAccess.make_dir_recursive_absolute(m.option_file.kits_dir())
+	img.save_png(m.option_file.kits_dir().path_join("boca_escudo.png"))
+	assert_null(TeamDB.load_team(BOCA).crest, "sin escudo: el generado")
+	m.set_team(BOCA, {"crest": "boca_escudo.png"})
+	var t := TeamDB.load_team(BOCA)
+	assert_not_null(t.crest)
+	assert_eq(t.crest.get_width(), 64)

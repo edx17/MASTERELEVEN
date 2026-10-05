@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **454 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **457 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -18,7 +18,7 @@ además arma el `.exe` de Windows).
 | 3 — IA de partido | ✅ Implementada (se sigue ajustando con tus pruebas) | — |
 | 4 — Reglas, atributos y plantel | ✅ Implementada | — |
 | 5 — Presentación moderna (estadios, animaciones, audio, repeticiones) | 🟡 Muy avanzada; falta el pelo "Detallados" y la voz del locutor | — |
-| 6 — Liga Master | 🟡 D1 y D2 hechos; faltan D3 (mercado) y D4 (pantallas) | #32 |
+| 6 — Liga Master | 🟡 D1–D3 hechos; faltan D4 (mercado de pases) y D5 (noticias, historial) | #32, #33 |
 | 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) | — |
 | 8 — Pulido | ⬜ | — |
 | Entrenamiento (Club House) | ✅ | #23 |
@@ -38,7 +38,9 @@ además arma el `.exe` de Windows).
 | E4 — Editor: camisetas (plantilla PNG) y botines con vista 3D | 🟡 Hecho, pendiente de tu prueba | #31 |
 | Importar clubes (CSV) y Argentina sin Promocional | 🟡 Hecho, pendiente de tu prueba | #31 |
 | D1 — Liga Master: carrera, temporadas, goleadores, ascensos y descensos | 🟡 Hecho, pendiente de tu prueba | #32 |
-| D2 — Liga Master: tarjetas, lesiones, evolución, retiros y juveniles | 🟡 Hecho, pendiente de tu prueba | (este PR) |
+| D2 — Liga Master: tarjetas, lesiones, evolución, retiros y juveniles | 🟡 Hecho, pendiente de tu prueba | #33 |
+| Menús: todo entra, tablas con el mando, cabeceras del Mundial | 🟡 Hecho, pendiente de tu prueba | #33 |
+| D3 — Liga Master: Plantel, Dirección guardada, Calendario; escudos PNG | 🟡 Hecho, pendiente de tu prueba | #33 |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -141,16 +143,34 @@ además arma el `.exe` de Windows).
    ver `docs/BASE_DE_DATOS.md`): se importa y reemplaza los planteles
    generados. La lista de clubes 2026 de Argentina que pasaste se carga
    desde el Editor (Importar > Clubes y divisiones).
-3. **Paso D — Liga Master**, en cuatro PR: **D1** (hecho: carrera y
-   temporadas), **D2** (hecho: tarjetas, suspensiones, lesiones, evolución
-   por edad, retiros y juveniles), **D3** (mercado de pases con puntos WE,
-   préstamos, ventanas, IA que ficha) y **D4** (menú de la carrera estilo
-   WE, noticias, historial y palmarés).
+3. **Paso D — Liga Master**: **D1** (hecho: carrera y temporadas), **D2**
+   (hecho: tarjetas, lesiones, evolución, retiros y juveniles), **D3**
+   (hecho: Plantel, Dirección guardada, Calendario y escudos), **D4**
+   (mercado de pases con puntos WE, préstamos, ventanas, IA que ficha) y
+   **D5** (noticias, historial y palmarés).
 4. Himno propio, relator y pulido final.
 5. Editores: ya hechos (E1–E4, ver `docs/EDITOR.md`); quedan solo extras
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## D3 — Liga Master: Plantel, Dirección y Calendario; escudos propios
+- **Plantel y Dirección** (botón en la pantalla de la carrera): la
+  formación (◀ ▶) y los 23, con los 11 titulares arriba en el orden de los
+  puestos, edad, media, goles y estado (rojo: lesionado o suspendido). X
+  sobre un jugador y después sobre otro: se cambian. **Queda guardado** para
+  todos los partidos; si un titular no puede jugar, entra el mejor libre de
+  su puesto y al volver recupera su lugar. "Mejor once" vuelve a lo
+  automático. A la derecha, la ficha con los atributos y **cuánto cambió
+  cada uno en la temporada**.
+- **Calendario** (Ver ◀ ▶ en la pantalla de la carrera): tus partidos con
+  local / visitante, rival y resultado (verde ganado, rojo perdido) y la
+  próxima fecha marcada.
+- **Fixture**: localías alternadas como en las tablas de Berger (nadie
+  juega más de dos fechas seguidas de local o de visitante).
+- **Escudos propios**: Editor → Camisetas → "Importar escudo (PNG)". Se
+  guarda en la carpeta del Option File y se ve en los menús, la elección de
+  equipos, las tablas y la previa. Las carreras nuevas lo toman al crearse.
 
 ## D2 — Liga Master: el plantel con el paso del tiempo
 - **Tarjetas y suspensiones**: 5 amarillas = 1 fecha; roja (o doble

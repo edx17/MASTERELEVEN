@@ -221,6 +221,13 @@ class Crest:
 			return
 		var w := size.x
 		var h := size.y
+		# Escudo importado: entero y centrado, sin deformarlo.
+		if team.crest != null:
+			var ts := team.crest.get_size()
+			var k := minf(w / ts.x, h / ts.y)
+			var sz := ts * k
+			draw_texture_rect(team.crest, Rect2((Vector2(w, h) - sz) * 0.5, sz), false)
+			return
 		# Selección: su bandera, con un borde dorado.
 		if team.flag != null:
 			var fh := minf(h * 0.8, w * 0.667)
