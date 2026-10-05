@@ -1025,15 +1025,7 @@
      "away": "ffffff/ffffff/ffffff",
      "stadium": "Lugano",
      "cap": 1500
-    }
-   ]
-  },
-  {
-   "id": "arg5",
-   "name": "Torneo Promocional Amateur",
-   "level": 5,
-   "season": "2026",
-   "clubs": [
+    },
     {
      "id": "paraguayo",
      "name": "Deportivo Paraguayo",
@@ -1069,78 +1061,6 @@
      "away": "d71920/d71920/d71920",
      "stadium": "Liniers",
      "cap": 1500
-    },
-    {
-     "id": "promo5",
-     "name": "Club por definir 5",
-     "short": "P05",
-     "home": "8c8c8c/ffffff/8c8c8c",
-     "away": "ffffff/ffffff/ffffff",
-     "stadium": "",
-     "cap": 0
-    },
-    {
-     "id": "promo6",
-     "name": "Club por definir 6",
-     "short": "P06",
-     "home": "8c8c8c/ffffff/8c8c8c",
-     "away": "ffffff/ffffff/ffffff",
-     "stadium": "",
-     "cap": 0
-    },
-    {
-     "id": "promo7",
-     "name": "Club por definir 7",
-     "short": "P07",
-     "home": "8c8c8c/ffffff/8c8c8c",
-     "away": "ffffff/ffffff/ffffff",
-     "stadium": "",
-     "cap": 0
-    },
-    {
-     "id": "promo8",
-     "name": "Club por definir 8",
-     "short": "P08",
-     "home": "8c8c8c/ffffff/8c8c8c",
-     "away": "ffffff/ffffff/ffffff",
-     "stadium": "",
-     "cap": 0
-    },
-    {
-     "id": "promo9",
-     "name": "Club por definir 9",
-     "short": "P09",
-     "home": "8c8c8c/ffffff/8c8c8c",
-     "away": "ffffff/ffffff/ffffff",
-     "stadium": "",
-     "cap": 0
-    },
-    {
-     "id": "promo10",
-     "name": "Club por definir 10",
-     "short": "P10",
-     "home": "8c8c8c/ffffff/8c8c8c",
-     "away": "ffffff/ffffff/ffffff",
-     "stadium": "",
-     "cap": 0
-    },
-    {
-     "id": "promo11",
-     "name": "Club por definir 11",
-     "short": "P11",
-     "home": "8c8c8c/ffffff/8c8c8c",
-     "away": "ffffff/ffffff/ffffff",
-     "stadium": "",
-     "cap": 0
-    },
-    {
-     "id": "promo12",
-     "name": "Club por definir 12",
-     "short": "P12",
-     "home": "8c8c8c/ffffff/8c8c8c",
-     "away": "ffffff/ffffff/ffffff",
-     "stadium": "",
-     "cap": 0
     }
    ]
   }

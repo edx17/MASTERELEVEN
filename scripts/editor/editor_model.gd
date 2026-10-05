@@ -399,6 +399,15 @@ func remove_club(country_id: String, division_id: String, club_id: String) -> vo
 	changed.emit()
 
 
+## Aplica una lista de clubes revisada (ClubImporter.analyze); se puede deshacer.
+func import_clubs(plan: Array, stadiums: bool = true) -> Dictionary:
+	_snapshot()
+	var res := ClubImporter.apply(plan, option_file, stadiums)
+	dirty = true
+	changed.emit()
+	return res
+
+
 # --- Copas propias (E3) -------------------------------------------------------------
 
 ## Copa nueva: format "knockout" (8 o 16 equipos) o "league" (todos contra

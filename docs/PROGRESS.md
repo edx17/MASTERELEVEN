@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **440 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **444 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -136,9 +136,10 @@ además arma el `.exe` de Windows).
    (pantallas) y C (equipos reales, Mundial).
 2. **Tu archivo de planteles** (CSV de EA FC 26 / SoFIFA y Transfermarkt,
    ver `docs/BASE_DE_DATOS.md`): se importa y reemplaza los planteles
-   generados; también la lista real del Promocional Amateur.
+   generados. La lista de clubes 2026 de Argentina que pasaste se carga
+   desde el Editor (Importar > Clubes y divisiones).
 3. **Paso D — Liga Master** (en varios PR): arranca en 2.ª; en Argentina e
-   Inglaterra en la más baja (Torneo Promocional Amateur / League Two); las
+   Inglaterra en la más baja (Primera C / League Two); las
    ligas de una sola división no se eligen. Siempre a elegir entre **Equipo
    WE** (genérico) o **Club real**, salvo con un club de primera (LPF,
    Premier, LaLiga, Serie A, Bundesliga): ahí es obligatorio el Equipo WE.
@@ -175,9 +176,9 @@ Detalle, fuentes y formato del CSV en `docs/BASE_DE_DATOS.md`. Tests en
   suplente con su diseño, color de arquero, formación y nivel: las 48 del
   Mundial 2026 (42 seguras + las 12 candidatas del repechaje que pasaste) más
   China, Rusia, Nigeria, Camerún y Turquía.
-- **9 países, 19 divisiones, 402 clubes reales**: Inglaterra (4),
+- **9 países, 18 divisiones, 394 clubes reales**: Inglaterra (4),
   España (2), Italia (2), Alemania (2), Portugal, Países Bajos, México,
-  Brasil y Argentina (5). Cada uno con sus colores, camisetas reales (rayas,
+  Brasil y Argentina (4). Cada uno con sus colores, camisetas reales (rayas,
   bastones, franja de Boca, banda de River, V de Vélez, cuadros...), medias,
   estadio y capacidad.
 - **Planteles**: generados (estables, nombres del país, nivel según la

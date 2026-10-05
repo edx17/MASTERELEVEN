@@ -88,3 +88,25 @@ Lo mismo que en el juego: copiás los CSV a la carpeta `importar`, apretás
 lo que entró y de los clubes que no se encontraron. Formato y fuentes:
 `docs/BASE_DE_DATOS.md`.
 
+### Clubes y divisiones
+Para armar las ligas con una planilla propia (por ejemplo, la temporada
+nueva con ascensos y descensos). El CSV necesita las columnas **nombre** y
+**división**; opcionales: **estadio**, **país**, **id**, **sigla** y
+**capacidad** (en castellano o en inglés).
+1. Copiá el CSV en la carpeta `importar` y apretá **1. Revisar lista de
+   clubes**. Aparece una tabla con cada fila del CSV y qué va a hacer:
+   - **OK**: encontró el club (por id, por nombre —"Velez", "Newell´s" o
+     "Atletico Rafaela" se reconocen— o, si hay varios con el mismo nombre,
+     por el estadio: los dos "Estudiantes" se separan así).
+   - **REVISAR**: hay varios clubes posibles; elegís cuál en la última
+     columna (o "Club nuevo" / "No importar").
+   - **Nuevo**: no está en el juego; se crea con colores lisos y plantel
+     generado (después se edita en Equipos y Camisetas).
+   - **Salteada**: la división no existe en el juego.
+2. Apretá **2. Aplicar**: cada división del CSV queda con esos clubes (los
+   que no figuran salen de esa división; las divisiones que no están en el
+   CSV no se tocan). Con "Usar los estadios del CSV" también se cambian los
+   estadios. Ctrl+Z lo deshace y Ctrl+S lo guarda.
+Con una columna **id** (los ids del juego: `boca`, `racingcba`...) el club
+se encuentra directo, sin dudas.
+

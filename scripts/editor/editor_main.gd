@@ -1412,19 +1412,149 @@ func _show_kit(path: String) -> void:
 func _import_tab() -> Control:
 	var tab := VBoxContainer.new()
 	tab.name = "Importar"
-	tab.add_theme_constant_override("separation", 10)
-	var info := _lbl("1. Abrí la carpeta de importar y copiá ahí tus CSV (EA FC / SoFIFA, Transfermarkt o tu planilla).\n" +
-		"2. Apretá Importar: los planteles van al Option File de arriba (la base no se toca).\n" +
-		"3. Revisá el resumen: los clubes que no se encontraron hay que corregirlos en el CSV o en la pestaña Equipos.")
-	tab.add_child(info)
-	var row := HBoxContainer.new()
-	tab.add_child(row)
-	row.add_child(_btn("Abrir carpeta de importar", func() -> void: UserData.open_folder(UserData.import_dir()), ""))
-	row.add_child(_btn("Importar", _import, ""))
+	tab.add_theme_constant_override("separation", 8)
+	tab.add_child(_lbl("Copiá tus CSV en la carpeta de importar. Todo va al Option File de arriba (la base no se toca)."))
+	var top := HBoxContainer.new()
+	tab.add_child(top)
+	top.add_child(_btn("Abrir carpeta de importar", func() -> void: UserData.open_folder(UserData.import_dir()), ""))
+	# Planteles (CSV de jugadores).
+	var pl := HBoxContainer.new()
+	tab.add_child(pl)
+	pl.add_child(_lbl("Planteles (CSV de jugadores):"))
+	pl.add_child(_btn("Importar planteles", _import, "EA FC / SoFIFA, Transfermarkt o planilla propia"))
 	_imp_text = _lbl("")
 	_imp_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tab.add_child(_imp_text)
+	tab.add_child(HSeparator.new())
+	# Clubes y divisiones (CSV con nombre, división y estadio).
+	var cl := HBoxContainer.new()
+	tab.add_child(cl)
+	cl.add_child(_lbl("Clubes y divisiones (CSV con nombre, división, estadio):"))
+	cl.add_child(_btn("1. Revisar lista de clubes", _clubs_review, "Lee los CSV de clubes y muestra qué va a hacer con cada fila"))
+	_ci_filter = OptionButton.new()
+	for t in ["Ver todas", "Solo para revisar", "Solo nuevos", "Solo salteadas"]:
+		_ci_filter.add_item(t)
+	_ci_filter.item_selected.connect(func(_i: int) -> void: _clubs_fill())
+	cl.add_child(_ci_filter)
+	_ci_stadiums = CheckBox.new()
+	_ci_stadiums.text = "Usar los estadios del CSV"
+	_ci_stadiums.button_pressed = true
+	cl.add_child(_ci_stadiums)
+	cl.add_child(_btn("2. Aplicar", _clubs_apply, "Arma las divisiones con estos clubes (se puede deshacer con Ctrl+Z)"))
+	_ci_text = _lbl("")
+	_ci_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tab.add_child(_ci_text)
+	_ci_tree = Tree.new()
+	_ci_tree.columns = 5
+	_ci_tree.hide_root = true
+	_ci_tree.column_titles_visible = true
+	_ci_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	for i in 5:
+		_ci_tree.set_column_title(i, ["Club en el CSV", "División", "Estadio", "Estado", "Club del juego (clic para cambiar)"][i])
+		_ci_tree.set_column_expand(i, true)
+	_ci_tree.set_column_expand_ratio(0, 2)
+	_ci_tree.set_column_expand_ratio(2, 3)
+	_ci_tree.set_column_expand_ratio(4, 3)
+	_ci_tree.item_edited.connect(_clubs_edited)
+	tab.add_child(_ci_tree)
 	return tab
+
+
+const CI_STATUS := {"match": "OK", "doubt": "REVISAR", "new": "Nuevo", "skip": "Salteada"}
+
+var _ci_plan: Array[Dictionary] = []
+var _ci_tree: Tree
+var _ci_text: Label
+var _ci_filter: OptionButton
+var _ci_stadiums: CheckBox
+
+
+func _clubs_review() -> void:
+	var rows := ClubImporter.read_folder(UserData.import_dir())
+	if rows.is_empty():
+		_ci_plan.clear()
+		_clubs_fill()
+		_ci_text.text = "No hay CSV de clubes en %s (necesitan las columnas nombre y división)." % UserData.import_dir()
+		return
+	_ci_plan = ClubImporter.analyze(rows)
+	_clubs_fill()
+
+
+## Opciones del desplegable de una fila: candidatos, club nuevo, no importar.
+static func _clubs_options(e: Dictionary) -> Array:
+	var out: Array = []
+	if e["choice"] == "":
+		out.append(["", "— Elegí el club —"])
+	for c in e["candidates"]:
+		out.append([String(c["id"]), "%s (%s)" % [c["name"], c["division"]]])
+	if String(e["division"]) != "":
+		out.append([ClubImporter.NEW, "Club nuevo: " + String(e["name"])])
+	out.append([ClubImporter.SKIP, "No importar"])
+	return out
+
+
+func _clubs_fill() -> void:
+	_ci_tree.clear()
+	var root := _ci_tree.create_item()
+	var want: String = ["", "doubt", "new", "skip"][maxi(_ci_filter.selected, 0)]
+	for i in _ci_plan.size():
+		var e := _ci_plan[i]
+		if want != "" and e["status"] != want:
+			continue
+		var it := _ci_tree.create_item(root)
+		it.set_metadata(0, i)
+		it.set_text(0, e["name"])
+		it.set_text(1, e["division_name"])
+		it.set_text(2, e["stadium"])
+		it.set_text(3, CI_STATUS[e["status"]])
+		it.set_tooltip_text(3, e["note"])
+		var col: Color = {"match": Color(0.5, 0.9, 0.5), "doubt": Color(1, 0.75, 0.3), "new": Color(0.5, 0.75, 1),
+			"skip": Color(0.6, 0.6, 0.6)}[e["status"]]
+		it.set_custom_color(3, col)
+		var opts := _clubs_options(e)
+		var names: Array = []
+		var sel := -1
+		for k in opts.size():
+			names.append(String(opts[k][1]).replace(",", " "))
+			if opts[k][0] == e["choice"]:
+				sel = k
+		it.set_cell_mode(4, TreeItem.CELL_MODE_RANGE)
+		it.set_text(4, ",".join(names))
+		it.set_editable(4, true)
+		it.set_range(4, maxi(sel, 0))
+		if e["choice"] == "":
+			it.set_custom_color(4, Color(1, 0.75, 0.3))
+	var s := ClubImporter.summary(_ci_plan)
+	var pending := _ci_plan.filter(func(e: Dictionary) -> bool: return e["status"] == "doubt" and e["choice"] == "").size()
+	_ci_text.text = "%d filas: %d encontradas, %d para revisar (%d sin elegir), %d clubes nuevos, %d salteadas. Pasá el mouse por el estado para ver el motivo." % [
+		_ci_plan.size(), s["match"], s["doubt"], pending, s["new"], s["skip"]] if not _ci_plan.is_empty() else ""
+
+
+func _clubs_edited() -> void:
+	var it := _ci_tree.get_edited()
+	if it == null:
+		return
+	var e := _ci_plan[int(it.get_metadata(0))]
+	var opts := _clubs_options(e)
+	var k := int(it.get_range(4))
+	if k >= 0 and k < opts.size():
+		e["choice"] = opts[k][0]
+		_clubs_fill.call_deferred()
+
+
+func _clubs_apply() -> void:
+	if _ci_plan.is_empty():
+		_ci_text.text = "Primero apretá \"1. Revisar lista de clubes\"."
+		return
+	var pending := _ci_plan.filter(func(e: Dictionary) -> bool: return e["choice"] == "")
+	var res := model.import_clubs(_ci_plan, _ci_stadiums.button_pressed)
+	_regroup()
+	_refresh_leagues()
+	_ci_text.text = "Listo: %d divisiones armadas con %d clubes (%d nuevos, %d estadios cambiados)%s. Guardá con Ctrl+S; Ctrl+Z lo deshace." % [
+		res["divisions"], res["clubs"], res["new"], res["stadiums"],
+		(". Quedaron %d filas sin elegir que no se importaron" % pending.size()) if not pending.is_empty() else ""]
+	_ci_plan.clear()
+	_ci_tree.clear()
 
 
 func _import() -> void:

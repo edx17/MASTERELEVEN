@@ -16,7 +16,7 @@ escudos, logos, marcas ni sponsors (ver `Claude.md`, Restricciones).
 | Países Bajos: Eredivisie (2025-26) | 18 | `ned.json` |
 | México: Liga MX (2025-26) | 18 | `mex.json` |
 | Brasil: Brasileirão (**2025**) | 20 | `bra.json` |
-| Argentina: LPF, Primera Nacional, Primera B, Primera C, Promocional Amateur | 30 + 36 + 20 + 20 + 12 | `arg.json` |
+| Argentina: LPF, Primera Nacional, Primera B, Primera C | 30 + 36 + 20 + 24 | `arg.json` |
 
 Cada club trae nombre, sigla, camisetas titular y suplente (colores de
 camiseta / pantalón / medias y diseño), estadio y capacidad. Los archivos
@@ -25,9 +25,10 @@ se generan con `tools/db_src/*.py` (fuente legible); se pueden editar a mano.
 **Ojo con la temporada:** la composición de las ligas sale de lo que Claude
 sabe a mediados de 2026. El Brasileirão es el de 2025 y la LPF y el Ascenso
 argentino son los de 2025 (los ascensos y descensos de fin de 2025 no están
-confirmados). En el **Promocional Amateur** sólo hay 4 clubes confirmados; el
-resto figura como "Club por definir N" hasta tener la lista real. Todo se
-corrige con el archivo de planteles o editando el JSON.
+confirmados). El Torneo Promocional Amateur no está (decisión: la división
+más baja es la Primera C). Todo se corrige con una lista de clubes desde el
+Editor (Importar > Clubes y divisiones), con el archivo de planteles o
+editando el JSON.
 
 ## Planteles
 
@@ -42,7 +43,7 @@ archivo real se reemplazan.
    de la lista y las selecciones. Es la mejor fuente: los atributos se
    convierten solos.
 2. **Transfermarkt**: para lo que FC no trae (Primera Nacional, Primera B,
-   Primera C, Promocional Amateur). Sin atributos: se estiman por la
+   Primera C). Sin atributos: se estiman por la
    división y el puesto.
 3. Para cerrar el Ascenso argentino: Promiedos, Solo Ascenso o las páginas
    de los clubes.

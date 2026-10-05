@@ -1,6 +1,6 @@
 extends Node
 ## Captura del Editor (para revisar su diseño):
-##   xvfb-run godot -- --editor --editor-shot=archivo.png [--editor-tab=0|1|2] [--editor-select=1|3]
+##   xvfb-run godot -- --editor --editor-shot=archivo.png [--editor-tab=0|1|2] [--editor-select=1|3] [--editor-review-clubs]
 
 var out := "user://editor.png"
 
@@ -16,6 +16,8 @@ func _run() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--editor-tab="):
 			ed.get("_tabs").current_tab = int(a.trim_prefix("--editor-tab="))
+		if a == "--editor-review-clubs":
+			ed.call("_clubs_review")
 		if a.begins_with("--editor-select="):
 			var n := int(a.trim_prefix("--editor-select="))
 			var tree: Tree = ed.get("_tree")

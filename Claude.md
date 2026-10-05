@@ -250,9 +250,9 @@ Criterio: capturas lado a lado con la referencia y 60 FPS con 22 jugadores.
     España (LaLiga, LaLiga 2), Italia (Serie A, Serie B), Portugal (Liga
     Portugal), Alemania (Bundesliga, 2. Bundesliga), Países Bajos
     (Eredivisie), México (Liga MX), Argentina (LPF, Primera Nacional,
-    Primera B, Primera C, Torneo Promocional Amateur), Brasil (Brasileirão).
+    Primera B, Primera C), Brasil (Brasileirão). Sin Promocional Amateur.
 - Inicio de la Liga Master: siempre en 2.ª división; en Argentina e
-  Inglaterra, en la más baja (Torneo Promocional Amateur / League Two). Los
+  Inglaterra, en la más baja (Primera C / League Two). Los
   países con una sola división no son elegibles. Siempre se elige entre
   **Equipo WE** (plantel genérico) o **Club real** (el plantel del club
   elegido), salvo que el club elegido sea de primera (LPF, Premier, LaLiga,

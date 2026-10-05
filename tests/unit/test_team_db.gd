@@ -18,7 +18,7 @@ func test_nations_build_with_flag_and_23_players() -> void:
 
 func test_all_clubs_load_and_divisions_are_complete() -> void:
 	var expected := {"eng": [20, 24, 24, 24], "esp": [20, 22], "ita": [20, 20], "ger": [18, 18], "por": [18],
-		"ned": [18], "mex": [18], "bra": [20], "arg": [30, 36, 20, 20, 12]}
+		"ned": [18], "mex": [18], "bra": [20], "arg": [30, 36, 20, 24]}
 	assert_eq(TeamDB.countries().size(), expected.size())
 	var total := 0
 	for c in TeamDB.countries():
@@ -29,7 +29,7 @@ func test_all_clubs_load_and_divisions_are_complete() -> void:
 				assert_true(TeamDB.exists(TeamDB.club_path(c["id"], cl["id"])))
 				total += 1
 		assert_eq(sizes, expected[c["id"]], c["id"])
-	assert_gt(total, 400)
+	assert_eq(total, 394)
 	var boca := TeamDB.load_team(TeamDB.club_path("arg", "boca"))
 	assert_eq(boca.team_name, "Boca Juniors")
 	assert_eq(boca.pattern, 6, "franja en el pecho")
@@ -98,7 +98,7 @@ func test_team_select_groups() -> void:
 	add_child_autofree(ts)
 	assert_eq(ts.groups[0]["kind"], "nations")
 	assert_eq(ts.groups[-1]["kind"], "we")
-	assert_eq(ts.groups.size(), 1 + 19 + 1, "selecciones + 19 divisiones + WE")
+	assert_eq(ts.groups.size(), 1 + 18 + 1, "selecciones + 18 divisiones + WE")
 	var saved := [GameSettings.home_team_path, GameSettings.away_team_path]
 	GameSettings.home_team_path = TeamDB.club_path("arg", "river")
 	GameSettings.away_team_path = TeamDB.nation_path("bra")

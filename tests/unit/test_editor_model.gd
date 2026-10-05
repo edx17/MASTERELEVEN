@@ -104,15 +104,15 @@ func test_leagues_move_new_and_remove_clubs() -> void:
 	m.move_club("arg", "arg2", "arg1", "colon")
 	assert_true(TeamDB.division_paths("arg", "arg1").has(TeamDB.club_path("arg", "colon")), "ascendido")
 	assert_false(TeamDB.division_paths("arg", "arg2").has(TeamDB.club_path("arg", "colon")))
-	var path := m.new_club("arg", "arg5", "Club Atlético Mi Barrio", "CMB")
-	assert_true(TeamDB.division_paths("arg", "arg5").has(path))
+	var path := m.new_club("arg", "arg4", "Club Atlético Mi Barrio", "CMB")
+	assert_true(TeamDB.division_paths("arg", "arg4").has(path))
 	var t := TeamDB.load_team(path)
 	assert_eq(t.team_name, "Club Atlético Mi Barrio")
 	assert_eq(t.players.size(), 23)
-	m.remove_club("arg", "arg5", "promo12")
-	assert_eq(TeamDB.division_paths("arg", "arg5").size(), 12, "12 + 1 nuevo - 1 sacado")
+	m.remove_club("arg", "arg4", "lugano")
+	assert_eq(TeamDB.division_paths("arg", "arg4").size(), 24, "24 + 1 nuevo - 1 sacado")
 	m.undo()
-	assert_eq(TeamDB.division_paths("arg", "arg5").size(), 13)
+	assert_eq(TeamDB.division_paths("arg", "arg4").size(), 25)
 
 
 ## E3: copas propias.

@@ -346,9 +346,13 @@ func import_rows(rows: Array[Dictionary], of: OptionFile = null) -> Dictionary:
 ## Importa todos los CSV de una carpeta al Option File `of` (y lo guarda).
 func import_folder(dir: String, of: OptionFile) -> Dictionary:
 	var rows: Array[Dictionary] = []
-	var files := UserData.files_in(dir, "csv")
-	for f in files:
-		rows.append_array(read_csv(f))
+	var files: Array[String] = []
+	for f in UserData.files_in(dir, "csv"):
+		var r := read_csv(f)
+		if ClubImporter.is_club_list(r):
+			continue # listas de clubes: van por ClubImporter
+		files.append(f)
+		rows.append_array(r)
 	if rows.is_empty():
 		report.clear()
 		return {"files": 0, "rows": 0, "players": 0, "clubs": 0, "nations": 0, "unmatched": 0, "unmatched_clubs": 0}

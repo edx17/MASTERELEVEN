@@ -113,15 +113,11 @@ C("yupanqui","Yupanqui","YUP",K(W,W,W,"band",R),K(R,R,R),"Yupanqui",1500),
 C("muniz","Muñiz","MUN",K(A,W,A),K(W,W,W),"Muñiz",1500),
 C("argmerlo","Argentino de Merlo","AME",K(CEL,W,CEL,"stripes",W),K(W,W,W),"Argentino de Merlo",3000),
 C("lugano","Club Lugano","LUG",K(CEL,W,CEL),K(W,W,W),"Lugano",1500),
-]
-pa=[
 C("paraguayo","Deportivo Paraguayo","PAR",K(R,A,W,"stripes",W),K(W,W,W),"Deportivo Paraguayo",1500),
 C("puertonuevo","Puerto Nuevo","PNU",K(CEL,W,CEL),K(W,W,W),"Puerto Nuevo",1000),
 C("argrosario","Argentino de Rosario","ARO",K(A,W,A,"stripes",W),K(W,W,W),"Gabino Sosa",3000),
 C("liniers","Club Social y Deportivo Liniers","LIN",K(W,R,W),K(R,R,R),"Liniers",1500),
-] + [C("promo%d" % i, "Club por definir %d" % i, "P%02d" % i, K("8c8c8c",W,"8c8c8c"), K(W,W,W), "", 0) for i in range(5, 13)
 ]
 write("arg","Argentina","arg","es_ar",[55,40,4,1],[
  D("arg1","Liga Profesional",1,lpf,"2026"), D("arg2","Primera Nacional",2,pn,"2026"),
- D("arg3","Primera B Metropolitana",3,b,"2026"), D("arg4","Primera C",4,c,"2026"),
- D("arg5","Torneo Promocional Amateur",5,pa,"2026")])
+ D("arg3","Primera B Metropolitana",3,b,"2026"), D("arg4","Primera C",4,c,"2026")])
