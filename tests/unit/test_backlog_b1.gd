@@ -51,7 +51,7 @@ func test_halftime_coasts_then_shows_the_stats() -> void:
 	assert_false(m.walk_off.is_empty(), "salen al túnel")
 	_step(int(MatchController.WALK_OFF_TIME / dt) + 2)
 	assert_true(m.halftime_screen.visible, "la pantalla de estadísticas")
-	assert_eq(m.halftime_screen.stat_rows().size(), 8)
+	assert_eq(m.halftime_screen.stat_rows().size(), 10)
 	# Espera al usuario (B10): no sigue sola.
 	_step(int(MatchController.BREAK_AUTO_CONTINUE / dt) + 2)
 	assert_eq(m.clock.half, 1, "espera")

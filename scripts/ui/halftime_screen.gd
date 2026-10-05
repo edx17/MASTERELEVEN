@@ -19,6 +19,8 @@ var _match: MatchController
 var _final := false
 var _title: Label
 var _score: Label
+## Goles de cada tiempo, debajo del resultado ("1T 1-0   2T 0-1").
+var _halves: Label
 var _rows: VBoxContainer
 var _menu: VBoxContainer
 var _continue: Button
@@ -52,6 +54,9 @@ func setup(m: MatchController) -> void:
 	_score = WEStyle.label("", 34)
 	_score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_score)
+	_halves = WEStyle.label("", 20, Color(0.8, 0.85, 0.95))
+	_halves.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(_halves)
 	_rows = VBoxContainer.new()
 	_rows.add_theme_constant_override("separation", 4)
 	box.add_child(_rows)
@@ -83,7 +88,7 @@ func open(final: bool) -> void:
 	_final = final
 	visible = true
 	_menu.visible = true
-	_title.text = "FINAL DEL PARTIDO" if final else "ENTRETIEMPO"
+	_title.text = "RESULTADO" if final else "ENTRETIEMPO"
 	_continue.visible = not final
 	_sheet_btn.visible = not final
 	_ratings_btn.visible = final
@@ -143,7 +148,19 @@ func stat_rows() -> Array:
 		["Amarillas", str(st["yellows"][0]), str(st["yellows"][1]), st["yellows"][0], st["yellows"][1]],
 		["Rojas", str(st["reds"][0]), str(st["reds"][1]), st["reds"][0], st["reds"][1]],
 		["Fuera de juego", str(st["offsides"][0]), str(st["offsides"][1]), st["offsides"][0], st["offsides"][1]],
+		["Tiros libres", str(st["free_kicks"][0]), str(st["free_kicks"][1]), st["free_kicks"][0], st["free_kicks"][1]],
+		["Penales", str(st["penalties"][0]), str(st["penalties"][1]), st["penalties"][0], st["penalties"][1]],
 	]
+
+
+## "1T 1-0   2T 0-1" (en el entretiempo, sólo el primero).
+func halves_text() -> String:
+	var g1: Array = _match.stats["goals_1st"]
+	var g2: Array = _match.stats["goals_2nd"]
+	var txt := "1T  %d - %d" % [g1[0], g1[1]]
+	if _final:
+		txt += "      2T  %d - %d" % [g2[0], g2[1]]
+	return txt
 
 
 func _toggle_ratings() -> void:
@@ -156,6 +173,7 @@ func _refresh() -> void:
 	var t0 := _match.teams[0]
 	var t1 := _match.teams[1]
 	_score.text = "%s   %d - %d   %s" % [t0.short_name, t0.score, t1.score, t1.short_name]
+	_halves.text = halves_text()
 	for c in _rows.get_children():
 		c.queue_free()
 	if _showing_ratings:
@@ -170,7 +188,7 @@ func _refresh() -> void:
 		row.right = float(r[4])
 		row.left_color = t0.color
 		row.right_color = t1.color
-		row.custom_minimum_size = Vector2(600, 40)
+		row.custom_minimum_size = Vector2(600, 36)
 		_rows.add_child(row)
 
 

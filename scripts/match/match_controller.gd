@@ -123,7 +123,8 @@ var break_auto_continue := false
 var ratings := PlayerRatings.new()
 var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won": [0, 0],
 	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0], "subs": [0, 0], "injuries": [0, 0], "contacts": [0, 0],
-	"chilenas": [0, 0], "corners": [0, 0], "possession": [0.0, 0.0]}
+	"chilenas": [0, 0], "corners": [0, 0], "possession": [0.0, 0.0],
+	"free_kicks": [0, 0], "penalties": [0, 0], "goals_1st": [0, 0], "goals_2nd": [0, 0]}
 ## Atajada planificada para el último remate (ver SaveModel):
 ## {keeper, will_save, parry, point, time_left, chance}. Vacío si no hay.
 var save_plan := {}
@@ -2631,6 +2632,7 @@ func _check_rules() -> void:
 		ratings.on_goal(goal_scorer, outcome.team, teams)
 		_show_goal(outcome.team)
 		teams[outcome.team].score += 1
+		stats["goals_1st" if clock.half == 1 else "goals_2nd"][outcome.team] += 1
 		banner_text = "¡GOL!"
 		_phase_timer = CELEBRATION_MAX
 		_goal_elapsed = 0.0
@@ -3291,6 +3293,10 @@ func _setup_kickoff(kicking_team: int) -> void:
 
 func _setup_restart(outcome: MatchRules.Outcome) -> void:
 	_make_pending_subs()
+	if outcome.type == MatchRules.Restart.FREE_KICK:
+		stats["free_kicks"][outcome.team] += 1
+	elif outcome.type == MatchRules.Restart.PENALTY:
+		stats["penalties"][outcome.team] += 1
 	var team := teams[outcome.team]
 	var spot := outcome.spot
 	var taker: Footballer

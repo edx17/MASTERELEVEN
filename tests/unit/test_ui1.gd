@@ -102,3 +102,25 @@ func test_display_switches_hide_radar_and_score() -> void:
 	assert_true(m._hud._top.visible)
 	GameSettings.show_radar = radar0
 	GameSettings.show_score = score0
+
+
+## UI1-c: el resultado cuenta los goles de cada tiempo, los tiros libres y
+## los penales; el final se titula "RESULTADO".
+func test_result_counts_halves_free_kicks_and_penalties() -> void:
+	_start()
+	m._setup_restart(MatchRules.Outcome.new(MatchRules.Restart.FREE_KICK, 1, Vector3(10, 0.11, 5)))
+	m._setup_restart(MatchRules.Outcome.new(MatchRules.Restart.PENALTY, 0, m.penalty_spot(m.teams[1])))
+	assert_eq(m.stats["free_kicks"], [0, 1])
+	assert_eq(m.stats["penalties"], [1, 0])
+	m.stats["goals_1st"] = [1, 0]
+	m.stats["goals_2nd"] = [0, 2]
+	m.halftime_screen.open(true)
+	assert_eq(m.halftime_screen._title.text, "RESULTADO")
+	assert_eq(m.halftime_screen.halves_text(), "1T  1 - 0      2T  0 - 2")
+	var names := []
+	for r in m.halftime_screen.stat_rows():
+		names.append(r[0])
+	assert_has(names, "Tiros libres")
+	assert_has(names, "Penales")
+	assert_has(names, "Fuera de juego")
+	m.halftime_screen.close()
