@@ -115,6 +115,8 @@ var _tuning: Tuning
 var _arrow: MeshInstance3D
 var _pass_marker: MeshInstance3D
 var _control_ring: MeshInstance3D
+## Número del mando (1, 2...) al lado de la flecha, como en el WE.
+var _slot_label: Label3D
 var _label: Label3D
 ## Capa de presentación (modelo y animaciones); no afecta la simulación.
 var visual: PlayerVisual
@@ -547,8 +549,11 @@ func set_human_slot(slot: int) -> void:
 		return
 	_arrow.visible = slot >= 0 and not presenting
 	_control_ring.visible = slot >= 0 and not presenting
+	_slot_label.visible = slot >= 0 and not presenting
 	if slot >= 0:
 		var c := SLOT_COLORS[slot % SLOT_COLORS.size()]
+		_slot_label.text = str(slot + 1)
+		_slot_label.modulate = c
 		(_arrow.material_override as StandardMaterial3D).albedo_color = c
 		(_control_ring.material_override as StandardMaterial3D).albedo_color = Color(c, 0.9)
 
@@ -680,6 +685,19 @@ func _build_visuals() -> void:
 	_arrow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_arrow.visible = false
 	add_child(_arrow)
+	_slot_label = Label3D.new()
+	_slot_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_slot_label.font_size = 48
+	_slot_label.outline_size = 12
+	_slot_label.pixel_size = 0.006
+	_slot_label.outline_modulate = Color(0, 0, 0, 0.9)
+	_slot_label.no_depth_test = true
+	_slot_label.render_priority = 2
+	_slot_label.position.y = 2.5
+	# Corrido a la derecha de la flecha (en píxeles de la etiqueta).
+	_slot_label.offset = Vector2(34, 0)
+	_slot_label.visible = false
+	add_child(_slot_label)
 
 	# Anillo en el piso del jugador controlado (del color del humano).
 	_control_ring = MeshInstance3D.new()

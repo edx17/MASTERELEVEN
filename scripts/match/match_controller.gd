@@ -172,6 +172,8 @@ const SET_PIECE_YAW_SPEED := 0.9
 ## Penal: zona del remate y del arquero (x = lado en z del mundo, y = altura).
 var _pk_shot_zone := Vector2i.ZERO
 var _aim_arrow: MeshInstance3D
+## Cartel 3D con la distancia al arco en los tiros libres ("23M", UI-1).
+var _distance_sign: Label3D
 var _pending: MatchRules.Outcome = null
 var _first_half_kicker: int = 0
 var _camera: MatchCamera
@@ -459,6 +461,7 @@ func _physics_process(dt: float) -> void:
 	if goal_kick:
 		_drive_goal_kick()
 	_update_aim_arrow()
+	_update_distance_sign()
 	_hold_card_offender(dt)
 	for p in all_players():
 		p.tick(dt, ball.owner_player == p and not (goal_kick and p == restart_taker))
@@ -2138,6 +2141,45 @@ func _update_aim_arrow() -> void:
 	# Prisma acostado sobre el pasto, con la punta hacia donde se apunta.
 	var b := Basis.looking_at(Vector3.DOWN, aim)
 	_aim_arrow.global_transform = Transform3D(b, ball.flat_pos() + aim * 3.6 + Vector3(0.0, 0.03, 0.0))
+
+
+## Metros (enteros) de la pelota al centro del arco, como el cartel del WE.
+static func goal_distance_m(spot: Vector3, goal: Vector3) -> int:
+	return roundi(Vector2(goal.x - spot.x, goal.z - spot.z).length())
+
+
+func distance_sign_text() -> String:
+	if _distance_sign == null or not _distance_sign.visible:
+		return ""
+	return _distance_sign.text
+
+
+func _update_distance_sign() -> void:
+	var show := free_kick_camera_active() and restart_taker != null \
+		and goal_kick_stage != GoalKickStage.RUNNING
+	if not show:
+		if _distance_sign != null:
+			_distance_sign.visible = false
+		return
+	if _distance_sign == null:
+		_distance_sign = Label3D.new()
+		_distance_sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_distance_sign.font_size = 96
+		_distance_sign.outline_size = 18
+		_distance_sign.pixel_size = 0.01
+		_distance_sign.modulate = Color(1.0, 0.92, 0.25)
+		_distance_sign.outline_modulate = Color(0.05, 0.05, 0.1, 0.95)
+		_distance_sign.no_depth_test = true
+		_distance_sign.render_priority = 2
+		add_child(_distance_sign)
+	var spot := ball.flat_pos()
+	var goal := restart_taker.team.target_goal()
+	_distance_sign.visible = true
+	_distance_sign.text = "%dM" % goal_distance_m(spot, goal)
+	# Flotando entre la pelota y el arco, sobre la barrera.
+	var to := goal - spot
+	to.y = 0.0
+	_distance_sign.global_position = spot + to.normalized() * minf(6.0, to.length() * 0.3) + Vector3(0.0, 3.4, 0.0)
 
 
 func _update_one_two(dt: float) -> void:
