@@ -107,8 +107,9 @@ func _table(body: Control) -> void:
 	var down := TeamDB.relegation_count(career.country, view_division)
 	var n := comp.team_paths.size()
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(636, 500)
+	scroll.custom_minimum_size = Vector2(636, 480)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	WEStyle.pad_scroll(scroll)
 	body.add_child(scroll)
 	var grid := GridContainer.new()
 	grid.columns = 10
@@ -137,8 +138,8 @@ func _table(body: Control) -> void:
 		legend.append("Verde: suben %d" % up)
 	if down > 0:
 		legend.append("Rojo: bajan %d" % down)
-	if not legend.is_empty():
-		body.add_child(WEStyle.label("   ".join(legend), 14, Color(0.75, 0.8, 0.9)))
+	legend.append("Stick derecho o RePág / AvPág: mover la tabla")
+	body.add_child(WEStyle.label("   ".join(legend), 14, Color(0.75, 0.8, 0.9)))
 	if my_row != null:
 		_scroll_to.call_deferred(scroll, my_row)
 

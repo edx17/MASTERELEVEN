@@ -59,12 +59,16 @@ func _ready() -> void:
 			return GameSettings.PLAYER_STYLE_NAMES[clampi(GameSettings.player_style, 0, 2)],
 		func(d: int) -> void: GameSettings.player_style = posmod(GameSettings.player_style + d, 3),
 		"Modelo de los jugadores. Clásicos: pocos polígonos, como el WE de PS1. Retro (beta): el modelo base estilo PS1. Detallados: el modelo con músculos.")
-	var go := WEStyle.bar("Jugar", func() -> void: play.emit(), 560.0, 22)
+	# Jugar y Volver lado a lado, para que todo entre arriba de la caja de ayuda.
+	var buttons := HBoxContainer.new()
+	buttons.add_theme_constant_override("separation", 8)
+	list.add_child(buttons)
+	var go := WEStyle.bar("Jugar", func() -> void: play.emit(), 276.0, 22)
 	go.focus_entered.connect(func() -> void: _help.text = "Arranca la previa del partido (con la Dirección del equipo).")
-	list.add_child(go)
-	var ret := WEStyle.bar("Volver", func() -> void: back.emit(), 560.0, 22)
+	buttons.add_child(go)
+	var ret := WEStyle.bar("Volver", func() -> void: back.emit(), 276.0, 22)
 	ret.focus_entered.connect(func() -> void: _help.text = "Volver a elegir los equipos.")
-	list.add_child(ret)
+	buttons.add_child(ret)
 	# Derecha: estadio y uniformes.
 	var right := WEStyle.panel(Vector2(500, 0))
 	right.position = Vector2(700, 86)
@@ -106,6 +110,7 @@ func _add(list: VBoxContainer, caption: String, getter: Callable, stepper: Calla
 	var row := WEStyle.OptionRow.new(caption, getter, func(d: int) -> void:
 		stepper.call(d)
 		_refresh(), help)
+	row.custom_minimum_size.y = 33
 	row.focus_entered.connect(func() -> void: _help.text = help)
 	list.add_child(row)
 	_rows.append(row)
