@@ -205,6 +205,7 @@ func _ready() -> void:
 	# Copia del ajuste para este partido: el clima la modifica (césped mojado,
 	# nieve, viento) sin tocar los valores base.
 	conditions = GameSettings.make_conditions()
+	MatchConditions.current = conditions
 	tuning = GameSettings.tuning.duplicate()
 	conditions.apply_to(tuning)
 	randomize()

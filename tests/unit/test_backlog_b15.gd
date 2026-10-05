@@ -119,3 +119,50 @@ func test_model_uses_the_player_skin() -> void:
 	look.merge(d.look())
 	v.setup(look, 99)
 	assert_eq(v.skin_color, PlayerData.SKIN_COLORS[2])
+
+
+## B2: malla clásica más fina (con UV de la ropa), cara dibujada y manga larga.
+func test_classic_mesh_has_uv_and_more_detail() -> void:
+	if not ModelVisual.available():
+		pass_test("sin modelo")
+		return
+	var v := ModelVisual.new()
+	add_child_autofree(v)
+	v.setup({"shirt": Color.WHITE, "facial_hair": 4, "long_sleeves": true}, 7)
+	var data := ClassicBody.prepare(v._skel)
+	var arr: Array = data["arrays"]
+	var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+	var uvs: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV]
+	assert_eq(uvs.size(), verts.size(), "UV en cada vértice")
+	var tris := verts.size() / 3
+	gut.p("cuerpo clásico: %d triángulos" % tris)
+	assert_between(tris, 1500, 6000, "más fino que antes pero liviano")
+	# La ropa ocupa su región de la textura (docs/KIT_UV.md).
+	var in_torso := 0
+	for uv in uvs:
+		if uv.x < 0.5 and uv.y < 0.5:
+			in_torso += 1
+	assert_gt(in_torso, 100)
+	if GameSettings.player_style == GameSettings.PlayerStyle.CLASSIC:
+		assert_true(bool(v._body_mat.get_shader_parameter("draw_face")), "cara dibujada")
+		assert_eq(int(v._body_mat.get_shader_parameter("beard")), 4)
+		assert_true(bool(v._body_mat.get_shader_parameter("long_sleeves")))
+
+
+## B2: manga larga con lluvia/nieve; arqueros casi siempre.
+func test_long_sleeves_rule() -> void:
+	var cold := MatchConditions.new()
+	cold.weather = MatchConditions.Weather.SNOW
+	var clear := MatchConditions.new()
+	var d := _data("Ramírez")
+	assert_true(Footballer.long_sleeves_for(d, false, cold), "con nieve, todos")
+	var keepers := 0
+	var field := 0
+	for i in 40:
+		var p := _data("J%d" % i)
+		if Footballer.long_sleeves_for(p, true, clear):
+			keepers += 1
+		if Footballer.long_sleeves_for(p, false, clear):
+			field += 1
+	assert_gt(keepers, 25, "los arqueros casi siempre")
+	assert_lt(field, 15, "con buen tiempo, pocos")

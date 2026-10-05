@@ -199,6 +199,11 @@ func setup(colors: Dictionary, seed: int) -> void:
 		# Caras planas separadas: la ropa no se "infla" (si no, se abren).
 		_body_mat.set_shader_parameter("cloth_inflate", 0.0)
 		_classic = ClassicBody.build(_skel, _body_mat)
+		# Cara dibujada (ojos, cejas, boca, barba) y manga larga.
+		_body_mat.set_shader_parameter("draw_face", true)
+		_body_mat.set_shader_parameter("beard", beard)
+		_body_mat.set_shader_parameter("beard_color", beard_color)
+		_body_mat.set_shader_parameter("long_sleeves", bool(colors.get("long_sleeves", false)))
 		body.visible = false
 		if hair_node != null:
 			hair_node.visible = false
@@ -342,6 +347,15 @@ func recolor(colors: Dictionary) -> void:
 ## Fija el físico: calcula la escala de cada hueso. Escalar un hueso escala a
 ## sus hijos, así que cada hijo se compensa (en sus ejes, según su rotación de
 ## reposo) para que, por ejemplo, el pecho ancho no ensanche la cabeza.
+## Uniforme con textura (editor de camisetas; docs/KIT_UV.md). null = el
+## diseño por código.
+func set_kit_texture(tex: Texture2D) -> void:
+	if _body_mat == null:
+		return
+	_body_mat.set_shader_parameter("use_kit_tex", tex != null)
+	_body_mat.set_shader_parameter("kit_tex", tex)
+
+
 ## Aspecto del jugador (B4): piel, barba (FACIAL_HAIR de PlayerData) y su color.
 var skin_color := Color(0.84, 0.64, 0.47)
 var beard := 0

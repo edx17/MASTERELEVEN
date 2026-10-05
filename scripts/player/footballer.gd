@@ -208,6 +208,19 @@ func is_keeper() -> bool:
 
 ## Ropa según el puesto: el arquero con la camiseta y guantes de arquero
 ## (siempre con su propio número).
+## Manga larga: con nieve o lluvia todos; de noche, la mitad; si no, algunos.
+## Los arqueros, casi siempre.
+static func long_sleeves_for(d: PlayerData, keeper: bool, cond: MatchConditions) -> bool:
+	var r := float(hash(d.id + d.player_name + "sleeve") % 1000) / 1000.0 if d != null else 0.5
+	if keeper:
+		return r < 0.85
+	if cond != null and (cond.is_snow() or cond.wetness >= 0.3):
+		return true
+	if cond != null and cond.time_of_day == MatchConditions.TimeOfDay.NIGHT:
+		return r < 0.5
+	return r < 0.12
+
+
 func kit_colors() -> Dictionary:
 	var shirt := team.keeper_color if is_keeper() else team.color
 	var colors := {"shirt": shirt, "shorts": team.secondary_color, "socks": shirt, "number": number}
@@ -629,6 +642,7 @@ func _build_visuals() -> void:
 		colors["build"] = int(data.visual_build())
 		colors["body"] = data.body_params()
 		colors.merge(data.look(), true)
+		colors["long_sleeves"] = long_sleeves_for(data, is_keeper(), MatchConditions.current)
 		if data.hair >= 0:
 			colors["hair_style"] = data.hair
 	visual.setup(colors, team.index * 100 + number)
