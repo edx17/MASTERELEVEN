@@ -41,6 +41,22 @@ static func is_wide(k: int) -> bool:
 	return k == Kind.FB or k == Kind.WM or k == Kind.WF
 
 
+## Sigla del puesto como en el WE2002 (CB, LB, RB, DMF, CMF, LMF, RMF, AMF,
+## WG, CF). `side` es la y del puesto en espacio de equipo (negativa =
+## derecha: el lateral derecho de la 4-4-2 está en y -0.68).
+static func we_code(k: int, side: float) -> String:
+	match k:
+		Kind.GK: return "GK"
+		Kind.CB: return "CB"
+		Kind.FB: return "RB" if side < 0.0 else "LB"
+		Kind.DM: return "DMF"
+		Kind.CM: return "CMF"
+		Kind.AM: return "AMF"
+		Kind.WM: return "RMF" if side < 0.0 else "LMF"
+		Kind.WF: return "WG"
+	return "CF"
+
+
 ## Posición general (PlayerData.Position) que corresponde a un rol.
 static func to_position(k: int) -> int:
 	match k:

@@ -211,7 +211,7 @@ func rating_rows(t: Team) -> Array:
 			continue
 		seen[p] = true
 		var s := r.of(p)
-		var code: String = "GK" if p.is_keeper() else TeamSheet.ROLE_CODES[clampi(p.tactical_role, 0, TeamSheet.ROLE_CODES.size() - 1)]
+		var code: String = "GK" if p.is_keeper() else TeamSheet.role_code(p)
 		out.append([code, p.number, p.display_name, r.rating(p), s["goals"], s["assists"], p == mvp])
 	return out
 

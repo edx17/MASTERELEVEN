@@ -1392,6 +1392,28 @@ func _leave_pitch(p: Footballer) -> void:
 
 ## Distancia al arco hasta la que el tiro libre lo patea el elegido.
 const FK_TAKER_RANGE := 35.0
+## Desde acá (m al arco) el tiro libre es "largo" (pateador de los largos).
+const FK_LONG_DIST := 25.0
+
+
+## Pateador elegido para un tiro libre: el de los largos de lejos, si hay.
+static func free_kick_taker_data(team: Team, spot: Vector3) -> PlayerData:
+	var d := Vector2(team.target_goal().x - spot.x, team.target_goal().z - spot.z).length()
+	if d >= FK_LONG_DIST and team.fk_long_taker != null:
+		return team.fk_long_taker
+	return team.fk_taker
+
+
+## ¿El córner es del lado izquierdo de quien ataca? (Mirando hacia +x la
+## izquierda es -z.)
+static func corner_from_left(team: Team, spot: Vector3) -> bool:
+	return spot.z * team.attack_dir < 0.0
+
+
+static func corner_taker_data(team: Team, spot: Vector3) -> PlayerData:
+	if not corner_from_left(team, spot) and team.ck_right_taker != null:
+		return team.ck_right_taker
+	return team.ck_taker
 
 ## Minuto desde el que la CPU cambia a los cansados.
 const CPU_SUB_MINUTE := 55.0
@@ -3308,7 +3330,8 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 			stand = spot - Vector3(team.attack_dir * 0.6, 0.0, 0.0)
 			look = Vector3(team.attack_dir, 0.0, 0.0)
 		MatchRules.Restart.CORNER:
-			taker = team.on_pitch(team.ck_taker) if team.ck_taker != null else team.tagged("corners")
+			var ck := corner_taker_data(team, spot)
+			taker = team.on_pitch(ck) if ck != null else team.tagged("corners")
 			if taker == null or taker.is_keeper():
 				taker = _nearest_outfield(team, spot)
 			var out := Vector3(signf(spot.x), 0.0, signf(spot.z)).normalized()
@@ -3316,7 +3339,8 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 			look = (team.target_goal() - spot).normalized()
 		MatchRules.Restart.FREE_KICK:
 			# El pateador elegido, si es para pegarle al arco; si no, el más cerca.
-			taker = (team.on_pitch(team.fk_taker) if team.fk_taker != null else team.tagged("especialista")) \
+			var fk := free_kick_taker_data(team, spot)
+			taker = (team.on_pitch(fk) if fk != null else team.tagged("especialista")) \
 					if spot.distance_to(team.target_goal()) < FK_TAKER_RANGE else null
 			if taker == null or taker.is_keeper():
 				taker = _nearest_outfield(team, spot)

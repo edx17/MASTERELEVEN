@@ -35,8 +35,13 @@ var pending_subs: Array[Dictionary] = []
 var conditions := {}
 ## Capitán y pateadores elegidos en la Dirección del equipo (null = automático).
 var captain: PlayerData = null
+## Tiro libre corto (cerca del área) y largo (de lejos; si no hay, el corto).
 var fk_taker: PlayerData = null
+var fk_long_taker: PlayerData = null
+## Córner desde la izquierda y desde la derecha (mirando al arco rival; si no
+## hay de la derecha, el de la izquierda).
 var ck_taker: PlayerData = null
+var ck_right_taker: PlayerData = null
 var pk_taker: PlayerData = null
 ## Estrategias asignadas a los cuatro botones y la que está activa.
 var strategy_slots: Array[int] = Strategy.DEFAULT_SLOTS.duplicate()

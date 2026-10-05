@@ -124,3 +124,68 @@ func test_result_counts_halves_free_kicks_and_penalties() -> void:
 	assert_has(names, "Penales")
 	assert_has(names, "Fuera de juego")
 	m.halftime_screen.close()
+
+
+## UI1-d: siglas de puesto del WE2002 con el lado.
+func test_we_position_codes() -> void:
+	assert_eq(TacticalRole.we_code(TacticalRole.Kind.FB, -0.68), "RB")
+	assert_eq(TacticalRole.we_code(TacticalRole.Kind.FB, 0.68), "LB")
+	assert_eq(TacticalRole.we_code(TacticalRole.Kind.WM, 0.7), "LMF")
+	assert_eq(TacticalRole.we_code(TacticalRole.Kind.DM, 0.0), "DMF")
+	assert_eq(TacticalRole.we_code(TacticalRole.Kind.ST, 0.1), "CF")
+	_start()
+	var codes := []
+	for p in m.teams[0].players:
+		if not p.is_keeper():
+			codes.append(TeamSheet.role_code(p))
+	assert_has(codes, "CB")
+	assert_true(codes.has("LB") or codes.has("LMF") or codes.has("WG"), str(codes))
+
+
+## UI1-d: tiro libre corto / largo y córner izquierdo / derecho.
+func test_separate_set_piece_takers() -> void:
+	_start()
+	var t := m.teams[0]
+	var a: PlayerData = t.players[9].base_data
+	var b: PlayerData = t.players[10].base_data
+	t.fk_taker = a
+	t.fk_long_taker = b
+	var g := t.target_goal()
+	assert_eq(MatchController.free_kick_taker_data(t, g - Vector3(t.attack_dir * 20.0, 0, 0)), a, "corto")
+	assert_eq(MatchController.free_kick_taker_data(t, g - Vector3(t.attack_dir * 30.0, 0, 0)), b, "largo")
+	t.ck_taker = a
+	t.ck_right_taker = b
+	var left := Vector3(g.x, 0, -Pitch.HALF_WIDTH * t.attack_dir)
+	var right := Vector3(g.x, 0, Pitch.HALF_WIDTH * t.attack_dir)
+	assert_true(MatchController.corner_from_left(t, left))
+	assert_eq(MatchController.corner_taker_data(t, left), a)
+	assert_eq(MatchController.corner_taker_data(t, right), b)
+	t.ck_right_taker = null
+	assert_eq(MatchController.corner_taker_data(t, right), a, "sin el de la derecha, el de la izquierda")
+	m._setup_restart(MatchRules.Outcome.new(MatchRules.Restart.CORNER, 0, Vector3(right.x, 0.11, right.z)))
+	assert_eq(m.restart_taker.base_data, a)
+
+
+## UI1-d: Copiar estrategia guarda formación, botones y pateadores y los
+## vuelve a poner.
+func test_copy_strategy_saves_and_loads() -> void:
+	TeamSheet.plans_path = "user://test_plans.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TeamSheet.plans_path))
+	_start()
+	var t := m.teams[0]
+	var sheet := TeamSheet.new()
+	add_child_autofree(sheet)
+	sheet.open(m, t, true)
+	var a: PlayerData = t.players[9].base_data
+	t.fk_long_taker = a
+	t.strategy_slots[0] = t.strategy_slots[3]
+	var slots := t.strategy_slots.duplicate()
+	sheet.save_plan()
+	t.fk_long_taker = null
+	t.strategy_slots[0] = Strategy.DEFAULT_SLOTS[0]
+	sheet.load_plan()
+	assert_eq(t.fk_long_taker, a)
+	assert_eq(t.strategy_slots, slots)
+	sheet.close()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TeamSheet.plans_path))
+	TeamSheet.plans_path = "user://plans.cfg"

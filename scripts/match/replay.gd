@@ -417,7 +417,7 @@ static func player_line(p: Footballer) -> String:
 
 static func scorer_line(p: Footballer, own_goal: bool) -> String:
 	var d := p.base_data if p.base_data != null else p.data
-	var code: String = "GK" if p.is_keeper() else TeamSheet.ROLE_CODES[clampi(p.tactical_role, 0, TeamSheet.ROLE_CODES.size() - 1)]
+	var code: String = "GK" if p.is_keeper() else TeamSheet.role_code(p)
 	var line := "%s   %d   %s   %d cm   %d años" % [code, p.number, p.display_name, d.height_cm(), d.get_age()]
 	return line + ("   (en contra)" if own_goal else "")
 

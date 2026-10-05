@@ -500,7 +500,7 @@ func _announce(p: Footballer) -> void:
 	var box := VBoxContainer.new()
 	row.add_child(box)
 	box.add_child(WEStyle.label(p.display_name, 30, Color.WHITE))
-	var pos: String = "ARQUERO" if p.is_keeper() else TeamSheet.ROLE_CODES[clampi(p.tactical_role, 0, TeamSheet.ROLE_CODES.size() - 1)]
+	var pos: String = "ARQUERO" if p.is_keeper() else TeamSheet.role_code(p)
 	box.add_child(WEStyle.label("%s · %s" % [pos, p.team.team_name], 18, Color(0.85, 0.88, 0.95)))
 	_caption.visible = true
 	player_announced.emit(p)
@@ -659,7 +659,7 @@ func show_lineup(team_index: int) -> void:
 		row.add_theme_constant_override("separation", 12)
 		box.add_child(row)
 		var code := Label.new()
-		code.text = "GK" if p.is_keeper() else TeamSheet.ROLE_CODES[clampi(p.tactical_role, 0, TeamSheet.ROLE_CODES.size() - 1)]
+		code.text = "GK" if p.is_keeper() else TeamSheet.role_code(p)
 		code.custom_minimum_size = Vector2(44, 0)
 		code.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		code.add_theme_font_size_override("font_size", 18)
