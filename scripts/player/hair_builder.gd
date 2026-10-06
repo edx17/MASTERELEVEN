@@ -10,9 +10,11 @@ const NAMES := ["corto degradé", "pelado", "casco", "mohicano", "coleta", "rulo
 	"rastas", "pelado arriba", "largo con raya", "afro", "trenzas pegadas", "flequillo", "copete",
 	"corto con raya al costado"]
 
-## Cráneo (elipsoide) medido sobre la malla del cuerpo en reposo.
-const CENTER := Vector3(0.0, 1.70, -0.008)
-const RADII := Vector3(0.094, 0.112, 0.104)
+## Cráneo (elipsoide) medido sobre la malla del cuerpo en reposo (a la
+## altura de la frente: ±0,090 de ancho y de -0,106 a 0,094 de fondo). Un
+## poco más grande y el pelo corto quedaba despegado de la cabeza.
+const CENTER := Vector3(0.0, 1.70, -0.006)
+const RADII := Vector3(0.090, 0.112, 0.100)
 
 static var _cache := {}
 
@@ -127,7 +129,7 @@ static func mesh(style: int) -> ArrayMesh:
 						[0.013, 0.012, 0.009], 5)
 		Style.HORSESHOE:
 			# Pelado arriba: sólo una corona corta a los costados y atrás.
-			_cap(st, func(_d: Vector3) -> float: return 0.007,
+			_cap(st, func(_d: Vector3) -> float: return 0.004,
 					func(d: Vector3) -> bool: return d.y > -0.25 and d.y < 0.3 and d.z < 0.35)
 		Style.LONG_PARTED:
 			# Largo y lacio, con raya al medio, hasta los hombros.

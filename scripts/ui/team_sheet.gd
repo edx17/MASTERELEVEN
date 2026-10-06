@@ -96,9 +96,18 @@ func _ready() -> void:
 	bottom.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right.add_child(bottom)
 	var mp := _panel(bottom, Vector2(318, 0))
+	# El menú es largo (tiradores, estrategias...): se desplaza con el foco
+	# para que no se corte abajo.
+	var ms := ScrollContainer.new()
+	ms.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	ms.follow_focus = true
+	ms.custom_minimum_size = Vector2(300, 0)
+	ms.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	mp.add_child(ms)
 	_menu = VBoxContainer.new()
 	_menu.add_theme_constant_override("separation", 4)
-	mp.add_child(_menu)
+	_menu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ms.add_child(_menu)
 	var dp := _panel(bottom, Vector2(428, 0))
 	dp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_detail = VBoxContainer.new()
@@ -299,7 +308,7 @@ func _column_cell(e: Dictionary) -> Control:
 	cell.custom_minimum_size = Vector2(84, 16)
 	cell.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cell.add_theme_font_size_override("font_size", 14)
-	var code: String = POS_CODES[d.position]
+	var code: String = d.role_code if d.role_code != "" else POS_CODES[d.position]
 	var pos := int(d.position)
 	if e["kind"] == "pitch" and p != null:
 		code = role_code(p)
@@ -591,7 +600,10 @@ func _show_detail(i: int) -> void:
 	var cond := team.condition_of(base)
 	var d: PlayerData = p.data if p != null and p.data != null else base.with_condition(cond)
 	_label(_detail, "%d  %s" % [base.number, base.player_name], 21, Color.WHITE)
-	var info := "%s  ·  %s  ·  %d cm  ·  Físico %s (%s)  ·  Condición: %s" % [POS_CODES[base.position],
+	var code: String = base.role_code if base.role_code != "" else POS_CODES[base.position]
+	if p != null and e["kind"] == "pitch":
+		code = "GK" if p.is_keeper() else role_code(p)
+	var info := "%s  ·  %s  ·  %d cm  ·  Físico %s (%s)  ·  Condición: %s" % [code,
 		base.foot_name(), base.height_cm(), base.physique_letter(),
 		PlayerData.BUILD_NAMES.get(base.visual_build(), ""), PlayerData.CONDITION_NAMES[cond]]
 	if p != null and e["kind"] == "pitch":
@@ -695,8 +707,9 @@ class MiniPitch:
 		if team == null:
 			return
 		var moving := false
+		var sp := spots()
 		for p in team.players:
-			var want := spot_of(p)
+			var want: Vector2 = sp.get(p, Vector2(0.5, 0.5))
 			var cur: Vector2 = _shown.get(p, want)
 			var nxt := cur.lerp(want, 1.0 - exp(-10.0 * dt))
 			if nxt.distance_to(want) < 0.001:
@@ -710,11 +723,44 @@ class MiniPitch:
 	## Lugar de la ficha de `p` en la cancha (x 0..1 de arco propio a rival,
 	## y 0..1 de arriba abajo).
 	func spot_of(p: Footballer) -> Vector2:
-		# Las posiciones base van de su arco a la mitad: se estiran a la cancha.
-		var max_x := 0.3
+		return spots().get(p, Vector2(0.5, 0.5))
+
+	## Lugar de cada ficha: el arquero en su arco y las líneas repartidas por
+	## toda la cancha (defensa cerca del área propia, delanteros cerca de la
+	## rival). Las fichas que quedarían encimadas se separan a lo alto.
+	func spots() -> Dictionary:
+		var out := {}
+		var min_x := INF
+		var max_x := -INF
 		for q in team.players:
-			max_x = maxf(max_x, q.base_spot.x)
-		return Vector2(0.06 + 0.84 * clampf(p.base_spot.x / max_x, 0.0, 1.0), 0.5 - p.base_spot.y * 0.5)
+			if not q.is_keeper():
+				min_x = minf(min_x, q.base_spot.x)
+				max_x = maxf(max_x, q.base_spot.x)
+		var span := max_x - min_x
+		for q in team.players:
+			var x := 0.07
+			if not q.is_keeper():
+				x = 0.55 if span < 0.01 else lerpf(0.27, 0.86, (q.base_spot.x - min_x) / span)
+			out[q] = Vector2(x, clampf(0.5 - q.base_spot.y * 0.5, 0.06, 0.94))
+		# Separación mínima entre fichas (en la cancha de 0..1): ~90 px de ancho
+		# y ~44 px de alto en la cancha de la pantalla.
+		var gap := Vector2(0.12, 0.2)
+		var list: Array = out.keys()
+		for it in 12:
+			var moved := false
+			for a in list.size():
+				for b in range(a + 1, list.size()):
+					var pa: Vector2 = out[list[a]]
+					var pb: Vector2 = out[list[b]]
+					if absf(pa.x - pb.x) < gap.x and absf(pa.y - pb.y) < gap.y:
+						var push := (gap.y - absf(pa.y - pb.y)) * 0.5 + 0.001
+						var up := -1.0 if pa.y < pb.y or (pa.y == pb.y and a < b) else 1.0
+						out[list[a]] = Vector2(pa.x, clampf(pa.y + up * push, 0.06, 0.94))
+						out[list[b]] = Vector2(pb.x, clampf(pb.y - up * push, 0.06, 0.94))
+						moved = true
+			if not moved:
+				break
+		return out
 
 	## Lugar dibujado ahora (para los tests: se anima hacia spot_of).
 	func shown_of(p: Footballer) -> Vector2:

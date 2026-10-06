@@ -180,7 +180,10 @@ func setup(colors: Dictionary, seed: int) -> void:
 		else:
 			set_build(int(colors.get("build", PlayerData.Build.NORMAL)))
 		var scalp := hair_color
-		if hair_style in [HairBuilder.Style.SHAVED, HairBuilder.Style.HORSESHOE]:
+		# En el cuerpo Detallados la zona del pelo pintada baja por la nuca más
+		# que la malla del peinado (se veía una mancha despegada): piel.
+		if hair_style in [HairBuilder.Style.SHAVED, HairBuilder.Style.HORSESHOE] \
+				or GameSettings.player_style == GameSettings.PlayerStyle.DETAILED:
 			scalp = skin.darkened(0.08)
 		mat.set_shader_parameter("hair", scalp)
 		_add_hair(hair_style, hair_color, colors.get("shirt", Color.WHITE))
@@ -456,6 +459,13 @@ func _add_hair(style: int, color: Color, band_color: Color) -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = m
 	mi.transform = _skel.get_bone_global_rest(head).affine_inverse()
+	# "Pelado arriba" (corona baja a los costados y atrás): en la cabeza del
+	# Detallados, más angosta a esa altura, se ajusta para que no quede como
+	# un aro despegado.
+	if style == HairBuilder.Style.HORSESHOE and GameSettings.player_style == GameSettings.PlayerStyle.DETAILED:
+		var sc := Vector3(0.9, 1.0, 0.93)
+		var c := HairBuilder.CENTER
+		mi.transform = mi.transform * Transform3D(Basis.from_scale(sc), c - c * sc)
 	for si in m.get_surface_count():
 		match m.surface_get_name(si):
 			"cards":

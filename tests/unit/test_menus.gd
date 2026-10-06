@@ -93,3 +93,20 @@ func test_mirror_match_uses_the_other_kit() -> void:
 	var m: MatchController = load("res://scenes/match/match.tscn").instantiate()
 	add_child_autofree(m)
 	assert_false(GameSettings.kits_clash(m.teams[0].color, m.teams[1].color))
+
+
+## Un valor largo no pisa el nombre de la opción: se recorta y corre.
+func test_option_row_long_value_scrolls_inside_its_space() -> void:
+	var row := WEStyle.OptionRow.new("Sobre los jugadores", func() -> String: return "nombre del controlado y algo más largo",
+		func(_d: int) -> void: pass, "", 480.0)
+	add_child_autofree(row)
+	await get_tree().process_frame
+	var font := row.get_theme_default_font()
+	var cap_end := font.get_string_size("Sobre los jugadores", HORIZONTAL_ALIGNMENT_LEFT, -1, 21).x + 18.0
+	var clip: Control = row.get("_clip")
+	assert_gt(clip.position.x, cap_end, "el valor empieza después del nombre")
+	assert_true(clip.clip_contents)
+	assert_gt(float(row.get("_overflow")), 0.0, "no entra: corre")
+	row.set("_t", 3.0)
+	row._process(0.0)
+	assert_lt((row.get("_val") as Label).position.x, 0.0, "se movió")

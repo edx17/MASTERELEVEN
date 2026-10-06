@@ -80,11 +80,8 @@ func _ready() -> void:
 			func(d: int) -> void: GameSettings.crowd_volume = clampi(GameSettings.crowd_volume + d, 0, 10),
 			"El murmullo de la tribuna, los cánticos, los silbidos y los \"uhh\"."],
 	])
-	_sub_button(box, "Opciones de juego", "game", "Formación, dificultad, movimiento, velocidad y arquero.", [
-		["Formación", func() -> String:
-				var t := _my_team()
-				return t.formation.formation_name if t != null and t.formation != null else "-",
-			_step_formation, "Cambiar la formación de tu equipo."],
+	# La formación se cambia sólo en la Dirección del equipo.
+	_sub_button(box, "Opciones de juego", "game", "Dificultad, movimiento, velocidad y arquero.", [
 		["Dificultad CPU", func() -> String: return Difficulty.NAMES[GameSettings.difficulty],
 			func(d: int) -> void:
 				GameSettings.difficulty = posmod(GameSettings.difficulty + d, Difficulty.NAMES.size())
@@ -183,11 +180,6 @@ func open_sub_key() -> String:
 func _camera() -> MatchCamera:
 	var m := get_parent() as MatchController
 	return m.camera() if m != null else null
-
-
-func _my_team() -> Team:
-	var m := get_parent() as MatchController
-	return m.teams[_my_team_index()] if m != null else null
 
 
 func _refresh_labels() -> void:
@@ -295,19 +287,6 @@ func _close_subs() -> void:
 	_panel.visible = true
 	_refresh()
 	_subs_btn.grab_focus()
-
-
-func _step_formation(d: int) -> void:
-	var m := get_parent() as MatchController
-	if m == null:
-		return
-	var all := FormationLibrary.load_all()
-	var t := m.teams[_my_team_index()]
-	var idx := 0
-	for i in all.size():
-		if t.formation != null and all[i].formation_name == t.formation.formation_name:
-			idx = i
-	m.set_formation(t.index, all[posmod(idx + d, all.size())])
 
 
 func _exit() -> void:

@@ -564,6 +564,8 @@ func set_human_slot(slot: int) -> void:
 ## o nada.
 ## Cámara Lejana: nombres de todos (pisa la opción de las etiquetas).
 static var names_override := false
+## Tamaño de los nombres de todos (fijo en pantalla).
+const NAME_PIXEL_SIZE := 0.00042
 
 
 func refresh_label() -> void:
@@ -575,14 +577,18 @@ func refresh_label() -> void:
 	var mode := GameSettings.player_label
 	if names_override:
 		mode = 3
+	# Sólo los nombres de todos van con tamaño fijo en pantalla (con la
+	# perspectiva, los de adelante se veían enormes y se pisaban).
+	_label.fixed_size = mode == 3
+	_label.pixel_size = NAME_PIXEL_SIZE if mode == 3 else 0.006
 	match mode:
 		3:
-			# Nombres de todos (cámara Lejana / opción): más grandes para
-			# leerlos de lejos.
+			# Nombres de todos (cámara Lejana / opción): mismo tamaño cerca y
+			# lejos, chicos y justo arriba de la cabeza.
 			_label.visible = true
 			_label.text = display_name
-			_label.font_size = 96
-			_label.position.y = 2.6
+			_label.font_size = 40
+			_label.position.y = 2.25
 		0:
 			_label.visible = human_slot >= 0
 			# Chico y pegado a la flecha: que no tape la jugada.

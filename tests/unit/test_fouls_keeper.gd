@@ -300,7 +300,7 @@ func test_offside_is_called_when_the_forward_player_receives() -> void:
 			break
 	assert_eq(m.phase, MatchController.Phase.STOPPED, "se cobra")
 	assert_eq(m.stats["offsides"][0], 1)
-	assert_true(m.banner_text.begins_with("FUERA DE JUEGO"))
+	assert_eq(m.banner_text, "OFFSIDE", "sin el nombre del jugador")
 
 
 func test_onside_player_plays_on() -> void:

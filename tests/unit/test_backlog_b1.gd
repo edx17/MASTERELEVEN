@@ -37,6 +37,33 @@ func test_throw_in_is_forced_after_six_seconds() -> void:
 	assert_eq(m.last_kick.get("team"), t.index)
 
 
+## Tiro libre: a los 6 s sin ejecutar sale solo, y con la pelota parada el
+## reloj no corre.
+func test_free_kick_is_forced_after_six_seconds_and_clock_stops() -> void:
+	m._setup_restart(MatchRules.Outcome.new(MatchRules.Restart.FREE_KICK, 0, Vector3(-10, 0.11, 5)))
+	assert_eq(m.restart_type, MatchRules.Restart.FREE_KICK)
+	var before := m.clock.total_game_seconds()
+	_step(10)
+	assert_eq(m.clock.total_game_seconds(), before, "el reloj frenado hasta que se patee")
+	m._restart_elapsed = MatchController.THROW_IN_LIMIT + 0.01
+	m._check_throw_in_limit()
+	# Toma carrera y le pega.
+	for i in 200:
+		if m.phase == MatchController.Phase.PLAYING:
+			break
+		m._physics_process(dt)
+	assert_eq(m.phase, MatchController.Phase.PLAYING, "se ejecutó solo")
+	assert_eq(m.last_kick.get("team"), 0)
+
+
+func test_free_kick_players_already_placed() -> void:
+	m._setup_restart(MatchRules.Outcome.new(MatchRules.Restart.FREE_KICK, 0, Vector3(5, 0.11, 0)))
+	var spot := m.ball.flat_pos()
+	for p in m.teams[1].players:
+		if not m.wall_targets.has(p):
+			assert_gt(p.flat_pos().distance_to(spot), 9.0, "rivales a 9,15 m: %s" % p.display_name)
+
+
 func test_halftime_coasts_then_shows_the_stats() -> void:
 	m.ball.place(Vector3(0, 0.11, 0))
 	m.ball.state.vel = Vector3(8, 0, 0)

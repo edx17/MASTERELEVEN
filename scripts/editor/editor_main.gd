@@ -745,7 +745,19 @@ func _show_team(path: String) -> void:
 			"stadium": stadium.text.strip_edges(), "cap": int(cap.value), "formation": fnames[form.selected],
 			"home": home.text.strip_edges(), "away": away.text.strip_edges()})
 		_status.text = "Equipo actualizado.", ""))
-	var kit_note := _lbl("Las camisetas con vista 3D y plantillas llegan en la etapa E4.")
+	# Las dos camisetas en 3D (se cambian en la pestaña Camisetas).
+	var kits := HBoxContainer.new()
+	kits.add_theme_constant_override("separation", 8)
+	_t_form.add_child(kits)
+	for k in 2:
+		var col := VBoxContainer.new()
+		kits.add_child(col)
+		col.add_child(_lbl("Titular" if k == 0 else "Suplente"))
+		var prev := KitPreview.new()
+		prev.custom_minimum_size = Vector2(180, 240)
+		col.add_child(prev)
+		prev.show_player(_kit_colors(path, k), _kit_tex(path, k))
+	var kit_note := _lbl("Colores, diseños, números y plantilla PNG: pestaña Camisetas.")
 	kit_note.add_theme_color_override("font_color", Color(0.6, 0.65, 0.75))
 	kit_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_t_form.add_child(kit_note)

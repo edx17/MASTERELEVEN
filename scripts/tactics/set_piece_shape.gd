@@ -11,6 +11,10 @@ extends RefCounted
 ##   rebote y uno arriba para la contra.
 
 
+## Distancia de los rivales a la pelota en un tiro libre (9,15 m y un poco más).
+const FK_DISTANCE := 9.5
+
+
 static func targets(team: Team, restart_type: int, taker_team: int, spot: Vector3, taker: Footballer) -> Dictionary:
 	var own := team.index == taker_team
 	var field := _outfield(team, taker)
@@ -23,8 +27,18 @@ static func targets(team: Team, restart_type: int, taker_team: int, spot: Vector
 			return _throw_in(team, spot, field, own)
 		MatchRules.Restart.FREE_KICK:
 			# Atacando: la forma de ataque; defendiendo: replegados (la barrera
-			# la ubica el partido).
-			return _shape_targets(team, TeamShape.State.ATTACKING if own else TeamShape.State.DEFENDING, spot, field)
+			# la ubica el partido) y a 9,15 m de la pelota como mínimo.
+			var out := _shape_targets(team, TeamShape.State.ATTACKING if own else TeamShape.State.DEFENDING, spot, field)
+			if not own:
+				var flat := Vector3(spot.x, 0.0, spot.z)
+				for p in out:
+					var t: Vector3 = out[p]
+					var away := t - flat
+					if away.length() < FK_DISTANCE:
+						if away.length_squared() < 0.01:
+							away = Vector3(-team.attack_dir, 0.0, 0.0)
+						out[p] = Pitch.clamp_to_field(flat + away.normalized() * FK_DISTANCE, 1.0)
+			return out
 		MatchRules.Restart.PENALTY:
 			return _penalty(team, spot, field)
 	return {}

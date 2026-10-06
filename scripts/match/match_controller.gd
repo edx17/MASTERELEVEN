@@ -18,6 +18,10 @@ const STOP_DELAY := 1.1
 const FOUL_DELAY := 2.0
 ## Tiempo para sacar un lateral (s).
 const THROW_IN_LIMIT := 6.0
+## Pelotas paradas que se sacan solas si nadie las ejecuta en THROW_IN_LIMIT
+## segundos (lateral, tiro libre, córner y saque de arco; el penal no).
+const TIMED_RESTARTS: Array[int] = [MatchRules.Restart.THROW_IN, MatchRules.Restart.FREE_KICK,
+	MatchRules.Restart.CORNER, MatchRules.Restart.GOAL_KICK]
 ## Falta fuerte (barrida o de atrás): el derribado queda en el piso este rato.
 const HARD_FOUL_DOWN := 3.4
 ## Distancia de la pelota desde la que el arquero ordena a la defensa.
@@ -507,8 +511,9 @@ func _physics_process(dt: float) -> void:
 		if training == null:
 			ratings.tick(dt, dt / maxf(Engine.time_scale, 0.01) * clock.rate() / 60.0, teams, ball.owner_player)
 
-	clock.running = training == null and sub_scenes.is_empty() \
-		and (phase in [Phase.PLAYING, Phase.STOPPED] or (phase == Phase.RESTART and restart_type != MatchRules.Restart.KICKOFF))
+	# El reloj se frena con la pelota parada (falta, offside, afuera) hasta
+	# que se ejecuta el saque.
+	clock.running = training == null and sub_scenes.is_empty() and phase == Phase.PLAYING
 	# El reloj va en tiempo real aunque el juego corra más lento (velocidad).
 	# Grabación para la repetición (el juego y el primer instante del gol).
 	# También con el juego detenido (los segundos después de la falta o de la
@@ -1288,25 +1293,31 @@ func _snapshot_offside(kicker: Footballer, from_restart: int) -> void:
 			"line": offside_line(kicker.team)}
 
 
-## X del penúltimo rival de `team` (la línea del offside).
+## X de la línea del offside para los que atacan con `team`: el penúltimo
+## rival (cuenta el arquero, sea o no el último), pero nunca antes de la mitad
+## de la cancha (en campo propio no hay offside).
 func offside_line(team: Team) -> float:
+	var dir := float(team.attack_dir)
+	return maxf(second_last_depth(team), 0.0) * dir
+
+
+## Profundidad (hacia el arco rival de `team`) del penúltimo rival, con el
+## arquero incluido: si el arquero salió y quedó adelante de dos defensores,
+## la línea la marca el defensor, no él.
+func second_last_depth(team: Team) -> float:
 	var dir := float(team.attack_dir)
 	var depths: Array[float] = []
 	for o in opponents_of(team).players:
 		depths.append(o.flat_pos().x * dir)
 	depths.sort()
-	return (depths[depths.size() - 2] if depths.size() >= 2 else 0.0) * dir
+	return depths[depths.size() - 2] if depths.size() >= 2 else 0.0
 
 
 ## Compañeros de `kicker` en posición adelantada con la pelota en `ball_pos`.
 func offside_positions(kicker: Footballer, ball_pos: Vector3) -> Array[Footballer]:
 	var team := kicker.team
 	var dir := float(team.attack_dir)
-	var depths: Array[float] = []
-	for o in opponents_of(team).players:
-		depths.append(o.flat_pos().x * dir)
-	depths.sort()
-	var second_last: float = depths[depths.size() - 2] if depths.size() >= 2 else 0.0
+	var second_last := second_last_depth(team)
 	var out: Array[Footballer] = []
 	for m in team.players:
 		if m == kicker:
@@ -1348,7 +1359,7 @@ func call_offside(p: Footballer, line: float = NAN, kicker: Footballer = null) -
 	ball.intended_receiver = null
 	ball.state.vel = Vector3.ZERO
 	save_plan = {}
-	banner_text = "FUERA DE JUEGO: %s" % p.display_name
+	banner_text = "OFFSIDE"
 	_phase_timer = FOUL_DELAY
 	_set_phase(Phase.STOPPED)
 	replay.mark_event(true)
@@ -1900,28 +1911,43 @@ func _update_keeper_hands(dt: float) -> void:
 ## Lateral: el que saca tiene 6 s. Si no sacó, se la da al compañero más
 ## cercano (no se consume el reloj del partido esperando).
 func _check_throw_in_limit() -> void:
-	if restart_type != MatchRules.Restart.THROW_IN or restart_taker == null:
+	if restart_taker == null or not restart_type in TIMED_RESTARTS:
 		return
 	if _restart_elapsed < THROW_IN_LIMIT:
 		return
+	# Con carrera: si ya dio la orden (está corriendo a la pelota), no se toca.
+	if restart_type in RUNUP_TYPES and (not _goal_kick_order.is_empty() or goal_kick_stage == GoalKickStage.RUNNING):
+		return
 	var taker := restart_taker
-	var best: Footballer = null
-	var best_d := INF
-	for p in taker.team.players:
-		if p == taker or p.is_keeper():
-			continue
-		var d := p.flat_pos().distance_to(taker.flat_pos())
-		if d < best_d:
-			best_d = d
-			best = p
-	var dir := (best.flat_pos() - taker.flat_pos()) if best != null else Vector3(taker.team.attack_dir, 0.0, -signf(taker.global_position.z))
-	show_toast("Se acabó el tiempo del lateral", 1.5)
-	perform_kick(taker, KickActions.Kind.SHORT_PASS, dir, 0.45, best)
+	match restart_type:
+		MatchRules.Restart.THROW_IN, MatchRules.Restart.FREE_KICK:
+			# Corto al compañero más cerca.
+			var best: Footballer = null
+			var best_d := INF
+			for p in taker.team.players:
+				if p == taker or p.is_keeper():
+					continue
+				var d := p.flat_pos().distance_to(taker.flat_pos())
+				if d < best_d:
+					best_d = d
+					best = p
+			var dir := (best.flat_pos() - ball.flat_pos()) if best != null else Vector3(taker.team.attack_dir, 0.0, -signf(taker.global_position.z))
+			show_toast("Se acabó el tiempo del %s" % ("lateral" if restart_type == MatchRules.Restart.THROW_IN else "tiro libre"), 1.5)
+			perform_kick(taker, KickActions.Kind.SHORT_PASS, dir, 0.45, best)
+		MatchRules.Restart.CORNER:
+			# Centro al área.
+			var spot := taker.team.target_goal() - Vector3(taker.team.attack_dir * 10.0, 0.0, 0.0)
+			show_toast("Se acabó el tiempo del córner", 1.5)
+			perform_kick(taker, KickActions.Kind.LONG_PASS, spot - ball.flat_pos(), 0.6)
+		MatchRules.Restart.GOAL_KICK:
+			# Largo hacia adelante.
+			show_toast("Se acabó el tiempo del saque de arco", 1.5)
+			perform_kick(taker, KickActions.Kind.LONG_PASS, Vector3(taker.team.attack_dir, 0.0, 0.0), 0.7)
 
 
 ## Segundos que le quedan al que saca el lateral (para el HUD), o -1.
 func throw_in_time_left() -> float:
-	if phase != Phase.RESTART or restart_type != MatchRules.Restart.THROW_IN or restart_taker == null:
+	if phase != Phase.RESTART or not restart_type in TIMED_RESTARTS or restart_taker == null:
 		return -1.0
 	return maxf(0.0, THROW_IN_LIMIT - _restart_elapsed)
 
@@ -3403,6 +3429,13 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 	wall_targets = {}
 	if outcome.type == MatchRules.Restart.FREE_KICK:
 		_build_wall(opponents_of(team), spot)
+		# Todos ya en su lugar al armarse el tiro libre (como en el WE): nadie
+		# corre con la pelota quieta y los rivales quedan a 9,15 m.
+		for t in teams:
+			var targets := SetPieceShape.targets(t, outcome.type, outcome.team, ball.flat_pos(), taker)
+			for p in targets:
+				if p != taker and not wall_targets.has(p):
+					p.teleport(targets[p], (spot - targets[p]).normalized())
 	_begin_restart(outcome.type, taker)
 
 

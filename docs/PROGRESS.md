@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **472 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **476 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -17,7 +17,7 @@ además arma el `.exe` de Windows).
 | 2 — Prototipo 0.1: sensación de juego | ✅ | #2 |
 | 3 — IA de partido | ✅ Implementada (se sigue ajustando con tus pruebas) | — |
 | 4 — Reglas, atributos y plantel | ✅ Implementada | — |
-| 5 — Presentación moderna (estadios, animaciones, audio, repeticiones) | 🟡 Muy avanzada; falta el pelo "Detallados" y la voz del locutor | — |
+| 5 — Presentación moderna (estadios, animaciones, audio, repeticiones) | 🟡 Muy avanzada; falta la voz del locutor | — |
 | 6 — Liga Master | 🟡 D1–D5 hechos, **pendiente de tu prueba** | #32, #33 |
 | 7 — Torneos | 🟡 Hecho en la Liga Master: copas reales de cada país y confederación, supercopas, Intercontinental, Mundial de Clubes y Mundial; **pendiente de tu prueba** | #33 |
 | 8 — Pulido | ⬜ | — |
@@ -162,6 +162,39 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Correcciones de tu prueba (PR #34)
+- **Mercado de pases**: con la lista vacía ("Todavía no hubo pases") el
+  mando quedaba sin foco y no se podía salir; ahora el foco queda en la
+  fila que cambiaste.
+- **Editor, pestaña Equipos**: en lugar del cartel viejo de la etapa E4,
+  la camiseta titular y la suplente en 3D.
+- **Modelo retro PS1**: ya estaba en el repo
+  (`assets/models/players/retro/psx_male_base_mesh.obj`); el cartel
+  "falta el modelo" sólo aparece si se borra ese archivo.
+- **Pelo Detallados**: el cráneo sobre el que se arman los peinados era un
+  poco más grande que la cabeza (el pelo corto quedaba despegado). En el
+  cuerpo Detallados la nuca pintada del color del pelo bajaba más que el
+  peinado: ahora es piel. "Pelado arriba" ajustado a la cabeza.
+- **Dirección del equipo**: las líneas repartidas por toda la cancha
+  (antes la defensa quedaba en la mitad), fichas que no se pisan, el menú
+  con desplazamiento (no se corta abajo) y el puesto detallado (CF, RB...)
+  también en los suplentes y en la ficha.
+- **Partido**:
+  - El offside dice sólo "OFFSIDE".
+  - La línea del offside nunca pasa de la mitad de la cancha.
+  - Los delanteros de la CPU toman como línea el penúltimo rival con el
+    arquero incluido (si el arquero sale, la marca el defensor).
+  - Tiro libre: todos ya en su lugar al armarse (nadie corre con la pelota
+    quieta) y los rivales a 9,15 m.
+  - Tiro libre, córner y saque de arco se ejecutan solos a los 6 s, como el
+    lateral.
+  - El reloj se frena con la pelota parada hasta que se saca.
+  - Cámara Lejana: los nombres con el mismo tamaño cerca y lejos.
+  - La formación se cambia sólo en la Dirección del equipo (salió de
+    Opciones de juego).
+- **Menús**: si el valor de una opción no entra al lado del nombre, corre
+  dentro de su lugar como un cartel.
 
 ## Fase 7 — Torneos (en la Liga Master)
 Las copas se juegan **entre fechas de la liga** (la pantalla de la carrera
