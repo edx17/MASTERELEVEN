@@ -110,3 +110,26 @@ func test_option_row_long_value_scrolls_inside_its_space() -> void:
 	row.set("_t", 3.0)
 	row._process(0.0)
 	assert_lt((row.get("_val") as Label).position.x, 0.0, "se movió")
+
+
+## Fase 8: Opciones > Gráficos y Ayudas (se guardan y no rompen sin pantalla).
+func test_graphics_and_aids_pages() -> void:
+	var menu: Node = load("res://scenes/ui/main_menu.tscn").instantiate()
+	add_child_autofree(menu)
+	await get_tree().process_frame
+	menu.call("show_page", "graphics")
+	assert_eq(menu.call("_current"), "graphics")
+	menu.call("show_page", "aids")
+	assert_eq(menu.call("_current"), "aids")
+	GameSettings.apply_graphics()
+	assert_almost_eq(GameSettings.crowd_factor(), 1.0, 0.001)
+	GameSettings.crowd_level = 2
+	assert_almost_eq(GameSettings.crowd_factor(), 0.3, 0.001)
+	GameSettings.crowd_level = 0
+
+
+func test_ball_landing_spot() -> void:
+	# Desde 5 m de alto sin velocidad vertical: cae en ~1 s, 10 m adelante.
+	var spot := AidMarkers.landing_spot(Vector3(0, 5, 0), Vector3(10, 0, 0), 9.81)
+	assert_almost_eq(spot.x, 10.0 * sqrt(2.0 * (5.0 - 0.11) / 9.81), 0.05)
+	assert_eq(AidMarkers.landing_spot(Vector3(0, 0.11, 0), Vector3(5, 0, 0), 9.81), Vector3.INF, "por el piso: no")

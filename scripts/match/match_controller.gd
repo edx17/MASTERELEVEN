@@ -397,6 +397,9 @@ func _build_world() -> void:
 
 	replay = Replay.new()
 	add_child(replay)
+	var aids := AidMarkers.new()
+	aids.match = self
+	add_child(aids)
 	replay.setup(self)
 	audio = MatchAudio.new()
 	add_child(audio)

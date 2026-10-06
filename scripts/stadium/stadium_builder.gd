@@ -282,7 +282,7 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 					mm.set_instance_transform(idx, Transform3D(Basis.IDENTITY, Vector3(x, y, z + ROW_DEPTH * 0.5)))
 				mm.set_instance_color(idx, c)
 				idx += 1
-				if c == tier_seat and not fans.is_empty() and rng.randf() < CROWD_DENSITY:
+				if c == tier_seat and not fans.is_empty() and rng.randf() < CROWD_DENSITY * GameSettings.crowd_factor():
 					var scale := rng.randf_range(0.92, 1.08)
 					var tf := Transform3D(Basis(Vector3.UP, rng.randf_range(-0.3, 0.3)).scaled(Vector3(scale, scale, scale)),
 						Vector3(x + rng.randf_range(-0.05, 0.05), y, z + ROW_DEPTH * 0.5))

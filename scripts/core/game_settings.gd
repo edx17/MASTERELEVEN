@@ -22,9 +22,70 @@ var home_kit: int = 0
 var away_kit: int = 0
 ## Modo de cámara elegido (índice en MatchCamera.PRESETS); se recuerda entre partidos.
 var camera_preset: int = 0
-## Ayudas visuales (se podrán activar desde el menú de opciones, Fase 8).
+## Ayudas visuales (Opciones > Ayudas).
 ## Marca en el piso del receptor del pase que se está cargando.
 var show_pass_target: bool = false
+## Línea del offside en la cancha mientras atacás.
+var show_offside_line: bool = false
+## Dónde va a caer la pelota cuando va por el aire.
+var show_ball_landing: bool = false
+
+## Gráficos (Opciones > Gráficos).
+var window_mode: int = 0
+const WINDOW_MODE_NAMES := ["ventana", "pantalla completa"]
+var resolution: int = 0
+const RESOLUTIONS: Array[Vector2i] = [Vector2i(1280, 720), Vector2i(1600, 900), Vector2i(1920, 1080), Vector2i(2560, 1440)]
+var vsync: bool = true
+var antialias: int = 1
+const ANTIALIAS_NAMES := ["no", "2x", "4x"]
+var render_scale: int = 0
+const RENDER_SCALES := [1.0, 0.85, 0.7]
+var shadow_quality: int = 2
+const SHADOW_NAMES := ["sin sombras", "bajas", "altas"]
+var crowd_level: int = 0
+const CROWD_NAMES := ["lleno", "medio", "poco"]
+const CROWD_FACTORS := [1.0, 0.6, 0.3]
+var fps_limit: int = 0
+const FPS_LIMITS := [0, 60, 30]
+
+
+## Cuánto público se dibuja (Gráficos > Público).
+func crowd_factor() -> float:
+	return float(CROWD_FACTORS[clampi(crowd_level, 0, CROWD_FACTORS.size() - 1)])
+
+
+## Aplica las opciones de gráficos a la ventana y al render (sin efecto en
+## los tests y herramientas sin pantalla).
+func apply_graphics() -> void:
+	Engine.max_fps = int(FPS_LIMITS[clampi(fps_limit, 0, FPS_LIMITS.size() - 1)])
+	if DisplayServer.get_name() == "headless":
+		return
+	var vp := get_viewport()
+	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X][clampi(antialias, 0, 2)]
+	var sc := float(RENDER_SCALES[clampi(render_scale, 0, RENDER_SCALES.size() - 1)])
+	vp.scaling_3d_scale = sc
+	if RenderingServer.get_current_rendering_method() != "gl_compatibility":
+		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if sc < 1.0 else Viewport.SCALING_3D_MODE_BILINEAR
+	if shadow_quality > 0:
+		RenderingServer.directional_shadow_atlas_set_size(2048 if shadow_quality == 1 else 4096, true)
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if vsync else DisplayServer.VSYNC_DISABLED)
+	if _is_tool_run():
+		return
+	if window_mode == 1:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		var size := RESOLUTIONS[clampi(resolution, 0, RESOLUTIONS.size() - 1)]
+		var screen := DisplayServer.screen_get_usable_rect()
+		size = Vector2i(mini(size.x, screen.size.x), mini(size.y, screen.size.y))
+		get_window().size = size
+		get_window().position = screen.position + (screen.size - size) / 2
+
+
+## Sin sombras: las luces que se van creando (estadio, reflectores) no proyectan.
+func _on_node_added(n: Node) -> void:
+	if shadow_quality == 0 and n is Light3D:
+		(n as Light3D).set_deferred("shadow_enabled", false)
 ## Dificultad de la CPU (Difficulty.Level).
 var difficulty: int = 1
 ## Condiciones del próximo partido: índice del horario / clima elegido o -1 =
@@ -82,7 +143,8 @@ const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", 
 	"pitch_choice", "pitch_wear", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
 	"stick_directions", "camera_preset", "show_pass_target", "offside", "home_team_path", "away_team_path",
 	"home_kit", "away_kit", "show_replays", "replay_chances", "player_style", "sfx_volume", "crowd_volume", "music_volume",
-	"show_radar", "show_score", "wc_playoff", "active_optionfile"]
+	"show_radar", "show_score", "wc_playoff", "active_optionfile", "show_offside_line", "show_ball_landing",
+	"window_mode", "resolution", "vsync", "antialias", "render_scale", "shadow_quality", "crowd_level", "fps_limit"]
 ## Falso en los tests y las herramientas: no leen ni pisan la configuración
 ## del jugador (así los resultados no dependen de lo que eligió).
 var persist := true
@@ -162,6 +224,8 @@ func _ready() -> void:
 	if persist:
 		load_settings()
 		ControlsConfig.load_saved()
+		apply_graphics.call_deferred()
+	get_tree().node_added.connect(_on_node_added)
 	InputRouter.setup_for_mode(mode)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 	_check_capture_mode()
