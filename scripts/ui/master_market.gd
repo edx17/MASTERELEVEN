@@ -14,17 +14,21 @@ extends Control
 
 signal closed
 
-const GOLD := Color(1.0, 0.9, 0.35)
-const BLUE := Color(0.6, 0.8, 1.0)
-const RED := Color(1.0, 0.55, 0.5)
-const GREEN := Color(0.55, 1.0, 0.6)
+const GOLD := WEStyle.ACCENT
+const BLUE := WEStyle.TEXT_DIM
+const RED := WEStyle.DANGER
+const GREEN := WEStyle.ACCENT_GREEN
 const MODES := ["Comprar", "Vender", "Pases de la temporada"]
 const LINES := ["Todos", "Arqueros", "Defensores", "Volantes", "Delanteros"]
 const SORTS := ["ovr", "age", "value"]
 const SORT_NAMES := ["Media", "Edad", "Precio"]
-const COLS := [210, 190, 46, 52, 54, 80]
+## Columnas de la lista: ancho (px de 1080; 0 = se estira) y alineación.
+const COLS := [0, 320, 64, 64, 72, 110]
+const ALIGN := "LLRCRR"
+const HINTS := [[&"ui_accept", "Elegir"], [&"ui_navigate", "Filtros"], [&"ui_cancel", "Volver"]]
 
 var career: MasterCareer
+var _frame: WEStyle.ScreenFrame
 var mode := 0
 var line := 0
 var division := -1
@@ -50,6 +54,10 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	visible = false
 	_rng.randomize()
+	_frame = WEStyle.ScreenFrame.new("Mercado de pases", HINTS)
+	add_child(_frame)
+	_frame.crumb.text = "LIGA MASTER  /  MERCADO"
+	_frame.title.text = "MERCADO DE PASES"
 
 
 func open(c: MasterCareer) -> void:
@@ -59,6 +67,7 @@ func open(c: MasterCareer) -> void:
 	_offer = {}
 	_focus = 0
 	_rebuild()
+	WEStyle.fade_in(_frame)
 
 
 func _clear(n: Node) -> void:
@@ -68,64 +77,82 @@ func _clear(n: Node) -> void:
 
 
 func _rebuild() -> void:
-	_clear(self)
+	_clear(_frame.body)
 	_first_opt = null
-	var lp := WEStyle.panel(Vector2(720, 620))
-	lp.position = Vector2(30, 30)
-	add_child(lp)
+	_frame.title_info.text = "%s puntos WE" % WEStyle.thousands(career.points)
+	var row := HBoxContainer.new()
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", int(WEStyle.px(40)))
+	_frame.body.add_child(row)
 	var left := VBoxContainer.new()
-	left.add_theme_constant_override("separation", 3)
-	lp.add_child(left)
-	left.add_child(WEStyle.label("MERCADO DE PASES  ·  %d puntos WE" % career.points, 20, GOLD))
-	left.add_child(WEStyle.label(career.market_text(), 16, GREEN if career.market_open() else RED))
-	left.add_child(_opt("Ver", func() -> String: return MODES[mode], func(d: int) -> void:
+	left.name = "Left"
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.add_theme_constant_override("separation", int(WEStyle.px(8)))
+	row.add_child(left)
+	left.add_child(WEStyle.make_caption_label(career.market_text(), GREEN if career.market_open() else RED))
+	# Filtros en dos columnas (así la lista tiene más alto).
+	var opts := GridContainer.new()
+	opts.name = "Opts"
+	opts.columns = 2
+	opts.add_theme_constant_override("h_separation", int(WEStyle.px(16)))
+	opts.add_theme_constant_override("v_separation", int(WEStyle.px(4)))
+	left.add_child(opts)
+	opts.add_child(_opt("Ver", func() -> String: return MODES[mode], func(d: int) -> void:
 		mode = wrapi(mode + d, 0, MODES.size())
 		_focus = 0
 		_offer = {}))
 	if mode == 0:
 		if _scopes.is_empty():
 			_scopes = career.market_scopes()
-		left.add_child(_opt("Puesto", func() -> String: return LINES[line], func(d: int) -> void:
+		opts.add_child(_opt("Puesto", func() -> String: return LINES[line], func(d: int) -> void:
 			line = wrapi(line + d, 0, LINES.size())
 			_focus = 0))
-		left.add_child(_opt("Liga", func() -> String: return String(_scopes[scope]["label"]), func(d: int) -> void:
+		opts.add_child(_opt("Liga", func() -> String: return String(_scopes[scope]["label"]), func(d: int) -> void:
 			scope = wrapi(scope + d, 0, _scopes.size())
 			club_filter = ""
 			_focus = 0))
-		left.add_child(_opt("Club", func() -> String: return _club_filter_name(), func(d: int) -> void:
-			var opts := _club_options()
-			var i := opts.map(func(o: Array) -> String: return o[0]).find(club_filter)
-			club_filter = String(opts[wrapi(i + d, 0, opts.size())][0])
+		opts.add_child(_opt("Club", func() -> String: return _club_filter_name(), func(d: int) -> void:
+			var opts2 := _club_options()
+			var i := opts2.map(func(o: Array) -> String: return o[0]).find(club_filter)
+			club_filter = String(opts2[wrapi(i + d, 0, opts2.size())][0])
 			_focus = 0))
-		left.add_child(_opt("Orden", func() -> String: return SORT_NAMES[sort], func(d: int) -> void:
+		opts.add_child(_opt("Orden", func() -> String: return SORT_NAMES[sort], func(d: int) -> void:
 			sort = wrapi(sort + d, 0, SORTS.size())
 			_focus = 0))
+	var head := MarginContainer.new()
+	head.add_theme_constant_override("margin_left", int(WEStyle.px(12)))
+	head.add_theme_constant_override("margin_right", int(WEStyle.px(12)))
+	head.custom_minimum_size.y = WEStyle.px(WEStyle.HEADER_ROW_H)
+	left.add_child(head)
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(696, 326 if mode == 0 else 446)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.follow_focus = true
 	left.add_child(scroll)
 	_rows_box = VBoxContainer.new()
-	_rows_box.add_theme_constant_override("separation", 1)
+	_rows_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_rows_box.add_theme_constant_override("separation", 0)
 	scroll.add_child(_rows_box)
-	left.add_child(WEStyle.bar("Volver", _close, 696.0, 20))
-	var rp := WEStyle.panel(Vector2(470, 620))
-	rp.position = Vector2(770, 30)
-	add_child(rp)
+	var back := WEStyle.make_action_button("Volver", _close)
+	back.name = "Back"
+	left.add_child(back)
+	var card := WEStyle.make_card()
+	card.custom_minimum_size.x = WEStyle.px(640)
+	row.add_child(card)
 	_detail = VBoxContainer.new()
-	_detail.add_theme_constant_override("separation", 6)
-	rp.add_child(_detail)
+	_detail.add_theme_constant_override("separation", int(WEStyle.px(8)))
+	card.add_child(_detail)
 	match mode:
 		0:
-			_buy_list()
+			_buy_list(head)
 		1:
-			_sell_list()
+			_sell_list(head)
 		_:
-			_transfers_list()
+			_transfers_list(head)
 	# El foco: en la fila que se acaba de cambiar (así se puede seguir
 	# cambiándola) o, si la lista quedó vacía, en la primera fila de opción
 	# (si no, el mando no tiene dónde moverse).
-	var keep := left.get_node_or_null("Opt" + _keep_caption) if _keep_caption != "" else null
+	var keep := opts.get_node_or_null("Opt" + _keep_caption) if _keep_caption != "" else null
 	_keep_caption = ""
 	if keep != null:
 		(keep as Control).grab_focus()
@@ -137,34 +164,21 @@ func _opt(caption: String, getter: Callable, step: Callable) -> WEStyle.OptionRo
 	var row := WEStyle.OptionRow.new(caption, getter, func(d: int) -> void:
 		step.call(d)
 		_keep_caption = caption
-		_rebuild.call_deferred(), "", 696.0)
+		_rebuild.call_deferred(), "", WEStyle.px(440))
+	row.use_modern_style()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.name = "Opt" + caption
 	if _first_opt == null:
 		_first_opt = row
 	return row
 
 
-func _cells(texts: Array, color: Color, fs: int) -> HBoxContainer:
-	var h := HBoxContainer.new()
-	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	h.add_theme_constant_override("separation", 6)
-	for k in texts.size():
-		var l := WEStyle.label(String(texts[k]), fs, color)
-		l.custom_minimum_size = Vector2(COLS[k], 0)
-		l.clip_text = true
-		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		h.add_child(l)
-	return h
+func _cells(texts: Array, color: Color, _fs: int = 0, header: bool = false) -> HBoxContainer:
+	return WEStyle.make_cells(texts, COLS, ALIGN, header, color)
 
 
 func _row(texts: Array, color: Color, i: int, on_focus: Callable) -> Button:
-	var b := Button.new()
-	b.custom_minimum_size = Vector2(680, 27)
-	WEStyle.style_bar(b)
-	var cells := _cells(texts, color, 15)
-	cells.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	cells.offset_left = 14
-	b.add_child(cells)
+	var b := WEStyle.make_row_button(_cells(texts, color))
 	b.focus_entered.connect(func() -> void:
 		if _focus != i:
 			_offer = {}
@@ -199,42 +213,56 @@ func _club_filter_name() -> String:
 
 # --- Comprar ------------------------------------------------------------------------------
 
-func _buy_list() -> void:
+func _buy_list(head: Control) -> void:
 	var sc: Dictionary = _scopes[scope]
 	_items = career.market_list(line - 1, int(sc["division"]), SORTS[sort], 80, String(sc["country"]), club_filter)
-	_rows_box.add_child(_cells(["Jugador", "Club", "Edad", "Pos", "Media", "Precio"], BLUE, 14))
+	head.add_child(_cells(["Jugador", "Club", "Edad", "Pos", "Media", "Precio"], BLUE, 0, true))
 	var first: Button = null
 	for i in _items.size():
 		var it: Dictionary = _items[i]
 		var d: Dictionary = it["d"]
 		var b := _row([d["n"], _club_name(it["club"]), str(int(d.get("age", 0))), String(d.get("pos", "")),
-			str(MasterCareer.dict_overall(d)), str(career.asking_price(it["club"], d))], Color.WHITE, i, _show_buy)
+			str(MasterCareer.dict_overall(d)), WEStyle.thousands(career.asking_price(it["club"], d))], WEStyle.TEXT_MAIN, i, _show_buy)
 		if i == mini(_focus, _items.size() - 1):
 			first = b
 	if first != null:
 		first.grab_focus()
 	else:
-		_detail.add_child(WEStyle.label("No hay jugadores con esos filtros.", 17))
+		_detail.add_child(_note("No hay jugadores con esos filtros.", BLUE))
 
 
 func _player_card(d: Dictionary, club: String) -> void:
-	_detail.add_child(WEStyle.label(String(d["n"]), 22, GOLD))
-	_detail.add_child(WEStyle.label("%s · %d años · media %d · %s" % [d.get("pos", ""), int(d.get("age", 0)),
-		MasterCareer.dict_overall(d), _club_name(club)], 15))
+	_detail.add_child(WEStyle.make_caption_label("%s · %s" % [d.get("pos", ""), _club_name(club)], GOLD))
+	_detail.add_child(WEStyle.make_title_label(String(d["n"]).to_upper(), WEStyle.TITLE_M))
+	_detail.add_child(WEStyle.make_body_label("%d años · media %d" % [int(d.get("age", 0)), MasterCareer.dict_overall(d)],
+		WEStyle.BODY_M, WEStyle.TEXT_DIM))
+	_detail.add_child(WEStyle.make_separator())
 	var a: Dictionary = d.get("a", {})
 	var grid := GridContainer.new()
 	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("h_separation", int(WEStyle.px(16)))
 	grid.add_theme_constant_override("v_separation", 0)
 	_detail.add_child(grid)
 	for k in PlayerData.ATTRIBUTES.size():
 		var attr: String = PlayerData.ATTRIBUTES[k]
 		if not a.has(attr):
 			continue
-		var nm := WEStyle.label(PlayerData.ATTRIBUTE_NAMES[k], 13)
-		nm.custom_minimum_size = Vector2(150, 0)
+		var nm := WEStyle.make_body_label(PlayerData.ATTRIBUTE_NAMES[k], WEStyle.BODY_M, WEStyle.TEXT_DIM)
+		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nm.clip_text = true
 		grid.add_child(nm)
-		grid.add_child(WEStyle.label(str(int(a[attr])), 13, TeamSheet.attribute_color(int(a[attr]))))
+		var v := WEStyle.make_body_label(str(int(a[attr])), WEStyle.BODY_M, TeamSheet.attribute_color(int(a[attr])))
+		v.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
+		v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		v.custom_minimum_size.x = WEStyle.px(36)
+		grid.add_child(v)
+	_detail.add_child(WEStyle.make_separator())
+
+
+## Botón de acción de la ficha (el primero, principal).
+func _action(text: String, cb: Callable) -> Button:
+	var primary := _detail.get_children().filter(func(c: Node) -> bool: return c is Button).is_empty()
+	return WEStyle.make_action_button(text, cb, primary)
 
 
 func _show_buy(i: int) -> void:
@@ -252,14 +280,14 @@ func _show_buy(i: int) -> void:
 	var pid := int(d["pid"])
 	if club == MasterCareer.FREE_CLUB:
 		# Libre: sólo la prima de fichaje.
-		_detail.add_child(WEStyle.bar("Fichar (libre): %d puntos" % price, func() -> void:
-			_after(career.buy(club, pid), "¡Fichado! %s ya es tuyo." % d["n"]), 440.0, 19))
+		_detail.add_child(_action("Fichar (libre): %s puntos" % WEStyle.thousands(price), func() -> void:
+			_after(career.buy(club, pid), "¡Fichado! %s ya es tuyo." % d["n"])))
 		if _msg != "":
 			_detail.add_child(_note(_msg, GREEN if _msg.begins_with("¡") else RED))
 		return
-	_detail.add_child(WEStyle.bar("Comprar: %d puntos" % price, func() -> void:
-		_after(career.buy(club, pid), "¡Fichado! %s ya es tuyo." % d["n"]), 440.0, 19))
-	_detail.add_child(WEStyle.bar("Ofertar 80 %%: %d puntos" % int(price * MasterCareer.LOWBALL_SHARE), func() -> void:
+	_detail.add_child(_action("Comprar: %s puntos" % WEStyle.thousands(price), func() -> void:
+		_after(career.buy(club, pid), "¡Fichado! %s ya es tuyo." % d["n"])))
+	_detail.add_child(_action("Ofertar 80 %%: %s puntos" % WEStyle.thousands(int(price * MasterCareer.LOWBALL_SHARE)), func() -> void:
 		var r := career.lowball(club, pid, _rng)
 		if r == "aceptada":
 			_after("", "¡Aceptaron! %s ya es tuyo." % d["n"])
@@ -267,17 +295,17 @@ func _show_buy(i: int) -> void:
 			_msg = "Rechazaron la oferta."
 			_rebuild.call_deferred()
 		else:
-			_after(r, ""), 440.0, 19))
-	_detail.add_child(WEStyle.bar("Préstamo hasta fin de temporada: %d" % career.loan_price(d), func() -> void:
-		_after(career.loan_in(club, pid), "%s llega a préstamo." % d["n"]), 440.0, 19))
+			_after(r, "")))
+	_detail.add_child(_action("Préstamo hasta fin de temporada: %s" % WEStyle.thousands(career.loan_price(d)), func() -> void:
+		_after(career.loan_in(club, pid), "%s llega a préstamo." % d["n"])))
 	if _msg != "":
 		_detail.add_child(_note(_msg, GREEN if _msg.begins_with("¡") else RED))
 
 
 func _note(text: String, color: Color) -> Label:
-	var l := WEStyle.label(text, 16, color)
+	var l := WEStyle.make_body_label(text, WEStyle.BODY_M, color, color == BLUE)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.custom_minimum_size = Vector2(440, 0)
+	l.custom_minimum_size.x = WEStyle.px(580)
 	return l
 
 
@@ -291,16 +319,16 @@ func _after(err: String, ok_text: String) -> void:
 
 # --- Vender -------------------------------------------------------------------------------
 
-func _sell_list() -> void:
+func _sell_list(head: Control) -> void:
 	_items = career.club_players(career.user_club).duplicate()
 	_items.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return MasterCareer.dict_overall(x) > MasterCareer.dict_overall(y))
-	_rows_box.add_child(_cells(["Jugador", "", "Edad", "Pos", "Media", "Valor"], BLUE, 14))
+	head.add_child(_cells(["Jugador", "", "Edad", "Pos", "Media", "Valor"], BLUE, 0, true))
 	var first: Button = null
 	for i in _items.size():
 		var d: Dictionary = _items[i]
 		var note := "a préstamo" if d.has("loan_from") else ""
 		var b := _row([d["n"], note, str(int(d.get("age", 0))), String(d.get("pos", "")), str(MasterCareer.dict_overall(d)),
-			str(MasterCareer.player_value(d))], BLUE if note != "" else Color.WHITE, i, _show_sell)
+			WEStyle.thousands(MasterCareer.player_value(d))], BLUE if note != "" else WEStyle.TEXT_MAIN, i, _show_sell)
 		if i == mini(_focus, _items.size() - 1):
 			first = b
 	if first != null:
@@ -316,55 +344,57 @@ func _show_sell(i: int) -> void:
 	_player_card(d, career.user_club)
 	if d.has("loan_from"):
 		_detail.add_child(_note("Está a préstamo: vuelve a %s al terminar la temporada." % _club_name(String(d["loan_from"])), BLUE))
-		_detail.add_child(WEStyle.bar("Devolverlo ahora", func() -> void:
-			_after(career.release(pid), "Volvió a su club."), 440.0, 19))
+		_detail.add_child(_action("Devolverlo ahora", func() -> void:
+			_after(career.release(pid), "Volvió a su club.")))
 	else:
 		if _offer.is_empty() or int(_offer.get("pid", -1)) != pid:
-			_detail.add_child(WEStyle.bar("Buscar comprador", func() -> void:
+			_detail.add_child(_action("Buscar comprador", func() -> void:
 				if not career.market_open():
 					_msg = "El mercado está cerrado."
 				else:
 					_offer = career.sell_offer(pid, _rng)
 					_offer["pid"] = pid
 					_msg = "" if _offer.has("club") else "Nadie lo quiere por ahora."
-				_rebuild.call_deferred(), 440.0, 19))
+				_rebuild.call_deferred()))
 		else:
-			_detail.add_child(_note("%s ofrece %d puntos." % [_club_name(_offer["club"]), int(_offer["price"])], GOLD))
+			_detail.add_child(_note("%s ofrece %s puntos." % [_club_name(_offer["club"]), WEStyle.thousands(int(_offer["price"]))], GOLD))
 			var off := _offer
-			_detail.add_child(WEStyle.bar("Aceptar", func() -> void:
+			_detail.add_child(_action("Aceptar", func() -> void:
 				_offer = {}
-				_after(career.sell(pid, off["club"], int(off["price"])), "Vendido a %s." % _club_name(off["club"])), 440.0, 19))
-			_detail.add_child(WEStyle.bar("Rechazar", func() -> void:
+				_after(career.sell(pid, off["club"], int(off["price"])), "Vendido a %s." % _club_name(off["club"]))))
+			_detail.add_child(_action("Rechazar", func() -> void:
 				_offer = {}
 				_msg = ""
-				_rebuild.call_deferred(), 440.0, 19))
-		_detail.add_child(WEStyle.bar("Dejarlo libre", func() -> void:
-			_after(career.release(pid), "%s quedó libre." % d["n"]), 440.0, 19))
+				_rebuild.call_deferred()))
+		_detail.add_child(_action("Dejarlo libre", func() -> void:
+			_after(career.release(pid), "%s quedó libre." % d["n"])))
 	if _msg != "":
 		_detail.add_child(_note(_msg, GREEN if not _msg.begins_with("No") and not _msg.begins_with("El") else RED))
 
 
 # --- Pases de la temporada -------------------------------------------------------------------
 
-func _transfers_list() -> void:
+func _transfers_list(head: Control) -> void:
 	_items = career.season_transfers()
-	_rows_box.add_child(_cells(["Jugador", "De", "", "", "", "Puntos"], BLUE, 14))
+	head.add_child(_cells(["Jugador", "De → a", "", "", "", "Puntos"], BLUE, 0, true))
+	(head.get_child(0).get_child(1) as Label).custom_minimum_size.x = WEStyle.px(520)
 	var kinds := {"compra": "compra", "préstamo": "préstamo", "venta": "venta", "libre": "libre", "ia": "", "vuelta": "vuelve"}
 	var first: Button = null
 	for i in _items.size():
 		var t: Dictionary = _items[i]
 		var mine: bool = t["from"] == career.user_club or t["to"] == career.user_club
 		var b := _row([t["n"], "%s → %s" % [_club_name(t["from"]), _club_name(t["to"])], "", "", String(kinds.get(t["kind"], "")),
-			str(t["price"]) if int(t["price"]) > 0 else ""], GOLD if mine else Color.WHITE, i, func(_i: int) -> void: pass)
-		(b.get_child(0).get_child(1) as Label).custom_minimum_size.x = 300
+			WEStyle.thousands(int(t["price"])) if int(t["price"]) > 0 else ""], GOLD if mine else WEStyle.TEXT_MAIN, i, func(_i: int) -> void: pass)
+		(b.get_child(0).get_child(1) as Label).custom_minimum_size.x = WEStyle.px(520)
 		if first == null:
 			first = b
 	if first != null:
 		first.grab_focus()
 	_clear(_detail)
-	_detail.add_child(_note("Los pases de esta temporada en todo el país. En dorado, los de tu club. Los otros clubes se refuerzan en la pretemporada y a mitad de temporada.", Color(0.8, 0.85, 0.95)))
+	_detail.add_child(WEStyle.make_caption_label("Pases de la temporada", GOLD))
+	_detail.add_child(_note("Los pases de esta temporada en todo el país. En dorado, los de tu club. Los otros clubes se refuerzan en la pretemporada y a mitad de temporada.", BLUE))
 	if _items.is_empty():
-		_detail.add_child(WEStyle.label("Todavía no hubo pases.", 17))
+		_detail.add_child(_note("Todavía no hubo pases.", WEStyle.TEXT_MAIN))
 
 
 func _close() -> void:
