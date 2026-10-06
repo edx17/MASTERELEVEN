@@ -539,6 +539,68 @@ static func make_action_button(text: String, cb: Callable, primary: bool = false
 	return b
 
 
+## Celdas de una fila de tabla con anchos fijos (en px de 1080; 0 = se
+## estira) y alineación por columna en `align` ("L", "R" o "C"; los números
+## a la derecha). En el encabezado van en caption.
+static func make_cells(texts: Array, widths: Array, align: String = "", header: bool = false,
+		color: Color = TEXT_MAIN, size: int = BODY_L) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_theme_constant_override("separation", int(px(12)))
+	for k in texts.size():
+		var l: Label
+		if header:
+			l = make_caption_label(String(texts[k]), TEXT_DIM)
+		else:
+			l = make_body_label(String(texts[k]), size, color)
+		l.clip_text = true
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		var w: float = float(widths[k]) if k < widths.size() else 0.0
+		if w <= 0.0:
+			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		else:
+			l.custom_minimum_size.x = px(w)
+		var a := align[k] if k < align.length() else "L"
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if a == "R" else (HORIZONTAL_ALIGNMENT_CENTER if a == "C" else HORIZONTAL_ALIGNMENT_LEFT)
+		h.add_child(l)
+	return h
+
+
+## Fila de tabla que toma el foco (plantel, mercado, Dirección): sin fondo y
+## con una línea de 1 px abajo en reposo; con foco, el estilo de foco (borde
+## dorado de 2 px + bg_panel_alt). `marked`: elegida (fondo alt y borde
+## dorado fino), p. ej. el primer jugador de un intercambio.
+static func make_row_button(cells: Control, marked: bool = false) -> Button:
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_ALL
+	b.custom_minimum_size.y = px(ROW_H)
+	for st in ["normal", "pressed", "disabled"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = BG_PANEL_ALT if marked else Color(0, 0, 0, 0)
+		sb.border_color = ACCENT if marked else LINE
+		if marked:
+			sb.set_border_width_all(BORDER)
+			sb.set_corner_radius_all(int(px(RADIUS_BUTTON)))
+		else:
+			sb.border_width_bottom = BORDER
+		b.add_theme_stylebox_override(st, sb)
+	for st in ["hover", "focus"]:
+		b.add_theme_stylebox_override(st, make_focus_style(RADIUS_BUTTON))
+	cells.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	cells.offset_left = px(12)
+	cells.offset_right = -px(12)
+	b.add_child(cells)
+	return b
+
+
+## Tarjeta (panel con el padding de las tarjetas) para columnas laterales.
+static func make_card(alt: bool = false) -> PanelContainer:
+	var pc := PanelContainer.new()
+	pc.add_theme_stylebox_override("panel", make_panel_style(alt))
+	return pc
+
+
 ## Fila de tabla (o su encabezado): la primera celda fija, la segunda se
 ## estira (el equipo) y el resto son números alineados a la derecha. A la
 ## izquierda, una marca de color (ascenso, descenso, clasificados); tu club
