@@ -353,10 +353,6 @@ func set_kit_texture(tex: Texture2D) -> void:
 		return
 	_body_mat.set_shader_parameter("use_kit_tex", tex != null)
 	_body_mat.set_shader_parameter("kit_tex", tex)
-	# Los kits importados de DLS ya traen el escudo pintado: no se dibuja el
-	# del juego encima.
-	if tex != null and tex.resource_name.ends_with("_dls.png"):
-		_body_mat.set_shader_parameter("crest", false)
 
 
 ## Aspecto del jugador (B4): piel, barba (FACIAL_HAIR de PlayerData) y su color.

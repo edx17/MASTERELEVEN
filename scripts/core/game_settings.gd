@@ -177,7 +177,7 @@ func _is_tool_run() -> bool:
 		if a.contains("gut_cmdln"):
 			return true
 	for a in OS.get_cmdline_user_args():
-		if a.begins_with("--capture=") or a.begins_with("--poses=") or a.begins_with("--stadium-thumbs=") or a.begins_with("--menu-shot=") or a.begins_with("--import-players=") or a.begins_with("--editor-shot=") or a.begins_with("--kit-shot=") or a == "--benchmark":
+		if a.begins_with("--capture=") or a.begins_with("--poses=") or a.begins_with("--stadium-thumbs=") or a.begins_with("--menu-shot=") or a.begins_with("--import-players=") or a.begins_with("--editor-shot=") or a == "--benchmark":
 			return true
 	return false
 
@@ -261,10 +261,6 @@ func _check_capture_mode() -> void:
 			var es: Node = load("res://tools/editor_shot.gd").new()
 			es.set("out", arg.trim_prefix("--editor-shot="))
 			get_tree().root.add_child.call_deferred(es)
-		if arg.begins_with("--kit-shot="):
-			var ks: Node = load("res://tools/kit_shot.gd").new()
-			ks.set("args", arg.trim_prefix("--kit-shot="))
-			get_tree().root.add_child.call_deferred(ks)
 		if arg.begins_with("--menu-shot="):
 			var shot: Node = load("res://tools/menu_shot.gd").new()
 			shot.set("out", arg.trim_prefix("--menu-shot="))

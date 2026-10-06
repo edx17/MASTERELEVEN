@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **463 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **462 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -157,15 +157,6 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
-
-## Kits de Dream League Soccer
-- Editor → Camisetas → **"Importar kit DLS (PNG)"**: convierte un kit de DLS
-  (plantilla de 512) a la del juego: pecho, espalda, mangas, short y medias
-  a su lugar (el torso repartido entre lo que se ve de frente y los
-  hombros). Probado con Boca, Argentina e Independiente. El escudo y los
-  sponsors vienen en el kit: el juego no le agrega su escudo.
-- Herramienta para revisar: `-- --kit-shot=kit.png,foto.png` (jugador de
-  frente, de espaldas y la plantilla convertida).
 
 ## Fase 7 — Torneos (en la Liga Master)
 - **Copa nacional** cada temporada (Copa Argentina, FA Cup, Copa del Rey,

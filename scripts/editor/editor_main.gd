@@ -1348,38 +1348,6 @@ func _kit_tex(path: String, kit: int) -> Texture2D:
 	return t.kit_texture(kit) if t != null else null
 
 
-## Elegir un kit de Dream League Soccer (PNG/JPG de la plantilla de 512) y
-## convertirlo a la plantilla del juego (titular o suplente, según lo elegido).
-func _pick_dls(path: String, key: String) -> void:
-	var fd := FileDialog.new()
-	fd.file_mode = FileDialog.FILE_MODE_OPEN_FILE
-	fd.access = FileDialog.ACCESS_FILESYSTEM
-	fd.filters = PackedStringArray(["*.png, *.jpg, *.jpeg ; Kit DLS"])
-	fd.title = "Kit DLS de %s (%s)" % [TeamDB.load_team(path).team_name, "titular" if key == "home" else "suplente"]
-	fd.size = Vector2i(900, 560)
-	add_child(fd)
-	fd.file_selected.connect(func(f: String) -> void:
-		var ok := import_dls_kit(path, key, f)
-		_status.text = "Kit DLS importado." if ok else "No se pudo leer esa imagen."
-		fd.queue_free())
-	fd.canceled.connect(fd.queue_free)
-	fd.popup_centered()
-
-
-func import_dls_kit(path: String, key: String, file: String) -> bool:
-	var src := Image.load_from_file(file)
-	if src == null or src.is_empty():
-		return false
-	var img := KitTemplate.from_dls(src)
-	var dir := model.option_file.kits_dir()
-	DirAccess.make_dir_recursive_absolute(dir)
-	var name := "%s_%s_dls.png" % [path.trim_prefix("db:").replace(":", "_"), "titular" if key == "home" else "suplente"]
-	if img.save_png(dir.path_join(name)) != OK:
-		return false
-	model.set_team(path, {key + "_tex": name})
-	return true
-
-
 ## Elegir un PNG para el escudo: se copia (como mucho 256 px) a la carpeta
 ## de camisetas del Option File y el equipo lo usa en los menús.
 func _pick_crest(path: String) -> void:
@@ -1512,10 +1480,6 @@ func _show_kit(path: String) -> void:
 		model.set_team(path, {key + "_tex": fname})
 		_status.text = "Plantilla importada (se guarda con el Option File).", "Usa el PNG pintado en el juego"))
 	row.add_child(_btn("Quitar plantilla", func() -> void: model.set_team(path, {key + "_tex": ""}), ""))
-	var dls_row := HBoxContainer.new()
-	_k_form.add_child(dls_row)
-	dls_row.add_child(_btn("Importar kit DLS (PNG)", _pick_dls.bind(path, key),
-		"Un kit de Dream League Soccer (la plantilla de 512×512 con frente, espalda, mangas, short y medias): se convierte solo."))
 	_k_form.add_child(_btn("Abrir carpeta de plantillas", func() -> void: UserData.open_folder(UserData.templates_dir()), ""))
 	_k_preview.show_player(_kit_colors(path, _k_kit), _kit_tex(path, _k_kit))
 
