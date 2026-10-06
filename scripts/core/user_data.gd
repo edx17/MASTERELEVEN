@@ -34,6 +34,10 @@ static func root() -> String:
 		return ProjectSettings.globalize_path("user://sandbox")
 	if _root == "":
 		var docs := OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS)
+		# En Android / iOS, Documentos no se puede escribir sin permisos: se usa
+		# la carpeta propia de la app.
+		if OS.has_feature("mobile"):
+			docs = ""
 		if docs != "" and DirAccess.dir_exists_absolute(docs):
 			_root = docs.path_join(FOLDER)
 		else:
