@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **479 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **485 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -171,6 +171,9 @@ además arma el `.exe` de Windows).
 | Lista del partido | Al partido van 23: los 11 titulares y 12 suplentes, en el orden de la Dirección del equipo. |
 | Selecciones | Siguen con 23 convocados. |
 | Generados | Los clubes sin listado se siguen generando con 23. |
+| Importar con revisión | Editor → Importar → **1. Revisar planteles / 2. Importar planteles**: una fila por club del CSV con el club del juego (OK / REVISAR / Nuevo / Salteada), desplegable y buscador para corregir; lo elegido se recuerda. Con los CSV del ascenso: 85 clubes, 84 solos y 1 a elegir (Estudiantes). |
+| Lo que trae el CSV entra | Las divisiones quedan como en el CSV (ascensos/descensos), se crean clubes, ligas y países que falten (Ligue 1, MLS...), Sub-20 aparte, lista de libres, selecciones nuevas desde un catálogo de 119 con bandera y camisetas. |
+| Scrapers | `tools/scrapers/` (SoloAscenso y Transfermarkt) generan los CSV. |
 
 ## Fase 8 — Pulido (PR #35)
 - **Opciones > Gráficos**:

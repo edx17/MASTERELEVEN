@@ -976,11 +976,11 @@ func _import_squads() -> void:
 		"%d jugadores en %d clubes." % [res["players"], res["clubs"]],
 		"%d selecciones armadas." % res["nations"],
 		"Guardado en el Option File \"%s\"." % of.name]
-	if int(res["unmatched_clubs"]) > 0:
-		lines.append("")
-		lines.append("%d clubes del archivo no están en la base:" % res["unmatched_clubs"])
-		for l in imp.report.slice(1, 13):
-			lines.append(l.strip_edges())
+	lines.append("")
+	for l in imp.report:
+		lines.append(l.strip_edges())
+	lines.append("Para elegir a mano los clubes en duda usá el Editor (pestaña Importar).")
+	lines.append("Informe completo: %s" % SquadImporter.report_path())
 	_data_status.text = "\n".join(lines)
 
 

@@ -1510,7 +1510,9 @@ func _import_tab() -> Control:
 	var pl := HBoxContainer.new()
 	tab.add_child(pl)
 	pl.add_child(_lbl("Planteles (CSV de jugadores):"))
-	pl.add_child(_btn("Importar planteles", _import, "EA FC / SoFIFA, Transfermarkt o planilla propia"))
+	pl.add_child(_btn("1. Revisar planteles", _squads_review,
+		"Lee los CSV de jugadores y muestra a qué club del juego va cada club del CSV"))
+	pl.add_child(_btn("2. Importar planteles", _import, "Crea lo que falta y carga los jugadores (Ctrl+Z lo deshace)"))
 	_imp_text = _lbl("")
 	_imp_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tab.add_child(_imp_text)
@@ -1533,6 +1535,19 @@ func _import_tab() -> Control:
 	_ci_text = _lbl("")
 	_ci_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tab.add_child(_ci_text)
+	# Asignar a mano un club del juego a la fila elegida.
+	var pick := HBoxContainer.new()
+	tab.add_child(pick)
+	pick.add_child(_lbl("Asignar a la fila elegida:"))
+	_ci_search = LineEdit.new()
+	_ci_search.placeholder_text = "Buscar club del juego…"
+	_ci_search.custom_minimum_size.x = 260
+	_ci_search.text_changed.connect(_clubs_search)
+	pick.add_child(_ci_search)
+	_ci_found = OptionButton.new()
+	_ci_found.custom_minimum_size.x = 360
+	pick.add_child(_ci_found)
+	pick.add_child(_btn("Asignar", _clubs_assign, "El club del CSV es este club del juego"))
 	_ci_tree = Tree.new()
 	_ci_tree.columns = 5
 	_ci_tree.hide_root = true
@@ -1556,6 +1571,11 @@ var _ci_tree: Tree
 var _ci_text: Label
 var _ci_filter: OptionButton
 var _ci_stadiums: CheckBox
+var _ci_search: LineEdit
+var _ci_found: OptionButton
+## "clubs" (lista de clubes) o "squads" (planteles).
+var _ci_mode := "clubs"
+var _sq_rows: Array[Dictionary] = []
 
 
 func _clubs_review() -> void:
@@ -1565,7 +1585,66 @@ func _clubs_review() -> void:
 		_clubs_fill()
 		_ci_text.text = "No hay CSV de clubes en %s (necesitan las columnas nombre y división)." % UserData.import_dir()
 		return
+	_ci_mode = "clubs"
+	_ci_tree.set_column_title(2, "Estadio")
+	_ci_tree.set_column_expand_ratio(2, 3)
 	_ci_plan = ClubImporter.analyze(rows)
+	_clubs_fill()
+
+
+func _squads_review() -> void:
+	_sq_rows = SquadImporter.read_folder_rows(UserData.import_dir())
+	_ci_mode = "squads"
+	_ci_tree.set_column_title(2, "Jugadores")
+	_ci_tree.set_column_expand_ratio(2, 1)
+	if _sq_rows.is_empty():
+		_ci_plan.clear()
+		_clubs_fill()
+		_ci_text.text = "No hay CSV de jugadores en %s." % UserData.import_dir()
+		return
+	_ci_plan = SquadImporter.plan_rows(_sq_rows, model.option_file)
+	_clubs_fill()
+
+
+func _options_of(e: Dictionary) -> Array:
+	return SquadImporter.plan_options(e) if _ci_mode == "squads" else _clubs_options(e)
+
+
+func _clubs_search(text: String) -> void:
+	_ci_found.clear()
+	var n := ClubImporter.norm(text)
+	if n.length() < 3:
+		return
+	var count := 0
+	for c in TeamDB.countries():
+		for d in c["divisions"]:
+			for cl in d["clubs"]:
+				if ClubImporter.norm(String(cl["name"])).contains(n) and count < 60:
+					_ci_found.add_item("%s (%s, %s)" % [cl["name"], d["name"], c["name"]])
+					_ci_found.set_item_metadata(_ci_found.item_count - 1, [String(c["id"]), String(cl["id"])])
+					count += 1
+
+
+func _clubs_assign() -> void:
+	var it := _ci_tree.get_selected()
+	if it == null or _ci_found.selected < 0:
+		_ci_text.text = "Elegí una fila de la lista y un club de la búsqueda."
+		return
+	var e := _ci_plan[int(it.get_metadata(0))]
+	var where: Array = _ci_found.get_item_metadata(_ci_found.selected)
+	if _ci_mode == "squads":
+		SquadImporter.plan_pick(e, where[0], where[1])
+		if String(e["choice"]) != where[1] and not String(e["choice"]).ends_with(":" + String(where[1])):
+			_ci_text.text = "Ese club es de otro país que la liga del CSV."
+			return
+	else:
+		if where[0] != String(e["country"]):
+			_ci_text.text = "Ese club es de otro país que la división del CSV."
+			return
+		var found := TeamDB.club(where[0], where[1])
+		e["candidates"].append({"id": where[1], "name": String(found[0]["name"]), "stadium": String(found[0].get("stadium", "")),
+			"division": String(found[1]["name"])})
+		e["choice"] = where[1]
 	_clubs_fill()
 
 
@@ -1594,13 +1673,13 @@ func _clubs_fill() -> void:
 		it.set_metadata(0, i)
 		it.set_text(0, e["name"])
 		it.set_text(1, e["division_name"])
-		it.set_text(2, e["stadium"])
+		it.set_text(2, str(e["players"]) if _ci_mode == "squads" else String(e["stadium"]))
 		it.set_text(3, CI_STATUS[e["status"]])
 		it.set_tooltip_text(3, e["note"])
 		var col: Color = {"match": Color(0.5, 0.9, 0.5), "doubt": Color(1, 0.75, 0.3), "new": Color(0.5, 0.75, 1),
 			"skip": Color(0.6, 0.6, 0.6)}[e["status"]]
 		it.set_custom_color(3, col)
-		var opts := _clubs_options(e)
+		var opts := _options_of(e)
 		var names: Array = []
 		var sel := -1
 		for k in opts.size():
@@ -1624,7 +1703,7 @@ func _clubs_edited() -> void:
 	if it == null:
 		return
 	var e := _ci_plan[int(it.get_metadata(0))]
-	var opts := _clubs_options(e)
+	var opts := _options_of(e)
 	var k := int(it.get_range(4))
 	if k >= 0 and k < opts.size():
 		e["choice"] = opts[k][0]
@@ -1632,6 +1711,9 @@ func _clubs_edited() -> void:
 
 
 func _clubs_apply() -> void:
+	if _ci_mode == "squads":
+		_import()
+		return
 	if _ci_plan.is_empty():
 		_ci_text.text = "Primero apretá \"1. Revisar lista de clubes\"."
 		return
@@ -1647,13 +1729,23 @@ func _clubs_apply() -> void:
 
 
 func _import() -> void:
+	if _ci_mode != "squads" or _ci_plan.is_empty():
+		_squads_review()
+		if _ci_plan.is_empty():
+			_imp_text.text = "No hay archivos CSV de jugadores en %s" % UserData.import_dir()
+			return
+	var pending := _ci_plan.filter(func(e: Dictionary) -> bool: return e["choice"] == "").size()
 	var imp := SquadImporter.new()
-	var res := imp.import_folder(UserData.import_dir(), model.option_file)
-	if int(res["files"]) == 0:
-		_imp_text.text = "No hay archivos CSV en %s" % UserData.import_dir()
-		return
-	var lines := ["%d archivo(s), %d filas: %d jugadores en %d clubes, %d selecciones." % [res["files"], res["rows"],
-		res["players"], res["clubs"], res["nations"]], "Guardado en \"%s\"." % model.option_file.name]
+	var res := model.import_squads(_ci_plan, _sq_rows, imp)
+	var lines := ["%d filas: %d jugadores en %d clubes, %d selecciones." % [res["rows"], res["players"], res["clubs"],
+		res["nations"]]]
 	lines.append_array(imp.report)
+	if pending > 0:
+		lines.append("%d clubes quedaron sin elegir y no se importaron." % pending)
+	lines.append("Guardá con Ctrl+S (Ctrl+Z lo deshace). El informe completo quedó en %s." % SquadImporter.report_path())
+	imp.save_report(_ci_plan)
 	_imp_text.text = "\n".join(lines)
-	_switch_model(model.option_file)
+	_ci_plan.clear()
+	_ci_tree.clear()
+	_regroup()
+	_refresh_leagues()

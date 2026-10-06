@@ -284,6 +284,7 @@ static func apply(plan: Array, of: OptionFile, stadiums: bool = true) -> Diction
 					entry["cap"] = int(e["capacity"])
 				of.set_club(cid, entry)
 				updated += 1
+		e["applied_id"] = id
 		var div_list: Array = lists.get_or_add(cid, {}).get_or_add(String(e["division"]), [])
 		if not div_list.has(id):
 			div_list.append(id)

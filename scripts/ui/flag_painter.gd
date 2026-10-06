@@ -10,9 +10,13 @@ extends RefCounted
 ##   {"t": "cross", "c": [fondo, cruz]}    cruz centrada (San Jorge)
 ##   {"t": "saltire", "c": [fondo, aspa]}
 ##   {"t": "disc", "c": [fondo, círculo]}
+##   {"t": "tri", "c": [franjas], "w": [pesos], "k": color, "d": 0.4}  triángulo en el asta
+##   {"t": "canton", "c": [franjas], "w": [pesos], "k": color, "cw": 0.4, "ch": 0.5}
+##   {"t": "diag", "c": [arriba, abajo], "k": franja, "f": borde, "d": 1}  franja diagonal
+##                                         (d = -1: de arriba a la izquierda)
 ##   especiales: usa, brazil, uruguay, chile, korea, qatar, jordan, china,
 ##   algeria, rsa, panama, jamaica, swiss, ensign (Australia / N. Zelanda).
-## y un emblema opcional "e": {k: sun|star|crescent|cstar|disc|ring|bar|
+## y uno o varios emblemas opcionales "e": {k: sun|star|crescent|cstar|disc|ring|bar|
 ## checks|cdisc|sash, c: color, x, y, r}.
 ## Es una versión simplificada (sin escudos), reconocible a la distancia.
 
@@ -41,8 +45,11 @@ static func image(spec: Dictionary, w: int = W, h: int = H) -> Image:
 			var u := (x + 0.5) / w
 			var v := (y + 0.5) / h
 			img.set_pixel(x, y, _pixel(t, spec, cols, c, u, v))
-	if spec.has("e"):
+	if spec.get("e") is Dictionary:
 		_emblem(img, spec["e"])
+	elif spec.get("e") is Array:
+		for e in spec["e"]:
+			_emblem(img, e)
 	return img
 
 
@@ -68,6 +75,23 @@ static func _pixel(t: String, spec: Dictionary, cols: Array, c: Callable, u: flo
 			return c.call(_band(spec.get("w", []), v))
 		"vw":
 			return c.call(_band(spec.get("w", []), u))
+		"tri", "canton":
+			if t == "tri":
+				if u < float(spec.get("d", 0.4)) * (1.0 - absf(v - 0.5) * 2.0):
+					return Color.html(String(spec.get("k", "000000")))
+			elif u < float(spec.get("cw", 0.4)) and v < float(spec.get("ch", 0.5)):
+				return Color.html(String(spec.get("k", "000000")))
+			if spec.has("w"):
+				return c.call(_band(spec["w"], v))
+			return c.call(mini(int(v * cols.size()), cols.size() - 1))
+		"diag":
+			var dir := float(spec.get("d", 1.0))
+			var dd := (v - 0.5) + dir * (u - 0.5) * 0.667
+			if absf(dd) < 0.13:
+				return Color.html(String(spec.get("k", "000000")))
+			if absf(dd) < 0.18 and spec.has("f"):
+				return Color.html(String(spec["f"]))
+			return c.call(0) if dd < 0.0 else c.call(1)
 		"nordic":
 			var cx := 0.375
 			if absf(u - cx) < 0.09 or absf(v - 0.5) < 0.12:

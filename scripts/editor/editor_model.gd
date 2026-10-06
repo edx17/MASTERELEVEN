@@ -424,6 +424,18 @@ func import_clubs(plan: Array, stadiums: bool = true) -> Dictionary:
 	return res
 
 
+## Importa planteles con la propuesta revisada (SquadImporter.plan_rows); se
+## puede deshacer.
+func import_squads(plan: Array, rows: Array[Dictionary], imp: SquadImporter) -> Dictionary:
+	_snapshot()
+	var res := imp.apply_plan(plan, rows, option_file)
+	_entries.clear()
+	TeamDB.use_option_file(option_file)
+	dirty = true
+	changed.emit()
+	return res
+
+
 # --- Copas propias (E3) -------------------------------------------------------------
 
 ## Copa nueva: format "knockout" (8 o 16 equipos) o "league" (todos contra
