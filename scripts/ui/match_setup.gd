@@ -56,9 +56,9 @@ func _ready() -> void:
 	_add(list, "Jugadores", func() -> String:
 			if GameSettings.player_style == GameSettings.PlayerStyle.RETRO and not RetroBody.available():
 				return "retro (falta el modelo)"
-			return GameSettings.PLAYER_STYLE_NAMES[clampi(GameSettings.player_style, 0, 2)],
-		func(d: int) -> void: GameSettings.player_style = posmod(GameSettings.player_style + d, 3),
-		"Modelo de los jugadores. Clásicos: pocos polígonos, como el WE de PS1. Retro (beta): el modelo base estilo PS1. Detallados: el modelo con músculos.")
+			return GameSettings.PLAYER_STYLE_NAMES[clampi(GameSettings.player_style, 0, GameSettings.PLAYER_STYLE_NAMES.size() - 1)],
+		func(d: int) -> void: GameSettings.player_style = posmod(GameSettings.player_style + d, GameSettings.PLAYER_STYLE_NAMES.size()),
+		"Modelo de los jugadores. Clásicos: pocos polígonos, como el WE de PS1. Retro (beta): el modelo base estilo PS1. Detallados: el modelo con músculos. Bloques: cuadrados, con rodillas y codos que se doblan.")
 	# Jugar y Volver lado a lado, para que todo entre arriba de la caja de ayuda.
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 8)

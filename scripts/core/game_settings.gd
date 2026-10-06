@@ -156,8 +156,8 @@ var show_replays := true
 ## Estilo de los jugadores: clásico (pocos polígonos, como el WE de PS1; por
 ## defecto), retro (el modelo base estilo PS1, beta) o detallado (el modelo
 ## con músculos).
-enum PlayerStyle { CLASSIC, RETRO, DETAILED }
-const PLAYER_STYLE_NAMES := ["clásicos", "retro PS1 (beta)", "detallados"]
+enum PlayerStyle { CLASSIC, RETRO, DETAILED, BLOCKS }
+const PLAYER_STYLE_NAMES := ["clásicos", "retro PS1 (beta)", "detallados", "bloques"]
 var player_style: int = PlayerStyle.CLASSIC
 ## Repetición también de las jugadas peligrosas (remates cerca, atajadas al
 ## córner, faltas importantes).
@@ -219,6 +219,8 @@ func _ready() -> void:
 		player_style = PlayerStyle.RETRO
 	if "--detailed" in OS.get_cmdline_user_args():
 		player_style = PlayerStyle.DETAILED
+	if "--blocks" in OS.get_cmdline_user_args():
+		player_style = PlayerStyle.BLOCKS
 	show_replays = persist
 	replay_chances = persist
 	if persist:

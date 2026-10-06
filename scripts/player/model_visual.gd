@@ -198,10 +198,12 @@ func setup(colors: Dictionary, seed: int) -> void:
 		_body_mat = mat
 	# Cuerpo clásico (por defecto): pocos polígonos y proporciones normales,
 	# con la misma ropa (diseño, número y escudo en la tela).
-	if GameSettings.player_style == GameSettings.PlayerStyle.CLASSIC and body != null and _body_mat != null:
+	var blocks := GameSettings.player_style == GameSettings.PlayerStyle.BLOCKS
+	if (GameSettings.player_style == GameSettings.PlayerStyle.CLASSIC or blocks) and body != null and _body_mat != null:
 		# Caras planas separadas: la ropa no se "infla" (si no, se abren).
 		_body_mat.set_shader_parameter("cloth_inflate", 0.0)
-		_classic = ClassicBody.build(_skel, _body_mat)
+		# Bloques: cajas rígidas por hueso (rodillas y codos se doblan).
+		_classic = BlockBody.build(_skel, _body_mat) if blocks else ClassicBody.build(_skel, _body_mat)
 		# El peinado (malla de pelo) también en el cuerpo clásico (B3).
 		# Cara dibujada (ojos, cejas, boca, barba) y manga larga.
 		_body_mat.set_shader_parameter("draw_face", true)
@@ -448,7 +450,8 @@ static func _band_material(c: Color) -> StandardMaterial3D:
 
 
 func _add_hair(style: int, color: Color, band_color: Color) -> void:
-	var m := HairBuilder.mesh(style)
+	var blocks := GameSettings.player_style == GameSettings.PlayerStyle.BLOCKS
+	var m := BlockBody.hair_mesh(style) if blocks else HairBuilder.mesh(style)
 	if m == null:
 		return
 	var head := _skel.find_bone("Head")
@@ -475,6 +478,12 @@ func _add_hair(style: int, color: Color, band_color: Color) -> void:
 				mi.set_surface_override_material(si, _band_material(b))
 			_:
 				mi.set_surface_override_material(si, HairBuilder.material(color))
+		if blocks:
+			var sm := mi.get_surface_override_material(si) as BaseMaterial3D
+			if sm != null:
+				sm = sm.duplicate()
+				sm.cull_mode = BaseMaterial3D.CULL_DISABLED
+				mi.set_surface_override_material(si, sm)
 	att.add_child(mi)
 	hair_node = mi
 
