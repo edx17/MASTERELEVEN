@@ -30,6 +30,9 @@ var _showing_ratings := false
 var _shot := 0
 var _shot_t := 0.0
 var _sheet: TeamSheet
+var _footer: WEStyle.HintFooter
+var _caption: Label
+var _names: Array[Label] = []
 var _queue: Array[Dictionary] = []
 
 
@@ -42,43 +45,99 @@ func setup(m: MatchController) -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
-	var panel := WEStyle.panel(Vector2(620, 0))
-	panel.position = Vector2(60, 70)
+	# Velo sobre el partido (el HUD queda atrás) para que se lea todo.
+	var veil := ColorRect.new()
+	veil.color = Color(WEStyle.BG_NIGHT, 0.55)
+	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(veil)
+	# Izquierda: el resultado y las estadísticas (o los puntajes) en una
+	# tarjeta; derecha: el menú. De fondo, la cámara recorre el estadio.
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
+	panel.offset_left = WEStyle.px(WEStyle.MARGIN_X)
+	panel.offset_top = WEStyle.px(WEStyle.MARGIN_Y)
+	panel.offset_right = WEStyle.px(WEStyle.MARGIN_X + 1000)
+	panel.offset_bottom = -WEStyle.px(WEStyle.FOOTER_H + 32)
+	var sb := WEStyle.make_panel_style()
+	sb.bg_color = WEStyle.BG_NIGHT
+	panel.add_theme_stylebox_override("panel", sb)
 	root.add_child(panel)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
+	box.add_theme_constant_override("separation", int(WEStyle.px(10)))
 	panel.add_child(box)
-	_title = WEStyle.label("ENTRETIEMPO", 30, Color(1.0, 0.9, 0.35))
-	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_caption = WEStyle.make_caption_label("Partido", WEStyle.ACCENT)
+	box.add_child(_caption)
+	_title = WEStyle.make_title_label("ENTRETIEMPO", WEStyle.TITLE_L)
 	box.add_child(_title)
-	_score = WEStyle.label("", 34)
-	_score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(_score)
-	_halves = WEStyle.label("", 20, Color(0.8, 0.85, 0.95))
+	# Resultado: local | goles | visitante.
+	var score := HBoxContainer.new()
+	score.add_theme_constant_override("separation", int(WEStyle.px(24)))
+	box.add_child(score)
+	for i in 2:
+		var n := WEStyle.make_title_label("", WEStyle.TITLE_M)
+		n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		n.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if i == 0 else HORIZONTAL_ALIGNMENT_LEFT
+		n.clip_text = true
+		_names.append(n)
+		score.add_child(n)
+		if i == 0:
+			_score = WEStyle.make_title_label("", WEStyle.TITLE_XL, WEStyle.ACCENT)
+			_score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			score.add_child(_score)
+	_halves = WEStyle.make_caption_label("")
 	_halves.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_halves)
+	box.add_child(WEStyle.make_separator())
 	_rows = VBoxContainer.new()
-	_rows.add_theme_constant_override("separation", 4)
+	_rows.add_theme_constant_override("separation", 0)
 	box.add_child(_rows)
+	var mp := WEStyle.make_card()
+	var msb := WEStyle.make_panel_style()
+	msb.bg_color = WEStyle.BG_NIGHT
+	mp.add_theme_stylebox_override("panel", msb)
+	mp.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	mp.offset_left = -WEStyle.px(WEStyle.MARGIN_X + 560)
+	mp.offset_right = -WEStyle.px(WEStyle.MARGIN_X)
+	mp.grow_vertical = Control.GROW_DIRECTION_BOTH
+	root.add_child(mp)
 	_menu = VBoxContainer.new()
-	_menu.position = Vector2(760, 330)
-	_menu.add_theme_constant_override("separation", 6)
-	root.add_child(_menu)
+	_menu.add_theme_constant_override("separation", int(WEStyle.px(8)))
+	mp.add_child(_menu)
 	_continue = _button("Segundo tiempo", func() -> void: _match.start_second_half())
 	_sheet_btn = _button("Dirección del equipo", _open_sheet)
 	_ratings_btn = _button("Puntajes de los jugadores", _toggle_ratings)
 	_button("Ver highlights", _play_highlights)
 	_button("Salir al menú", func() -> void: _match.exit_to_menu())
+	_footer = WEStyle.HintFooter.new("Entretiempo", [[&"ui_navigate", "Navegar"], [&"ui_accept", "Aceptar"]])
+	_footer.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	_footer.offset_top = -WEStyle.px(WEStyle.FOOTER_H)
+	root.add_child(_footer)
 	_sheet = TeamSheet.new()
 	add_child(_sheet)
 	_sheet.closed.connect(func() -> void:
 		_menu.visible = true
+		_menu_card().visible = true
 		_focus_default())
 	m.replay.finished.connect(_on_clip_done)
 
 
+## El menú es el padre del padre de _menu (la tarjeta): se oculta entero.
+func _menu_card() -> Control:
+	return _menu.get_parent() as Control
+
+
 func _button(text: String, cb: Callable) -> Button:
-	var b := WEStyle.bar(text, cb, 440.0, 22)
+	var b := Button.new()
+	b.text = "%s  ›" % text
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.custom_minimum_size = Vector2(WEStyle.px(500), WEStyle.px(56))
+	if _menu.get_child_count() == 0:
+		WEStyle.style_primary_button(b, WEStyle.BODY_L)
+	else:
+		WEStyle.style_button(b, WEStyle.BODY_L)
+	b.pressed.connect(cb)
 	_menu.add_child(b)
 	return b
 
@@ -89,11 +148,14 @@ func open(final: bool) -> void:
 	visible = true
 	_menu.visible = true
 	_title.text = "RESULTADO" if final else "ENTRETIEMPO"
+	_caption.text = ("Final del partido" if final else "Fin del primer tiempo").to_upper()
+	_footer.screen = "Resultado" if final else "Entretiempo"
+	_footer.rebuild()
 	_continue.visible = not final
 	_sheet_btn.visible = not final
 	_ratings_btn.visible = final
 	_showing_ratings = false
-	_ratings_btn.text = "Puntajes de los jugadores"
+	_ratings_btn.text = "Puntajes de los jugadores  ›"
 	_refresh()
 	_shot = 0
 	_shot_t = 0.0
@@ -165,14 +227,16 @@ func halves_text() -> String:
 
 func _toggle_ratings() -> void:
 	_showing_ratings = not _showing_ratings
-	_ratings_btn.text = "Estadísticas del partido" if _showing_ratings else "Puntajes de los jugadores"
+	_ratings_btn.text = ("Estadísticas del partido" if _showing_ratings else "Puntajes de los jugadores") + "  ›"
 	_refresh()
 
 
 func _refresh() -> void:
 	var t0 := _match.teams[0]
 	var t1 := _match.teams[1]
-	_score.text = "%s   %d - %d   %s" % [t0.short_name, t0.score, t1.score, t1.short_name]
+	_score.text = "%d - %d" % [t0.score, t1.score]
+	_names[0].text = t0.team_name.to_upper()
+	_names[1].text = t1.team_name.to_upper()
 	_halves.text = halves_text()
 	for c in _rows.get_children():
 		c.queue_free()
@@ -188,7 +252,7 @@ func _refresh() -> void:
 		row.right = float(r[4])
 		row.left_color = t0.color
 		row.right_color = t1.color
-		row.custom_minimum_size = Vector2(600, 36)
+		row.custom_minimum_size = Vector2(0, WEStyle.px(50))
 		_rows.add_child(row)
 
 
@@ -218,52 +282,43 @@ func rating_rows(t: Team) -> Array:
 
 func _fill_ratings() -> void:
 	var cols := HBoxContainer.new()
-	cols.add_theme_constant_override("separation", 18)
+	cols.add_theme_constant_override("separation", int(WEStyle.px(32)))
 	_rows.add_child(cols)
 	for t in _match.teams:
 		var col := VBoxContainer.new()
-		col.custom_minimum_size = Vector2(291, 0)
-		col.add_theme_constant_override("separation", 1)
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col.add_theme_constant_override("separation", 0)
 		cols.add_child(col)
-		var head := WEStyle.label(t.team_name, 18, t.color.lightened(0.35))
-		col.add_child(head)
+		col.add_child(WEStyle.make_title_label(t.team_name.to_upper(), WEStyle.TITLE_M, t.color.lightened(0.35)))
+		col.add_child(WEStyle.make_cells(["Pos.", "N°", "Jugador", "Nota"], [52, 40, 0, 60], "LRLR", true))
 		for row in rating_rows(t):
-			var line := HBoxContainer.new()
-			line.add_theme_constant_override("separation", 6)
-			col.add_child(line)
-			var pos := WEStyle.label(row[0], 13, Color(0.75, 0.8, 0.9))
-			pos.custom_minimum_size = Vector2(26, 0)
-			line.add_child(pos)
-			var num := WEStyle.label(str(row[1]), 14, Color(0.85, 0.85, 0.85))
-			num.custom_minimum_size = Vector2(22, 0)
-			num.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-			line.add_child(num)
 			var extra := ""
 			if row[4] > 0:
 				extra += "  G%s" % ("x%d" % row[4] if row[4] > 1 else "")
 			if row[5] > 0:
 				extra += "  A%s" % ("x%d" % row[5] if row[5] > 1 else "")
-			var nm := WEStyle.label(String(row[2]) + extra, 14, Color(1.0, 0.9, 0.35) if row[6] else Color.WHITE)
-			nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			nm.clip_text = true
-			line.add_child(nm)
 			var val: float = row[3]
 			var txt := "—" if val < 0.0 else ("%.1f" % val)
-			var c := Color(0.7, 0.7, 0.7)
+			var line := WEStyle.make_cells([row[0], str(row[1]), String(row[2]) + extra, txt], [52, 40, 0, 60], "LRLR", false,
+				WEStyle.ACCENT if row[6] else WEStyle.TEXT_MAIN, WEStyle.BODY_M)
+			line.custom_minimum_size.y = WEStyle.px(30)
+			(line.get_child(0) as Label).add_theme_color_override("font_color", WEStyle.TEXT_DIM)
+			var c := WEStyle.TEXT_DIM
 			if val >= 7.5:
-				c = Color(0.45, 0.95, 0.5)
-			elif val >= 6.0 or val < 0.0:
-				c = Color.WHITE if val >= 0.0 else Color(0.6, 0.6, 0.6)
+				c = WEStyle.ACCENT_GREEN
+			elif val >= 6.0:
+				c = WEStyle.TEXT_MAIN
 			elif val >= 0.0:
-				c = Color(1.0, 0.5, 0.4)
-			var rl := WEStyle.label(txt, 16, c)
-			rl.custom_minimum_size = Vector2(34, 0)
-			rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-			line.add_child(rl)
+				c = WEStyle.DANGER
+			var rl := line.get_child(3) as Label
+			rl.add_theme_color_override("font_color", c)
+			rl.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
+			col.add_child(line)
 	var mvp := _match.ratings.man_of_the_match()
 	if mvp != null:
-		var l := WEStyle.label("Figura del partido: %s (%s)" % [mvp.display_name, mvp.team.short_name], 17, Color(1.0, 0.9, 0.35))
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		var l := WEStyle.make_caption_label("Figura del partido: %s (%s)" % [mvp.display_name, mvp.team.short_name], WEStyle.ACCENT)
+		l.custom_minimum_size.y = WEStyle.px(WEStyle.HEADER_ROW_H)
+		l.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 		_rows.add_child(l)
 
 
@@ -289,6 +344,7 @@ func _next_shot() -> void:
 
 func _open_sheet() -> void:
 	_menu.visible = false
+	_menu_card().visible = false
 	var t := _match.humans[0].team if not _match.humans.is_empty() else _match.teams[0]
 	_sheet.open(_match, t, false)
 
@@ -299,7 +355,8 @@ func _play_highlights() -> void:
 	if _queue.is_empty():
 		_match.show_toast("Todavía no hubo jugadas para repetir", 1.5)
 		return
-	_menu.visible = false
+	_menu_card().visible = false
+	_footer.visible = false
 	_rows.get_parent().get_parent().visible = false
 	_match.replay.play_clip(_queue.pop_front())
 
@@ -311,6 +368,8 @@ func _on_clip_done() -> void:
 		_match.replay.play_clip(_queue.pop_front())
 		return
 	_menu.visible = true
+	_menu_card().visible = true
+	_footer.visible = true
 	_rows.get_parent().get_parent().visible = true
 	# La repetición mostró a los jugadores: la cancha vuelve a quedar vacía.
 	_match.hide_players_for_break()
@@ -330,18 +389,24 @@ class StatRow:
 	var right_color := Color.WHITE
 
 	func _draw() -> void:
-		var font := get_theme_default_font()
+		var title := WEStyle.font(WEStyle.Typeface.TITLE)
+		var semi := WEStyle.font(WEStyle.Typeface.SEMIBOLD)
 		var w := size.x
 		var mid := w * 0.5
 		var total := maxf(left + right, 0.0001)
-		var bar_w := w * 0.36
-		var y := size.y - 10.0
-		draw_rect(Rect2(mid - bar_w, y, bar_w, 6), Color(1, 1, 1, 0.12))
-		draw_rect(Rect2(mid, y, bar_w, 6), Color(1, 1, 1, 0.12))
-		draw_rect(Rect2(mid - bar_w * left / total, y, bar_w * left / total, 6), left_color.lightened(0.15))
-		draw_rect(Rect2(mid, y, bar_w * right / total, 6), right_color.lightened(0.15))
-		var cw := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x
-		draw_string(font, Vector2(mid - cw * 0.5, 20), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color(0.85, 0.88, 0.95))
-		draw_string(font, Vector2(8, 22), left_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color.WHITE)
-		var rw := font.get_string_size(right_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x
-		draw_string(font, Vector2(w - rw - 8, 22), right_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color.WHITE)
+		var bar_w := w * 0.34
+		var bh := WEStyle.px(6)
+		var y := size.y - bh - WEStyle.px(8)
+		draw_rect(Rect2(mid - bar_w - 1, y, bar_w, bh), WEStyle.LINE)
+		draw_rect(Rect2(mid + 1, y, bar_w, bh), WEStyle.LINE)
+		draw_rect(Rect2(mid - 1 - bar_w * left / total, y, bar_w * left / total, bh), left_color.lightened(0.15))
+		draw_rect(Rect2(mid + 1, y, bar_w * right / total, bh), right_color.lightened(0.15))
+		var cap := WEStyle.font_px(WEStyle.BODY_S)
+		var cap_text := caption.to_upper()
+		var cw := semi.get_string_size(cap_text, HORIZONTAL_ALIGNMENT_LEFT, -1, cap).x
+		draw_string(semi, Vector2(mid - cw * 0.5, y - WEStyle.px(10)), cap_text, HORIZONTAL_ALIGNMENT_LEFT, -1, cap, WEStyle.TEXT_DIM)
+		var fs := WEStyle.font_px(WEStyle.TITLE_M)
+		var base := y + bh
+		draw_string(title, Vector2(0, base), left_text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, WEStyle.TEXT_MAIN)
+		var rw := title.get_string_size(right_text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		draw_string(title, Vector2(w - rw, base), right_text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, WEStyle.TEXT_MAIN)
