@@ -3,6 +3,8 @@ extends CanvasLayer
 ## Pausa (Esc / Start). También resuelve la salida al menú al final del partido.
 
 var _panel: Control
+## Columna del panel lateral donde van la lista, los submenúes y la práctica.
+var _stack: VBoxContainer
 var _help: Label
 var _title: Label
 var _resume: Button
@@ -28,26 +30,49 @@ var pad := 0
 func _ready() -> void:
 	layer = 10
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	# Al estilo del WE: cartel "PAUSA — MANDO 1" arriba a la izquierda, barras
-	# violetas a la izquierda (el partido se sigue viendo) y la ayuda abajo.
+	# Panel lateral a la izquierda (el partido se sigue viendo a la derecha),
+	# con el título, la lista y la ayuda de la opción; el pie con los botones.
 	_panel = Control.new()
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_panel)
-	var head := ColorRect.new()
-	head.color = Color(0.02, 0.02, 0.06, 0.85)
-	head.position = Vector2(0, 74)
-	head.size = Vector2(520, 50)
-	_panel.add_child(head)
-	_title = WEStyle.label("PAUSA", 30, Color(0.85, 0.9, 1.0))
-	_title.position = Vector2(24, 78)
-	_panel.add_child(_title)
+	var side := PanelContainer.new()
+	side.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
+	side.offset_right = WEStyle.px(640)
+	side.offset_bottom = -WEStyle.px(WEStyle.FOOTER_H)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(WEStyle.BG_NIGHT, 0.94)
+	sb.border_color = WEStyle.LINE
+	sb.border_width_right = WEStyle.BORDER
+	sb.content_margin_left = WEStyle.px(WEStyle.MARGIN_X)
+	sb.content_margin_right = WEStyle.px(48)
+	sb.content_margin_top = WEStyle.px(WEStyle.MARGIN_Y)
+	sb.content_margin_bottom = WEStyle.px(32)
+	side.add_theme_stylebox_override("panel", sb)
+	_panel.add_child(side)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", int(WEStyle.px(16)))
+	side.add_child(col)
+	col.add_child(WEStyle.make_caption_label("Master Eleven  ·  Partido", WEStyle.ACCENT))
+	_title = WEStyle.make_title_label("PAUSA", WEStyle.TITLE_L)
+	col.add_child(_title)
+	col.add_child(WEStyle.make_separator())
+	_stack = VBoxContainer.new()
+	_stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	col.add_child(_stack)
 	var box := VBoxContainer.new()
-	box.position = Vector2(0, 136)
-	box.add_theme_constant_override("separation", 5)
-	_panel.add_child(box)
+	box.add_theme_constant_override("separation", int(WEStyle.px(6)))
+	_stack.add_child(box)
 	_box = box
-	_help = WEStyle.help_box(_panel)
+	col.add_child(WEStyle.make_separator())
+	_help = WEStyle.make_body_label("", WEStyle.BODY_M, WEStyle.TEXT_DIM, true)
+	_help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_help.custom_minimum_size = Vector2(WEStyle.px(520), WEStyle.px(56))
+	col.add_child(_help)
+	var footer := WEStyle.HintFooter.new("Pausa", [[&"ui_navigate", "Navegar"], [&"ui_accept", "Aceptar"], [&"ui_cancel", "Volver"]])
+	footer.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	footer.offset_top = -WEStyle.px(WEStyle.FOOTER_H)
+	_panel.add_child(footer)
 	_resume = _button(box, "Continuar", _toggle, "Volver al partido.")
 	_subs_btn = _button(box, "", _open_subs, "Cambios, posiciones, pateadores, capitán, formación y estrategias.")
 	_camera_row = _option(box, "Cámara", func() -> String:
@@ -58,7 +83,6 @@ func _ready() -> void:
 			if cam != null:
 				cam.set_preset(cam.preset_index + d, false),
 		"Ancha, Normal, Lejana, Vertical... (también con SELECT en el partido).")
-	_camera_row.custom_minimum_size.y = 42
 	_sub_button(box, "Pantalla", "display", "Radar, marcador y lo que se ve arriba de los jugadores.", [
 		["Radar", func() -> String: return "sí" if GameSettings.show_radar else "no",
 			func(_d: int) -> void: GameSettings.show_radar = not GameSettings.show_radar,
@@ -114,8 +138,12 @@ func _ready() -> void:
 
 
 func _button(parent: Control, text: String, cb: Callable, help: String = "") -> Button:
-	var b := WEStyle.bar(text, cb, 470.0, 21)
-	b.custom_minimum_size.y = 42
+	var b := Button.new()
+	b.text = text
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.custom_minimum_size.y = WEStyle.px(WEStyle.ROW_H) + WEStyle.px(8)
+	WEStyle.style_button(b, WEStyle.BODY_L)
+	b.pressed.connect(cb)
 	b.focus_entered.connect(func() -> void: _help.text = help)
 	parent.add_child(b)
 	return b
@@ -124,8 +152,8 @@ func _button(parent: Control, text: String, cb: Callable, help: String = "") -> 
 func _option(parent: Control, caption: String, getter: Callable, stepper: Callable, help: String) -> WEStyle.OptionRow:
 	var row := WEStyle.OptionRow.new(caption, getter, func(d: int) -> void:
 		stepper.call(d)
-		GameSettings.save_settings(), help, 470.0)
-	row.custom_minimum_size.y = 38
+		GameSettings.save_settings(), help, WEStyle.px(520))
+	row.use_modern_style()
 	row.focus_entered.connect(func() -> void: _help.text = help)
 	parent.add_child(row)
 	_sub_rows.append(row)
@@ -135,12 +163,11 @@ func _option(parent: Control, caption: String, getter: Callable, stepper: Callab
 ## Botón de la pausa que abre un submenú con sus opciones (◀ ▶ las cambian;
 ## "Volver" o atrás regresan a la lista).
 func _sub_button(parent: Control, text: String, key: String, help: String, rows: Array) -> void:
-	var b := _button(parent, text + "  ▶", _open_sub.bind(key), help)
+	var b := _button(parent, text + "  ›", _open_sub.bind(key), help)
 	var sub := VBoxContainer.new()
-	sub.position = Vector2(0, 136)
-	sub.add_theme_constant_override("separation", 5)
+	sub.add_theme_constant_override("separation", int(WEStyle.px(6)))
 	sub.visible = false
-	_panel.add_child(sub)
+	_stack.add_child(sub)
 	for r in rows:
 		_option(sub, r[0], r[1], r[2], r[3])
 	_button(sub, "Volver", _close_sub, "Volver a la pausa.")
@@ -152,7 +179,7 @@ func _open_sub(key: String) -> void:
 	_box.visible = false
 	for k in _subs:
 		_subs[k].visible = k == key
-	_title.text = "%s — %s" % [_title_text(), (_sub_opener[key] as Button).text.trim_suffix("  ▶").to_upper()]
+	_title.text = "%s — %s" % [_title_text(), (_sub_opener[key] as Button).text.trim_suffix("  ›").to_upper()]
 	for r in _sub_rows:
 		r.refresh()
 	(_subs[key] as Control).get_child(0).grab_focus()
@@ -314,9 +341,8 @@ func _open_training(t: TrainingSession) -> void:
 ## patea), reinicio, táctica, cámara y salida.
 func _build_training(t: TrainingSession) -> void:
 	_train_box = VBoxContainer.new()
-	_train_box.position = Vector2(0, 132)
-	_train_box.add_theme_constant_override("separation", 3)
-	_panel.add_child(_train_box)
+	_train_box.add_theme_constant_override("separation", int(WEStyle.px(2)))
+	_stack.add_child(_train_box)
 	_train_first = _row(t, "Práctica", func() -> String: return TrainingSession.KIND_NAMES[t.kind],
 		func(d: int) -> void: t.start(posmod(t.kind + d, TrainingSession.KIND_NAMES.size())),
 		"Libre, tiros libres, córners, penales o un desafío con récord.")
@@ -380,9 +406,9 @@ func _build_training(t: TrainingSession) -> void:
 func _row(t: TrainingSession, caption: String, getter: Callable, stepper: Callable, help: String) -> WEStyle.OptionRow:
 	var row := WEStyle.OptionRow.new(caption, getter, func(d: int) -> void:
 		stepper.call(d)
-		_refresh_training(), help, 470.0)
-	row.custom_minimum_size.y = 33
-	row.add_theme_font_size_override("font_size", 19)
+		_refresh_training(), help, WEStyle.px(520))
+	row.use_modern_style()
+	row.custom_minimum_size.y = WEStyle.px(38)
 	row.focus_entered.connect(func() -> void: _help.text = help)
 	_train_box.add_child(row)
 	_train_rows.append(row)
@@ -390,8 +416,8 @@ func _row(t: TrainingSession, caption: String, getter: Callable, stepper: Callab
 
 
 func _bar(text: String, cb: Callable, help: String) -> Button:
-	var b := WEStyle.bar(text, cb, 470.0, 19)
-	b.custom_minimum_size.y = 33
+	var b := WEStyle.make_action_button(text, cb)
+	b.custom_minimum_size.y = WEStyle.px(38)
 	b.focus_entered.connect(func() -> void: _help.text = help)
 	return b
 
