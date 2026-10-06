@@ -182,6 +182,8 @@ static func exists(path: String) -> bool:
 		return not nation(parts[2]).is_empty()
 	if parts.size() == 4 and parts[1] == "club":
 		return not club(parts[2], parts[3]).is_empty()
+	if parts.size() >= 4 and parts[1] == "u20":
+		return exists("db:" + ":".join(parts.slice(2)))
 	return false
 
 
@@ -201,6 +203,8 @@ static func load_team(path: String) -> TeamData:
 		var c := club(parts[2], parts[3])
 		if not c.is_empty():
 			t = build_club(c[0], parts[2], c[1])
+	elif parts.size() >= 4 and parts[1] == "u20":
+		t = build_u20("db:" + ":".join(parts.slice(2)))
 	if t != null:
 		_cache[path] = t
 	return t
@@ -256,6 +260,104 @@ static func build_club(c: Dictionary, country_id: String, div: Dictionary) -> Te
 	var co := country(country_id)
 	_fill_players(t, c, level, String(co.get("names", "en")), co.get("skin", [40, 30, 18, 12]), String(co.get("nationality", "")))
 	return t
+
+
+# --- Sub-20 -----------------------------------------------------------------------
+# Cada club y cada selección tiene su Sub-20: "db:u20:club:pais:id" y
+# "db:u20:nat:id". El de un club usa su plantel juvenil importado ("youth");
+# el de una selección, los juveniles (20 años o menos) de esa nacionalidad
+# que haya en los clubes. Si no alcanza, se genera con pibes de 17 a 19 años.
+
+const U20_LEVEL_DROP := 12
+const U20_MAX_AGE := 20
+
+
+static func u20_path(path: String) -> String:
+	return "db:u20:" + path.trim_prefix("db:")
+
+
+static func is_u20(path: String) -> bool:
+	return path.begins_with("db:u20:")
+
+
+static func build_u20(senior_path: String) -> TeamData:
+	var parts := senior_path.split(":")
+	var e := {}
+	var level := 60
+	var names_group := "en"
+	var skin: Array = [40, 30, 18, 12]
+	var nationality := ""
+	var listed: Array = []
+	if parts.size() == 3 and parts[1] == "nat":
+		e = nation(parts[2])
+		if e.is_empty():
+			return null
+		level = int(e.get("level", 70))
+		names_group = String(e.get("names", "en"))
+		skin = e.get("skin", skin)
+		nationality = String(e.get("name", ""))
+		listed = _youth_of_nation(parts[2], nationality)
+	elif parts.size() == 4 and parts[1] == "club":
+		var c := club(parts[2], parts[3])
+		if c.is_empty():
+			return null
+		e = c[0]
+		var div: Dictionary = c[1]
+		level = int(DIVISION_LEVEL.get(int(div.get("level", 1)), 60)) + int(LEAGUE_BONUS.get(String(div.get("id", "")), 0)) \
+			+ int(e.get("r", 0))
+		var co := country(parts[2])
+		names_group = String(co.get("names", "en"))
+		skin = co.get("skin", skin)
+		nationality = String(co.get("nationality", ""))
+		listed = e.get("youth", [])
+	else:
+		return null
+	var t := _base_team(e)
+	t.team_name = String(e.get("name", "?")) + " Sub-20"
+	t.id = "u20_" + "_".join(parts.slice(1))
+	t.country = parts[2]
+	if parts[1] == "nat":
+		t.flag = FlagPainter.texture(e.get("flag", {}))
+	else:
+		t.stadium = String(e.get("stadium", ""))
+		t.capacity = int(e.get("cap", 0)) / 4
+	level -= U20_LEVEL_DROP
+	if listed.size() >= 16:
+		for i in mini(listed.size(), MATCH_SQUAD):
+			var p := player_from_dict(listed[i], t.id, i, level)
+			if p.nationality == "":
+				p.nationality = nationality
+			t.players.append(p)
+		_order_for_formation(t)
+	else:
+		generate_roster(t, level, names_group, skin, nationality, hash(t.id))
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(t.id) + 7
+		for p in t.players:
+			p.age = rng.randi_range(17, 19)
+	var cap := PlayerData.pick_captain(t.players)
+	if cap != null and not cap.abilities.has("capitan"):
+		cap.abilities.append("capitan")
+	return t
+
+
+## Juveniles de una nacionalidad en los planteles cargados (Sub-20 de los
+## clubes y los de 20 años o menos de primera), los mejores primero.
+static func _youth_of_nation(nat_id: String, nat_name: String) -> Array:
+	var pool: Array = []
+	var names := [nat_id, nat_name, SquadImporter.normalize(nat_name)]
+	for c in countries():
+		for d in c["divisions"]:
+			for cl in d["clubs"]:
+				for key in ["youth", "players"]:
+					for p in cl.get(key, []):
+						var age := int(p.get("age", 99))
+						if age > U20_MAX_AGE:
+							continue
+						var nat := String(p.get("nat", c.get("nationality", "")))
+						if nat in names or SquadImporter.normalize(nat) in names:
+							pool.append(p)
+	return SquadImporter.pick_squad(pool, MATCH_SQUAD, [2, 6, 6, 3]) if pool.size() >= 16 else []
 
 
 static func _base_team(e: Dictionary) -> TeamData:

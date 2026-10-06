@@ -371,3 +371,105 @@ static func _halving(m: int) -> Array:
 		out.append(m)
 		m /= 2
 	return out
+
+
+# --- Sub-20 ---------------------------------------------------------------------------
+# Torneos juveniles (con los Sub-20 de TeamDB): Torneo de Proyección (los de
+# la Liga Profesional argentina), Libertadores Sub-20 (16 clubes de
+# CONMEBOL), UEFA Youth League (36, fase liga) y Mundial Sub-20 (24
+# selecciones, años impares).
+
+const YOUTH := {
+	"proyeccion": {"name": "Torneo de Proyección", "country": "arg"},
+	"lib_u20": {"name": "Copa Libertadores Sub-20", "confed": "conmebol", "teams": 16},
+	"uyl": {"name": "UEFA Youth League", "confed": "uefa", "teams": 36},
+	"wc_u20": {"name": "Mundial Sub-20", "teams": 24},
+}
+## Cupos del Mundial Sub-20 por confederación.
+const WC_U20_QUOTA := {"UEFA": 6, "CONMEBOL": 4, "CONCACAF": 4, "CAF": 4, "AFC": 4, "OFC": 2}
+
+
+static func _by_strength(paths: Array, cache: Dictionary) -> Array[String]:
+	var out: Array[String] = []
+	out.assign(paths)
+	out.sort_custom(func(x: String, y: String) -> bool: return strength(x, cache) > strength(y, cache))
+	return out
+
+
+static func _u20(paths: Array) -> Array[String]:
+	var out: Array[String] = []
+	for p in paths:
+		out.append(TeamDB.u20_path(String(p)))
+	return out
+
+
+## Equipos (rutas Sub-20) de un torneo juvenil; [] si no se puede armar.
+static func youth_teams(id: String, cache: Dictionary) -> Array[String]:
+	var spec: Dictionary = YOUTH[id]
+	match id:
+		"proyeccion":
+			return _u20(division_clubs(String(spec["country"]), 0))
+		"lib_u20", "uyl":
+			var n := int(spec["teams"])
+			var firsts: Array = []
+			var rest: Array = []
+			for cid in confed_countries(String(spec["confed"])):
+				var list := _by_strength(division_clubs(cid, 0), cache)
+				if list.is_empty():
+					continue
+				firsts.append(list[0])
+				rest.append_array(list.slice(1, 8))
+			var picked: Array = _by_strength(firsts, cache).slice(0, n)
+			for p in _by_strength(rest, cache):
+				if picked.size() >= n:
+					break
+				picked.append(p)
+			return _u20(picked) if picked.size() == n else []
+		"wc_u20":
+			var by_conf := {}
+			for nat in TeamDB.nations():
+				by_conf.get_or_add(String(nat.get("conf", "")), []).append(nat)
+			var picked: Array = []
+			for conf in WC_U20_QUOTA:
+				var list: Array = by_conf.get(conf, [])
+				list.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a.get("level", 0)) > int(b.get("level", 0)))
+				for nat in list.slice(0, int(WC_U20_QUOTA[conf])):
+					picked.append(TeamDB.nation_path(String(nat["id"])))
+			return _u20(picked) if picked.size() == 24 else []
+	return []
+
+
+## Arma el torneo juvenil con esos equipos (`user` = índice del tuyo o -1).
+static func youth_comp(id: String, paths: Array[String], user: int, seed: int) -> Competition:
+	if paths.is_empty():
+		return null
+	var c: Competition
+	match id:
+		"proyeccion":
+			c = Competition.create_league(paths, user, false, seed)
+		"lib_u20":
+			c = Competition.create_groups(paths, user, seed, false, "draw", 1)
+		"uyl":
+			c = Competition.create_swiss(paths, user, seed)
+			c.legs = 1
+		"wc_u20":
+			c = Competition.create_groups(paths, user, seed, false, "thirds", 1)
+	if c != null:
+		c.title = String(YOUTH[id]["name"])
+	return c
+
+
+## Torneos juveniles de una temporada de la Liga Master para un club de
+## `country` (el Mundial Sub-20, los años impares).
+static func youth_ids(country: String, year: int) -> Array:
+	var out: Array = []
+	if country == "arg":
+		out.append("proyeccion")
+	var confed := confed_of(country)
+	if confed == "conmebol":
+		out.append("lib_u20")
+	elif confed == "uefa":
+		out.append("uyl")
+	if year % 2 == 1:
+		out.append("wc_u20")
+	return out

@@ -17,6 +17,9 @@ var _setup: MatchSetup
 var _hub: CompetitionHub
 ## Eligiendo el equipo para una Liga / Copa nueva (Competition.Kind) o -1.
 var _new_competition := -1
+## Torneo Sub-20 elegido en COPA (id de CareerCups.YOUTH) y sus equipos.
+var _youth_cup := ""
+var _youth_teams: Array[String] = []
 var _continue_btn: Button
 ## Copa propia elegida (del Option File) o {}.
 var _custom_cup: Dictionary = {}
@@ -266,7 +269,7 @@ func _build_home() -> void:
 	_item(col, "PARTIDO", "Jugá un partido amistoso: contra la CPU, de a dos o mirá CPU contra CPU.", show_page.bind("modes"))
 	_item(col, "LIGA", "Campeonato todos contra todos con los 8 equipos. Se guarda entre partidos.",
 		_open_competition.bind(Competition.Kind.LEAGUE))
-	_item(col, "COPA", "Eliminación directa: cuartos, semis y final (con penales si empatan). Se guarda entre partidos.",
+	_item(col, "COPA", "Eliminación directa, copas de tu Option File y torneos Sub-20. Se guarda entre partidos.",
 		_open_competition.bind(Competition.Kind.CUP))
 	_item(col, "MUNDIAL", "48 selecciones: 12 grupos de 4, pasan dos por grupo y los 8 mejores terceros, después 16avos hasta la final.",
 		_open_world_cup)
@@ -331,7 +334,8 @@ func _choose_mode(mode: int, shootout := false) -> void:
 ## Option File trae copas propias, primero se elige cuál.
 func _open_competition(kind: int) -> void:
 	_custom_cup = {}
-	if kind == Competition.Kind.CUP and not playable_cups().is_empty():
+	_youth_cup = ""
+	if kind == Competition.Kind.CUP:
 		show_page("cups")
 		return
 	_new_competition = kind
@@ -345,6 +349,18 @@ func _open_competition(kind: int) -> void:
 func _start_competition(kind: int, my_team: String) -> void:
 	_teams.only_paths = []
 	var c: Competition
+	if _youth_cup != "":
+		var me_i := maxi(_youth_teams.find(TeamDB.u20_path(my_team)), 0)
+		c = CareerCups.youth_comp(_youth_cup, _youth_teams, me_i, 0)
+		c.title = "%s · %s" % [CareerCups.YOUTH[_youth_cup]["name"], c.team(me_i).team_name]
+		c.option_file = GameSettings.active_optionfile
+		c.save()
+		GameSettings.active_save = c.file
+		_youth_cup = ""
+		_history.clear()
+		_history.append("home")
+		show_page("hub", false)
+		return
 	if not _custom_cup.is_empty():
 		var teams: Array[String] = []
 		teams.assign(_custom_cup.get("teams", []))
@@ -438,6 +454,24 @@ func _build_cups_list() -> void:
 		_new_master = false
 		_teams.only_paths = []
 		show_page("teams"), true, 640.0)
+	var cache := {}
+	for yid in CareerCups.YOUTH:
+		var desc: String = {"proyeccion": "Las Sub-20 de la Liga Profesional, todos contra todos.",
+			"lib_u20": "16 Sub-20 de Sudamérica: grupos y eliminación desde cuartos.",
+			"uyl": "36 Sub-20 de Europa: fase liga y eliminación.",
+			"wc_u20": "24 selecciones Sub-20: 6 grupos, octavos con los mejores terceros."}[yid]
+		_item(_cups_col, String(CareerCups.YOUTH[yid]["name"]).to_upper(), desc, func() -> void:
+			_youth_teams = CareerCups.youth_teams(yid, cache)
+			if _youth_teams.is_empty():
+				return
+			_youth_cup = yid
+			_custom_cup = {}
+			_new_competition = Competition.Kind.CUP
+			_teams.single = true
+			_teams.only_country = ""
+			_new_master = false
+			_teams.only_paths.assign(_youth_teams.map(func(p: String) -> String: return "db:" + p.trim_prefix("db:u20:")))
+			show_page("teams"), true, 640.0)
 	for cup in playable_cups():
 		var n := (cup.get("teams", []) as Array).size()
 		var fmt := "liga" if String(cup.get("format", "")) == "league" else "eliminación directa"

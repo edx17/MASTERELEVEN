@@ -165,7 +165,7 @@ func _row(texts: Array, color: Color, i: int, on_focus: Callable) -> Button:
 
 
 func _club_name(club: String) -> String:
-	if club == "":
+	if club == "" or club == MasterCareer.FREE_CLUB:
 		return "(libre)"
 	return TeamDB.load_team(TeamDB.club_path(career.country, club)).team_name
 
@@ -222,6 +222,13 @@ func _show_buy(i: int) -> void:
 	if why != "" and _msg == "":
 		_detail.add_child(_note(why, RED))
 	var pid := int(d["pid"])
+	if club == MasterCareer.FREE_CLUB:
+		# Libre: sólo la prima de fichaje.
+		_detail.add_child(WEStyle.bar("Fichar (libre): %d puntos" % price, func() -> void:
+			_after(career.buy(club, pid), "¡Fichado! %s ya es tuyo." % d["n"]), 440.0, 19))
+		if _msg != "":
+			_detail.add_child(_note(_msg, GREEN if _msg.begins_with("¡") else RED))
+		return
 	_detail.add_child(WEStyle.bar("Comprar: %d puntos" % price, func() -> void:
 		_after(career.buy(club, pid), "¡Fichado! %s ya es tuyo." % d["n"]), 440.0, 19))
 	_detail.add_child(WEStyle.bar("Ofertar 80 %%: %d puntos" % int(price * MasterCareer.LOWBALL_SHARE), func() -> void:

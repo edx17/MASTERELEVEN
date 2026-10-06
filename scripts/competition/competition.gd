@@ -633,6 +633,36 @@ func _after_groups() -> void:
 			for k in 8:
 				pairs.append([table[23 - k]["team"], table[8 + k]["team"]])
 			_push_ko(pairs, "Playoffs")
+		"thirds":
+			# 6 grupos: pasan los dos primeros y los 4 mejores terceros (octavos).
+			var firsts := []
+			var seconds := []
+			var thirds := []
+			for gi in groups.size():
+				var t := group_table(gi)
+				firsts.append(t[0])
+				seconds.append(t[1])
+				thirds.append(t[2])
+			thirds.sort_custom(_better)
+			var q3: Array = thirds.slice(0, 4).map(func(r: Dictionary) -> int: return r["team"])
+			var f: Array = firsts.map(func(r: Dictionary) -> int: return r["team"])
+			var sec: Array = seconds.map(func(r: Dictionary) -> int: return r["team"])
+			var pairs := []
+			for k in 4:
+				# El 1.º no repite rival de su grupo.
+				var opp: int = q3[3 - k]
+				if group_of(opp) == k:
+					var j := (3 - k + 1) % 4
+					var tmp: int = q3[j]
+					q3[j] = opp
+					q3[3 - k] = tmp
+					opp = tmp
+				pairs.append([opp, f[k]])
+			pairs.append([sec[5], f[4]])
+			pairs.append([sec[4], f[5]])
+			pairs.append([sec[1], sec[0]])
+			pairs.append([sec[3], sec[2]])
+			_push_ko(pairs)
 		"draw", "sud":
 			var firsts := []
 			var seconds := []

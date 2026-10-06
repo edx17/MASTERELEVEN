@@ -277,6 +277,8 @@ func test_market_buy_loan_sell_and_ai() -> void:
 	assert_gt(ai.size(), 5, "los otros clubes también ficharon")
 	# Nadie quedó con el plantel corto.
 	for key in m.world.clubs:
+		if String(key).ends_with(":" + MasterCareer.FREE_CLUB):
+			continue
 		assert_true((m.world.clubs[key]["players"] as Array).size() >= 16, key)
 	MasterCareer.deactivate()
 

@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **485 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **491 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -162,6 +162,15 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Sub-20 y libres (PR #36)
+
+| Qué | Cómo |
+|---|---|
+| Equipos Sub-20 | Cada club y selección tiene su Sub-20 (`db:u20:club:pais:id`, `db:u20:nat:id`). El de un club usa su plantel juvenil importado; el de una selección, los juveniles de esa nacionalidad que haya en los clubes. Si no alcanza, se generan pibes de 17 a 19 años, 12 puntos por debajo de primera. Misma camiseta. |
+| Torneos | **Torneo de Proyección** (las Sub-20 de la Liga Profesional, todos contra todos), **Copa Libertadores Sub-20** (16 clubes: grupos y cuartos), **UEFA Youth League** (36, fase liga y eliminación) y **Mundial Sub-20** (24 selecciones, 6 grupos, octavos con los 4 mejores terceros). |
+| Dónde | Menú **COPA** (elegís tu equipo y jugás con su Sub-20) y en la **Liga Master** (se simulan en el calendario; las noticias cuentan cómo le fue a tu Sub-20). El Mundial Sub-20, los años impares. |
+| Libres en la Liga Master | Los libres importados (y los que liberás) están en el mercado como "(libre)": se fichan pagando sólo una prima (10 % del valor). |
 
 ## Planteles de hasta 40 (PR #36)
 
