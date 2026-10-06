@@ -173,7 +173,7 @@ static func _bowl(sectors: Array[Node3D], fans: Dictionary) -> Dictionary:
 					if _stair_distance(p, offset) < SEAT_PITCH * 0.55:
 						continue
 					(seats[sec] as Array).append([Transform3D(basis, pos), grey])
-					if rng.randf() < CROWD_DENSITY:
+					if rng.randf() < CROWD_DENSITY * GameSettings.crowd_factor():
 						var sc := rng.randf_range(0.92, 1.08)
 						var away_end := p.x > A0 * 0.6
 						(people[sec] as Array).append([Transform3D(basis.rotated(Vector3.UP, rng.randf_range(-0.3, 0.3)).scaled(Vector3.ONE * sc), pos),

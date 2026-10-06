@@ -113,7 +113,7 @@ static func mesh(style: int) -> ArrayMesh:
 			_curtain(st, 0.07, 1.5, 0.05, rng)
 			band = SurfaceTool.new()
 			band.begin(Mesh.PRIMITIVE_TRIANGLES)
-			_ring(band, 0.012, 0.03, 0.0)
+			_headband(band)
 		Style.DREADS:
 			_cap(st, func(_d: Vector3) -> float: return 0.014,
 					func(d: Vector3) -> bool: return d.y > -0.15 + maxf(0.0, d.z) * 0.8)
@@ -291,18 +291,45 @@ static func _tile(st: SurfaceTool, p: Vector3, n: Vector3, along: Vector3, size:
 
 
 ## Vincha: anillo alrededor de la cabeza a la altura de la frente.
-static func _ring(st: SurfaceTool, dy: float, height: float, out: float) -> void:
-	var segs := 24
+## Vincha: una cinta con espesor que abraza la cabeza, alta en la frente
+## (sobre la piel) y más baja atrás (sobre los rulos), como se usa de verdad.
+static func _headband(st: SurfaceTool) -> void:
+	var segs := 36
+	var width := 0.03
+	var thick := 0.009
+	var dirs: Array = []
+	var outs: Array = []
 	for j in segs:
-		var p0 := TAU * j / segs
-		var p1 := TAU * (j + 1) / segs
-		var r := RADII + Vector3.ONE * (0.046 + out)
-		var a := CENTER + Vector3(sin(p0) * r.x, dy, cos(p0) * r.z)
-		var b := CENTER + Vector3(sin(p1) * r.x, dy, cos(p1) * r.z)
-		var q := [a, a + Vector3(0, height, 0), b + Vector3(0, height, 0), b]
-		for idx in [0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2]:
-			st.set_uv(Vector2.ZERO)
-			st.add_vertex(q[idx])
+		var p := TAU * j / segs
+		var front := (cos(p) + 1.0) * 0.5 # 1 adelante, 0 atrás
+		var n := Vector3(sin(p), lerpf(0.02, 0.32, front), cos(p)).normalized()
+		dirs.append(n)
+		# Donde hay rulos va por encima; donde no (frente y sienes), sobre la piel.
+		var hair := n.y > -0.3 + maxf(0.0, n.z) * 0.9
+		outs.append(0.058 if hair else 0.005)
+	# Se suaviza el paso de la piel al pelo.
+	for it in 4:
+		var sm: Array = []
+		for j in segs:
+			sm.append(0.25 * float(outs[(j - 1 + segs) % segs]) + 0.5 * float(outs[j]) + 0.25 * float(outs[(j + 1) % segs]))
+		outs = sm
+	var rings: Array = []
+	for j in segs + 1:
+		var n: Vector3 = dirs[j % segs]
+		var c := CENTER + n * RADII + n * float(outs[j % segs])
+		var up := (Vector3.UP - n * n.dot(Vector3.UP)).normalized()
+		var h := n * thick * 0.5
+		var w := up * width * 0.5
+		rings.append([c + h + w, c + h - w, c - h - w, c - h + w])
+	for j in segs:
+		var a: Array = rings[j]
+		var b: Array = rings[j + 1]
+		for k in 4:
+			var k2 := (k + 1) % 4
+			var q := [a[k], b[k], b[k2], a[k2]]
+			for idx in [0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2]:
+				st.set_uv(Vector2.ZERO)
+				st.add_vertex(q[idx])
 
 
 ## Material del pelo: color mate con mechones (ruido estirado a lo largo).

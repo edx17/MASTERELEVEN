@@ -8,6 +8,7 @@ extends Node
 
 var out_dir := "user://"
 var _match: MatchController
+var _replay_angle := -1
 var _camera: MatchCamera
 var _frame := 0
 ## [frame, acción]. Las acciones de "setup" preparan la escena; "shot:<n>" guarda.
@@ -128,6 +129,10 @@ func _ready() -> void:
 	# `--replay`: un gol y su repetición con la ficha del goleador.
 	if "--replay" in OS.get_cmdline_user_args():
 		GameSettings.show_replays = true
+		# `--replay-angle=0|1|2`: toma del gol (de siempre, detrás del arco, árbitro).
+		for a in OS.get_cmdline_user_args():
+			if a.begins_with("--replay-angle="):
+				_replay_angle = int(a.trim_prefix("--replay-angle="))
 		_script = [[20, "freeze"], [22, "replay_goal"], [23, "until_replay"], [30, "shot:capture_replay_wipe.png"],
 			[31, "simulate:1.2"], [40, "shot:capture_replay.png"],
 			[41, "simulate:3.0"], [58, "shot:capture_replay_card.png"], [62, "quit"]]
@@ -199,6 +204,8 @@ func _ready() -> void:
 
 
 func _remove_menu() -> void:
+	if _replay_angle >= 0 and _match.replay != null:
+		_match.replay.force_angle = _replay_angle
 	var menu := get_tree().current_scene
 	if menu != null and menu != _match:
 		menu.queue_free()

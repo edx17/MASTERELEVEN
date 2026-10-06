@@ -47,7 +47,13 @@ func test_cpu_match_runs_without_players_leaving_the_area() -> void:
 
 
 func test_full_match_reaches_final_whistle() -> void:
-	_simulate(3.0 * 60.0 + 45.0)
+	# El reloj se frena con la pelota parada (faltas, laterales, saques):
+	# el partido dura más que sus minutos en tiempo real. Se simula hasta el
+	# final con un tope generoso.
+	var waited := 0.0
+	while _match.phase != MatchController.Phase.FULLTIME and waited < 3.0 * 60.0 * 2.0:
+		_simulate(15.0)
+		waited += 15.0
 	assert_eq(_match.phase, MatchController.Phase.FULLTIME)
 	gut.p("Resultado: %d - %d, patadas: %d" % [_match.teams[0].score, _match.teams[1].score, _match.kick_count])
 	# Cansancio acumulado y cambios de la CPU.

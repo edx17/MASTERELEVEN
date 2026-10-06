@@ -300,6 +300,10 @@ func _sync_node(dt: float) -> void:
 		_shadow.scale = Vector3(s, 1.0, s)
 
 
+## Escala de la malla de la pelota respecto del radio real (0,11 m).
+const VISUAL_SCALE := 0.8
+
+
 func _build_visuals() -> void:
 	_mesh = MeshInstance3D.new()
 	var sphere := SphereMesh.new()
@@ -312,14 +316,16 @@ func _build_visuals() -> void:
 	mat.albedo_texture = _make_ball_texture()
 	mat.roughness = 0.5
 	_mesh.material_override = mat
-	# La pelota real es chica: se agranda un poco la malla para que se lea en TV.
-	_mesh.scale = Vector3.ONE * 1.6
+	# Tamaño a la vista (antes 1,6: se veía enorme). La física sigue con el
+	# radio real; la malla se apoya en el césped.
+	_mesh.scale = Vector3.ONE * VISUAL_SCALE
+	_mesh.position.y = -_tuning.ball_radius * (1.0 - VISUAL_SCALE)
 	add_child(_mesh)
 
 	_shadow = MeshInstance3D.new()
 	var disc := CylinderMesh.new()
-	disc.top_radius = _tuning.ball_radius * 2.0
-	disc.bottom_radius = _tuning.ball_radius * 2.0
+	disc.top_radius = _tuning.ball_radius * VISUAL_SCALE * 1.25
+	disc.bottom_radius = _tuning.ball_radius * VISUAL_SCALE * 1.25
 	disc.height = 0.005
 	_shadow.mesh = disc
 	var smat := StandardMaterial3D.new()

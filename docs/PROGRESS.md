@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **476 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **479 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -20,7 +20,7 @@ además arma el `.exe` de Windows).
 | 5 — Presentación moderna (estadios, animaciones, audio, repeticiones) | 🟡 Muy avanzada; falta la voz del locutor | — |
 | 6 — Liga Master | 🟡 D1–D5 hechos, **pendiente de tu prueba** | #32, #33 |
 | 7 — Torneos | 🟡 Hecho en la Liga Master: copas reales de cada país y confederación, supercopas, Intercontinental, Mundial de Clubes y Mundial; **pendiente de tu prueba** | #33 |
-| 8 — Pulido | ⬜ | — |
+| 8 — Pulido | 🟡 Opciones de gráficos y ayudas, zip portable, jugadores y público de bloques; **pendiente de tu prueba** | #35 |
 | Entrenamiento (Club House) | ✅ | #23 |
 | Backlog B1–B9 | ✅ | #24 |
 | Backlog B10 + infraestructura (CI, .exe, skills) | ✅ | #25 |
@@ -162,6 +162,43 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Fase 8 — Pulido (PR #35)
+- **Opciones > Gráficos**:
+  - Ventana o pantalla completa y resolución.
+  - Sincronización vertical y límite de cuadros.
+  - Sombras (sin, bajas, altas), suavizado de bordes y escala de render.
+  - Cantidad de público.
+- **Opciones > Ayudas** (se prenden o apagan):
+  - Marca del receptor del pase.
+  - Línea del offside mientras atacás.
+  - Círculo donde va a picar la pelota alta.
+- Los **controles** ya se podían cambiar en Opciones > Controles.
+- La **duración** y la **dificultad** del partido ya quedaban guardadas.
+- **Zip portable de Windows**: cada build trae el juego, el editor y un
+  LEEME. Con una etiqueta `vX.Y` (`git tag v1.0 && git push --tags`), GitHub
+  publica la versión con el zip.
+- **Jugadores de bloques** (Partido > Jugadores: "bloques"):
+  - Cajas por hueso, tipo Minecraft con la base del WE2002: rodillas y
+    codos se doblan con todas las animaciones.
+  - Peinados de bloques.
+  - La ropa, el número y el escudo se pintan igual que en los otros estilos.
+- **Público de bloques**:
+  - Cabeza cúbica y cuerpo de cajas.
+  - Al irse se paran con las piernas estiradas y caminan a la salida (antes
+    flotaban sentados).
+- **Banderas en las tribunas**:
+  - Con mástil y flameando, con los colores del club local en su tribuna y
+    los del visitante en la suya.
+  - Diseños de franjas, mitades o banda.
+  - Llevan el escudo del club si lo importaste en el editor.
+  - Por ahora sólo en los estadios rectangulares (no en los ovalados).
+- **Pelota** a la mitad del tamaño a la vista, apoyada en el césped. La
+  física no cambia.
+- **Red**: se infla más con los remates fuertes.
+- **Repetición del gol**: la toma sale al azar entre la de siempre, la de
+  atrás del arco y una en primera persona con los ojos del árbitro.
+- **Vincha**: una cinta con espesor que abraza la cabeza.
 
 ## Correcciones de tu prueba (PR #34)
 - **Mercado de pases**: con la lista vacía ("Todavía no hubo pases") el

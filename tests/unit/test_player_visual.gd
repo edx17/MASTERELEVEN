@@ -55,3 +55,22 @@ func test_match_plays_kick_animation_without_touching_physics() -> void:
 	var kicking := p.visual._event == PlayerVisual.Event.KICK or (mv != null and mv._clip == "shot" or mv != null and mv._clip == "kick")
 	assert_true(kicking, "muestra la patada")
 	assert_eq(p.global_position, pos_before, "la animación no mueve al jugador")
+
+
+## Jugadores de bloques: cada caja va a un solo hueso (rodillas y codos se
+## doblan) y llevan la ropa como los otros estilos.
+func test_block_body_boxes_follow_one_bone() -> void:
+	ModelVisual.available()
+	GameSettings.player_style = GameSettings.PlayerStyle.BLOCKS
+	var mv := ModelVisual.new()
+	add_child_autofree(mv)
+	mv.setup({"shirt": Color.RED, "hair_style": HairBuilder.Style.AFRO}, 3)
+	var sk: Skeleton3D = mv.get("_skel")
+	var block := sk.find_child("BlockBody", false, false) as MeshInstance3D
+	assert_not_null(block, "cuerpo de bloques")
+	var arr: Array = block.mesh.surface_get_arrays(0)
+	var w: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+	assert_gt(w.size(), 0)
+	assert_not_null(BlockBody.hair_mesh(HairBuilder.Style.AFRO), "peinado de bloques")
+	assert_null(BlockBody.hair_mesh(HairBuilder.Style.SHAVED))
+	GameSettings.player_style = GameSettings.PlayerStyle.CLASSIC

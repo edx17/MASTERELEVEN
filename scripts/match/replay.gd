@@ -77,6 +77,12 @@ var _card_icon: ColorRect
 var _card_kind := 0
 var _tag: Control
 var _wipe: Wipe
+## Toma de la repetición del gol (al azar): la de siempre (detrás del que
+## ataca), detrás del arco o con los ojos del árbitro.
+enum Angle { FOLLOW, BEHIND_GOAL, REFEREE }
+var angle: int = Angle.FOLLOW
+## Para los tests: fuerza la toma del próximo gol (-1 = al azar).
+var force_angle := -1
 
 
 func setup(m: MatchController) -> void:
@@ -280,6 +286,9 @@ func _begin(p_kind: int, team: int, caption: String, first: int, last: int, even
 	_focus_player = extra.get("focus")
 	_card_kind = int(extra.get("card", 0))
 	_side_shot = _offside_shot(extra) if kind == Kind.OFFSIDE else []
+	angle = Angle.FOLLOW
+	if kind == Kind.GOAL:
+		angle = force_angle if force_angle >= 0 else [Angle.FOLLOW, Angle.BEHIND_GOAL, Angle.REFEREE][randi() % 3]
 	if extra.has("line"):
 		offside_line = extra["line"]
 	_cursor = float(_first)
@@ -381,6 +390,8 @@ func stop() -> void:
 		_show_line(false)
 		offside_line = NAN
 		_focus_player = null
+		if _match.referee != null:
+			_match.referee.visible = true
 		for p in _match.all_players():
 			p.set_presenting(false)
 		clear()
@@ -478,8 +489,21 @@ func _aim_camera(ball: Vector3, speed: float) -> void:
 		var d: float = _side_shot[1]
 		cam.set_shot(Vector3(mid.x, d * 0.42, mid.z + d), mid + Vector3(0, 0.5, 0), 38.0, speed)
 		return
-	# Cámara: detrás del que ataca, baja y siguiendo la pelota.
 	var dir := float(_match.teams[_team].attack_dir)
+	# Gol detrás del arco: atrás de la red, a la altura del travesaño,
+	# mirando venir la pelota.
+	if kind == Kind.GOAL and angle == Angle.BEHIND_GOAL:
+		var gx := dir * (Pitch.HALF_LENGTH + 7.0)
+		cam.set_shot(Vector3(gx, 2.6, clampf(ball.z * 0.35, -6.0, 6.0)), ball + Vector3(0, 0.3, 0), 46.0, speed)
+		return
+	# Gol con los ojos del árbitro: primera persona desde su cabeza.
+	if kind == Kind.GOAL and angle == Angle.REFEREE and _match.referee != null:
+		var ref := _match.referee
+		ref.visible = false
+		var eye := ref.global_position + Vector3(0, 1.72, 0)
+		cam.set_shot(eye, ball + Vector3(0, 0.2, 0), 62.0, 0.0 if speed == 0.0 else 10.0)
+		return
+	# Cámara: detrás del que ataca, baja y siguiendo la pelota.
 	var cam_pos2 := Vector3(ball.x - dir * 11.0, 3.6, ball.z + 7.5)
 	cam.set_shot(cam_pos2, ball + Vector3(dir * 2.0, 0.3, 0.0), 40.0, speed)
 

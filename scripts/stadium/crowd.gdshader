@@ -71,6 +71,16 @@ void vertex() {
 	// la fila hasta el pasillo y suben por la tribuna hacia la salida (+Z
 	// local, de espaldas a la cancha); recién arriba desaparecen.
 	float p = clamp((empty - seed) / LEAVE_WINDOW, 0.0, 1.0);
+	// Al irse se paran: las piernas (zona pantalón) pasan de sentadas a
+	// estiradas debajo del torso (el resto sube 0,22 m más abajo) y caminan.
+	if (p > 0.0 && p < 1.0 && zone.b > 0.5) {
+		float stand = smoothstep(0.0, 0.08, p);
+		float walk = smoothstep(0.08, 0.12, p) * sin(TIME * 8.0 + seed * 20.0) * sign(VERTEX.x);
+		float ly = (VERTEX.y - 0.06) / 0.47 * 0.77 - 0.22;
+		float lz = clamp(VERTEX.z + 0.2, -0.07, 0.07) + walk * 0.12 * (1.0 - clamp(ly / 0.55, 0.0, 1.0));
+		VERTEX.y = mix(VERTEX.y, ly, stand);
+		VERTEX.z = mix(VERTEX.z, lz, stand);
+	}
 	if (p >= 1.0) {
 		VERTEX = vec3(0.0);
 	} else if (p > 0.0 && layout_on > 1.5) {

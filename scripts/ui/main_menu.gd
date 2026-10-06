@@ -54,6 +54,8 @@ func _ready() -> void:
 	_build_training()
 	_build_world_cup()
 	_build_options()
+	_build_graphics()
+	_build_aids()
 	_build_data()
 	_build_controls()
 	_teams = TeamSelect.new()
@@ -122,7 +124,7 @@ func show_page(page: String, remember := true) -> void:
 	for k in _pages:
 		(_pages[k] as Control).visible = k == page
 	# Las pantallas de equipos y partido traen su propia ayuda.
-	_help.get_parent().visible = page in ["home", "modes", "training", "options", "controls", "worldcup", "continue", "data", "cups",
+	_help.get_parent().visible = page in ["home", "modes", "training", "options", "graphics", "aids", "controls", "worldcup", "continue", "data", "cups",
 		"master", "master_squad"]
 	if page == "home" and _continue_btn != null:
 		_continue_btn.disabled = Competition.list_saves().is_empty() and not MasterCareer.has_saves()
@@ -175,7 +177,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			leave_title()
 			get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed(&"ui_cancel") and _current() in ["modes", "options", "controls", "worldcup", "continue", "data", "cups"]:
+	if event.is_action_pressed(&"ui_cancel") and _current() in ["modes", "options", "graphics", "aids", "controls", "worldcup", "continue", "data", "cups"]:
 		if _current() == "controls" and _controls_capturing():
 			return
 		go_back()
@@ -768,6 +770,10 @@ func _build_options() -> void:
 	var col := _column(p, Vector2(80, 92))
 	col.add_theme_constant_override("separation", 3)
 	_item(col, "CONTROLES", "Qué hace cada botón al atacar y al defender.", show_page.bind("controls"), true, 640.0)
+	_item(col, "GRÁFICOS", "Ventana o pantalla completa, resolución, sombras, suavizado, público y cuadros por segundo.",
+		show_page.bind("graphics"), true, 640.0)
+	_item(col, "AYUDAS", "Marcas en la cancha que se prenden o apagan: receptor del pase, línea del offside, caída de la pelota.",
+		show_page.bind("aids"), true, 640.0)
 	_item(col, "DATOS", "Option File (tus cambios sobre la base), importar planteles y carpetas del juego.",
 		show_page.bind("data"), true, 640.0)
 	var rows := [
@@ -819,6 +825,81 @@ func _build_options() -> void:
 	_item(col, "PRUEBA DE RENDIMIENTO (30 s)", "Mide los cuadros por segundo de tu máquina con un partido CPU vs CPU.",
 		GameSettings.start_benchmark, true, 640.0)
 	_item(col, "VOLVER", "Volver al menú principal.", go_back, true, 640.0)
+
+
+# --- Gráficos y ayudas (Fase 8) ---------------------------------------------------------
+
+## Página de opciones con filas [nombre, valor, cambiar(dir), ayuda]; se
+## guardan al cambiar y, si `apply`, se aplican los gráficos.
+func _settings_page(name: String, title_text: String, rows: Array, apply: bool) -> void:
+	var p := _page(name)
+	var title := WEStyle.label(title_text, 30, Color(1.0, 0.9, 0.35))
+	title.position = Vector2(80, 40)
+	p.add_child(title)
+	var col := _column(p, Vector2(80, 92))
+	col.add_theme_constant_override("separation", 3)
+	for r in rows:
+		var row := WEStyle.OptionRow.new(r[0], r[1], func(d: int) -> void:
+			(r[2] as Callable).call(d)
+			GameSettings.save_settings()
+			if apply:
+				GameSettings.apply_graphics(), r[3], 640.0)
+		var help: String = r[3]
+		row.custom_minimum_size.y = 36
+		row.focus_entered.connect(func() -> void: _help.text = help)
+		col.add_child(row)
+	_item(col, "VOLVER", "Volver a Opciones.", go_back, true, 640.0)
+
+
+func _build_graphics() -> void:
+	var gs := GameSettings
+	var yes_no := func(v: bool) -> String: return "sí" if v else "no"
+	_settings_page("graphics", "GRÁFICOS", [
+		["Pantalla", func() -> String: return gs.WINDOW_MODE_NAMES[gs.window_mode],
+			func(d: int) -> void: gs.window_mode = posmod(gs.window_mode + d, gs.WINDOW_MODE_NAMES.size()),
+			"En ventana o en pantalla completa."],
+		["Resolución de la ventana", func() -> String:
+				var r: Vector2i = gs.RESOLUTIONS[gs.resolution]
+				return "%d × %d" % [r.x, r.y],
+			func(d: int) -> void: gs.resolution = posmod(gs.resolution + d, gs.RESOLUTIONS.size()),
+			"Tamaño de la ventana (en pantalla completa se usa la del monitor)."],
+		["Sincronización vertical", func() -> String: return yes_no.call(gs.vsync),
+			func(_d: int) -> void: gs.vsync = not gs.vsync,
+			"Evita el corte de la imagen; apagada puede dar más cuadros por segundo."],
+		["Límite de cuadros", func() -> String:
+				var f: int = gs.FPS_LIMITS[gs.fps_limit]
+				return "sin límite" if f == 0 else "%d FPS" % f,
+			func(d: int) -> void: gs.fps_limit = posmod(gs.fps_limit + d, gs.FPS_LIMITS.size()),
+			"Para que la máquina no trabaje de más (notebooks)."],
+		["Sombras", func() -> String: return gs.SHADOW_NAMES[gs.shadow_quality],
+			func(d: int) -> void: gs.shadow_quality = posmod(gs.shadow_quality + d, gs.SHADOW_NAMES.size()),
+			"Calidad de las sombras (sin sombras es lo más liviano; se aplica en el próximo partido)."],
+		["Suavizado de bordes", func() -> String: return gs.ANTIALIAS_NAMES[gs.antialias],
+			func(d: int) -> void: gs.antialias = posmod(gs.antialias + d, gs.ANTIALIAS_NAMES.size()),
+			"Bordes sin serrucho (MSAA). Más alto, más pesado."],
+		["Escala de render", func() -> String: return "%d %%" % roundi(float(gs.RENDER_SCALES[gs.render_scale]) * 100.0),
+			func(d: int) -> void: gs.render_scale = posmod(gs.render_scale + d, gs.RENDER_SCALES.size()),
+			"Dibuja el 3D a menor resolución y lo agranda: para máquinas más lentas."],
+		["Público", func() -> String: return gs.CROWD_NAMES[gs.crowd_level],
+			func(d: int) -> void: gs.crowd_level = posmod(gs.crowd_level + d, gs.CROWD_NAMES.size()),
+			"Cuánta gente hay en las tribunas (menos es más liviano; desde el próximo partido)."],
+	], true)
+
+
+func _build_aids() -> void:
+	var gs := GameSettings
+	var yes_no := func(v: bool) -> String: return "sí" if v else "no"
+	_settings_page("aids", "AYUDAS", [
+		["Receptor del pase", func() -> String: return yes_no.call(gs.show_pass_target),
+			func(_d: int) -> void: gs.show_pass_target = not gs.show_pass_target,
+			"Marca en el piso al compañero que va a recibir el pase que estás cargando."],
+		["Línea del offside", func() -> String: return yes_no.call(gs.show_offside_line),
+			func(_d: int) -> void: gs.show_offside_line = not gs.show_offside_line,
+			"Una línea en la cancha con la posición del penúltimo rival cuando atacás."],
+		["Caída de la pelota", func() -> String: return yes_no.call(gs.show_ball_landing),
+			func(_d: int) -> void: gs.show_ball_landing = not gs.show_ball_landing,
+			"Un círculo donde va a picar la pelota cuando va por el aire."],
+	], false)
 
 
 # --- Datos: Option File, importar planteles, carpetas ------------------------------
