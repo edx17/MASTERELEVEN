@@ -201,7 +201,7 @@ class IconLabel:
 
 # --- Indicaciones de control (rediseño) ------------------------------------------
 # get_hint(acción) devuelve el ícono que corresponde a la fuente activa
-# (MenuNav.source): el botón del mando (círculo de color) o la tecla dibujada
+# (InputRouter.source): el botón del mando (círculo de color) o la tecla dibujada
 # como tecla física. Si la acción está en el mapa de controles, se muestra la
 # tecla o el botón realmente asignados.
 
@@ -237,7 +237,7 @@ static func key_name(e: InputEventKey) -> String:
 
 ## Ícono de la acción para la fuente activa (o la pedida: 1 mando, 0 teclado).
 static func get_hint(action: StringName, gamepad: int = -1) -> Control:
-	var pad := MenuNav.source == MenuNav.Source.GAMEPAD if gamepad < 0 else gamepad == 1
+	var pad := InputRouter.is_gamepad() if gamepad < 0 else gamepad == 1
 	var box := HBoxContainer.new()
 	box.add_theme_constant_override("separation", int(WEStyle.px(6)))
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE

@@ -18,12 +18,8 @@ func _ready() -> void:
 func _run() -> void:
 	for f in 10:
 		await get_tree().process_frame
-	if OS.get_cmdline_user_args().has("--menu-pad"):
-		MenuNav.source = MenuNav.Source.GAMEPAD
-		MenuNav.input_source_changed.emit(MenuNav.source)
-	else:
-		MenuNav.source = MenuNav.Source.KEYBOARD
-		MenuNav.input_source_changed.emit(MenuNav.source)
+	InputRouter.set_source(InputRouter.Source.GAMEPAD if OS.get_cmdline_user_args().has("--menu-pad")
+		else InputRouter.Source.KEYBOARD, true)
 	for a in OS.get_cmdline_user_args():
 		# `--menu-home=db:nat:arg`: local elegido (la elección abre en su grupo).
 		if a.begins_with("--menu-home="):

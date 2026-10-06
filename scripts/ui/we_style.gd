@@ -248,8 +248,15 @@ static func fade_in(c: Control) -> void:
 
 ## Pie de pantalla (56 px): a la izquierda "01 / NOMBRE DE LA PANTALLA" y a la
 ## derecha las indicaciones de control [[acción, texto]]. Cambia los íconos
-## al vuelo cuando se pasa de teclado a mando (MenuNav.input_source_changed),
-## sin mover nada de lugar.
+## al vuelo cuando se pasa de teclado a mando o se reasigna un control
+## (InputRouter.events()), sin mover nada de lugar ni tocar el foco.
+##
+## Uso en cualquier pantalla:
+##   var foot := WEStyle.HintFooter.new("02  /  Liga Master",
+##       [[&"ui_accept", "Aceptar"], [&"ui_cancel", "Volver"], [&"ui_tabs", "Sección"]])
+##   foot.set_hints(...)  # cuando cambian las acciones disponibles
+## Acciones: ui_accept, ui_cancel, ui_options, ui_tabs, ui_navigate (ver
+## ButtonIcons.get_hint).
 class HintFooter:
 	extends PanelContainer
 	var screen := ""
@@ -274,8 +281,23 @@ class HintFooter:
 		add_child(_row)
 		rebuild()
 
-	func _ready() -> void:
-		MenuNav.input_source_changed.connect(func(_s: int) -> void: rebuild())
+	func _enter_tree() -> void:
+		var ev := InputRouter.events()
+		if not ev.source_changed.is_connected(_on_input_changed):
+			ev.source_changed.connect(_on_input_changed)
+			ev.bindings_changed.connect(_on_input_changed.bind(-1))
+		rebuild()
+
+	func _exit_tree() -> void:
+		var ev := InputRouter.events()
+		if ev.source_changed.is_connected(_on_input_changed):
+			ev.source_changed.disconnect(_on_input_changed)
+		for c in ev.bindings_changed.get_connections():
+			if c["callable"].get_object() == self:
+				ev.bindings_changed.disconnect(c["callable"])
+
+	func _on_input_changed(_source: int) -> void:
+		rebuild()
 
 	func set_hints(p_hints: Array) -> void:
 		hints = p_hints

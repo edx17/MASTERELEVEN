@@ -14,7 +14,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
-	MenuNav.source = MenuNav.Source.KEYBOARD
+	InputRouter.set_source(InputRouter.Source.KEYBOARD, true)
 
 
 func _home() -> HomeScreen:
@@ -45,7 +45,7 @@ func test_right_enters_content_and_left_returns() -> void:
 
 
 func test_footer_follows_the_input_source() -> void:
-	MenuNav.source = MenuNav.Source.KEYBOARD
+	InputRouter.set_source(InputRouter.Source.KEYBOARD, true)
 	var kb := ButtonIcons.get_hint(&"ui_accept")
 	assert_true(kb.get_child(0) is PanelContainer, "tecla dibujada")
 	assert_eq((kb.get_child(0).get_child(0) as Label).text, "ENTER")
@@ -59,11 +59,10 @@ func test_footer_follows_the_input_source() -> void:
 	assert_eq(ButtonIcons.hint_ids(&"ui_tabs", false), ["Q", "E"])
 	# El pie se rearma al cambiar de dispositivo, sin mover el foco.
 	var focus := get_viewport().gui_get_focus_owner()
-	MenuNav.source = MenuNav.Source.GAMEPAD
-	MenuNav.input_source_changed.emit(MenuNav.source)
+	InputRouter.set_source(InputRouter.Source.GAMEPAD, true)
 	assert_eq(get_viewport().gui_get_focus_owner(), focus)
-	assert_eq(MenuNav.source_of(_joy_motion(0.2)), -1, "el ruido del stick no cuenta")
-	assert_eq(MenuNav.source_of(_joy_motion(0.9)), MenuNav.Source.GAMEPAD)
+	assert_eq(InputRouter.source_of(_joy_motion(0.1)), -1, "el ruido del stick no cuenta")
+	assert_eq(InputRouter.source_of(_joy_motion(0.9)), InputRouter.Source.GAMEPAD)
 
 
 func _joy_motion(v: float) -> InputEventJoypadMotion:
