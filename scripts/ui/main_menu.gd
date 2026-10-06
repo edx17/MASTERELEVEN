@@ -11,6 +11,9 @@ const MATCH_SCENE := "res://scenes/match/match.tscn"
 
 var _pages := {}
 var _help: Label
+var _help_box: VBoxContainer
+## Pie de las páginas del menú.
+const PAGE_HINTS := [[&"ui_navigate", "Navegar"], [&"ui_accept", "Aceptar"], [&"ui_cancel", "Volver"]]
 var _mode_two: Button
 var _teams: TeamSelect
 var _setup: MatchSetup
@@ -52,7 +55,18 @@ func _ready() -> void:
 	Engine.time_scale = 1.0
 	WEStyle.background(self)
 	_start_music()
-	_help = WEStyle.help_box(self)
+	# Ayuda de la opción con el foco: se muda a la tarjeta "Detalle" de la
+	# página que se muestra (con los íconos de los botones).
+	_help = Label.new()
+	_help.visible = false
+	_help_box = VBoxContainer.new()
+	_help_box.add_child(_help)
+	var hm := ButtonIcons.Mirror.new(WEStyle.font_px(WEStyle.BODY_L), false, WEStyle.TEXT_MAIN)
+	hm.source = _help
+	hm.custom_minimum_size.x = WEStyle.px(480)
+	_help_box.add_child(hm)
+	add_child(_help_box)
+	_help_box.visible = false
 	_build_title()
 	_build_home()
 	_build_continue()
@@ -131,9 +145,15 @@ func show_page(page: String, remember := true) -> void:
 			_focus_memory[current] = f
 	for k in _pages:
 		(_pages[k] as Control).visible = k == page
-	# Las pantallas de equipos y partido traen su propia ayuda.
-	_help.get_parent().visible = page in ["modes", "training", "options", "graphics", "aids", "controls", "worldcup", "continue", "data", "cups",
-		"master", "master_squad"]
+	# La ayuda va a la tarjeta "Detalle" de la página (si tiene).
+	var slot: Control = (_pages[page] as Control).get_meta("help_slot", null) if _pages.has(page) else null
+	_help_box.visible = slot != null
+	if slot != null and _help_box.get_parent() != slot:
+		_help_box.reparent(slot, false)
+	if slot != null:
+		_help.text = ""
+		WEStyle.fade_in(_pages[page])
+		_scroll_to_focus.call_deferred(_pages[page])
 	if page == "home" and _home != null:
 		_home.refresh(not (Competition.list_saves().is_empty() and not MasterCareer.has_saves()))
 		WEStyle.fade_in(_home)
@@ -164,6 +184,17 @@ func show_page(page: String, remember := true) -> void:
 				back_focus.grab_focus()
 			else:
 				_first_focus(_pages[page])
+
+
+## Las listas de la página arrancan arriba y muestran la opción con el foco.
+func _scroll_to_focus(page: Control) -> void:
+	await get_tree().process_frame
+	var f := get_viewport().gui_get_focus_owner()
+	for sc in page.find_children("*", "ScrollContainer", true, false):
+		var scroll := sc as ScrollContainer
+		scroll.scroll_vertical = 0
+		if f != null and scroll.is_ancestor_of(f):
+			scroll.ensure_control_visible(f)
 
 
 func go_back() -> void:
@@ -213,32 +244,81 @@ func _first_focus(node: Node) -> void:
 			return
 
 
-func _page(name: String) -> Control:
-	var p := Control.new()
-	p.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(p)
-	move_child(p, 1)
-	_pages[name] = p
-	return p
+## Página del menú con el marco del rediseño: a la izquierda el contenido
+## (las columnas de _column) y a la derecha la tarjeta "Detalle" con la ayuda
+## de la opción elegida.
+func _page(name: String, title: String = "", crumb: String = "", info: String = "") -> WEStyle.ScreenFrame:
+	var f := WEStyle.ScreenFrame.new(title.capitalize() if title != "" else name, PAGE_HINTS)
+	f.title.text = title
+	f.crumb.text = crumb
+	f.title_info.text = info
+	add_child(f)
+	move_child(f, 1)
+	_pages[name] = f
+	var row := HBoxContainer.new()
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", int(WEStyle.px(40)))
+	f.body.add_child(row)
+	var content := VBoxContainer.new()
+	content.custom_minimum_size.x = WEStyle.px(900)
+	content.add_theme_constant_override("separation", int(WEStyle.px(12)))
+	row.add_child(content)
+	var card := WEStyle.make_card()
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(card)
+	var cv := VBoxContainer.new()
+	cv.add_theme_constant_override("separation", int(WEStyle.px(12)))
+	card.add_child(cv)
+	cv.add_child(WEStyle.make_caption_label("Detalle", WEStyle.ACCENT))
+	var slot := VBoxContainer.new()
+	cv.add_child(slot)
+	f.set_meta("content", content)
+	f.set_meta("help_slot", slot)
+	f.set_meta("card", cv)
+	return f
 
 
-func _column(parent: Control, pos: Vector2) -> VBoxContainer:
+## Contenido (izquierda) de una página.
+func _content(p: Control) -> VBoxContainer:
+	return p.get_meta("content") as VBoxContainer
+
+
+## Columna de opciones de la página (con desplazamiento si no entra).
+func _column(parent: Control, _pos: Vector2 = Vector2.ZERO) -> VBoxContainer:
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	(_content(parent) if parent.has_meta("content") else parent).add_child(scroll)
 	var col := VBoxContainer.new()
-	col.position = pos
-	col.add_theme_constant_override("separation", 8)
-	parent.add_child(col)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_theme_constant_override("separation", int(WEStyle.px(8)))
+	scroll.add_child(col)
 	return col
 
 
-func _item(col: VBoxContainer, text: String, help: String, cb: Callable, enabled := true, width := 360.0) -> Button:
-	var b := WEStyle.bar(text, cb, width)
+func _item(col: VBoxContainer, text: String, help: String, cb: Callable, enabled := true, _width := 360.0) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.custom_minimum_size.y = WEStyle.px(56)
+	b.clip_text = true
+	WEStyle.style_button(b, WEStyle.BODY_L)
+	b.pressed.connect(cb)
 	b.disabled = not enabled
 	b.focus_mode = Control.FOCUS_ALL
 	b.focus_entered.connect(func() -> void: _help.text = help)
 	b.mouse_entered.connect(func() -> void: _help.text = help)
 	col.add_child(b)
 	return b
+
+
+## Fila de opción con el estilo del rediseño (izquierda / derecha cambian).
+func _option_row(caption: String, getter: Callable, stepper: Callable, help: String) -> WEStyle.OptionRow:
+	var row := WEStyle.OptionRow.new(caption, getter, stepper, help, WEStyle.px(900))
+	row.use_modern_style()
+	row.focus_entered.connect(func() -> void: _help.text = help)
+	return row
 
 
 # --- Título -----------------------------------------------------------------------
@@ -293,19 +373,16 @@ func _build_home() -> void:
 # --- Modo -----------------------------------------------------------------------
 
 func _build_modes() -> void:
-	var p := _page("modes")
-	var title := WEStyle.label("PARTIDO AMISTOSO", 30, Color(1.0, 0.9, 0.35))
-	title.position = Vector2(80, 40)
-	p.add_child(title)
-	var col := _column(p, Vector2(80, 100))
-	_item(col, "1 JUGADOR vs CPU", "Vos contra la computadora.", _choose_mode.bind(GameSettings.Mode.VS_CPU), true, 460.0)
-	_mode_two = _item(col, "2 JUGADORES", "Uno contra otro (hace falta un mando para el segundo).",
+	var p := _page("modes", "PARTIDO AMISTOSO", "PARTIDO  /  MODO", "Elegí cómo se juega")
+	var col := _column(p)
+	_item(col, "1 jugador vs CPU", "Vos contra la computadora.", _choose_mode.bind(GameSettings.Mode.VS_CPU), true, 460.0)
+	_mode_two = _item(col, "2 jugadores", "Uno contra otro (hace falta un mando para el segundo).",
 		_choose_mode.bind(GameSettings.Mode.TWO_PLAYERS), true, 460.0)
 	_item(col, "CPU vs CPU", "Mirá un partido entre la computadora y la computadora.",
 		_choose_mode.bind(GameSettings.Mode.CPU_VS_CPU), true, 460.0)
-	_item(col, "TANDA DE PENALES", "Sólo la definición por penales: cinco por equipo y, si siguen iguales, muerte súbita.",
+	_item(col, "Tanda de penales", "Sólo la definición por penales: cinco por equipo y, si siguen iguales, muerte súbita.",
 		_choose_mode.bind(GameSettings.Mode.VS_CPU, true), true, 460.0)
-	_item(col, "VOLVER", "Volver al menú principal.", go_back, true, 460.0)
+	_item(col, "Volver", "Volver al menú principal.", go_back, true, 460.0)
 	_refresh_modes()
 
 
@@ -437,13 +514,9 @@ static func playable_cups() -> Array:
 
 
 func _build_cups() -> void:
-	var p := _page("cups")
-	var title := WEStyle.label("COPA", 30, Color(1.0, 0.9, 0.35))
-	title.position = Vector2(80, 40)
-	p.add_child(title)
-	_cups_title = title
-	_cups_col = _column(p, Vector2(80, 100))
-	_cups_col.add_theme_constant_override("separation", 6)
+	var p := _page("cups", "COPA", "COPA  /  TORNEO", "Elegí el torneo")
+	_cups_title = p.title
+	_cups_col = _column(p)
 
 
 func _build_cups_list() -> void:
@@ -451,6 +524,10 @@ func _build_cups_list() -> void:
 		_cups_col.remove_child(c)
 		c.queue_free()
 	_cups_title.text = "SUB-20" if _cups_youth else "COPA"
+	var cf := _pages["cups"] as WEStyle.ScreenFrame
+	cf.crumb.text = "SUB-20  /  TORNEO" if _cups_youth else "COPA  /  TORNEO"
+	cf.footer.screen = "Sub-20" if _cups_youth else "Copa"
+	cf.footer.rebuild()
 	if _cups_youth:
 		var cache := {}
 		for yid in CareerCups.YOUTH:
@@ -458,7 +535,7 @@ func _build_cups_list() -> void:
 				"lib_u20": "16 Sub-20 de Sudamérica: grupos y eliminación desde cuartos.",
 				"uyl": "36 Sub-20 de Europa: fase liga y eliminación.",
 				"wc_u20": "24 selecciones Sub-20: 6 grupos, octavos con los mejores terceros."}[yid]
-			_item(_cups_col, String(CareerCups.YOUTH[yid]["name"]).to_upper(), desc, func() -> void:
+			_item(_cups_col, String(CareerCups.YOUTH[yid]["name"]), desc, func() -> void:
 				_youth_teams = CareerCups.youth_teams(yid, cache)
 				if _youth_teams.is_empty():
 					return
@@ -470,10 +547,10 @@ func _build_cups_list() -> void:
 				_new_master = false
 				_teams.only_paths.assign(_youth_teams.map(func(p: String) -> String: return "db:" + p.trim_prefix("db:u20:")))
 				show_page("teams"), true, 640.0)
-		_item(_cups_col, "VOLVER", "Volver al menú principal.", go_back, true, 640.0)
+		_item(_cups_col, "Volver", "Volver al menú principal.", go_back, true, 640.0)
 		_first_focus(_cups_col)
 		return
-	_item(_cups_col, "COPA RÁPIDA", "Eliminación directa de 8: tu equipo y 7 de su grupo.", func() -> void:
+	_item(_cups_col, "Copa rápida", "Eliminación directa de 8: tu equipo y 7 de su grupo.", func() -> void:
 		_custom_cup = {}
 		_new_competition = Competition.Kind.CUP
 		_teams.single = true
@@ -484,7 +561,7 @@ func _build_cups_list() -> void:
 	for cup in playable_cups():
 		var n := (cup.get("teams", []) as Array).size()
 		var fmt := "liga" if String(cup.get("format", "")) == "league" else "eliminación directa"
-		_item(_cups_col, String(cup.get("name", "Copa")).to_upper(), "Copa de tu Option File: %d equipos, %s." % [n, fmt],
+		_item(_cups_col, String(cup.get("name", "Copa")), "Copa de tu Option File: %d equipos, %s." % [n, fmt],
 			func() -> void:
 				_custom_cup = cup
 				_new_competition = Competition.Kind.CUP
@@ -493,26 +570,15 @@ func _build_cups_list() -> void:
 				_new_master = false
 				_teams.only_paths.assign(cup.get("teams", []))
 				show_page("teams"), true, 640.0)
-	_item(_cups_col, "VOLVER", "Volver al menú principal.", go_back, true, 640.0)
+	_item(_cups_col, "Volver", "Volver al menú principal.", go_back, true, 640.0)
 	_first_focus(_cups_col)
 
 
 # --- Continuar ------------------------------------------------------------------------
 
 func _build_continue() -> void:
-	var p := _page("continue")
-	var title := WEStyle.label("CONTINUAR", 30, Color(1.0, 0.9, 0.35))
-	title.position = Vector2(80, 40)
-	p.add_child(title)
-	var scroll := ScrollContainer.new()
-	scroll.position = Vector2(80, 96)
-	scroll.size = Vector2(1000, 500)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.follow_focus = true
-	p.add_child(scroll)
-	_continue_col = VBoxContainer.new()
-	_continue_col.add_theme_constant_override("separation", 6)
-	scroll.add_child(_continue_col)
+	var p := _page("continue", "CONTINUAR", "PARTIDAS GUARDADAS", "Ligas, copas, Mundial y Liga Master")
+	_continue_col = _column(p)
 
 
 ## Lista de partidas guardadas: "Liga Profesional · Boca — Fecha 7 de 29".
@@ -529,7 +595,7 @@ func _build_continue_list() -> void:
 		if String(sv["option_file"]) != "":
 			help += " Option File: %s." % sv["option_file"]
 		_item(_continue_col, text, help, open_save.bind(String(sv["file"])), true, 960.0)
-	_item(_continue_col, "VOLVER", "Volver al menú principal.", go_back, true, 960.0)
+	_item(_continue_col, "Volver", "Volver al menú principal.", go_back, true, 960.0)
 	if saves.is_empty():
 		_help.text = "No hay partidas guardadas."
 	_first_focus(_continue_col)
@@ -573,20 +639,15 @@ var _wc_count: Label
 
 ## Página del Mundial: elegir los 6 cupos del repechaje y después tu selección.
 func _build_world_cup() -> void:
-	var p := _page("worldcup")
-	var title := WEStyle.label("MUNDIAL", 30, Color(1.0, 0.9, 0.35))
-	title.position = Vector2(80, 40)
-	p.add_child(title)
-	_wc_count = WEStyle.label("", 20, Color(0.75, 0.85, 1.0))
-	_wc_count.position = Vector2(80, 82)
-	p.add_child(_wc_count)
+	var p := _page("worldcup", "MUNDIAL 2026", "MUNDIAL  /  REPECHAJE")
+	_wc_count = p.title_info
+	_content(p).add_child(WEStyle.make_caption_label("Repechaje: elegí 6 de estas 12"))
 	# Las 12 candidatas en dos columnas y abajo los botones.
 	var grid := GridContainer.new()
 	grid.columns = 2
-	grid.position = Vector2(80, 120)
-	grid.add_theme_constant_override("h_separation", 20)
-	grid.add_theme_constant_override("v_separation", 6)
-	p.add_child(grid)
+	grid.add_theme_constant_override("h_separation", int(WEStyle.px(16)))
+	grid.add_theme_constant_override("v_separation", int(WEStyle.px(8)))
+	_content(p).add_child(grid)
 	for n in TeamDB.nations():
 		if n["wc"] != "po":
 			continue
@@ -600,22 +661,22 @@ func _build_world_cup() -> void:
 				GameSettings.wc_playoff.append(id)
 			GameSettings.save_settings()
 			_refresh_world_cup(), true, 360.0)
-		b.custom_minimum_size.y = 34
-		b.add_theme_font_size_override("font_size", 19)
+		b.custom_minimum_size = Vector2(WEStyle.px(442), WEStyle.px(48))
 		b.set_meta("nation", id)
 		b.set_meta("label", n["name"])
 		_wc_rows.append(b)
-	var col := _column(p, Vector2(80, 400))
-	_item(col, "ELEGIR MI SELECCIÓN", "Las 42 clasificadas más las 6 del repechaje. Después, el sorteo de los grupos.",
+	var col := _column(p)
+	_item(col, "Elegir mi selección  ›", "Las 42 clasificadas más las 6 del repechaje. Después, el sorteo de los grupos.",
 		_world_cup_pick_team, true, 460.0)
-	_item(col, "VOLVER", "Volver al menú principal.", go_back, true, 460.0)
+	_item(col, "Volver", "Volver al menú principal.", go_back, true, 460.0)
 	_refresh_world_cup()
 
 
 func _refresh_world_cup() -> void:
 	for b in _wc_rows:
 		var on := GameSettings.wc_playoff.has(b.get_meta("nation"))
-		b.text = "%s  %s" % ["■" if on else "□", b.get_meta("label")]
+		b.text = "%s   %s" % ["●" if on else "○", b.get_meta("label")]
+		b.add_theme_color_override("font_color", WEStyle.ACCENT if on else WEStyle.TEXT_MAIN)
 	_wc_count.text = "Cupos del repechaje: %d de %d elegidos" % [GameSettings.wc_playoff.size(), GameSettings.WC_PLAYOFF_SLOTS]
 
 
@@ -691,25 +752,14 @@ func _on_teams_chosen(home: String, away: String) -> void:
 # --- Liga Master --------------------------------------------------------------------
 
 func _build_master() -> void:
-	var p := _page("master")
-	var title := WEStyle.label("LIGA MASTER  ·  CARRERA NUEVA", 30, Color(1.0, 0.9, 0.35))
-	title.position = Vector2(80, 40)
-	p.add_child(title)
-	var sub := WEStyle.label("Elegí el país y después tu club.", 20, Color(0.75, 0.85, 1.0))
-	sub.position = Vector2(80, 82)
-	p.add_child(sub)
-	_master_col = _column(p, Vector2(80, 124))
-	_master_col.add_theme_constant_override("separation", 6)
-	var q := _page("master_squad")
-	var t2 := WEStyle.label("LIGA MASTER  ·  TU PLANTEL", 30, Color(1.0, 0.9, 0.35))
-	t2.position = Vector2(80, 40)
-	q.add_child(t2)
-	_master_info = WEStyle.label("", 21)
-	_master_info.position = Vector2(80, 90)
-	_master_info.size = Vector2(1100, 150)
+	var p := _page("master", "CARRERA NUEVA", "LIGA MASTER  /  PAÍS", "Elegí el país y después tu club")
+	_master_col = _column(p)
+	var q := _page("master_squad", "TU PLANTEL", "LIGA MASTER  /  PLANTEL")
+	_master_info = WEStyle.make_body_label("", WEStyle.BODY_L)
 	_master_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	q.add_child(_master_info)
-	_master_squad_col = _column(q, Vector2(80, 260))
+	_master_info.custom_minimum_size.x = WEStyle.px(880)
+	_content(q).add_child(_master_info)
+	_master_squad_col = _column(q)
 
 
 func _build_master_list() -> void:
@@ -722,7 +772,7 @@ func _build_master_list() -> void:
 		_item(_master_col, String(co["name"]).to_upper(),
 			"Empezás en %s. Podés elegir cualquier club del país: si juega más arriba, baja a esa división." % start["name"],
 			_master_pick_country.bind(id), true, 520.0)
-	_item(_master_col, "VOLVER", "Volver al menú principal.", go_back, true, 520.0)
+	_item(_master_col, "Volver", "Volver al menú principal.", go_back, true, 520.0)
 	_first_focus(_master_col)
 
 
@@ -753,14 +803,14 @@ func _build_master_squad() -> void:
 	if forced:
 		info += "\nCon un club de primera sólo se puede con el Equipo WE."
 	_master_info.text = info
-	_item(_master_squad_col, "PLANTEL REAL",
+	_item(_master_squad_col, "Plantel real",
 		"Con un club de primera no se puede (arrancar abajo con un grande sería un afano)." if forced \
 			else "Arrancás con los jugadores reales del club.",
 		_create_master.bind("real"), not forced, 520.0)
-	_item(_master_squad_col, "EQUIPO WE",
+	_item(_master_squad_col, "Equipo WE",
 		"Plantel genérico de jugadores inventados, con el nombre y la camiseta de tu club. Hay que armarlo de a poco.",
 		_create_master.bind("we"), true, 520.0)
-	_item(_master_squad_col, "VOLVER", "Elegir otro club.", go_back, true, 520.0)
+	_item(_master_squad_col, "Volver", "Elegir otro club.", go_back, true, 520.0)
 	_first_focus(_master_squad_col)
 
 
@@ -776,15 +826,12 @@ func _create_master(mode: String) -> void:
 # --- Entrenamiento -----------------------------------------------------------------
 
 func _build_training() -> void:
-	var p := _page("training")
-	var title := WEStyle.label("ENTRENAMIENTO  ·  CLUB HOUSE", 30, Color(1.0, 0.9, 0.35))
-	title.position = Vector2(80, 40)
-	p.add_child(title)
-	var col := _column(p, Vector2(80, 100))
+	var p := _page("training", "ENTRENAMIENTO", "ENTRENAMIENTO  /  CLUB HOUSE", "Elegí qué practicar")
+	var col := _column(p)
 	for k in TrainingSession.KIND_NAMES.size():
-		_item(col, String(TrainingSession.KIND_NAMES[k]).to_upper(), TrainingSession.KIND_HELP[k],
+		_item(col, String(TrainingSession.KIND_NAMES[k]), TrainingSession.KIND_HELP[k],
 			_choose_training.bind(k), true, 520.0)
-	_item(col, "VOLVER", "Volver al menú principal.", go_back, true, 520.0)
+	_item(col, "Volver", "Volver al menú principal.", go_back, true, 520.0)
 
 
 ## Elegís qué practicar; después, tu equipo y el rival.
@@ -811,18 +858,14 @@ func _start() -> void:
 # --- Opciones -------------------------------------------------------------------
 
 func _build_options() -> void:
-	var p := _page("options")
-	var title := WEStyle.label("OPCIONES", 30, Color(1.0, 0.9, 0.35))
-	title.position = Vector2(80, 40)
-	p.add_child(title)
-	var col := _column(p, Vector2(80, 92))
-	col.add_theme_constant_override("separation", 3)
-	_item(col, "CONTROLES", "Qué hace cada botón al atacar y al defender.", show_page.bind("controls"), true, 640.0)
-	_item(col, "GRÁFICOS", "Ventana o pantalla completa, resolución, sombras, suavizado, público y cuadros por segundo.",
+	var p := _page("options", "OPCIONES", "OPCIONES", "Juego, sonido, gráficos y datos")
+	var col := _column(p)
+	_item(col, "Controles  ›", "Qué hace cada botón al atacar y al defender.", show_page.bind("controls"), true, 640.0)
+	_item(col, "Gráficos  ›", "Ventana o pantalla completa, resolución, sombras, suavizado, público y cuadros por segundo.",
 		show_page.bind("graphics"), true, 640.0)
-	_item(col, "AYUDAS", "Marcas en la cancha que se prenden o apagan: receptor del pase, línea del offside, caída de la pelota.",
+	_item(col, "Ayudas  ›", "Marcas en la cancha que se prenden o apagan: receptor del pase, línea del offside, caída de la pelota.",
 		show_page.bind("aids"), true, 640.0)
-	_item(col, "DATOS", "Option File (tus cambios sobre la base), importar planteles y carpetas del juego.",
+	_item(col, "Datos  ›", "Option File (tus cambios sobre la base), importar planteles y carpetas del juego.",
 		show_page.bind("data"), true, 640.0)
 	var rows := [
 		["Velocidad del juego", func() -> String: return "%+d" % GameSettings.game_speed,
@@ -862,17 +905,14 @@ func _build_options() -> void:
 			func(_d: int) -> void: GameSettings.keeper_auto_action = 1 - GameSettings.keeper_auto_action,
 			"Qué hace tu arquero si no la soltaste a tiempo."],
 	]
+	col.add_child(WEStyle.make_caption_label("Juego y sonido"))
 	for r in rows:
-		var row := WEStyle.OptionRow.new(r[0], r[1], func(d: int) -> void:
+		col.add_child(_option_row(r[0], r[1], func(d: int) -> void:
 			(r[2] as Callable).call(d)
-			GameSettings.save_settings(), r[3], 640.0)
-		var help: String = r[3]
-		row.custom_minimum_size.y = 36
-		row.focus_entered.connect(func() -> void: _help.text = help)
-		col.add_child(row)
-	_item(col, "PRUEBA DE RENDIMIENTO (30 s)", "Mide los cuadros por segundo de tu máquina con un partido CPU vs CPU.",
+			GameSettings.save_settings(), r[3]))
+	_item(col, "Prueba de rendimiento (30 s)", "Mide los cuadros por segundo de tu máquina con un partido CPU vs CPU.",
 		GameSettings.start_benchmark, true, 640.0)
-	_item(col, "VOLVER", "Volver al menú principal.", go_back, true, 640.0)
+	_item(col, "Volver", "Volver al menú principal.", go_back, true, 640.0)
 
 
 # --- Gráficos y ayudas (Fase 8) ---------------------------------------------------------
@@ -880,23 +920,15 @@ func _build_options() -> void:
 ## Página de opciones con filas [nombre, valor, cambiar(dir), ayuda]; se
 ## guardan al cambiar y, si `apply`, se aplican los gráficos.
 func _settings_page(name: String, title_text: String, rows: Array, apply: bool) -> void:
-	var p := _page(name)
-	var title := WEStyle.label(title_text, 30, Color(1.0, 0.9, 0.35))
-	title.position = Vector2(80, 40)
-	p.add_child(title)
-	var col := _column(p, Vector2(80, 92))
-	col.add_theme_constant_override("separation", 3)
+	var p := _page(name, title_text, "OPCIONES  /  %s" % title_text)
+	var col := _column(p)
 	for r in rows:
-		var row := WEStyle.OptionRow.new(r[0], r[1], func(d: int) -> void:
+		col.add_child(_option_row(r[0], r[1], func(d: int) -> void:
 			(r[2] as Callable).call(d)
 			GameSettings.save_settings()
 			if apply:
-				GameSettings.apply_graphics(), r[3], 640.0)
-		var help: String = r[3]
-		row.custom_minimum_size.y = 36
-		row.focus_entered.connect(func() -> void: _help.text = help)
-		col.add_child(row)
-	_item(col, "VOLVER", "Volver a Opciones.", go_back, true, 640.0)
+				GameSettings.apply_graphics(), r[3]))
+	_item(col, "Volver", "Volver a Opciones.", go_back, true, 640.0)
 
 
 func _build_graphics() -> void:
@@ -957,13 +989,9 @@ var _data_status: Label
 
 
 func _build_data() -> void:
-	var p := _page("data")
-	var title := WEStyle.label("DATOS", 30, Color(1.0, 0.9, 0.35))
-	title.position = Vector2(80, 40)
-	p.add_child(title)
-	var col := _column(p, Vector2(80, 100))
-	col.add_theme_constant_override("separation", 6)
-	var of_row := WEStyle.OptionRow.new("Option File activo", func() -> String:
+	var p := _page("data", "DATOS", "OPCIONES  /  DATOS", "Option File, importar planteles y carpetas")
+	var col := _column(p)
+	var of_row := _option_row("Option File activo", func() -> String:
 			return GameSettings.active_optionfile if GameSettings.active_optionfile != "" else "ninguno (base del juego)",
 		func(d: int) -> void:
 			var names := [""]
@@ -971,26 +999,24 @@ func _build_data() -> void:
 				names.append(o["name"])
 			var i := names.find(GameSettings.active_optionfile)
 			_set_option_file(names[posmod(i + d, names.size())]),
-		"Tus cambios (planteles importados, ediciones) van al Option File activo. La base del juego no se toca.", 760.0)
-	of_row.focus_entered.connect(func() -> void: _help.text = of_row.help)
+		"Tus cambios (planteles importados, ediciones) van al Option File activo. La base del juego no se toca.")
 	col.add_child(of_row)
 	_data_rows.append(of_row)
-	_item(col, "IMPORTAR PLANTELES", "Lee todos los CSV de la carpeta \"importar\" (EA FC / SoFIFA, Transfermarkt o tu planilla) y los guarda en el Option File activo (si no hay, crea \"Mi Option File\").",
+	_item(col, "Importar planteles", "Lee todos los CSV de la carpeta \"importar\" (EA FC / SoFIFA, Transfermarkt o tu planilla) y los guarda en el Option File activo (si no hay, crea \"Mi Option File\").",
 		_import_squads, true, 760.0)
-	_item(col, "ABRIR CARPETA DE IMPORTAR", "Abre la carpeta donde dejás los CSV de planteles.",
+	_item(col, "Abrir la carpeta de importar", "Abre la carpeta donde dejás los CSV de planteles.",
 		func() -> void: UserData.open_folder(UserData.import_dir()), true, 760.0)
-	_item(col, "ABRIR CARPETA DE OPTION FILES", "Para copiar un Option File (.meof) de otra PC o pasarle el tuyo a alguien: aparecen solos en la lista.",
+	_item(col, "Abrir la carpeta de Option Files", "Para copiar un Option File (.meof) de otra PC o pasarle el tuyo a alguien: aparecen solos en la lista.",
 		func() -> void: UserData.open_folder(UserData.optionfiles_dir()), true, 760.0)
-	_item(col, "ABRIR CARPETA DEL JUEGO", "Documentos/MasterEleven: configuración, Option Files, partidas guardadas e importar.",
+	_item(col, "Abrir la carpeta del juego", "Documentos/MasterEleven: configuración, Option Files, partidas guardadas e importar.",
 		func() -> void: UserData.open_folder(UserData.root()), true, 760.0)
-	_item(col, "VOLVER A LA BASE", "Deja de usar el Option File (no lo borra: lo podés volver a elegir).",
+	_item(col, "Volver a la base", "Deja de usar el Option File (no lo borra: lo podés volver a elegir).",
 		func() -> void: _set_option_file(""), true, 760.0)
-	_item(col, "VOLVER", "Volver a Opciones.", go_back, true, 760.0)
-	_data_status = WEStyle.label("", 18, Color(0.75, 0.9, 0.75))
-	_data_status.position = Vector2(880, 100)
-	_data_status.size = Vector2(360, 480)
+	_item(col, "Volver", "Volver a Opciones.", go_back, true, 760.0)
+	_data_status = WEStyle.make_body_label("", WEStyle.BODY_M, WEStyle.ACCENT_GREEN)
 	_data_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	p.add_child(_data_status)
+	_data_status.custom_minimum_size.x = WEStyle.px(480)
+	(p.get_meta("card") as Control).add_child(_data_status)
 
 
 func _set_option_file(name: String) -> void:
@@ -1035,11 +1061,12 @@ func _import_squads() -> void:
 # --- Controles ------------------------------------------------------------------
 
 func _build_controls() -> void:
-	var p := _page("controls")
+	var p := _page("controls", "CONTROLES", "OPCIONES  /  CONTROLES", "Elegí una fila y apretá el botón o la tecla nueva")
 	var cp := ControlsPage.new()
 	cp.help = _help
 	cp.back_pressed.connect(go_back)
-	p.add_child(cp)
+	cp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_content(p).add_child(cp)
 
 
 ## Logo del menú: el nombre y una pelota (dibujada, sin marcas).

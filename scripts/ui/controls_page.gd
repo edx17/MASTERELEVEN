@@ -14,49 +14,54 @@ var _status: ButtonIcons.IconLabel
 
 
 func _ready() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var title := WEStyle.label("CONFIGURAR CONTROLES", 30, Color(1.0, 0.9, 0.35))
-	title.position = Vector2(80, 30)
-	add_child(title)
-	var pc := WEStyle.panel(Vector2(1120, 0))
-	pc.position = Vector2(80, 80)
-	add_child(pc)
+	custom_minimum_size = Vector2(WEStyle.px(900), WEStyle.px(560))
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
-	pc.add_child(box)
-	var head := HBoxContainer.new()
+	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	box.add_theme_constant_override("separation", int(WEStyle.px(8)))
+	add_child(box)
+	var head := MarginContainer.new()
+	head.add_theme_constant_override("margin_left", int(WEStyle.px(12)))
+	head.custom_minimum_size.y = WEStyle.px(WEStyle.HEADER_ROW_H)
+	head.add_child(WEStyle.make_cells(["Acción", "Mando", "Teclado"], COLS, "LLL", true))
 	box.add_child(head)
-	for h: Array in [["ACCIÓN", 520], ["MANDO", 200], ["TECLADO", 200]]:
-		var l := WEStyle.label(h[0], 18, Color(1.0, 0.9, 0.35))
-		l.custom_minimum_size = Vector2(h[1], 0)
-		head.add_child(l)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	box.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 0)
+	scroll.add_child(list)
 	for a in ControlsConfig.ACTIONS:
-		var b := Button.new()
-		b.custom_minimum_size = Vector2(1080, 34)
-		b.focus_mode = Control.FOCUS_ALL
-		WEStyle.style_bar(b)
+		var b := WEStyle.make_row_button(HBoxContainer.new())
 		b.pressed.connect(_start_capture.bind(a))
 		b.focus_entered.connect(func() -> void:
 			if help != null:
 				help.text = "{X} cambiar: después apretá el botón del mando o la tecla nueva (Esc cancela).")
-		box.add_child(b)
+		list.add_child(b)
 		_rows.append(b)
 	var bottom := HBoxContainer.new()
-	bottom.add_theme_constant_override("separation", 20)
+	bottom.add_theme_constant_override("separation", int(WEStyle.px(16)))
 	box.add_child(bottom)
-	var reset := WEStyle.bar("RESTAURAR", func() -> void:
+	var reset := WEStyle.make_action_button("Restaurar", func() -> void:
 		ControlsConfig.reset()
 		_save()
-		refresh(), 260.0, 20)
+		refresh())
+	reset.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bottom.add_child(reset)
-	var back := WEStyle.bar("VOLVER", func() -> void: back_pressed.emit(), 260.0, 20)
+	var back := WEStyle.make_action_button("Volver", func() -> void: back_pressed.emit())
+	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bottom.add_child(back)
-	_status = ButtonIcons.IconLabel.new(18, false, Color(0.85, 0.92, 1.0))
-	_status.custom_minimum_size = Vector2(1080, 30)
+	_status = ButtonIcons.IconLabel.new(WEStyle.font_px(WEStyle.BODY_M), false, WEStyle.TEXT_DIM)
 	box.add_child(_status)
 	_status.show_text("Mover: stick izquierdo o cruceta (WASD). Stick derecho: comba en la pelota parada y marsellesa.")
 	refresh()
+
+
+## Columnas: acción (se estira), mando y teclado (px de 1080).
+const COLS := [0, 220, 220]
 
 
 ## Rearma el texto de cada fila con lo asignado ahora.
@@ -69,19 +74,25 @@ func refresh() -> void:
 			c.queue_free()
 		var hb := HBoxContainer.new()
 		hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		hb.offset_left = 16
+		hb.offset_left = WEStyle.px(12)
+		hb.offset_right = -WEStyle.px(12)
+		hb.add_theme_constant_override("separation", int(WEStyle.px(12)))
 		hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.add_child(hb)
-		var name_l := WEStyle.label(ControlsConfig.ACTION_NAMES[a], 19)
-		name_l.custom_minimum_size = Vector2(520, 0)
+		var name_l := WEStyle.make_body_label(ControlsConfig.ACTION_NAMES[a], WEStyle.BODY_L)
+		name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		hb.add_child(name_l)
-		var pad := ButtonIcons.IconLabel.new(19, false, Color(0.6, 0.85, 1.0))
-		pad.custom_minimum_size = Vector2(200, 0)
+		var pad := ButtonIcons.IconLabel.new(WEStyle.font_px(WEStyle.BODY_L), false, WEStyle.ACCENT)
+		pad.custom_minimum_size = Vector2(WEStyle.px(COLS[1]), 0)
+		pad.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		pad.fit_content = true
 		hb.add_child(pad)
 		pad.show_text("..." if _capturing == a else ControlsConfig.pad_text(a))
-		var key := WEStyle.label("..." if _capturing == a else ControlsConfig.key_text(a), 19, Color(0.6, 0.85, 1.0))
-		key.custom_minimum_size = Vector2(200, 0)
+		var key := WEStyle.make_body_label("..." if _capturing == a else ControlsConfig.key_text(a), WEStyle.BODY_L, WEStyle.ACCENT)
+		key.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
+		key.custom_minimum_size = Vector2(WEStyle.px(COLS[2]), 0)
+		key.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		hb.add_child(key)
 
 

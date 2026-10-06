@@ -74,6 +74,10 @@ func _run() -> void:
 				menu.set("_master_club", "boca")
 			if page == "teams":
 				menu.call("show_page", "modes")
+			# Sub-20: la página de copas con los torneos juveniles.
+			menu.set("_cups_youth", page == "u20")
+			if page == "u20":
+				page = "cups"
 			menu.call("show_page", page)
 			if master_view != "":
 				var hub: MasterHub = menu.get("_master_hub")
