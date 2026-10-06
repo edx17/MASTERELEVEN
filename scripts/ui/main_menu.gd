@@ -146,7 +146,9 @@ func show_page(page: String, remember := true) -> void:
 	for k in _pages:
 		(_pages[k] as Control).visible = k == page
 	# La ayuda va a la tarjeta "Detalle" de la página (si tiene).
-	var slot: Control = (_pages[page] as Control).get_meta("help_slot", null) if _pages.has(page) else null
+	var slot: Control = null
+	if _pages.has(page) and (_pages[page] as Control).has_meta("help_slot"):
+		slot = (_pages[page] as Control).get_meta("help_slot")
 	_help_box.visible = slot != null
 	if slot != null and _help_box.get_parent() != slot:
 		_help_box.reparent(slot, false)
@@ -278,6 +280,17 @@ func _page(name: String, title: String = "", crumb: String = "", info: String = 
 	return f
 
 
+## Página sin marco (la pantalla de título y la principal traen su diseño).
+func _plain_page(name: String) -> Control:
+	var p := Control.new()
+	p.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(p)
+	move_child(p, 1)
+	_pages[name] = p
+	return p
+
+
 ## Contenido (izquierda) de una página.
 func _content(p: Control) -> VBoxContainer:
 	return p.get_meta("content") as VBoxContainer
@@ -326,7 +339,7 @@ func _option_row(caption: String, getter: Callable, stepper: Callable, help: Str
 ## Pantalla de título como la del WE2002: estadio en alambre azul, el logo
 ## amarillo y rojo, "Press START Button" titilando y el copyright.
 func _build_title() -> void:
-	var p := _page("title")
+	var p := _plain_page("title")
 	var bg := ColorRect.new()
 	bg.color = Color(0.0, 0.01, 0.05)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -347,7 +360,7 @@ func leave_title() -> void:
 # --- Inicio ---------------------------------------------------------------------
 
 func _build_home() -> void:
-	var p := _page("home")
+	var p := _plain_page("home")
 	_home = HomeScreen.new({
 		"friendly": show_page.bind("modes"),
 		"master": show_page.bind("master"),
@@ -358,6 +371,7 @@ func _build_home() -> void:
 		"options": show_page.bind("options"),
 		"quit": func() -> void: get_tree().quit(),
 		"continue": show_page.bind("continue"),
+		"resume": open_save,
 		"new_master": show_page.bind("master"),
 		"league": _open_competition.bind(Competition.Kind.LEAGUE),
 		"world": _open_world_cup,

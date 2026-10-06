@@ -70,3 +70,31 @@ func _joy_motion(v: float) -> InputEventJoypadMotion:
 	e.axis = JOY_AXIS_LEFT_Y
 	e.axis_value = v
 	return e
+
+
+## La tarjeta sale de una partida real: el club, el rival de la próxima
+## fecha y si es local o visitante (antes era un Boca - River fijo).
+func test_featured_match_comes_from_the_save() -> void:
+	var m := MasterCareer.create("arg", "colon", "real", 5)
+	m.save()
+	var info := HomeScreen.match_info(m.file)
+	assert_false(info.is_empty())
+	assert_eq(info["mode"], "Liga Master")
+	assert_eq((info["user"] as TeamData).team_name, m.user_team().team_name)
+	var g := m.user_match()
+	var comp := m.current_comp()
+	assert_eq((info["home"] as TeamData).team_name, comp.team(g["home"]).team_name)
+	assert_eq((info["away"] as TeamData).team_name, comp.team(g["away"]).team_name)
+	assert_eq(info["venue"], "Local" if comp.team_paths[g["home"]] == m.user_path() else "Visitante")
+	m.delete_file()
+	MasterCareer.deactivate()
+
+
+func test_without_saves_the_card_says_so() -> void:
+	var h := _home()
+	h.featured = {}
+	h._fill_match()
+	h._fill_club()
+	var texts: Array = h.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
+	assert_true(texts.has("SIN PARTIDAS GUARDADAS"))
+	assert_false(texts.has("BOCA JUNIORS"), "nada de partidos inventados")
