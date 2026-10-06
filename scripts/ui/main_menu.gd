@@ -1,9 +1,9 @@
 extends Control
-## Menú principal al estilo del WE2002: barras a la izquierda (Partido, Liga,
-## Copa, Liga Master, Entrenamiento, Editor, Opciones), el logo con la pelota
-## a la derecha y una caja de ayuda abajo. Partido -> modo (vs CPU, 2
-## jugadores, CPU vs CPU) -> elección de equipos -> configuración del partido
-## -> la previa en el estadio.
+## Menú principal: la portada es HomeScreen (diseño 01 "Central de partido":
+## menú lateral, próximo partido, otros modos y pie con las indicaciones de
+## control); las demás páginas siguen con el estilo WE2002 hasta su etapa.
+## Partido -> modo (vs CPU, 2 jugadores, CPU vs CPU) -> elección de equipos ->
+## configuración del partido -> la previa en el estadio.
 ## Navegable con teclado (flechas + Enter, Esc vuelve) o mando (cruceta, X,
 ## Círculo vuelve).
 
@@ -24,6 +24,8 @@ var _cups_youth := false
 var _cups_title: Label
 var _youth_teams: Array[String] = []
 var _continue_btn: Button
+## Menú principal (diseño 01, rediseño estadio de noche).
+var _home: HomeScreen
 ## Copa propia elegida (del Option File) o {}.
 var _custom_cup: Dictionary = {}
 var _cups_col: VBoxContainer
@@ -130,10 +132,11 @@ func show_page(page: String, remember := true) -> void:
 	for k in _pages:
 		(_pages[k] as Control).visible = k == page
 	# Las pantallas de equipos y partido traen su propia ayuda.
-	_help.get_parent().visible = page in ["home", "modes", "training", "options", "graphics", "aids", "controls", "worldcup", "continue", "data", "cups",
+	_help.get_parent().visible = page in ["modes", "training", "options", "graphics", "aids", "controls", "worldcup", "continue", "data", "cups",
 		"master", "master_squad"]
-	if page == "home" and _continue_btn != null:
-		_continue_btn.disabled = Competition.list_saves().is_empty() and not MasterCareer.has_saves()
+	if page == "home" and _home != null:
+		_home.refresh(not (Competition.list_saves().is_empty() and not MasterCareer.has_saves()))
+		WEStyle.fade_in(_home)
 	if page == "title":
 		return
 	match page:
@@ -265,35 +268,26 @@ func leave_title() -> void:
 
 func _build_home() -> void:
 	var p := _page("home")
-	var col := _column(p, Vector2(80, 60))
-	col.add_theme_constant_override("separation", 6)
-	_continue_btn = _item(col, "CONTINUAR", "Seguir una Liga Master, Liga, Copa o Mundial guardados (cada uno en su archivo).",
-		show_page.bind("continue"))
-	_item(col, "PARTIDO", "Jugá un partido amistoso: contra la CPU, de a dos o mirá CPU contra CPU.", show_page.bind("modes"))
-	_item(col, "LIGA", "Campeonato todos contra todos con los 8 equipos. Se guarda entre partidos.",
-		_open_competition.bind(Competition.Kind.LEAGUE))
-	_item(col, "COPA", "Eliminación directa: cuartos, semis y final (con penales si empatan). Se guarda entre partidos.",
-		_open_competition.bind(Competition.Kind.CUP))
-	_item(col, "MUNDIAL", "48 selecciones: 12 grupos de 4, pasan dos por grupo y los 8 mejores terceros, después 16avos hasta la final.",
-		_open_world_cup)
-	_item(col, "SUB-20", "Torneo de Proyección, Libertadores Sub-20, UEFA Youth League y Mundial Sub-20, con las inferiores de cada club.",
-		func() -> void:
-			_cups_youth = true
-			show_page("cups"))
-	_item(col, "LIGA MASTER", "Carrera de club: elegí país y club, arrancá abajo y llevalo a primera. Temporadas completas, ascensos y descensos, goleadores y puntos WE.",
-		show_page.bind("master"))
-	_item(col, "ENTRENAMIENTO", "Club House: práctica libre, pelota parada y desafíos con récord.", show_page.bind("training"))
-	_item(col, "EDITOR", "Jugadores, planteles y equipos: altas, bajas, pases y edición masiva (también se abre aparte: MasterEleven Editor).",
-		func() -> void:
+	_home = HomeScreen.new({
+		"friendly": show_page.bind("modes"),
+		"master": show_page.bind("master"),
+		"cup": _open_competition.bind(Competition.Kind.CUP),
+		"editor": func() -> void:
 			GameSettings.editor_from_game = true
-			get_tree().change_scene_to_file(GameSettings.EDITOR_SCENE))
-	_item(col, "OPCIONES", "Controles, velocidad del juego, ayudas y prueba de rendimiento.", show_page.bind("options"))
-	_item(col, "SALIR", "Cerrar el juego.", get_tree().quit)
-	var logo := Logo.new()
-	logo.position = Vector2(700, 60)
-	logo.size = Vector2(520, 520)
-	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_child(logo)
+			get_tree().change_scene_to_file(GameSettings.EDITOR_SCENE),
+		"options": show_page.bind("options"),
+		"quit": func() -> void: get_tree().quit(),
+		"continue": show_page.bind("continue"),
+		"new_master": show_page.bind("master"),
+		"league": _open_competition.bind(Competition.Kind.LEAGUE),
+		"world": _open_world_cup,
+		"youth": func() -> void:
+			_cups_youth = true
+			show_page("cups"),
+		"training": show_page.bind("training"),
+	})
+	p.add_child(_home)
+	_continue_btn = _home.continue_button
 
 
 # --- Modo -----------------------------------------------------------------------

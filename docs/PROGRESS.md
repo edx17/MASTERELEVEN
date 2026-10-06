@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **499 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **506 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -162,6 +162,13 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Rediseño de la interfaz (estadio de noche)
+
+| Etapa | Qué | Estado |
+|---|---|---|
+| 1 | Tokens en `WEStyle`: paleta, Bebas Neue / Barlow (`assets/fonts`, OFL), tamaños y medidas de 1080p (`px()` / `font_px()` a la base 1280×720), `make_panel_style`, `make_focus_style`, `make_button_style`, `make_title_label`, `make_body_label`, `make_caption_label`, `fade_in`. | ✅ |
+| 2 | Menú principal, diseño 01 "Central de partido" (`HomeScreen`): menú lateral (Partido amistoso, Liga Master, Copa, Editar, Opciones, Salir), próximo partido (ilustrativo), Continuar, otros modos (Liga, Mundial, Sub-20, Entrenamiento), tu club. Pie con indicaciones según el dispositivo (`ButtonIcons.get_hint`, `WEStyle.HintFooter`, `MenuNav.input_source_changed`). | ✅ |
 
 ## Correcciones de tu prueba (PR #37)
 

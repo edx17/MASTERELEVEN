@@ -197,3 +197,89 @@ class IconLabel:
 			return
 		raw = t
 		ButtonIcons.fill(self, t, int(font_px * 1.25), centered)
+
+
+# --- Indicaciones de control (rediseño) ------------------------------------------
+# get_hint(acción) devuelve el ícono que corresponde a la fuente activa
+# (MenuNav.source): el botón del mando (círculo de color) o la tecla dibujada
+# como tecla física. Si la acción está en el mapa de controles, se muestra la
+# tecla o el botón realmente asignados.
+
+## Acciones de las indicaciones que no son del mapa de controles.
+const HINT_PAD := {&"ui_accept": ["X"], &"ui_cancel": ["O"], &"ui_options": ["TRI"],
+	&"ui_tabs": ["L1", "R1"], &"ui_navigate": ["CRUCETA"]}
+const HINT_KEYS := {&"ui_accept": ["ENTER"], &"ui_cancel": ["ESC"], &"ui_options": ["TAB"],
+	&"ui_tabs": ["Q", "E"], &"ui_navigate": ["FLECHAS"]}
+const JOY_IDS := {JOY_BUTTON_A: "X", JOY_BUTTON_B: "O", JOY_BUTTON_X: "SQ", JOY_BUTTON_Y: "TRI",
+	JOY_BUTTON_LEFT_SHOULDER: "L1", JOY_BUTTON_RIGHT_SHOULDER: "R1"}
+const KEY_NAMES := {"ESCAPE": "ESC", "KP ENTER": "ENTER", "BACKSPACE": "RETROCESO", "SPACE": "ESPACIO"}
+
+
+## Botones o teclas de una acción, según la fuente (mando o teclado).
+static func hint_ids(action: StringName, gamepad: bool) -> Array:
+	# Las del mapa de controles: la tecla o el botón asignados (si se cambian,
+	# cambia la indicación).
+	if InputMap.has_action(action):
+		for e in InputMap.action_get_events(action):
+			if gamepad and e is InputEventJoypadButton and JOY_IDS.has((e as InputEventJoypadButton).button_index):
+				return [JOY_IDS[(e as InputEventJoypadButton).button_index]]
+			if not gamepad and e is InputEventKey:
+				return [key_name(e as InputEventKey)]
+	return (HINT_PAD if gamepad else HINT_KEYS).get(action, [String(action).to_upper()])
+
+
+## Nombre corto y en mayúsculas de una tecla ("ENTER", "ESC", "Q").
+static func key_name(e: InputEventKey) -> String:
+	var code := e.physical_keycode if e.physical_keycode != KEY_NONE else e.keycode
+	var n := OS.get_keycode_string(code).to_upper()
+	return String(KEY_NAMES.get(n, n))
+
+
+## Ícono de la acción para la fuente activa (o la pedida: 1 mando, 0 teclado).
+static func get_hint(action: StringName, gamepad: int = -1) -> Control:
+	var pad := MenuNav.source == MenuNav.Source.GAMEPAD if gamepad < 0 else gamepad == 1
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", int(WEStyle.px(6)))
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for id in hint_ids(action, pad):
+		box.add_child(_pad_glyph(String(id)) if pad and IDS.has(id) else _keycap(String(id)))
+	return box
+
+
+## Botón del mando: círculo de 28 px (1080p) con el símbolo.
+static func _pad_glyph(id: String) -> Control:
+	var h := WEStyle.px(WEStyle.HINT_SIZE)
+	var r := TextureRect.new()
+	r.texture = texture(id, int(h * 2.0))
+	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var tex_size := r.texture.get_size()
+	r.custom_minimum_size = Vector2(h * tex_size.x / tex_size.y, h)
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return r
+
+
+## Tecla dibujada como tecla física: rectángulo de 28 px de alto, radio 4,
+## Barlow SemiBold 14 en mayúsculas.
+static func _keycap(text: String) -> Control:
+	var pc := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = WEStyle.BG_PANEL_ALT
+	sb.border_color = WEStyle.LINE
+	sb.set_border_width_all(WEStyle.BORDER)
+	sb.border_width_bottom = WEStyle.FOCUS_BORDER
+	sb.set_corner_radius_all(int(WEStyle.px(WEStyle.RADIUS_BUTTON)))
+	sb.content_margin_left = WEStyle.px(8)
+	sb.content_margin_right = WEStyle.px(8)
+	pc.add_theme_stylebox_override("panel", sb)
+	pc.custom_minimum_size = Vector2(WEStyle.px(WEStyle.HINT_SIZE), WEStyle.px(WEStyle.HINT_SIZE))
+	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var l := Label.new()
+	l.text = text.to_upper()
+	l.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
+	l.add_theme_font_size_override("font_size", WEStyle.font_px(WEStyle.BODY_S))
+	l.add_theme_color_override("font_color", WEStyle.TEXT_MAIN)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	pc.add_child(l)
+	return pc

@@ -146,6 +146,51 @@ static func style_button(b: Button, size: int = BODY_L) -> void:
 	b.add_theme_color_override("font_disabled_color", TEXT_DIM)
 
 
+## Botón principal de la pantalla (p. ej. "Continuar"): en reposo, fondo
+## bg_panel_alt con borde y texto dorados; con foco, relleno dorado y borde
+## claro de 2 px (se distingue por el fondo, no sólo por el texto).
+static func style_primary_button(b: Button, size: int = BODY_L) -> void:
+	for st in ["normal", "hover", "focus", "pressed", "disabled"]:
+		var sb := make_button_style("normal")
+		sb.border_color = ACCENT
+		if st in ["hover", "focus", "pressed"]:
+			sb.bg_color = ACCENT
+			sb.border_color = TEXT_MAIN
+			sb.set_border_width_all(FOCUS_BORDER)
+		else:
+			sb.bg_color = BG_PANEL_ALT
+		if st == "disabled":
+			sb.border_color = LINE
+		b.add_theme_stylebox_override(st, sb)
+	b.add_theme_font_override("font", font(Typeface.SEMIBOLD))
+	b.add_theme_font_size_override("font_size", font_px(size))
+	b.add_theme_color_override("font_color", ACCENT)
+	for k in ["font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
+		b.add_theme_color_override(k, BG_NIGHT)
+	b.add_theme_color_override("font_disabled_color", TEXT_DIM)
+
+
+## Ítem de menú lateral (diseño 01): texto en Bebas, sin fondo en reposo; con
+## foco, el estilo de foco (borde dorado + bg_panel_alt).
+static func style_menu_item(b: Button, size: int = TITLE_M) -> void:
+	for st in ["normal", "pressed", "disabled"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(BG_PANEL_ALT, 0.0)
+		sb.content_margin_left = px(BUTTON_PADDING_X)
+		sb.content_margin_right = px(BUTTON_PADDING_X)
+		b.add_theme_stylebox_override(st, sb)
+	for st in ["hover", "focus"]:
+		b.add_theme_stylebox_override(st, make_focus_style(RADIUS_BUTTON))
+	b.add_theme_font_override("font", font(Typeface.TITLE))
+	b.add_theme_font_size_override("font_size", font_px(size))
+	b.add_theme_color_override("font_color", TEXT_MAIN)
+	b.add_theme_color_override("font_hover_color", ACCENT)
+	b.add_theme_color_override("font_focus_color", ACCENT)
+	b.add_theme_color_override("font_pressed_color", ACCENT)
+	b.add_theme_color_override("font_disabled_color", TEXT_DIM)
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+
+
 ## Título en Bebas Neue (64 / 48 / 32).
 static func make_title_label(text: String, size: int = TITLE_L, color: Color = TEXT_MAIN) -> Label:
 	var l := Label.new()
@@ -171,7 +216,7 @@ static func make_caption_label(text: String, color: Color = TEXT_DIM) -> Label:
 	var l := make_body_label(text.to_upper(), BODY_S, color)
 	var spaced := FontVariation.new()
 	spaced.base_font = font(Typeface.SEMIBOLD)
-	spaced.spacing_glyph = 2
+	spaced.spacing_glyph = 1
 	l.add_theme_font_override("font", spaced)
 	return l
 
@@ -185,10 +230,77 @@ static func make_separator() -> ColorRect:
 	return r
 
 
+## Número con separador de miles: 54000 -> "54.000".
+static func thousands(n: int) -> String:
+	var s := str(absi(n))
+	var out := ""
+	while s.length() > 3:
+		out = "." + s.substr(s.length() - 3) + out
+		s = s.substr(0, s.length() - 3)
+	return ("-" if n < 0 else "") + s + out
+
+
 ## Fundido de entrada (FADE_TIME); no bloquea la entrada.
 static func fade_in(c: Control) -> void:
 	c.modulate.a = 0.0
 	c.create_tween().tween_property(c, "modulate:a", 1.0, FADE_TIME)
+
+
+## Pie de pantalla (56 px): a la izquierda "01 / NOMBRE DE LA PANTALLA" y a la
+## derecha las indicaciones de control [[acción, texto]]. Cambia los íconos
+## al vuelo cuando se pasa de teclado a mando (MenuNav.input_source_changed),
+## sin mover nada de lugar.
+class HintFooter:
+	extends PanelContainer
+	var screen := ""
+	var hints: Array = []
+	var _row: HBoxContainer
+
+	func _init(p_screen: String = "", p_hints: Array = []) -> void:
+		screen = p_screen
+		hints = p_hints
+		custom_minimum_size = Vector2(0, WEStyle.px(WEStyle.FOOTER_H))
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = WEStyle.BG_PANEL
+		sb.border_color = WEStyle.LINE
+		sb.border_width_top = WEStyle.BORDER
+		sb.content_margin_left = WEStyle.px(WEStyle.MARGIN_X)
+		sb.content_margin_right = WEStyle.px(WEStyle.MARGIN_X)
+		add_theme_stylebox_override("panel", sb)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_row = HBoxContainer.new()
+		_row.add_theme_constant_override("separation", int(WEStyle.px(12)))
+		_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+		add_child(_row)
+		rebuild()
+
+	func _ready() -> void:
+		MenuNav.input_source_changed.connect(func(_s: int) -> void: rebuild())
+
+	func set_hints(p_hints: Array) -> void:
+		hints = p_hints
+		rebuild()
+
+	func rebuild() -> void:
+		for c in _row.get_children():
+			_row.remove_child(c)
+			c.queue_free()
+		var name := WEStyle.make_body_label(screen.to_upper(), WEStyle.BODY_L, WEStyle.TEXT_DIM)
+		name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_row.add_child(name)
+		var gap := Control.new()
+		gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_row.add_child(gap)
+		for h in hints:
+			var icon := ButtonIcons.get_hint(StringName(h[0]))
+			icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			_row.add_child(icon)
+			var t := WEStyle.make_body_label(String(h[1]), WEStyle.BODY_L)
+			t.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			_row.add_child(t)
+			var sp := Control.new()
+			sp.custom_minimum_size.x = WEStyle.px(24)
+			_row.add_child(sp)
 
 
 # --- Estilo anterior (WE2002), hasta que cada pantalla pase al rediseño ---------
@@ -456,6 +568,8 @@ class Backdrop:
 class Crest:
 	extends Control
 	var team: TeamData
+	## Fuente de la sigla (si no, la del tema).
+	var label_font: Font = null
 
 	func _draw() -> void:
 		if team == null:
@@ -489,8 +603,8 @@ class Crest:
 		draw_colored_polygon(half, second)
 		shield.append(shield[0])
 		draw_polyline(shield, Color(0.95, 0.85, 0.4), 2.0)
-		var font := get_theme_default_font()
-		var fs := int(h * 0.26)
+		var font := label_font if label_font != null else get_theme_default_font()
+		var fs := int(h * (0.34 if label_font != null else 0.26))
 		while fs > 8 and font.get_string_size(team.short_name, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > w * 0.62:
 			fs -= 1
 		var ink := Color.BLACK if team.color.get_luminance() > 0.5 else Color.WHITE

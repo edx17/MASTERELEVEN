@@ -5,6 +5,24 @@ extends Node
 ##   - Manteniendo apretado se mueve solo, cada vez más rápido.
 ## Sólo actúa cuando el foco está en un botón u opción de menú (los árboles,
 ## listas y campos de texto se manejan solos).
+##
+## También sabe con qué se está jugando (teclado o mando) para mostrar las
+## indicaciones de control correctas: gana el último dispositivo usado a
+## propósito (una tecla o un botón apretados, o un stick más allá de la zona
+## muerta), con un margen corto para que no parpadeen.
+
+## Fuente de entrada activa.
+enum Source { KEYBOARD, GAMEPAD }
+
+signal input_source_changed(source: Source)
+
+## Zona muerta de los sticks para cambiar a "mando" (el ruido no cuenta).
+const STICK_DEADZONE := 0.5
+## Tiempo mínimo entre dos cambios de fuente (s).
+const SOURCE_SWITCH_GAP := 0.25
+
+var source: Source = Source.KEYBOARD
+var _last_switch := -10.0
 
 const FIRST_DELAY := 0.32
 const START_RATE := 0.10
@@ -17,7 +35,41 @@ var _held := 0.0
 var _next := 0.0
 
 
+func _ready() -> void:
+	# Al abrir: mando si hay uno conectado (después manda el último que se use).
+	if not Input.get_connected_joypads().is_empty():
+		source = Source.GAMEPAD
+
+
+## La fuente que corresponde a un evento, o -1 si no dice nada (ruido del
+## stick, movimiento del mouse, teclas soltadas).
+static func source_of(event: InputEvent) -> int:
+	if event is InputEventKey and event.is_pressed() and not event.is_echo():
+		return Source.KEYBOARD
+	if event is InputEventMouseButton and event.is_pressed():
+		return Source.KEYBOARD
+	if event is InputEventJoypadButton and event.is_pressed():
+		return Source.GAMEPAD
+	if event is InputEventJoypadMotion and absf((event as InputEventJoypadMotion).axis_value) > STICK_DEADZONE:
+		return Source.GAMEPAD
+	return -1
+
+
+func set_source(s: Source) -> void:
+	if s == source:
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - _last_switch < SOURCE_SWITCH_GAP:
+		return
+	_last_switch = now
+	source = s
+	input_source_changed.emit(source)
+
+
 func _input(event: InputEvent) -> void:
+	var s := source_of(event)
+	if s >= 0:
+		set_source(s)
 	var up := event.is_action(&"ui_up")
 	if not up and not event.is_action(&"ui_down"):
 		return
