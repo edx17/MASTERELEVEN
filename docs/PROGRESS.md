@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **479 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **493 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -162,6 +162,29 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Sub-20 y libres (PR #36)
+
+| Qué | Cómo |
+|---|---|
+| Equipos Sub-20 | Cada club y selección tiene su Sub-20 (`db:u20:club:pais:id`, `db:u20:nat:id`). El de un club usa su plantel juvenil importado; el de una selección, los juveniles de esa nacionalidad que haya en los clubes. Si no alcanza, se generan pibes de 17 a 19 años, 12 puntos por debajo de primera. Misma camiseta. |
+| Torneos | **Torneo de Proyección** (las Sub-20 de la Liga Profesional, todos contra todos), **Copa Libertadores Sub-20** (16 clubes: grupos y cuartos), **UEFA Youth League** (36, fase liga y eliminación) y **Mundial Sub-20** (24 selecciones, 6 grupos, octavos con los 4 mejores terceros). |
+| Dónde | Entrada propia **SUB-20** en el menú principal (elegís tu equipo y jugás con su Sub-20) y en la **Liga Master** (se simulan en el calendario; las noticias cuentan cómo le fue a tu Sub-20). El Mundial Sub-20, los años impares. |
+| Inferiores | La Sub-20 de un club son sus inferiores: en la Liga Master, cuando falta gente, suben primero los juveniles de las inferiores (los mejores del puesto que falta); los que cumplen 21 suben a primera (o quedan libres si no hay lugar). Sólo si no alcanza se generan juveniles nuevos. |
+| Libres en la Liga Master | Los libres importados (y los que liberás) están en el mercado como "(libre)": se fichan pagando sólo una prima (10 % del valor). Los convocados de selecciones cuyo club no está en el juego también quedan libres. |
+| Premios | Al terminar cada temporada: **Balón de Oro**, **Mejor jugador de América / Europa / África / Asia / Oceanía**, **Premio Puskás**, **Bota de Oro**, **Guante de Oro** y **Golden Boy**. Cuentan el nivel, los goles (reales en tu país, estimados afuera) y los títulos (copa continental, liga, Mundial de Clubes, Mundial). Salen en noticias, en el resumen de la temporada y en el historial; si gana un jugador de tu club, suma 1500 puntos WE. |
+
+## Planteles de hasta 40 (PR #36)
+
+| Qué | Cómo |
+|---|---|
+| Tope por club | Los clubes guardan todos los jugadores del listado, **hasta 40** (`TeamDB.CLUB_SQUAD_MAX`). Vale para la base, el importador CSV, el editor y la Liga Master (mercado incluido). |
+| Lista del partido | Al partido van 23: los 11 titulares y 12 suplentes, en el orden de la Dirección del equipo. |
+| Selecciones | Siguen con 23 convocados. |
+| Generados | Los clubes sin listado se siguen generando con 23. |
+| Importar con revisión | Editor → Importar → **1. Revisar planteles / 2. Importar planteles**: una fila por club del CSV con el club del juego (OK / REVISAR / Nuevo / Salteada), desplegable y buscador para corregir; lo elegido se recuerda. Con los CSV del ascenso: 85 clubes, 84 solos y 1 a elegir (Estudiantes). |
+| Lo que trae el CSV entra | Las divisiones quedan como en el CSV (ascensos/descensos), se crean clubes, ligas y países que falten (Ligue 1, MLS...), Sub-20 aparte, lista de libres, selecciones nuevas desde un catálogo de 119 con bandera y camisetas. |
+| Scrapers | `tools/scrapers/` (SoloAscenso y Transfermarkt) generan los CSV. |
 
 ## Fase 8 — Pulido (PR #35)
 - **Opciones > Gráficos**:

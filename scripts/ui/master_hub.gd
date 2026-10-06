@@ -298,6 +298,9 @@ func _history(body: Control) -> void:
 		if s.has("world_cup"):
 			var wc: Dictionary = s["world_cup"]
 			parts.append("Mundial: %s (%s: %s)" % [wc["champion"], wc["nation"], wc["reach"]])
+		for a in s.get("awards", []):
+			if a["award"] == "Balón de Oro":
+				parts.append("Balón de Oro: %s (%s)" % [a["n"], a["club"]])
 		if not parts.is_empty():
 			var l := WEStyle.label("%s · %s" % [s.get("year", ""), " · ".join(parts)], 14)
 			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -558,6 +561,14 @@ func _season_summary() -> void:
 			return "%s (+%d)" % [r[0], int(r[1])])), Color.WHITE))
 	if (u.get("retired", []) as Array).is_empty() and (u.get("youth", []) as Array).is_empty():
 		box.add_child(WEStyle.label("  Sin retiros.", 15))
+	# Premios individuales.
+	var awards: Array = s.get("awards", [])
+	if not awards.is_empty():
+		box.add_child(WEStyle.label("Premios", 17, BLUE))
+		for a in awards:
+			var mine: bool = String(a.get("club_id", "")) == career.user_club
+			box.add_child(_wrap("  %s: %s (%s)%s" % [a["award"], a["n"], a["club"],
+				(", " + String(a["detail"])) if String(a["detail"]) != "" else ""], GOLD if mine else Color.WHITE))
 	# Copas y Mundial.
 	var cups: Dictionary = s.get("cups", {})
 	for k in cups:

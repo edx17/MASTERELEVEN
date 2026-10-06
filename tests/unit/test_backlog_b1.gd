@@ -114,10 +114,19 @@ func test_possession_and_corners_are_counted() -> void:
 	var p: Footballer = m.teams[0].players[6]
 	p.teleport(Vector3(0, 0, 0))
 	m.ball.give_to(p)
-	_step(60)
+	# La CPU juega: si en ese segundo hay una falta o un offside, la pelota
+	# queda parada y la posesión no suma (se compara con el tiempo en juego).
+	var playing := 0.0
+	for i in 60:
+		if m.phase == MatchController.Phase.PLAYING:
+			playing += dt
+		_step(1)
 	# Cuenta para el que la tiene (o el último que la tocó): suman el tiempo.
 	assert_gt(m.stats["possession"][0], 0.0)
-	assert_almost_eq(m.stats["possession"][0] + m.stats["possession"][1], 1.0, 0.05)
+	assert_almost_eq(m.stats["possession"][0] + m.stats["possession"][1], playing, 0.05)
+	m.phase = MatchController.Phase.PLAYING
+	m.restart_taker = null
+	m.ball.frozen = false
 	m.ball.owner_player = null
 	m.ball.place(Vector3(m.teams[0].target_goal().x + m.teams[0].attack_dir * 0.6, 0.3, 10.0))
 	m.ball.last_touch_team = 1

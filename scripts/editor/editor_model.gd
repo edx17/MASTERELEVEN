@@ -10,7 +10,13 @@ extends RefCounted
 
 signal changed
 
-const MAX_SQUAD := 23
+## Tope por plantel: 40 en los clubes, 23 en las selecciones.
+const MAX_SQUAD := TeamDB.CLUB_SQUAD_MAX
+const MAX_NATION := TeamDB.MATCH_SQUAD
+
+
+static func squad_cap(path: String) -> int:
+	return MAX_NATION if path.begins_with("db:nat:") else MAX_SQUAD
 const UNDO_LIMIT := 50
 
 var option_file: OptionFile
@@ -170,7 +176,7 @@ func mass_edit(refs: Array, field: String, op: String, value: Variant) -> int:
 
 ## Alta: un jugador nuevo al final del plantel (si hay lugar). Devuelve su ref.
 func add_player(path: String, d: Dictionary = {}) -> Array:
-	if not editable(path) or players(path).size() >= MAX_SQUAD:
+	if not editable(path) or players(path).size() >= squad_cap(path):
 		return []
 	_snapshot()
 	var list := players(path)
@@ -210,7 +216,7 @@ func remove_player(ref: Array) -> Dictionary:
 ## Pase: lo lleva de un equipo a otro (con otro dorsal si el suyo está
 ## ocupado). Devuelve la ref nueva o [] si no hay lugar.
 func transfer(ref: Array, dest: String) -> Array:
-	if not editable(ref[0]) or not editable(dest) or ref[0] == dest or players(dest).size() >= MAX_SQUAD:
+	if not editable(ref[0]) or not editable(dest) or ref[0] == dest or players(dest).size() >= squad_cap(dest):
 		return []
 	_snapshot()
 	var src := players(ref[0])
@@ -291,7 +297,7 @@ func search(paths: Array, text: String = "", line: int = -1, nat: String = "") -
 
 ## Convoca a un jugador (copia de sus datos) a una selección.
 func call_up(nation_path: String, d: Dictionary) -> Array:
-	if not nation_path.begins_with("db:nat:") or players(nation_path).size() >= MAX_SQUAD:
+	if not nation_path.begins_with("db:nat:") or players(nation_path).size() >= MAX_NATION:
 		return []
 	_snapshot()
 	var list := players(nation_path)
@@ -413,6 +419,18 @@ func set_relegation(country_id: String, division_id: String, n: int) -> void:
 func import_clubs(plan: Array, stadiums: bool = true) -> Dictionary:
 	_snapshot()
 	var res := ClubImporter.apply(plan, option_file, stadiums)
+	dirty = true
+	changed.emit()
+	return res
+
+
+## Importa planteles con la propuesta revisada (SquadImporter.plan_rows); se
+## puede deshacer.
+func import_squads(plan: Array, rows: Array[Dictionary], imp: SquadImporter) -> Dictionary:
+	_snapshot()
+	var res := imp.apply_plan(plan, rows, option_file)
+	_entries.clear()
+	TeamDB.use_option_file(option_file)
 	dirty = true
 	changed.emit()
 	return res

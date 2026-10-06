@@ -1,0 +1,10 @@
+Scrapers de planteles -> CSV estilo FC para importar en MASTER ELEVEN.
+Se corren en tu compu (no son parte del juego):
+
+  pip install requests beautifulsoup4
+  python scraper_soloascenso.py            # Primera Nacional, Primera B y Primera C
+  python scraper_transfermarkt.py todo     # selecciones, continentes, ligas y sub20
+
+Los CSV que generan se importan desde el juego (OPCIONES > DATOS, carpeta
+importar/) o desde la consola:
+  godot --headless -- --import-players=primera_b_nacional.csv,primera_b.csv,primera_c.csv

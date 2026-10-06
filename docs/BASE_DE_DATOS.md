@@ -81,13 +81,45 @@ escribe en la base (`data/db`):
 godot --headless -- --import-players=planteles.csv[,otro.csv]
 ```
 - Cada jugador va a su club si el nombre coincide con uno de la base
-  (acepta "CA Boca Juniors" ~ "Boca Juniors"). Hasta 23 por club, los
-  mejores, con al menos 2 arqueros.
+  (acepta "CA Boca Juniors" ~ "Boca Juniors"). Entran todos los del
+  listado, hasta 40 por club (con al menos 2 arqueros); al partido van los
+  23 de la lista (11 titulares y 12 suplentes).
 - Las selecciones se arman con los mejores 23 de cada nacionalidad (3
   arqueros, 8 defensores, 7 volantes, 5 delanteros), o con la convocatoria
   marcada en la columna `seleccion`.
 - Al final lista los clubes del CSV que no encontró (también en
   `user://import_report.txt`) para corregir el nombre.
+
+### Importar con revisión (Editor → Importar → Planteles)
+
+1. **Revisar planteles**: una fila por club y liga del CSV, con el club del
+   juego que le corresponde. Estados: OK (encontrado), REVISAR (hay varios
+   parecidos: elegís en el desplegable), Nuevo (se crea), Salteada (no se
+   importa). Para asignar un club que no aparece: elegí la fila, buscalo en
+   "Asignar a la fila elegida" y apretá Asignar.
+2. **Importar planteles**: aplica la propuesta (Ctrl+Z la deshace; Ctrl+S guarda).
+
+Cómo empareja: busca en la división de la columna `league_name` (alias:
+"Primera B Nacional" = Primera Nacional, "Primera B" = B Metropolitana...),
+entiende abreviaturas ("Talleres (R.E)" = Talleres de Remedios de Escalada,
+"Mitre (Santiago)" = Mitre (Santiago del Estero)) y recuerda lo que elegiste
+(`club_alias` del Option File) para la próxima importación.
+
+Qué hace con cada cosa:
+- **Liga**: la división queda formada por los clubes del CSV (suben, bajan y
+  se crean los que falten). Una liga que no está (Ligue 1, MLS, Süper Lig...)
+  se crea, y su país también si no existe.
+- **Sub-20** (Proyección, Libertadores Sub-20, Youth League, Primavera...): el
+  plantel va a la Sub-20 del club (`youth`), no a Primera.
+- **Libres** (club "Libre", "Sin club"...): a la lista de libres del Option File.
+- **Torneos de selecciones** (Mundial, Nations League, Copa América...): el
+  jugador va a su selección; a su club sólo si el club ya está en el juego
+  (se suma al plantel, no lo reemplaza).
+- **Selecciones nuevas**: si un país no está en la base y trae 16 o más
+  jugadores, se crea con bandera y camisetas de `data/db/nation_catalog.json`
+  (119 selecciones; se genera con `tools/db_src/nation_catalog.py`).
+- El informe completo queda en `importar/informe_importacion.txt`.
+- Scrapers de ejemplo (SoloAscenso, Transfermarkt): `tools/scrapers/`.
 
 ## Option File y carpeta del juego
 Todo lo del jugador va en `Documentos/MasterEleven/`:

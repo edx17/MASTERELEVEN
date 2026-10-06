@@ -14,6 +14,12 @@ extends RefCounted
 ##   rules:     {"pais:division": {"down": n}}  cuántos bajan (Liga Master)
 ##   cups:      [{id, name, format, teams}]    copas propias (format "knockout"
 ##              o "league"; teams = rutas de TeamDB)
+##   countries: {id: {id, name, nationality, names, skin}}  países nuevos
+##   new_divisions: {"pais": [{id, name, level}]}  divisiones nuevas (de un
+##              país de la base o nuevo); sus clubes van en `divisions`
+##   club_alias: {nombre normalizado: "pais:id"}  cómo se llama cada club en
+##              los CSV importados (lo que elegiste al revisar)
+##   free_agents: [jugadores]                 libres (sin club) importados
 ## Las entradas tienen el mismo formato que data/db (ver docs/BASE_DE_DATOS.md).
 
 const FORMAT := "MasterEleven OptionFile"
@@ -29,6 +35,10 @@ var divisions: Dictionary = {}
 var deleted_nations: Array = []
 var cups: Array = []
 var rules: Dictionary = {}
+var countries: Dictionary = {}
+var new_divisions: Dictionary = {}
+var club_alias: Dictionary = {}
+var free_agents: Array = []
 
 
 ## Carpeta con las plantillas de camisetas de este Option File.
@@ -81,13 +91,18 @@ static func from_dict(d: Dictionary) -> OptionFile:
 	of.deleted_nations = d.get("deleted_nations", [])
 	of.cups = d.get("cups", [])
 	of.rules = d.get("rules", {})
+	of.countries = d.get("countries", {})
+	of.new_divisions = d.get("new_divisions", {})
+	of.club_alias = d.get("club_alias", {})
+	of.free_agents = d.get("free_agents", [])
 	return of
 
 
 func to_dict() -> Dictionary:
 	return {"format": FORMAT, "version": VERSION, "name": name, "created": created, "updated": updated,
 		"nations": nations, "clubs": clubs, "divisions": divisions, "deleted_nations": deleted_nations, "cups": cups,
-		"rules": rules}
+		"rules": rules, "countries": countries, "new_divisions": new_divisions, "club_alias": club_alias,
+		"free_agents": free_agents}
 
 
 func save() -> bool:
@@ -100,7 +115,8 @@ func save() -> bool:
 
 func is_empty() -> bool:
 	return nations.is_empty() and clubs.is_empty() and divisions.is_empty() and deleted_nations.is_empty() \
-		and cups.is_empty() and rules.is_empty()
+		and cups.is_empty() and rules.is_empty() and countries.is_empty() and new_divisions.is_empty() \
+		and club_alias.is_empty() and free_agents.is_empty()
 
 
 ## Copia un Option File de afuera (otra PC, un amigo) a la carpeta; devuelve
@@ -152,8 +168,23 @@ func apply_nations(base: Array) -> Array:
 ## la base del mismo país o nuevos del Option File).
 func apply_countries(base: Array) -> Array:
 	var out: Array = []
+	var all := base.duplicate()
+	var seen := {}
 	for c in base:
+		seen[String(c["id"])] = true
+	for cid in countries:
+		if not seen.has(String(cid)):
+			var nc: Dictionary = (countries[cid] as Dictionary).duplicate(true)
+			nc["id"] = String(cid)
+			nc["divisions"] = []
+			all.append(nc)
+	for c in all:
 		var cc: Dictionary = c.duplicate(true)
+		for nd in new_divisions.get(String(cc["id"]), []):
+			if not (cc["divisions"] as Array).any(func(d: Dictionary) -> bool: return d["id"] == nd["id"]):
+				var d: Dictionary = (nd as Dictionary).duplicate(true)
+				d["clubs"] = []
+				cc["divisions"].append(d)
 		var cid := String(cc["id"])
 		var by_id := {}
 		for d in cc["divisions"]:
@@ -197,6 +228,19 @@ func set_nation(entry: Dictionary) -> void:
 
 func set_relegation(country_id: String, division_id: String, n: int) -> void:
 	rules.get_or_add("%s:%s" % [country_id, division_id], {})["down"] = n
+
+
+## País nuevo (sin divisiones: se agregan con add_division).
+func add_country(entry: Dictionary) -> void:
+	countries[String(entry["id"])] = entry.duplicate(true)
+
+
+func add_division(country_id: String, entry: Dictionary) -> void:
+	var list: Array = new_divisions.get_or_add(country_id, [])
+	for d in list:
+		if d["id"] == entry["id"]:
+			return
+	list.append(entry.duplicate(true))
 
 
 func set_division(country_id: String, division_id: String, club_ids: Array) -> void:
