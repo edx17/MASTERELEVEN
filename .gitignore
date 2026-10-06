@@ -10,3 +10,6 @@ export_presets.cfg.bak
 
 # Traducciones que Godot genera si importa un CSV como traducción (los CSV de datos usan importer="keep").
 *.translation
+tools/scrapers/cache_*/
+tools/scrapers/csv_*/
+tools/scrapers/*.csv
