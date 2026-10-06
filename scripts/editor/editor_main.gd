@@ -560,7 +560,7 @@ func _player_form(ref: Array) -> void:
 		if dt.selected < 0 or dt.selected >= dest.size():
 			return
 		var res := model.transfer(ref, dest[dt.selected])
-		_status.text = "Pase hecho." if not res.is_empty() else "No se pudo: el plantel de destino está completo (23).", ""))
+		_status.text = "Pase hecho." if not res.is_empty() else "No se pudo: el plantel de destino está completo.", ""))
 
 
 ## Opciones del aspecto que dependen de otras tablas del juego.
@@ -685,7 +685,7 @@ func _teams_tab() -> Control:
 	acts.add_child(_btn("▼ Bajar", func() -> void: _roster_move(1), ""))
 	acts.add_child(_btn("Nuevo jugador", func() -> void:
 		var r := model.add_player(_t_current)
-		_status.text = "Jugador agregado." if not r.is_empty() else "El plantel ya tiene 23.", "Alta"))
+		_status.text = "Jugador agregado." if not r.is_empty() else "El plantel está completo (40 en clubes, 23 en selecciones).", "Alta"))
 	acts.add_child(_btn("Quitar", func() -> void:
 		var sel := _t_roster.get_selected_items()
 		if not sel.is_empty():

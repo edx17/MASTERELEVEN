@@ -11,7 +11,7 @@ extends RefCounted
 ## (to_attributes); sin atributos se estiman por la valoración ("overall") o
 ## el nivel del equipo.
 ##   - Cada jugador va a su club si el nombre coincide con uno de la base;
-##     hasta 23 por club (los mejores, con al menos 2 arqueros).
+##     todos los del listado por club, hasta 40 (con al menos 2 arqueros).
 ##   - Las selecciones se arman con los mejores 23 de cada nacionalidad
 ##     (3 arqueros, 8 defensores, 7 volantes, 5 delanteros), salvo que el CSV
 ##     traiga la columna "seleccion"/"national_team" con jugadores marcados.
@@ -303,12 +303,12 @@ func import_rows(rows: Array[Dictionary], of: OptionFile = null) -> Dictionary:
 			unmatched[club] = int(unmatched.get(club, 0)) + 1
 			continue
 		by_club.get_or_add(where, []).append(p)
-	# Clubes: hasta 23 (2 arqueros, 6 defensores, 6 volantes, 3 delanteros como mínimo).
+	# Clubes: todos, hasta CLUB_SQUAD_MAX (2 arqueros, 6 defensores, 6 volantes, 3 delanteros como mínimo).
 	var touched := {}
 	var players_total := 0
 	for where in by_club:
 		var club: Dictionary = countries[where[0]]["divisions"][where[1]]["clubs"][where[2]]
-		club["players"] = pick_squad(by_club[where], 23, [2, 6, 6, 3])
+		club["players"] = pick_squad(by_club[where], TeamDB.CLUB_SQUAD_MAX, [2, 6, 6, 3])
 		players_total += (club["players"] as Array).size()
 		touched[where[0]] = true
 		if of != null:

@@ -163,6 +163,15 @@ además arma el `.exe` de Windows).
 
 ---
 
+## Planteles de hasta 40 (PR #36)
+
+| Qué | Cómo |
+|---|---|
+| Tope por club | Los clubes guardan todos los jugadores del listado, **hasta 40** (`TeamDB.CLUB_SQUAD_MAX`). Vale para la base, el importador CSV, el editor y la Liga Master (mercado incluido). |
+| Lista del partido | Al partido van 23: los 11 titulares y 12 suplentes, en el orden de la Dirección del equipo. |
+| Selecciones | Siguen con 23 convocados. |
+| Generados | Los clubes sin listado se siguen generando con 23. |
+
 ## Fase 8 — Pulido (PR #35)
 - **Opciones > Gráficos**:
   - Ventana o pantalla completa y resolución.

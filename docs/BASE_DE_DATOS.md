@@ -81,8 +81,9 @@ escribe en la base (`data/db`):
 godot --headless -- --import-players=planteles.csv[,otro.csv]
 ```
 - Cada jugador va a su club si el nombre coincide con uno de la base
-  (acepta "CA Boca Juniors" ~ "Boca Juniors"). Hasta 23 por club, los
-  mejores, con al menos 2 arqueros.
+  (acepta "CA Boca Juniors" ~ "Boca Juniors"). Entran todos los del
+  listado, hasta 40 por club (con al menos 2 arqueros); al partido van los
+  23 de la lista (11 titulares y 12 suplentes).
 - Las selecciones se arman con los mejores 23 de cada nacionalidad (3
   arqueros, 8 defensores, 7 volantes, 5 delanteros), o con la convocatoria
   marcada en la columna `seleccion`.

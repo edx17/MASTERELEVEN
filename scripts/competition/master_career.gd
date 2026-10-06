@@ -872,7 +872,7 @@ func calendar() -> Array:
 # --- Mercado de pases (D4) ---------------------------------------------------------------
 
 ## Plantel máximo del jugador y mínimo de un club que vende.
-const MAX_SQUAD := 30
+const MAX_SQUAD := TeamDB.CLUB_SQUAD_MAX
 const MIN_SQUAD := 18
 ## Préstamo: una parte del valor, por lo que queda de la temporada.
 const LOAN_SHARE := 0.25

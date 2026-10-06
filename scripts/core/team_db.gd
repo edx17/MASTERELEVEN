@@ -23,6 +23,10 @@ const PATTERNS := {"plain": 0, "stripes": 1, "pinstripes": 2, "hoops": 3, "halve
 
 ## Nivel base de cada división (1 = primera) y ajuste por liga (id de
 ## división -> suma).
+## Tope de un plantel de club (lo que traiga el listado, hasta 40) y de una
+## lista de partido o de selección (11 titulares + 12 suplentes).
+const CLUB_SQUAD_MAX := 40
+const MATCH_SQUAD := 23
 const DIVISION_LEVEL := {1: 72, 2: 65, 3: 60, 4: 56, 5: 52}
 const LEAGUE_BONUS := {"eng1": 6, "esp1": 5, "ita1": 4, "ger1": 4, "por1": 0, "ned1": -1, "mex1": -1,
 	"arg1": -1, "bra1": 1, "eng2": 2, "esp2": 0, "ita2": 0, "ger2": 1,
@@ -305,8 +309,8 @@ static func parse_kit(s: String) -> Dictionary:
 static func _fill_players(t: TeamData, e: Dictionary, level: int, names_group: String, skin: Array, nationality: String) -> void:
 	var listed: Array = e.get("players", [])
 	if not listed.is_empty():
-		# Hasta 30 (Liga Master); los importados se recortan a 23 al importar.
-		for i in mini(listed.size(), 30):
+		# Lo que traiga el listado, hasta CLUB_SQUAD_MAX; al partido van 23.
+		for i in mini(listed.size(), CLUB_SQUAD_MAX):
 			var p := player_from_dict(listed[i], t.id, i, level)
 			if p.nationality == "":
 				p.nationality = nationality
