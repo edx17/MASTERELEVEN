@@ -21,6 +21,7 @@ var side := 0
 ## Rutas elegidas (local, visitante).
 var picked: Array[String] = ["", ""]
 
+var _frame: WEStyle.ScreenFrame
 var _grid: GridContainer
 var _scroll: ScrollContainer
 var _group_label: Label
@@ -29,10 +30,8 @@ var _names: Array[Label] = []
 var _crests: Array[WEStyle.Crest] = []
 var _kits: Array[WEStyle.KitIcon] = []
 var _bars: WEStyle.RatingBars
-var _help: Label
 var _side_labels: Array[Label] = []
 var _side_panels: Array[Control] = []
-var _title: Label
 ## Elegir un solo equipo (el tuyo, para la Liga o la Copa).
 var single := false
 ## Sólo estos equipos, en un único grupo (p. ej. las 48 del Mundial).
@@ -47,85 +46,93 @@ func _ready() -> void:
 	_all_groups = build_groups()
 	groups = _all_groups
 	picked = [GameSettings.home_team_path, GameSettings.away_team_path]
-	_title = WEStyle.label("ELEGÍ LOS EQUIPOS", 30, Color(1.0, 0.9, 0.35))
-	_title.position = Vector2(70, 30)
-	add_child(_title)
-	# Arriba: local | barras | visitante.
+	_frame = WEStyle.ScreenFrame.new("Elección de equipos", HINTS)
+	add_child(_frame)
+	_frame.crumb.text = "PARTIDO  /  EQUIPOS"
+	# Arriba: local | comparación | visitante.
 	var top := HBoxContainer.new()
-	top.position = Vector2(70, 76)
-	top.add_theme_constant_override("separation", 20)
-	add_child(top)
+	top.add_theme_constant_override("separation", int(WEStyle.px(24)))
+	_frame.body.add_child(top)
 	for i in 2:
-		var pc := WEStyle.panel(Vector2(330, 206))
+		var pc := PanelContainer.new()
+		pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var box := VBoxContainer.new()
-		box.alignment = BoxContainer.ALIGNMENT_CENTER
+		box.add_theme_constant_override("separation", int(WEStyle.px(8)))
 		pc.add_child(box)
-		var sl := WEStyle.label("LOCAL" if i == 0 else "VISITANTE", 18, Color(0.6, 0.8, 1.0))
-		sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		var sl := WEStyle.make_caption_label("Local" if i == 0 else "Visitante")
 		box.add_child(sl)
 		_side_labels.append(sl)
-		var nl := WEStyle.label("", 22)
-		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		var nl := WEStyle.make_title_label("", WEStyle.TITLE_M)
 		nl.clip_text = true
-		nl.custom_minimum_size.x = 300
+		nl.custom_minimum_size.x = WEStyle.px(360)
 		box.add_child(nl)
 		_names.append(nl)
 		var row := HBoxContainer.new()
-		row.alignment = BoxContainer.ALIGNMENT_CENTER
-		row.add_theme_constant_override("separation", 18)
+		row.add_theme_constant_override("separation", int(WEStyle.px(24)))
 		box.add_child(row)
 		var crest := WEStyle.Crest.new()
-		crest.custom_minimum_size = Vector2(90, 100)
+		crest.label_font = WEStyle.font(WEStyle.Typeface.TITLE)
+		crest.custom_minimum_size = Vector2(WEStyle.px(130), WEStyle.px(144))
 		row.add_child(crest)
 		_crests.append(crest)
 		var kit := WEStyle.KitIcon.new()
-		kit.custom_minimum_size = Vector2(100, 116)
+		kit.custom_minimum_size = Vector2(WEStyle.px(140), WEStyle.px(160))
 		row.add_child(kit)
 		_kits.append(kit)
 		top.add_child(pc)
 		_side_panels.append(pc)
 		if i == 0:
-			var mid := WEStyle.panel(Vector2(400, 206))
+			var mid := PanelContainer.new()
+			mid.add_theme_stylebox_override("panel", _card_style(false))
+			mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var mv := VBoxContainer.new()
+			mv.add_child(WEStyle.make_caption_label("Comparación"))
 			_bars = WEStyle.RatingBars.new()
-			_bars.custom_minimum_size = Vector2(376, 186)
-			mid.add_child(_bars)
+			_bars.modern = true
+			_bars.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			_bars.custom_minimum_size = Vector2(WEStyle.px(480), WEStyle.px(220))
+			mv.add_child(_bars)
+			mid.add_child(mv)
 			top.add_child(mid)
-	# Pestaña del grupo: "◀ ARGENTINA · Liga Profesional ▶".
-	_group_label = WEStyle.label("", 24, Color(1.0, 0.9, 0.35))
-	_group_label.position = Vector2(70, 296)
-	_group_label.size = Vector2(1140, 32)
-	_group_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	add_child(_group_label)
-	_group_sub = WEStyle.label("", 15, Color(0.7, 0.8, 0.95))
-	_group_sub.position = Vector2(70, 326)
-	_group_sub.size = Vector2(1140, 20)
-	_group_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	add_child(_group_sub)
+	# El grupo que se ve: "EQUIPOS WE" a la izquierda, el detalle a la derecha.
+	var gbar := HBoxContainer.new()
+	gbar.add_theme_constant_override("separation", int(WEStyle.px(16)))
+	_group_label = WEStyle.make_title_label("", WEStyle.TITLE_M, WEStyle.ACCENT)
+	gbar.add_child(_group_label)
+	gbar.add_child(WEStyle.make_gap())
+	_group_sub = WEStyle.make_body_label("", WEStyle.BODY_L, WEStyle.TEXT_DIM)
+	_group_sub.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	gbar.add_child(_group_sub)
+	_frame.body.add_child(gbar)
 	# Grilla de escudos con desplazamiento.
 	_scroll = ScrollContainer.new()
-	_scroll.position = Vector2(70, 352)
-	_scroll.size = Vector2(1140, 262)
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_scroll.follow_focus = true
-	add_child(_scroll)
+	_frame.body.add_child(_scroll)
 	_grid = GridContainer.new()
 	_grid.columns = 10
-	_grid.add_theme_constant_override("h_separation", 10)
-	_grid.add_theme_constant_override("v_separation", 8)
+	_grid.add_theme_constant_override("h_separation", int(WEStyle.px(16)))
+	_grid.add_theme_constant_override("v_separation", int(WEStyle.px(16)))
 	_scroll.add_child(_grid)
-	_help = WEStyle.help_box(self)
-	(_help.get_parent() as Control).offset_top = -86
-	# Leyenda fija de los botones (arriba a la derecha, como en el WE).
-	var legend := ButtonIcons.IconLabel.new(20, false, Color(0.92, 0.95, 1.0))
-	legend.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	legend.position = Vector2(-560, 22)
-	legend.size = Vector2(540, 30)
-	add_child(legend)
-	legend.show_text(LEGEND)
 
 
-## Leyenda de botones de la elección de equipos.
-const LEGEND := "{L1}{R1} Grupo    {SQ} Al azar    {X} Aceptar    {O} Volver"
+## Indicaciones del pie (rearmadas al cambiar de teclado a mando).
+const HINTS := [[&"ui_accept", "Elegir"], [&"ui_cancel", "Volver"], [&"ui_tabs", "Grupo"], [&"ui_random", "Al azar"]]
+
+
+## Tarjeta del local o el visitante: con borde dorado la que se está eligiendo.
+func _card_style(active: bool) -> StyleBoxFlat:
+	var sb := WEStyle.make_panel_style()
+	var pad := WEStyle.px(WEStyle.CARD_PADDING)
+	sb.content_margin_left = pad
+	sb.content_margin_right = pad
+	sb.content_margin_top = pad
+	sb.content_margin_bottom = pad
+	if active:
+		sb.border_color = WEStyle.ACCENT
+		sb.set_border_width_all(WEStyle.FOCUS_BORDER)
+	return sb
 
 
 ## Selecciones, cada división de cada país y los Equipos WE.
@@ -164,7 +171,7 @@ func group_paths_of(path: String) -> Array[String]:
 func open() -> void:
 	side = 0
 	visible = true
-	_title.text = "ELEGÍ TU EQUIPO" if single else "ELEGÍ LOS EQUIPOS"
+	_frame.title.text = "ELEGÍ TU EQUIPO" if single else "ELEGÍ LOS EQUIPOS"
 	_side_panels[1].visible = not single
 	_bars.get_parent().visible = not single
 	picked = [GameSettings.home_team_path, GameSettings.away_team_path]
@@ -186,6 +193,7 @@ func open() -> void:
 			picked[i] = GameSettings.DEFAULT_HOME if i == 0 else GameSettings.DEFAULT_AWAY
 	var g := group_of(picked[0])
 	show_group(g if g >= 0 else groups.size() - 1)
+	WEStyle.fade_in(_frame)
 
 
 ## Muestra un grupo en la grilla (y pone el foco en el elegido si está).
@@ -200,29 +208,25 @@ func show_group(g: int) -> void:
 		var t := TeamDB.load_team(paths[i])
 		teams.append(t)
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(104, 82)
+		b.custom_minimum_size = Vector2(WEStyle.px(150), WEStyle.px(124))
 		b.tooltip_text = t.team_name
-		for st in ["normal", "hover", "focus", "pressed"]:
-			var sb := StyleBoxFlat.new()
-			sb.bg_color = Color(0.1, 0.12, 0.3, 0.85)
-			sb.border_color = Color(0.3, 1.0, 0.4) if st in ["focus", "hover"] else Color(0.25, 0.3, 0.6)
-			sb.set_border_width_all(3)
-			b.add_theme_stylebox_override(st, sb)
+		WEStyle.style_button(b)
 		var crest := WEStyle.Crest.new()
 		crest.team = t
+		crest.label_font = WEStyle.font(WEStyle.Typeface.TITLE)
 		crest.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		crest.offset_left = 14
-		crest.offset_right = -14
-		crest.offset_top = 6
-		crest.offset_bottom = -6
+		crest.offset_left = WEStyle.px(24)
+		crest.offset_right = -WEStyle.px(24)
+		crest.offset_top = WEStyle.px(12)
+		crest.offset_bottom = -WEStyle.px(12)
 		crest.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.add_child(crest)
 		b.focus_entered.connect(_on_focus.bind(i))
 		b.pressed.connect(_on_pick.bind(i))
 		_grid.add_child(b)
 	var gname: String = groups[group]["name"]
-	_group_label.text = "◀  %s  ▶" % gname
-	_group_sub.text = "%s   ·   grupo %d de %d" % [groups[group]["sub"], group + 1, groups.size()]
+	_group_label.text = gname
+	_group_sub.text = "%s  ·  grupo %d de %d" % [groups[group]["sub"], group + 1, groups.size()]
 	_refresh()
 	var focus := maxi(paths.find(picked[side]), 0)
 	if is_inside_tree() and _grid.get_child_count() > 0:
@@ -304,7 +308,8 @@ func _refresh() -> void:
 		_crests[i].team = t
 		_crests[i].queue_redraw()
 		_kits[i].set_kit(t, 0)
-		_side_labels[i].add_theme_color_override("font_color", Color(1.0, 0.9, 0.35) if side == i else Color(0.6, 0.8, 1.0))
+		_side_labels[i].add_theme_color_override("font_color", WEStyle.ACCENT if side == i else WEStyle.TEXT_DIM)
+		_side_panels[i].add_theme_stylebox_override("panel", _card_style(side == i and not single))
 	if datas[0] != null and datas[1] != null:
 		_bars.home = datas[0].ratings()
 		_bars.away = datas[1].ratings()
@@ -312,6 +317,5 @@ func _refresh() -> void:
 	var focus_t := datas[side]
 	var extra := ""
 	if focus_t != null and focus_t.stadium != "":
-		extra = "   ·   %s" % focus_t.stadium
-	_help.text = ("Elegí tu equipo." if single else ("Elegí el equipo LOCAL." if side == 0 else "Elegí el equipo VISITANTE.")) + \
-		extra + "   (Teclado: Enter elegir, Q/E grupo, Z al azar, Esc volver.)"
+		extra = "  ·  %s" % focus_t.stadium
+	_frame.title_info.text = ("Elegí tu equipo" if single else ("Elegí el LOCAL" if side == 0 else "Elegí el VISITANTE")) + extra

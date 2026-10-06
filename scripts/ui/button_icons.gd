@@ -207,9 +207,9 @@ class IconLabel:
 
 ## Acciones de las indicaciones que no son del mapa de controles.
 const HINT_PAD := {&"ui_accept": ["X"], &"ui_cancel": ["O"], &"ui_options": ["TRI"],
-	&"ui_tabs": ["L1", "R1"], &"ui_navigate": ["CRUCETA"]}
+	&"ui_tabs": ["L1", "R1"], &"ui_navigate": ["CRUCETA"], &"ui_random": ["SQ"]}
 const HINT_KEYS := {&"ui_accept": ["ENTER"], &"ui_cancel": ["ESC"], &"ui_options": ["TAB"],
-	&"ui_tabs": ["Q", "E"], &"ui_navigate": ["FLECHAS"]}
+	&"ui_tabs": ["Q", "E"], &"ui_navigate": ["FLECHAS"], &"ui_random": ["Z"]}
 const JOY_IDS := {JOY_BUTTON_A: "X", JOY_BUTTON_B: "O", JOY_BUTTON_X: "SQ", JOY_BUTTON_Y: "TRI",
 	JOY_BUTTON_LEFT_SHOULDER: "L1", JOY_BUTTON_RIGHT_SHOULDER: "R1"}
 const KEY_NAMES := {"ESCAPE": "ESC", "KP ENTER": "ENTER", "BACKSPACE": "RETROCESO", "SPACE": "ESPACIO"}

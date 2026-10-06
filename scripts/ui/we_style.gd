@@ -402,20 +402,18 @@ class SectionTabs:
 			add_child(v)
 
 
-## Armazón del diseño 03 "Mesa táctica": fondo, encabezado (MASTER ELEVEN y
-## la miga), título grande con un dato a la derecha, tres columnas separadas
-## por líneas finas y el pie de ayuda. Las pantallas llenan left/center/right.
-class MesaFrame:
+## Armazón de las pantallas del rediseño: fondo, encabezado (MASTER ELEVEN y
+## la miga), título grande con un dato a la derecha, el cuerpo (body) y el pie
+## de ayuda. Sin título (with_title = false) el cuerpo empieza bajo el encabezado.
+class ScreenFrame:
 	extends Control
-	var left: VBoxContainer
-	var center: VBoxContainer
-	var right: VBoxContainer
+	var body: VBoxContainer
 	var crumb: Label
 	var title: Label
 	var title_info: Label
 	var footer: HintFooter
 
-	func _init(screen: String = "", hints: Array = [], left_w: float = 470.0, right_w: float = 380.0) -> void:
+	func _init(screen: String = "", hints: Array = [], with_title: bool = true) -> void:
 		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var bg := ColorRect.new()
@@ -454,23 +452,41 @@ class MesaFrame:
 		title_info.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		trow.add_child(title_info)
 		col.add_child(trow)
-		col.add_child(WEStyle.make_separator())
-		# Tres columnas.
-		var body := HBoxContainer.new()
+		var sep := WEStyle.make_separator()
+		col.add_child(sep)
+		trow.visible = with_title
+		sep.visible = with_title
+		body = VBoxContainer.new()
 		body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		body.add_theme_constant_override("separation", int(WEStyle.px(40)))
+		body.add_theme_constant_override("separation", int(WEStyle.px(20)))
 		col.add_child(body)
-		left = _column(WEStyle.px(left_w))
-		body.add_child(left)
-		body.add_child(WEStyle.make_vline())
-		center = _column(0)
-		center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		body.add_child(center)
-		body.add_child(WEStyle.make_vline())
-		right = _column(WEStyle.px(right_w))
-		body.add_child(right)
 		footer = WEStyle.HintFooter.new(screen, hints)
 		outer.add_child(footer)
+
+
+## Armazón del diseño 03 "Mesa táctica": el de ScreenFrame con tres columnas
+## separadas por líneas finas. Las pantallas llenan left/center/right.
+class MesaFrame:
+	extends ScreenFrame
+	var left: VBoxContainer
+	var center: VBoxContainer
+	var right: VBoxContainer
+
+	func _init(screen: String = "", hints: Array = [], left_w: float = 470.0, right_w: float = 380.0) -> void:
+		super(screen, hints)
+		var row := HBoxContainer.new()
+		row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		row.add_theme_constant_override("separation", int(WEStyle.px(40)))
+		body.add_child(row)
+		left = _column(WEStyle.px(left_w))
+		row.add_child(left)
+		row.add_child(WEStyle.make_vline())
+		center = _column(0)
+		center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(center)
+		row.add_child(WEStyle.make_vline())
+		right = _column(WEStyle.px(right_w))
+		row.add_child(right)
 
 	func _column(w: float) -> VBoxContainer:
 		var v := VBoxContainer.new()
@@ -989,7 +1005,13 @@ class RatingBars:
 	var home: Array[float] = []
 	var away: Array[float] = []
 
+	## Con los tokens del rediseño (Barlow, barras doradas sobre la pista).
+	var modern := false
+
 	func _draw() -> void:
+		if modern:
+			_draw_modern()
+			return
 		var font := get_theme_default_font()
 		var row := size.y / NAMES.size()
 		var bar_w := size.x * 0.3
@@ -1001,3 +1023,20 @@ class RatingBars:
 				draw_rect(Rect2(bar_w - w, y - 6, w, 12), Color(1.0, 0.6, 0.1).lerp(Color(1.0, 0.9, 0.2), home[i]))
 			if i < away.size():
 				draw_rect(Rect2(size.x - bar_w, y - 6, bar_w * away[i], 12), Color(1.0, 0.6, 0.1).lerp(Color(1.0, 0.9, 0.2), away[i]))
+
+	func _draw_modern() -> void:
+		var font := WEStyle.font(WEStyle.Typeface.SEMIBOLD)
+		var fs := WEStyle.font_px(WEStyle.BODY_M)
+		var row := size.y / NAMES.size()
+		var bar_w := size.x * 0.32
+		var bh := WEStyle.px(10)
+		for i in NAMES.size():
+			var y := row * i + row * 0.5
+			draw_string(font, Vector2(0, y + fs * 0.35), String(NAMES[i]).to_upper(), HORIZONTAL_ALIGNMENT_CENTER, size.x, fs, WEStyle.TEXT_DIM)
+			draw_rect(Rect2(0, y - bh * 0.5, bar_w, bh), WEStyle.LINE)
+			draw_rect(Rect2(size.x - bar_w, y - bh * 0.5, bar_w, bh), WEStyle.LINE)
+			if i < home.size():
+				var w := bar_w * home[i]
+				draw_rect(Rect2(bar_w - w, y - bh * 0.5, w, bh), WEStyle.ACCENT)
+			if i < away.size():
+				draw_rect(Rect2(size.x - bar_w, y - bh * 0.5, bar_w * away[i], bh), WEStyle.ACCENT)
