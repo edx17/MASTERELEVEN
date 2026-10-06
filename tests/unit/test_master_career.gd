@@ -315,24 +315,30 @@ func test_news_history_and_honours() -> void:
 	MasterCareer.deactivate()
 
 
-## Fase 7: copa nacional y continental intercaladas con la liga, y Mundial.
+## Fase 7: copas reales intercaladas con la liga, supercopas y Mundial.
 func test_cups_and_world_cup() -> void:
 	var m := MasterCareer.create("eng", String(TeamDB.country("eng")["divisions"][3]["clubs"][0]["id"]), "real", 91)
-	assert_not_null(m.national_cup)
-	assert_eq(m.national_cup.team_paths.size(), 64, "Inglaterra: cuadro de 64")
-	assert_true(m.national_cup.team_paths.has(m.user_path()), "tu club siempre está")
-	assert_not_null(m.continental)
-	assert_eq(m.continental.team_paths.size(), 16)
-	assert_eq(m.cont_name, "Copa Continental de Clubes (Europa)")
+	var fa := m.cup("national")
+	assert_eq(String(fa["name"]), "FA Cup")
+	var fc: Competition = fa["comp"]
+	assert_eq(fc.team_paths.size(), 92, "los 92 de la liga inglesa")
+	assert_true(fc.team_paths.has(m.user_path()), "League Two: arranca en las rondas previas")
+	assert_eq(String(m.cup("league_cup")["name"]), "EFL Cup")
+	for id in ["ucl", "uel", "uecl"]:
+		var c: Competition = m.cup(id)["comp"]
+		assert_eq(c.team_paths.size(), 36, id)
+		assert_eq(c.user_team, -1, "desde League Two no se juega en Europa")
+	assert_true(m.cup("super").is_empty(), "primera temporada: sin supercopa")
 	# Jugar la primera fecha de copa con resultado propio.
 	var guard := 0
-	while m.pending_event() != "cup" and guard < 20:
+	while m.pending_event() < 0 and guard < 30:
 		m.play_round([], [], 200 + guard)
 		guard += 1
-	assert_eq(m.pending_event(), "cup")
-	var g := m.user_match()
+	var ev := m.pending_event()
+	assert_gte(ev, 0)
 	var comp := m.current_comp()
-	assert_eq(comp, m.national_cup)
+	assert_eq(comp, m.event_comp(ev))
+	var g := m.user_match()
 	var league_before := m.user_league().current
 	var me_home: bool = g["home"] == comp.user_team
 	m.play_round([3, 0] if me_home else [0, 3], [], 300)
@@ -342,18 +348,83 @@ func test_cups_and_world_cup() -> void:
 	m.first_year = 2030
 	m.simulate_to_end(5)
 	var s := m.last_summary()
-	assert_true((s["cups"] as Dictionary).has("national"))
-	assert_true((s["cups"] as Dictionary).has("continental"))
-	assert_ne(String(s["cups"]["national"]["user"]), "")
+	var cs: Dictionary = s["cups"]
+	for id in ["national", "league_cup", "ucl", "uel", "uecl", "lib", "cca"]:
+		assert_true(cs.has(id), "resultado de %s" % id)
+	assert_ne(String(cs["national"]["user"]), "")
+	assert_true(bool(cs["lib"]["foreign"]), "las de otras confederaciones, simuladas")
 	assert_true(s.has("world_cup"))
 	assert_ne(String(s["world_cup"]["champion"]), "")
 	assert_eq((TeamDB.nation("eng")["players"] as Array).size(), 23, "convocados")
-	# Temporada siguiente: los 4 primeros de la Premier van a la continental.
+	# Temporada siguiente: supercopas con los campeones y los 4 primeros de
+	# la Premier en la Champions.
 	m.start_next_season(6)
-	var qual: Array = s["qualified"]
-	for id in qual:
-		assert_true(m.continental.team_paths.has(TeamDB.club_path("eng", String(id))))
+	assert_false(m.cup("super").is_empty(), "Community Shield")
+	var shield: Competition = m.cup("super")["comp"]
+	assert_true(shield.finished(), "se juega antes de la 1.ª fecha (sin tu club, simulada)")
+	assert_true(shield.team_paths.has(TeamDB.club_path("eng", String(s["ranks"][0][0]))), "el campeón de la Premier")
+	assert_false(m.cup("uefa_super").is_empty(), "Supercopa de Europa")
+	assert_false(m.cup("intercontinental").is_empty(), "Intercontinental")
+	var ucl: Competition = m.cup("ucl")["comp"]
+	for id in (s["ranks"][0] as Array).slice(0, 4):
+		assert_true(ucl.team_paths.has(TeamDB.club_path("eng", String(id))), "top 4 a la Champions")
+	assert_true(ucl.team_paths.has(String(cs["ucl"]["champion_path"])), "el campeón defiende el título")
 	assert_false(m.world_cup_year(), "el próximo, en 4 años")
+	# Se guarda y se carga con todas las copas.
+	m.save()
+	var back := MasterCareer.load_saved(m.file)
+	assert_eq(back.cups.size(), m.cups.size())
+	assert_eq((back.cup("ucl")["comp"] as Competition).ko, "swiss")
+	MasterCareer.deactivate()
+
+
+## Argentina: Copa Argentina (Primera y 15 de la Nacional directo a 32avos,
+## B y C en la fase preliminar), Libertadores y Sudamericana; al año
+## siguiente, Trofeo de Campeones y después la Supercopa Argentina.
+func test_argentina_cups() -> void:
+	var m := MasterCareer.create("arg", "colon", "real", 17)
+	var ca: Competition = m.cup("national")["comp"]
+	assert_eq(String(m.cup("national")["name"]), "Copa Argentina")
+	assert_eq(ca.team_paths.size(), 30 + 15 + 20 + 24)
+	assert_eq(ca.round_name(), "Fase preliminar · 1.ª ronda")
+	var stage_main := ca.entries.size() - 1
+	assert_eq((ca.entries[stage_main] as Array).size(), 45, "Primera y 15 de la Nacional, directo")
+	assert_true(ca.team_paths.has(m.user_path()))
+	var lib: Competition = m.cup("lib")["comp"]
+	var sud: Competition = m.cup("sud")["comp"]
+	assert_eq(lib.team_paths.size(), 32)
+	assert_eq(sud.team_paths.size(), 32)
+	assert_eq(lib.group_rounds, 6)
+	m.simulate_to_end(8)
+	var s := m.last_summary()
+	assert_eq((s["halves"] as Array).size(), 2, "Apertura y Clausura")
+	assert_true((s["cups"] as Dictionary).has("sud"))
+	assert_eq(sud.team_paths.size(), 40, "los 3.º de la Libertadores pasaron a la Sudamericana")
+	m.start_next_season(9)
+	var trofeo := m.cup("trofeo")
+	assert_false(trofeo.is_empty(), "Trofeo de Campeones")
+	assert_true((trofeo["comp"] as Competition).finished(), "se juega antes de la 1.ª fecha")
+	assert_false(m.cup("supercopa_arg").is_empty(), "con el Trofeo jugado, la Supercopa Argentina")
+	assert_false(m.cup("recopa").is_empty(), "Recopa Sudamericana")
+	MasterCareer.deactivate()
+
+
+## Mundial de Clubes: 32 clubes de las tres confederaciones, antes de la temporada.
+func test_club_world_cup() -> void:
+	var m := MasterCareer.create("esp", String(TeamDB.country("esp")["divisions"][1]["clubs"][0]["id"]), "real", 33)
+	assert_true(m.cup("cwc").is_empty(), "2026: no hay")
+	m.first_year = CareerCups.CLUB_WORLD_CUP_FIRST
+	m._new_season_cups(44)
+	var cwc: Dictionary = m.cup("cwc")
+	assert_false(cwc.is_empty())
+	var c: Competition = cwc["comp"]
+	assert_eq(c.team_paths.size(), 32)
+	assert_eq(c.groups.size(), 8)
+	assert_true(c.finished(), "sin tu club: simulado antes de la 1.ª fecha")
+	var confeds := {}
+	for p in c.team_paths:
+		confeds[CareerCups.confed_of(p.get_slice(":", 2))] = true
+	assert_eq(confeds.size(), 3, "de las tres confederaciones")
 	MasterCareer.deactivate()
 
 

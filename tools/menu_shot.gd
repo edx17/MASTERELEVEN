@@ -4,7 +4,8 @@ extends Node
 ## Páginas: home, modes, teams, setup, options, controls, master, master_squad,
 ## master_hub, master_end, master_plantel, master_cal,
 ## master_market, master_sell, master_pases, master_news, master_hist,
-## master_cups.
+## master_cups (con --menu-cup=ID: la copa que se ve, p. ej. lib o ucl; con
+## --menu-master=eng: carrera en Inglaterra).
 
 var out := "user://menu.png"
 
@@ -54,7 +55,10 @@ func _run() -> void:
 				page = "master_end"
 			if page in ["master_hub", "master_end"]:
 				var m := MasterCareer.create("arg", "boca", "we", 21)
-				for i in 5:
+				for a2 in OS.get_cmdline_user_args():
+					if a2 == "--menu-master=eng":
+						m = MasterCareer.create("eng", String(TeamDB.country("eng")["divisions"][3]["clubs"][0]["id"]), "real", 21)
+				for i in (5 if master_view != "master_cups" else 14):
 					m.play_round([], [], 30 + i)
 				if page == "master_end":
 					m.first_year = 2030 # con Mundial al final
@@ -72,6 +76,12 @@ func _run() -> void:
 				var hub: MasterHub = menu.get("_master_hub")
 				if master_view in ["master_cal", "master_cups", "master_news", "master_hist"]:
 					hub.view_mode = {"master_cal": 2, "master_cups": 3, "master_news": 4, "master_hist": 5}[master_view]
+					for a2 in OS.get_cmdline_user_args():
+						if a2.begins_with("--menu-cup="):
+							var cid := a2.trim_prefix("--menu-cup=")
+							for ci in hub.career.cups.size():
+								if hub.career.cups[ci]["id"] == cid:
+									hub.view_cup = ci
 					hub.call("_rebuild")
 				elif master_view == "master_plantel":
 					hub.call("_open_squad")

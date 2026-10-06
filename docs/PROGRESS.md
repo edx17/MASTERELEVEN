@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **462 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **472 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -19,7 +19,7 @@ además arma el `.exe` de Windows).
 | 4 — Reglas, atributos y plantel | ✅ Implementada | — |
 | 5 — Presentación moderna (estadios, animaciones, audio, repeticiones) | 🟡 Muy avanzada; falta el pelo "Detallados" y la voz del locutor | — |
 | 6 — Liga Master | 🟡 D1–D5 hechos, **pendiente de tu prueba** | #32, #33 |
-| 7 — Torneos | 🟡 Hecho en la Liga Master (copa nacional, continental, Mundial cada 4 años), **pendiente de tu prueba** | #33 |
+| 7 — Torneos | 🟡 Hecho en la Liga Master: copas reales de cada país y confederación, supercopas, Intercontinental, Mundial de Clubes y Mundial; **pendiente de tu prueba** | #33 |
 | 8 — Pulido | ⬜ | — |
 | Entrenamiento (Club House) | ✅ | #23 |
 | Backlog B1–B9 | ✅ | #24 |
@@ -150,8 +150,13 @@ además arma el `.exe` de Windows).
    (hecho: Plantel, Dirección guardada, Calendario y escudos), **D4**
    (hecho: mercado de pases con puntos WE, préstamos, ventanas, IA que
    ficha) y **D5** (hecho: noticias, historial y palmarés).
-4. **Fase 7 — Torneos**: hecho (copa nacional, copa continental y Mundial
-   cada 4 temporadas con convocados de la carrera), pendiente de tu prueba.
+4. **Fase 7 — Torneos**: hecho con las copas reales (Copa Argentina con
+   fase preliminar, Trofeo de Campeones, Supercopa Argentina, FA Cup, EFL
+   Cup, Champions/Europa/Conference con fase liga de 36, Libertadores,
+   Sudamericana, Concachampions, Recopa, Supercopa de Europa,
+   Intercontinental, Mundial de Clubes) y Mundial cada 4 temporadas;
+   pendiente de tu prueba. Para que haya más clubes reales en las copas
+   continentales, sumar ligas (Uruguay, Colombia, Francia...) desde el Editor.
 5. Himno propio, relator y pulido final.
 6. Editores: ya hechos (E1–E4, ver `docs/EDITOR.md`); quedan solo extras
    que vayan surgiendo de tus pruebas.
@@ -159,26 +164,95 @@ además arma el `.exe` de Windows).
 ---
 
 ## Fase 7 — Torneos (en la Liga Master)
-- **Copa nacional** cada temporada (Copa Argentina, FA Cup, Copa del Rey,
-  Coppa Italia, DFB-Pokal...): eliminación directa a un partido (penales si
-  empatan), cuadro de 64 (Argentina, Inglaterra) o 32 con todos los de
-  primera y el resto por sorteo; **tu club siempre está**. Las rondas se
-  juegan **entre fechas de la liga** (la pantalla de la carrera avisa
-  "Copa Argentina · Octavos de final"); tu partido lo jugás o lo simulás, y
-  si quedaste afuera se simula la fecha de copa.
-- **Copa continental de clubes** (América: Argentina con Brasil; Europa:
-  los seis países europeos): 16 equipos, 4 grupos de 4, cuartos, semis y
-  final. Van los **4 primeros de primera** de la temporada anterior (en la
-  primera, los 4 más fuertes) y los mejores de los otros países.
-- Premios en puntos WE: copa nacional 3000, continental 5000.
-- **Mundial cada 4 años** (2030, 2034...) al terminar la temporada:
-  simulado, con la selección del país armada con **los mejores 23 entre su
-  plantel y los jugadores de la carrera** de esa nacionalidad; avisa a qué
-  jugadores de tu club convocaron y hasta dónde llegó.
-- Pantalla de la carrera: vista **Copas** (estado, grupos o llaves y tu
-  camino); el resumen de fin de temporada y el **Historial** muestran los
-  campeones de las copas y del Mundial, cómo te fue en la copa y el
-  **récord de goles** en una temporada.
+Las copas se juegan **entre fechas de la liga** (la pantalla de la carrera
+avisa "Copa Libertadores · Octavos de final · ida"). Tu partido lo jugás o
+lo simulás; las fechas en las que tu club no juega se simulan solas.
+Clasificar depende de la **temporada anterior** de la carrera (en la
+primera, del nivel de los equipos). Código: `scripts/competition/career_cups.gd`
+(qué se juega y quién clasifica) y `competition.gd` (formatos).
+
+**Formatos nuevos** (sirven para cualquier copa):
+- Entrada escalonada: los de las divisiones de abajo arrancan en rondas
+  previas y los de arriba entran después; sorteo en cada ronda.
+- Llaves de ida y vuelta por resultado global (sin gol de visitante;
+  penales si hay empate), con la final a partido único.
+- Grupos de 4 de ida y vuelta, y fase liga de 36 (8 partidos, 2 rivales
+  de cada bombo, sin cruces del mismo país cuando se puede).
+
+**Copas nacionales**
+- **Copa Argentina** (formato real 2026): los 30 de Primera y los 15
+  mejores de la Primera Nacional entran directo a 32avos; Primera B y
+  Primera C juegan la **fase preliminar** (2 rondas) por los otros 19
+  lugares. Los 10 cupos del Federal A, que no está en la base, también
+  salen de la preliminar. Partido único con penales.
+- **Trofeo de Campeones**: campeón del Apertura (1.ª rueda de la liga)
+  contra campeón del Clausura (2.ª rueda); se juega antes de la 1.ª fecha
+  de la temporada siguiente. Si es el mismo club, juega con el mejor de la
+  tabla anual.
+- **Supercopa Argentina**: ganador del Trofeo contra el campeón de la Copa
+  Argentina (si es el mismo, contra el finalista).
+- La **Copa de la Liga** no está: desde 2026 no se juega.
+- Inglaterra: **FA Cup** (los 92; Premier y Championship entran en la 3.ª
+  ronda), **EFL Cup** (los 8 mejores de la Premier entran en 16avos) y
+  **Community Shield**.
+- España: **Copa del Rey** y **Supercopa de España** (4 equipos, a mitad
+  de temporada). Italia: **Coppa Italia** y **Supercoppa Italiana** (4
+  equipos).
+- Alemania: **DFB-Pokal** y **DFL-Supercup**. Portugal: **Taça de
+  Portugal**, **Taça da Liga** y **Supertaça**. Países Bajos: **KNVB
+  Beker** y **Johan Cruijff Schaal**. Brasil: **Copa do Brasil** y
+  **Supercopa do Brasil**. México: **Campeón de Campeones** (la Copa MX ya
+  no se juega).
+
+**Copas continentales**
+- **Champions, Europa League y Conference**: 36 equipos con fase liga.
+  Del 1.º al 8.º van a octavos y del 9.º al 24.º al playoff; las llaves son
+  de ida y vuelta.
+  - Cupos por la tabla: Inglaterra, España, Italia y Alemania 4/1/1;
+    Portugal 2/1/1; Países Bajos 2/1/2.
+  - El campeón de copa nacional va a la Europa League; el de la EFL Cup, a
+    la Conference.
+  - El campeón de la Champions y el de la Europa League entran a la
+    Champions; el de la Conference, a la Europa League.
+- **Libertadores**: 8 grupos de 4 de ida y vuelta, octavos por sorteo (1.º
+  contra 2.º) y final única. Argentina: 5 por tabla y el campeón de la Copa
+  Argentina; Brasil: 6 + la copa.
+- **Sudamericana**: los 8 terceros de la Libertadores juegan el playoff
+  contra los 2.º de grupo; los 1.º esperan en octavos.
+- **Concachampions**: 16 equipos con llaves de ida y vuelta.
+- Con sólo algunas ligas en la base, los lugares que en la realidad son de
+  otros países los ocupan los mejores que no clasificaron. Si agregás ligas
+  desde el Editor, sus clubes entran solos.
+- Las copas de las otras confederaciones se simulan al final de cada
+  temporada, para la Intercontinental y el Mundial de Clubes.
+
+**Copas entre campeones**
+- **Supercopa de Europa**: partido único. **Recopa Sudamericana**: ida y
+  vuelta.
+- **Copa Intercontinental FIFA**: el campeón de la Libertadores juega con
+  el de la Concachampions (Derbi de las Américas) y el ganador juega la
+  final con el campeón de la Champions.
+- **Mundial de Clubes** cada 4 años desde 2029, antes de la temporada: 32
+  equipos en 8 grupos de 4 (Europa 16, Sudamérica 10, Concacaf 6).
+  Clasifican los campeones continentales de las últimas 4 temporadas y los
+  mejores de cada confederación.
+
+**Premios en puntos WE**: Champions y Libertadores 8000; Europa League y
+Sudamericana 5000; Concachampions 5000; Conference 3500; Mundial de Clubes
+10000; Intercontinental 6000; copa nacional 3000; copa de la liga 2000;
+supercopas entre 1500 y 2500.
+
+**Mundial de selecciones** cada 4 años (2030, 2034...), al terminar la
+temporada y simulado. La selección del país se arma con los mejores 23
+entre su plantel y los jugadores de la carrera de esa nacionalidad; te
+avisa a quiénes de tu club convocaron.
+
+**Pantalla de la carrera**
+- Vista **Copas** con un selector de copa: estado, tus partidos (con el
+  global y los penales), la tabla de la fase liga con sus zonas, los grupos
+  o la ronda de la llave.
+- El resumen de fin de temporada y el **Historial** muestran los campeones
+  de todas las copas, los títulos de tu club y el récord de goles.
 - En el menú principal dice **MUNDIAL** (sin el año).
 
 ## D5 — Liga Master: noticias, historial y palmarés

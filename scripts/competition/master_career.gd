@@ -58,13 +58,10 @@ var season_start: Dictionary = {}
 var transfers: Array = []
 ## Noticias de la carrera (las más nuevas al final): [{season, round, text, kind}].
 var news: Array = []
-## Copas de la temporada (Fase 7): la nacional y la continental, con la
-## fecha de la liga después de la que se juega cada ronda.
-var national_cup: Competition = null
-var cup_after: Array = []
-var continental: Competition = null
-var cont_after: Array = []
-var cont_name := ""
+## Copas de la temporada (Fase 7, ver CareerCups): [{id, name, type,
+## comp, after}], con la fecha de la liga después de la que se juega cada
+## ronda de la copa.
+var cups: Array = []
 const NEWS_MAX := 120
 ## Pase "bombazo" (noticia aunque no sea de tu club): desde este valor.
 const BIG_TRANSFER := 12000
@@ -241,23 +238,21 @@ func user_match() -> Dictionary:
 ## La competición de la próxima fecha: la liga o una fecha de copa.
 func current_comp() -> Competition:
 	var ev := pending_event()
-	return event_comp(ev) if ev != "" else user_league()
+	return event_comp(ev) if ev >= 0 else user_league()
 
 
 ## Nombre de la competición de la próxima fecha.
 func current_comp_name() -> String:
-	match pending_event():
-		"cup":
-			return national_cup_name()
-		"cont":
-			return cont_name
+	var ev := pending_event()
+	if ev >= 0:
+		return String(cups[ev]["name"])
 	return division_name(user_league_index())
 
 
 ## Fecha de la carrera: la más avanzada de las divisiones que siguen.
 func round_text() -> String:
 	var ev := pending_event()
-	if ev != "":
+	if ev >= 0:
 		return event_comp(ev).round_name()
 	var comp := user_league()
 	if comp.finished():
@@ -279,8 +274,9 @@ func play_round(user_result: Array = [], user_scorers: Array = [], seed: int = 0
 	rng.seed = seed if seed != 0 else randi()
 	# Fecha de copa (se juega entre fechas de la liga).
 	var ev := pending_event()
-	if ev != "":
+	if ev >= 0:
 		_play_cup_round(ev, user_result, rng)
+		_auto_cups(rng)
 		return
 	var mine := user_league_index()
 	# Los que no podían jugar esta fecha cumplen una (después de jugarla).
@@ -331,6 +327,7 @@ func play_round(user_result: Array = [], user_scorers: Array = [], seed: int = 0
 		for l in leagues:
 			lists.append((l["comp"] as Competition).team_paths.map(func(pth: String) -> String: return pth.get_slice(":", 3)))
 		_ai_window(rng, lists, TeamDB.country(country)["divisions"])
+	_auto_cups(rng)
 	if leagues.all(func(l: Dictionary) -> bool: return (l["comp"] as Competition).finished()):
 		_end_season()
 
@@ -587,8 +584,14 @@ func _end_season() -> void:
 	if pos == 1:
 		points += int(POINTS["title"])
 	summary["user"] = {"division": mine, "division_name": division_name(mine), "pos": pos, "went": went}
-	# Copas de la temporada, clasificados a la continental y Mundial.
-	summary["qualified"] = (ranks[0] as Array).slice(0, CONT_SLOTS_OWN)
+	# Tablas finales (para las copas de la temporada que viene), Apertura y
+	# Clausura, copas y Mundial.
+	summary["ranks"] = ranks
+	if CareerCups.HALVES.has(country):
+		var top: Competition = leagues[0]["comp"]
+		var half := top.rounds.size() / 2
+		summary["halves"] = [top.team_paths[top.standings(0, half)[0]["team"]],
+			top.team_paths[top.standings(half, top.rounds.size())[0]["team"]]]
 	_cups_summary(summary)
 	if world_cup_year():
 		_play_world_cup(summary)
@@ -1180,43 +1183,62 @@ func season_transfers() -> Array:
 
 # --- Copas y Mundial (Fase 7) -------------------------------------------------------------
 
-## Nombre de la copa nacional de cada país.
-const NATIONAL_CUPS := {"arg": "Copa Argentina", "eng": "FA Cup", "esp": "Copa del Rey", "ita": "Coppa Italia",
-	"ger": "DFB-Pokal", "por": "Taça de Portugal", "ned": "KNVB Beker", "mex": "Copa MX", "bra": "Copa do Brasil"}
-## Copa continental: con qué países se juega.
-const CONTINENT := {"arg": ["bra"], "bra": ["arg"], "mex": [],
-	"eng": ["esp", "ita", "ger", "por", "ned"], "esp": ["eng", "ita", "ger", "por", "ned"],
-	"ita": ["eng", "esp", "ger", "por", "ned"], "ger": ["eng", "esp", "ita", "por", "ned"],
-	"por": ["eng", "esp", "ita", "ger", "ned"], "ned": ["eng", "esp", "ita", "ger", "por"]}
-## Copa continental: 16 equipos (4 grupos de 4, cuartos, semis y final);
-## los 4 primeros de la primera división del país de la carrera.
-const CONT_TEAMS := 16
-const CONT_SLOTS_OWN := 4
-const CUP_POINTS := {"national": 3000, "continental": 5000}
 ## Primer Mundial de la carrera (después, cada 4 años).
 const WORLD_CUP_FIRST := 2030
 
 
 func national_cup_name() -> String:
-	return String(NATIONAL_CUPS.get(country, "Copa Nacional"))
+	return String((CareerCups.NATIONAL.get(country, {}) as Dictionary).get("name", "Copa Nacional"))
 
 
-func event_comp(ev: String) -> Competition:
-	return national_cup if ev == "cup" else (continental if ev == "cont" else null)
+## Copa de la temporada por id ("national", "ucl"...) o {}.
+func cup(id: String) -> Dictionary:
+	for e in cups:
+		if e["id"] == id:
+			return e
+	return {}
 
 
-## ¿Toca una fecha de copa? "cup" (nacional), "cont" (continental) o "".
-func pending_event() -> String:
+func event_comp(i: int) -> Competition:
+	return cups[i]["comp"] if i >= 0 and i < cups.size() else null
+
+
+## ¿Le toca a esa copa jugar su próxima fecha?
+func _due(e: Dictionary) -> bool:
+	var comp: Competition = e["comp"]
+	var after: Array = e["after"]
+	if comp == null or comp.finished() or after.is_empty() or leagues.is_empty():
+		return false
+	return user_league().current >= int(after[mini(comp.current, after.size() - 1)])
+
+
+## Copa con un partido tuyo en la próxima fecha (índice en `cups`) o -1.
+func pending_event() -> int:
 	if leagues.is_empty() or season_over:
-		return ""
-	var at := user_league().current
-	if national_cup != null and not national_cup.finished() and national_cup.current < cup_after.size() \
-			and at >= int(cup_after[national_cup.current]):
-		return "cup"
-	if continental != null and not continental.finished() and continental.current < cont_after.size() \
-			and at >= int(cont_after[continental.current]):
-		return "cont"
-	return ""
+		return -1
+	for i in cups.size():
+		if _due(cups[i]) and not (cups[i]["comp"] as Competition).user_match().is_empty():
+			return i
+	return -1
+
+
+## Juega las fechas de copa que ya tocan y en las que no jugás (hasta la
+## primera tuya, que va antes que las que siguen).
+func _auto_cups(rng: RandomNumberGenerator) -> void:
+	var guard := 0
+	while guard < 500:
+		guard += 1
+		var played := false
+		for i in cups.size():
+			if not _due(cups[i]):
+				continue
+			if not (cups[i]["comp"] as Competition).user_match().is_empty():
+				return
+			_play_cup_round(i, [], rng)
+			played = true
+			break
+		if not played:
+			return
 
 
 ## Rondas repartidas entre las fechas de la liga (todas antes de las dos últimas).
@@ -1228,104 +1250,282 @@ static func spread(rounds: int, league_rounds: int, offset: int = 0) -> Array:
 	return out
 
 
-func _strength(path: String) -> float:
-	var t := TeamDB.load_team(path)
-	var total := 0.0
-	for v in t.ratings():
-		total += v
-	return total
+func _add_cup(id: String, name: String, type: String, comp: Competition, after: Array) -> void:
+	if comp != null:
+		cups.append({"id": id, "name": name, "type": type, "comp": comp, "after": after})
 
 
-## Copa nacional (todos los de primera y el resto por sorteo, en un cuadro de
-## 16, 32 o 64; tu club siempre está) y copa continental (si el país tiene).
+## Clubes de cada división en el orden de la temporada pasada (los que
+## venían de más arriba primero); en la primera, por nivel.
+func _cup_tiers(cache: Dictionary) -> Array:
+	var last := last_summary()
+	var rank := {}
+	if last.has("ranks"):
+		var ranks: Array = last["ranks"]
+		for di in ranks.size():
+			for pi in (ranks[di] as Array).size():
+				rank[TeamDB.club_path(country, String(ranks[di][pi]))] = di * 1000 + pi
+	var out: Array = []
+	for l in leagues:
+		var list: Array[String] = []
+		list.assign((l["comp"] as Competition).team_paths)
+		list.sort_custom(func(x: String, y: String) -> bool:
+			if rank.has(x) and rank.has(y):
+				return rank[x] < rank[y]
+			if rank.has(x) != rank.has(y):
+				return rank.has(x)
+			return CareerCups.strength(x, cache) > CareerCups.strength(y, cache))
+		out.append(list)
+	return out
+
+
+## Tabla de primera de la temporada pasada (rutas); en la primera, por nivel.
+func _last_top_table(cache: Dictionary) -> Array[String]:
+	var last := last_summary()
+	var out: Array[String] = []
+	if last.has("ranks"):
+		for id in last["ranks"][0]:
+			out.append(TeamDB.club_path(country, String(id)))
+		return out
+	return _cup_tiers(cache)[0]
+
+
+## Campeón y finalista de una copa de la temporada pasada (rutas).
+func _last_cup(id: String) -> Array:
+	var c: Dictionary = (last_summary().get("cups", {}) as Dictionary).get(id, {})
+	return [String(c.get("champion_path", "")), String(c.get("finalist_path", ""))]
+
+
+## Primero de `table` que no esté en `used`.
+static func _next_free(table: Array, used: Array) -> String:
+	for p in table:
+		if not used.has(p):
+			return p
+	return ""
+
+
+## Supercopa nacional con los resultados de la temporada pasada.
+func _national_super(sp: Dictionary, seed: int, cache: Dictionary) -> Competition:
+	var last := last_summary()
+	if last.is_empty():
+		return null
+	var table := _last_top_table(cache)
+	var cupw := _last_cup("national")
+	var paths: Array[String] = []
+	match String(sp["kind"]):
+		"halves":
+			var hv: Array = last.get("halves", [])
+			if hv.size() < 2:
+				return null
+			paths.append(String(hv[0]))
+			paths.append(String(hv[1]) if hv[1] != hv[0] else _next_free(table, [hv[0]]))
+		"four":
+			var order: Array = [table[0] if table.size() > 0 else "", cupw[1], cupw[0], table[1] if table.size() > 1 else ""]
+			for k in order.size():
+				var p := String(order[k])
+				if p == "" or paths.has(p):
+					var used: Array = []
+					used.append_array(paths)
+					used.append_array(order.slice(k + 1))
+					p = _next_free(table, used)
+				paths.append(p)
+		_:
+			paths.append(table[0] if not table.is_empty() else "")
+			paths.append(cupw[0] if cupw[0] != "" and cupw[0] != paths[0] else _next_free(table, paths))
+	if paths.has(""):
+		return null
+	return CareerCups.fixed_cup(paths, user_path(), seed)
+
+
+## Copas de la temporada: supercopas, copa nacional, copa de la liga, las de
+## la confederación, Intercontinental y (cada 4 años) Mundial de Clubes.
 func _new_season_cups(seed: int) -> void:
+	cups = []
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed
-	var first: Array[String] = []
-	first.assign((leagues[0]["comp"] as Competition).team_paths)
-	var rest: Array[String] = []
-	for li in range(1, leagues.size()):
-		rest.append_array((leagues[li]["comp"] as Competition).team_paths)
-	Competition._shuffle(rest, rng)
-	var total := first.size() + rest.size()
-	var size := 64 if total >= 64 else (32 if total >= 32 else 16)
-	var pool: Array[String] = []
-	pool.append_array(first)
-	pool.append_array(rest)
-	pool = pool.slice(0, size)
-	if not pool.has(user_path()):
-		pool[pool.size() - 1] = user_path()
-	national_cup = Competition.create_cup(pool, pool.find(user_path()), rng.randi())
-	var league_rounds := user_league().rounds.size()
-	cup_after = spread(int(round(log(size) / log(2))), league_rounds)
-	# Continental: los 4 primeros de primera (la temporada pasada; en la
-	# primera, los 4 más fuertes) y los mejores de los otros países.
-	continental = null
-	cont_after = []
-	cont_name = ""
-	var others: Array = CONTINENT.get(country, [])
-	if others.is_empty():
-		return
-	var own: Array[String] = []
+	var cache := {}
 	var last := last_summary()
-	if last.has("qualified"):
-		for id in last["qualified"]:
-			own.append(TeamDB.club_path(country, String(id)))
-	else:
-		var ranked := first.duplicate()
-		ranked.sort_custom(func(a: String, b: String) -> bool: return _strength(a) > _strength(b))
-		own.assign(ranked.slice(0, CONT_SLOTS_OWN))
-	var paths: Array[String] = own.duplicate()
-	var need := CONT_TEAMS - paths.size()
-	for k in others.size():
-		var take := need / others.size() + (1 if k < need % others.size() else 0)
-		var c := TeamDB.country(String(others[k]))
-		if c.is_empty():
+	var lr := user_league().rounds.size()
+	var me := user_path()
+	var confed := CareerCups.confed_of(country)
+	# Mundial de Clubes (antes de empezar la temporada).
+	var y := first_year + season - 1
+	if y >= CareerCups.CLUB_WORLD_CUP_FIRST and (y - CareerCups.CLUB_WORLD_CUP_FIRST) % 4 == 0:
+		var cwc := _club_world_cup(rng, cache)
+		if cwc != null:
+			var n := CareerCups.total_rounds(cwc)
+			var after: Array = []
+			after.resize(n)
+			after.fill(0)
+			_add_cup("cwc", "Mundial de Clubes FIFA %d" % y, "world", cwc, after)
+	# Supercopas nacionales.
+	for sp in CareerCups.SUPERS.get(country, []):
+		var c := _national_super(sp, rng.randi(), cache)
+		var mid := maxi(1, lr / 2)
+		_add_cup(String(sp["id"]), String(sp["name"]), "super", c, [0] if c != null and c.rounds[0].size() == 1 else [mid, mid])
+	# Supercopa continental e Intercontinental (campeones de la temporada pasada).
+	if CareerCups.CONT_SUPER.has(confed):
+		var cs: Dictionary = CareerCups.CONT_SUPER[confed]
+		var a := String(_last_cup(String(cs["from"][0]))[0])
+		var b := String(_last_cup(String(cs["from"][1]))[0])
+		if a != "" and b != "" and a != b:
+			var two: Array[String] = [a, b]
+			var c := CareerCups.fixed_cup(two, me, rng.randi(), int(cs["legs"]))
+			_add_cup(String(cs["id"]), String(cs["name"]), "super", c, [1, 2] if int(cs["legs"]) == 2 else [0])
+	var champs: Array[String] = []
+	for id in ["lib", "cca", "ucl"]:
+		var p := String(_last_cup(id)[0])
+		if p != "":
+			champs.append(p)
+	if champs.size() == 3:
+		var c := Competition.create_staged_cup(champs, champs.find(me), [0, 0, 1], rng.randi(), 1, ["Derbi de las Américas", ""])
+		_add_cup("intercontinental", "Copa Intercontinental FIFA", "world", c, [0, 0])
+	# Copa nacional y copa de la liga.
+	var tiers := _cup_tiers(cache)
+	for kind in ["national", "league_cup"]:
+		var spec: Dictionary = (CareerCups.NATIONAL if kind == "national" else CareerCups.LEAGUE_CUPS).get(country, {})
+		if spec.is_empty():
 			continue
-		var ids: Array[String] = []
-		for cl in c["divisions"][0]["clubs"]:
-			ids.append(TeamDB.club_path(String(others[k]), String(cl["id"])))
-		ids.sort_custom(func(a: String, b: String) -> bool: return _strength(a) > _strength(b))
-		paths.append_array(ids.slice(0, take))
-	if paths.size() != CONT_TEAMS:
-		return
-	cont_name = "Copa Continental de Clubes (%s)" % ("Europa" if country in ["eng", "esp", "ita", "ger", "por", "ned"] else "América")
-	continental = Competition.create_world_cup(paths, paths.find(user_path()), rng.randi())
-	cont_after = spread(Competition.WC_GROUP_ROUNDS + 3, league_rounds, 1)
+		var ordered: Array[String] = []
+		var quota: Array = spec.get("quota", [])
+		for i in tiers.size():
+			var q := int(quota[i]) if i < quota.size() else -1
+			var list: Array = tiers[i]
+			ordered.append_array(list if q < 0 else list.slice(0, q))
+		var c := CareerCups.staged_cup(ordered, spec, me, rng.randi())
+		if c != null:
+			_add_cup(kind, String(spec["name"]), kind, c, spread(CareerCups.total_rounds(c), lr, 0 if kind == "national" else 1))
+	# Copas de la confederación.
+	if CareerCups.CONTINENTAL.has(confed):
+		var q := _qualify(confed, rng, cache, true)
+		var built: Array = []
+		var most := 0
+		for spec in CareerCups.CONTINENTAL[confed]:
+			var paths: Array[String] = []
+			paths.assign(q.get(spec["id"], []))
+			var c := CareerCups.continental_comp(spec, paths, me, rng.randi())
+			if c != null:
+				built.append([spec, c])
+				most = maxi(most, CareerCups.total_rounds(c))
+		var after := spread(most, lr, 1)
+		for item in built:
+			var c: Competition = item[1]
+			_add_cup(String(item[0]["id"]), String(item[0]["name"]), "continental", c, after.slice(0, CareerCups.total_rounds(c)))
+	_auto_cups(rng)
 
 
-## Juega una fecha de copa (tu partido con `user_result`, si jugás).
-func _play_cup_round(ev: String, user_result: Array, rng: RandomNumberGenerator) -> void:
-	var comp := event_comp(ev)
+## Clasificados a las copas de una confederación (con la tabla de la carrera
+## si es la del país; las de otros países, por nivel con algo de azar).
+func _qualify(confed: String, rng: RandomNumberGenerator, cache: Dictionary, own: bool) -> Dictionary:
+	var tables := {}
+	var winners := {}
+	for cid in CareerCups.confed_countries(confed):
+		if cid == country and own:
+			tables[cid] = _last_top_table(cache)
+			winners[cid] = {"national": _last_cup("national")[0], "league_cup": _last_cup("league_cup")[0]}
+		else:
+			tables[cid] = CareerCups.guessed_table(cid, 0, rng, cache)
+	var holders := {}
+	for id in CareerCups.HOLDERS:
+		var p := String(_last_cup(id)[0])
+		if p != "":
+			holders[id] = p
+	return CareerCups.qualify(confed, tables, winners, holders, cache)
+
+
+## Mundial de Clubes: los campeones continentales de las últimas 4
+## temporadas y los mejores de cada confederación hasta llenar los cupos.
+func _club_world_cup(rng: RandomNumberGenerator, cache: Dictionary) -> Competition:
+	var paths: Array[String] = []
+	for confed in CareerCups.CWC_QUOTA:
+		var quota := int(CareerCups.CWC_QUOTA[confed])
+		var mine: Array[String] = []
+		var top := String(CareerCups.CONTINENTAL[confed][0]["id"])
+		for s in history.slice(maxi(0, history.size() - 4)):
+			var p := String(((s.get("cups", {}) as Dictionary).get(top, {}) as Dictionary).get("champion_path", ""))
+			if p != "" and not mine.has(p) and mine.size() < quota:
+				mine.append(p)
+		var pool: Array[String] = []
+		for cid in CareerCups.confed_countries(confed):
+			pool.append_array(CareerCups.division_clubs(cid, 0))
+		pool.sort_custom(func(a: String, b: String) -> bool: return CareerCups.strength(a, cache) > CareerCups.strength(b, cache))
+		for p in pool:
+			if mine.size() >= quota:
+				break
+			if not mine.has(p):
+				mine.append(p)
+		paths.append_array(mine)
+	if paths.size() != 32:
+		return null
+	return Competition.create_groups(paths, paths.find(user_path()), rng.randi())
+
+
+## Después de cada fecha de copa: los 3.º de la Libertadores pasan a la
+## Sudamericana y, con el Trofeo de Campeones jugado, se arma la Supercopa
+## Argentina.
+func _resolve_links() -> void:
+	var lib := cup("lib")
+	var sud := cup("sud")
+	if not lib.is_empty() and not sud.is_empty():
+		var lc: Competition = lib["comp"]
+		var sc: Competition = sud["comp"]
+		if lc.current >= lc.group_rounds and sc.extra.is_empty() and sc.current < sc.group_rounds:
+			var thirds: Array[String] = []
+			for gi in lc.groups.size():
+				thirds.append(lc.team_paths[lc.group_table(gi)[2]["team"]])
+			sc.add_teams(thirds, user_path())
+	var trofeo := cup("trofeo")
+	if country == "arg" and not trofeo.is_empty() and (trofeo["comp"] as Competition).finished() and cup("supercopa_arg").is_empty():
+		var tc: Competition = trofeo["comp"]
+		var a := tc.team_paths[tc.champion]
+		var cw := _last_cup("national")
+		var b := String(cw[0]) if cw[0] != a else String(cw[1])
+		if b != "" and b != a:
+			var two: Array[String] = [a, b]
+			var lr := user_league().rounds.size()
+			_add_cup("supercopa_arg", "Supercopa Argentina", "super",
+				CareerCups.fixed_cup(two, user_path(), hash("%s_sca_%d" % [country, season])), [maxi(1, lr / 3)])
+
+
+## Juega una fecha de una copa (tu partido con `user_result`, si jugás).
+func _play_cup_round(i: int, user_result: Array, rng: RandomNumberGenerator) -> void:
+	var e: Dictionary = cups[i]
+	var comp: Competition = e["comp"]
+	var me := comp.user_team
+	var was_alive := me >= 0 and comp.alive(me)
 	var um := comp.user_match()
 	var r := comp.current
 	comp.complete_round(user_result if not um.is_empty() else [], rng.randi())
 	if not um.is_empty() and r < comp.rounds.size():
 		for g in comp.rounds[r]:
-			if g["home"] == comp.user_team or g["away"] == comp.user_team:
-				_add_points(g, comp.user_team)
-				var won := Competition.winner(g) == comp.user_team
-				var knockout := comp.kind == Competition.Kind.CUP or r >= Competition.WC_GROUP_ROUNDS
-				if knockout and not won:
-					add_news("Quedaste afuera de la %s (%s)." % [national_cup_name() if ev == "cup" else cont_name, comp.round_name(r)], "club")
-	if comp.finished():
-		var champ := comp.team(comp.champion).team_name
-		var name := national_cup_name() if ev == "cup" else cont_name
-		add_news("%s %s: campeón %s." % [name, year_label(), champ], "temporada")
-		if comp.champion == comp.user_team:
-			points += int(CUP_POINTS["national" if ev == "cup" else "continental"])
+			if g["home"] == me or g["away"] == me:
+				_add_points(g, me)
+	var name := String(e["name"])
+	if was_alive and not comp.alive(me):
+		add_news("Quedaste afuera de la %s (%s)." % [name, cup_reach(comp, me)], "club")
+	if comp.finished() and comp.champion >= 0:
+		add_news("%s %s: campeón %s." % [name, year_label(), comp.team(comp.champion).team_name], "temporada")
+		if comp.champion == me:
+			points += int(CareerCups.POINTS.get(e["id"], CareerCups.POINTS.get(e["type"], 2000)))
 			add_news("¡Ganaste la %s!" % name, "temporada")
+	_resolve_links()
 
 
-## Si quedó alguna ronda de copa sin jugar, se simula.
+## Si quedó alguna fecha de copa sin jugar, se simula.
 func _finish_cups() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash("%s_cups_%d" % [country, season])
-	for comp in [national_cup, continental]:
-		var guard := 0
-		while comp != null and not comp.finished() and guard < 12:
-			_play_cup_round("cup" if comp == national_cup else "cont", [], rng)
-			guard += 1
+	var guard := 0
+	var left := true
+	while left and guard < 500:
+		left = false
+		for i in cups.size():
+			var comp: Competition = cups[i]["comp"]
+			if comp != null and not comp.finished():
+				_play_cup_round(i, [], rng)
+				left = true
+				guard += 1
+				break
 
 
 ## Hasta dónde llegó un equipo en una copa: "Campeón", "Final", "Semifinales"...
@@ -1339,20 +1539,62 @@ static func cup_reach(comp: Competition, team_i: int) -> String:
 		for g in comp.rounds[i]:
 			if g["home"] == team_i or g["away"] == team_i:
 				reach = comp.round_name(i)
-	if comp.kind == Competition.Kind.WORLD_CUP and reach.begins_with("Fase de grupos"):
-		return "Fase de grupos"
-	return reach
+	if comp.in_first_phase(0) and reach.begins_with("Fase "):
+		return "Fase liga" if comp.ko == "swiss" else "Fase de grupos"
+	return reach.trim_suffix(" · ida").trim_suffix(" · vuelta")
+
+
+## Finalista (el que perdió la final) o -1.
+static func _finalist(comp: Competition) -> int:
+	if comp.champion < 0 or comp.rounds.is_empty():
+		return -1
+	var last: Array = comp.rounds[comp.rounds.size() - 1]
+	if last.size() != 1:
+		return -1
+	var g: Dictionary = last[0]
+	return g["away"] if g["home"] == comp.champion else g["home"]
+
+
+func _cup_record(e: Dictionary, foreign: bool = false) -> Dictionary:
+	var comp: Competition = e["comp"]
+	var fin := _finalist(comp)
+	return {"name": e["name"], "type": e["type"], "champion": comp.team(comp.champion).team_name,
+		"champion_path": comp.team_paths[comp.champion], "finalist_path": comp.team_paths[fin] if fin >= 0 else "",
+		"user": "" if foreign else cup_reach(comp, comp.user_team), "foreign": foreign}
 
 
 func _cups_summary(summary: Dictionary) -> void:
-	var cups := {}
-	if national_cup != null and national_cup.champion >= 0:
-		cups["national"] = {"name": national_cup_name(), "champion": national_cup.team(national_cup.champion).team_name,
-			"user": cup_reach(national_cup, national_cup.user_team)}
-	if continental != null and continental.champion >= 0:
-		cups["continental"] = {"name": cont_name, "champion": continental.team(continental.champion).team_name,
-			"user": cup_reach(continental, continental.user_team)}
-	summary["cups"] = cups
+	var out := {}
+	for e in cups:
+		var comp: Competition = e["comp"]
+		if comp != null and comp.champion >= 0:
+			out[e["id"]] = _cup_record(e)
+	summary["cups"] = out
+	_foreign_cups(summary)
+
+
+## Las copas principales de las otras confederaciones (simuladas), para la
+## Intercontinental y el Mundial de Clubes.
+func _foreign_cups(summary: Dictionary) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("%s_foreign_%d" % [country, season])
+	var cache := {}
+	var mine := CareerCups.confed_of(country)
+	for confed in CareerCups.CONTINENTAL:
+		if confed == mine or CareerCups.confed_countries(confed).is_empty():
+			continue
+		var spec: Dictionary = CareerCups.CONTINENTAL[confed][0]
+		var paths: Array[String] = []
+		paths.assign(_qualify(confed, rng, cache, false).get(spec["id"], []))
+		var c := CareerCups.continental_comp(spec, paths, "", rng.randi())
+		if c == null:
+			continue
+		var guard := 0
+		while not c.finished() and guard < 60:
+			c.complete_round([], rng.randi())
+			guard += 1
+		if c.champion >= 0:
+			summary["cups"][spec["id"]] = _cup_record({"name": spec["name"], "type": "continental", "comp": c}, true)
 
 
 func world_cup_year() -> bool:
@@ -1492,16 +1734,26 @@ func club_history() -> Array:
 	var out: Array = []
 	for s in history:
 		var u: Dictionary = s.get("user", {})
-		var cups: Dictionary = s.get("cups", {})
+		var cs: Dictionary = s.get("cups", {})
 		out.append({"season": s["season"], "year": s.get("year", ""), "division": u.get("division_name", ""),
 			"pos": int(u.get("pos", 0)), "went": String(u.get("went", "stay")), "champion": int(u.get("pos", 0)) == 1,
 			"scorer": u.get("scorer", {}),
-			"cup": String((cups.get("national", {}) as Dictionary).get("user", "")),
-			"cont": String((cups.get("continental", {}) as Dictionary).get("user", ""))})
+			"cup": String((cs.get("national", {}) as Dictionary).get("user", "")),
+			"cups": _user_cups(cs)})
 	return out
 
 
-## Palmarés de tu club: {titles: ["Primera C 2026", ...], promotions, relegations, best: "1.º en ..."}.
+## Copas que jugó tu club en una temporada: [[nombre, hasta dónde llegó]].
+static func _user_cups(cs: Dictionary) -> Array:
+	var out: Array = []
+	for id in cs:
+		var c: Dictionary = cs[id]
+		if String(c.get("user", "")) != "":
+			out.append([String(c["name"]), String(c["user"])])
+	return out
+
+
+## Palmarés de tu club: {titles: ["Primera C 2026", ...], promotions, relegations}.
 func club_honours() -> Dictionary:
 	var titles: Array = []
 	var ups := 0
@@ -1509,10 +1761,9 @@ func club_honours() -> Dictionary:
 	for h in club_history():
 		if h["champion"]:
 			titles.append("%s %s" % [h["division"], h["year"]])
-		if h["cup"] == "Campeón":
-			titles.append("%s %s" % [national_cup_name(), h["year"]])
-		if h["cont"] == "Campeón":
-			titles.append("Copa Continental %s" % h["year"])
+		for c in h["cups"]:
+			if c[1] == "Campeón":
+				titles.append("%s %s" % [c[0], h["year"]])
 		if h["went"] == "up":
 			ups += 1
 		elif h["went"] == "down":
@@ -1559,9 +1810,9 @@ func to_dict() -> Dictionary:
 		"squad_mode": squad_mode, "points": points, "world": world.to_dict(), "leagues": ls, "scorers": scorers,
 		"history": history, "season_over": season_over, "next_pid": next_pid,
 		"season_start": season_start, "transfers": transfers, "news": news,
-		"national_cup": national_cup.to_dict() if national_cup != null else {}, "cup_after": cup_after,
-		"continental": continental.to_dict() if continental != null else {}, "cont_after": cont_after,
-		"cont_name": cont_name}
+		"cups": cups.map(func(e: Dictionary) -> Dictionary:
+			return {"id": e["id"], "name": e["name"], "type": e["type"], "after": e["after"],
+				"comp": (e["comp"] as Competition).to_dict()})}
 
 
 static func from_dict(d: Dictionary) -> MasterCareer:
@@ -1587,13 +1838,18 @@ static func from_dict(d: Dictionary) -> MasterCareer:
 	m.season_start = d.get("season_start", {})
 	m.transfers = d.get("transfers", [])
 	m.news = d.get("news", [])
-	if not (d.get("national_cup", {}) as Dictionary).is_empty():
-		m.national_cup = Competition.from_dict(d["national_cup"])
-	m.cup_after = d.get("cup_after", []).map(func(x: Variant) -> int: return int(x))
-	if not (d.get("continental", {}) as Dictionary).is_empty():
-		m.continental = Competition.from_dict(d["continental"])
-	m.cont_after = d.get("cont_after", []).map(func(x: Variant) -> int: return int(x))
-	m.cont_name = String(d.get("cont_name", ""))
+	var ints := func(a: Array) -> Array: return a.map(func(x: Variant) -> int: return int(x))
+	for e in d.get("cups", []):
+		m.cups.append({"id": String(e["id"]), "name": String(e["name"]), "type": String(e.get("type", "")),
+			"after": ints.call(e.get("after", [])), "comp": Competition.from_dict(e["comp"])})
+	# Partidas de antes: la copa nacional y la continental sueltas.
+	if not d.has("cups"):
+		if not (d.get("national_cup", {}) as Dictionary).is_empty():
+			m.cups.append({"id": "national", "name": m.national_cup_name(), "type": "national",
+				"after": ints.call(d.get("cup_after", [])), "comp": Competition.from_dict(d["national_cup"])})
+		if not (d.get("continental", {}) as Dictionary).is_empty():
+			m.cups.append({"id": "continental", "name": String(d.get("cont_name", "Copa Continental")), "type": "continental",
+				"after": ints.call(d.get("cont_after", [])), "comp": Competition.from_dict(d["continental"])})
 	return m
 
 
