@@ -63,8 +63,7 @@
      "home": "d71920/ffffff/d71920",
      "away": "ffffff/ffffff/ffffff",
      "stadium": "Garcilaso de la Vega",
-     "cap": 45000,
-     "r": 0
+     "cap": 45000
     },
     {
      "id": "cuscofc",
@@ -73,8 +72,7 @@
      "home": "f5c400/101820/f5c400",
      "away": "101820/101820/101820",
      "stadium": "Garcilaso de la Vega",
-     "cap": 45000,
-     "r": 0
+     "cap": 45000
     },
     {
      "id": "alianzaatl",

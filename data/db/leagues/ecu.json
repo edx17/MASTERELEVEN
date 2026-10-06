@@ -63,8 +63,7 @@
      "home": "1c3a8f/ffffff/1c3a8f|band|ffffff",
      "away": "ffffff/ffffff/ffffff",
      "stadium": "Olímpico Atahualpa",
-     "cap": 35000,
-     "r": 0
+     "cap": 35000
     },
     {
      "id": "aucas",
@@ -73,8 +72,7 @@
      "home": "f5c400/d71920/f5c400",
      "away": "ffffff/ffffff/ffffff",
      "stadium": "Gonzalo Pozo Ripalda",
-     "cap": 21000,
-     "r": 0
+     "cap": 21000
     },
     {
      "id": "orense",
@@ -83,8 +81,7 @@
      "home": "00843d/ffffff/00843d",
      "away": "ffffff/ffffff/ffffff",
      "stadium": "9 de Mayo",
-     "cap": 16000,
-     "r": 0
+     "cap": 16000
     },
     {
      "id": "libertadec",

@@ -73,8 +73,7 @@
      "home": "00843d/ffffff/00843d",
      "away": "ffffff/ffffff/ffffff",
      "stadium": "Deportivo Cali",
-     "cap": 42000,
-     "r": 0
+     "cap": 42000
     },
     {
      "id": "medellin",
@@ -163,8 +162,7 @@
      "home": "f5c400/00843d/f5c400",
      "away": "ffffff/ffffff/ffffff",
      "stadium": "Américo Montanini",
-     "cap": 28000,
-     "r": 0
+     "cap": 28000
     },
     {
      "id": "chico",

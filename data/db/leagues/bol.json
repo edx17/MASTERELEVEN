@@ -53,8 +53,7 @@
      "home": "6cb4e4/ffffff/6cb4e4",
      "away": "ffffff/ffffff/ffffff",
      "stadium": "Ramón Tahuichi Aguilera",
-     "cap": 38000,
-     "r": 0
+     "cap": 38000
     },
     {
      "id": "orientepetrolero",
@@ -63,8 +62,7 @@
      "home": "00843d/ffffff/00843d|stripes|ffffff",
      "away": "ffffff/ffffff/ffffff",
      "stadium": "Ramón Tahuichi Aguilera",
-     "cap": 38000,
-     "r": 0
+     "cap": 38000
     },
     {
      "id": "auroraboliv",
@@ -83,8 +81,7 @@
      "home": "ffffff/d71920/ffffff|band|d71920",
      "away": "d71920/d71920/d71920",
      "stadium": "Víctor Agustín Ugarte",
-     "cap": 32000,
-     "r": 0
+     "cap": 32000
     },
     {
      "id": "independientebo",

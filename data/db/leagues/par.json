@@ -63,8 +63,7 @@
      "home": "ffffff/1c3a8f/d71920|stripes|1c3a8f",
      "away": "1c3a8f/1c3a8f/1c3a8f",
      "stadium": "Arsenio Erico",
-     "cap": 4500,
-     "r": 0
+     "cap": 4500
     },
     {
      "id": "luqueno",
@@ -73,8 +72,7 @@
      "home": "1c3a8f/ffffff/1c3a8f|stripes|f5c400",
      "away": "ffffff/ffffff/ffffff",
      "stadium": "Feliciano Cáceres",
-     "cap": 25000,
-     "r": 0
+     "cap": 25000
     },
     {
      "id": "trinidense",

@@ -53,8 +53,7 @@
      "home": "6a2c91/ffffff/6a2c91",
      "away": "ffffff/ffffff/ffffff",
      "stadium": "Brígido Iriarte",
-     "cap": 12000,
-     "r": 0
+     "cap": 12000
     },
     {
      "id": "ucv",
@@ -63,8 +62,7 @@
      "home": "1c3a8f/ffffff/1c3a8f",
      "away": "ffffff/ffffff/ffffff",
      "stadium": "Olímpico de la UCV",
-     "cap": 23000,
-     "r": 0
+     "cap": 23000
     },
     {
      "id": "portuguesa",
@@ -73,8 +71,7 @@
      "home": "d71920/101820/d71920",
      "away": "ffffff/ffffff/ffffff",
      "stadium": "José Antonio Páez",
-     "cap": 18000,
-     "r": 0
+     "cap": 18000
     },
     {
      "id": "estudiantesmer",
@@ -93,8 +90,7 @@
      "home": "8b1e2d/ffffff/8b1e2d",
      "away": "ffffff/ffffff/ffffff",
      "stadium": "Misael Delgado",
-     "cap": 10000,
-     "r": 0
+     "cap": 10000
     },
     {
      "id": "puertocabello",
@@ -103,8 +99,7 @@
      "home": "f5c400/1c3a8f/f5c400|band|1c3a8f",
      "away": "ffffff/ffffff/ffffff",
      "stadium": "La Bombonerita",
-     "cap": 7500,
-     "r": 0
+     "cap": 7500
     },
     {
      "id": "zamora",
