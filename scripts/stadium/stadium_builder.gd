@@ -60,6 +60,9 @@ static func build(home: TeamData, away: TeamData = null, style: Dictionary = {})
 		"home": home.color if home != null else Color(0.8, 0.15, 0.15),
 		"home2": home.secondary_color if home != null else Color.WHITE,
 		"away": away.color if away != null else Color(0.2, 0.3, 0.8),
+		"away2": away.secondary_color if away != null else Color.WHITE,
+		"home_crest": home.crest if home != null else null,
+		"away_crest": away.crest if away != null else null,
 	}
 	var ctx := {"seat": seat_color, "text_color": text_color, "fans": fans, "style": style}
 	var gap: float = style["gap"]
@@ -198,6 +201,7 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 	rng.seed = hash(stand_name)
 	var people: Array[Transform3D] = []
 	var people_custom: Array[Color] = []
+	var flags: Array[Vector3] = []
 	var idx := 0
 	var row_global := 0
 	var y := 0.0
@@ -288,6 +292,8 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 						Vector3(x + rng.randf_range(-0.05, 0.05), y, z + ROW_DEPTH * 0.5))
 					people.append(tf)
 					people_custom.append(_fan_color(rng, fans, away_end))
+					if rng.randf() < FLAG_CHANCE:
+						flags.append(Vector3(x, y, z + ROW_DEPTH * 0.5))
 			y += ROW_RISE
 			z += ROW_DEPTH
 			row_global += 1
@@ -312,6 +318,8 @@ static func _stand(root: Node3D, stand_name: String, outward: Vector3, length: f
 		fascia_mi.material_override = _mat(Color(0.2, 0.21, 0.24), 0.6)
 		stand.add_child(fascia_mi)
 
+	if not flags.is_empty():
+		_flags(stand, flags, fans, away_end, rng)
 	if not people.is_empty():
 		var crowd_mm := MultiMesh.new()
 		crowd_mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -666,19 +674,20 @@ static func _person_mesh() -> Mesh:
 	var skin := Color(1, 0, 0)
 	var hair := Color(0, 1, 0)
 	var pants := Color(0, 0, 1)
-	# Muslos (hacia adelante) y piernas (hacia abajo).
+	# De bloques (como los jugadores): muslos hacia adelante y piernas hacia
+	# abajo (al irse se estiran: crowd.gdshader), torso, brazos y cabeza
+	# cúbica con el pelo arriba y atrás.
 	for sx: float in [-0.1, 0.1]:
 		_cbox(st, Vector3(sx, 0.47, -0.12), Vector3(0.13, 0.12, 0.34), pants)
 		_cbox(st, Vector3(sx, 0.25, -0.27), Vector3(0.11, 0.38, 0.11), pants)
-	# Torso trapecial (cintura 0,3, hombros 0,42).
-	_trapezoid(st, 0.55, 0.98, 0.3, 0.42, 0.2, cloth)
-	# Brazos: manga y antebrazo, apenas separados del cuerpo.
+	_cbox(st, Vector3(0.0, 0.765, 0.0), Vector3(0.36, 0.43, 0.2), cloth)
 	for sx: float in [-1.0, 1.0]:
-		_cbox(st, Vector3(sx * 0.25, 0.85, 0.0), Vector3(0.1, 0.22, 0.12), cloth)
-		_cbox(st, Vector3(sx * 0.26, 0.65, -0.05), Vector3(0.08, 0.22, 0.09), skin)
-	# Cuello y cabeza (prisma octogonal con tapas: se lee redonda a distancia).
-	_cbox(st, Vector3(0.0, 1.02, 0.0), Vector3(0.09, 0.08, 0.09), skin)
-	_head(st, Vector3(0.0, 1.15, 0.0), 0.1, 0.22, skin, hair)
+		_cbox(st, Vector3(sx * 0.235, 0.86, 0.0), Vector3(0.11, 0.2, 0.12), cloth)
+		_cbox(st, Vector3(sx * 0.235, 0.65, -0.03), Vector3(0.09, 0.22, 0.1), skin)
+	_cbox(st, Vector3(0.0, 1.02, 0.0), Vector3(0.09, 0.07, 0.09), skin)
+	_cbox(st, Vector3(0.0, 1.15, 0.0), Vector3(0.2, 0.2, 0.2), skin)
+	_cbox(st, Vector3(0.0, 1.265, 0.012), Vector3(0.21, 0.04, 0.21), hair)
+	_cbox(st, Vector3(0.0, 1.17, 0.09), Vector3(0.21, 0.16, 0.035), hair)
 	st.generate_normals()
 	_person = st.commit()
 	return _person
@@ -688,49 +697,6 @@ static func _person_mesh() -> Mesh:
 static func _cbox(st: SurfaceTool, c: Vector3, size: Vector3, col: Color) -> void:
 	st.set_color(col)
 	_box(st, c - size * 0.5, c + size * 0.5)
-
-
-## Torso: caja más angosta abajo (y0) que arriba (y1).
-static func _trapezoid(st: SurfaceTool, y0: float, y1: float, w0: float, w1: float, d: float, col: Color) -> void:
-	st.set_color(col)
-	var v := [
-		Vector3(-w0 * 0.5, y0, -d * 0.5), Vector3(w0 * 0.5, y0, -d * 0.5), Vector3(w1 * 0.5, y1, -d * 0.5), Vector3(-w1 * 0.5, y1, -d * 0.5),
-		Vector3(-w0 * 0.5, y0, d * 0.5), Vector3(w0 * 0.5, y0, d * 0.5), Vector3(w1 * 0.5, y1, d * 0.5), Vector3(-w1 * 0.5, y1, d * 0.5),
-	]
-	var faces := [[0, 1, 2, 3], [5, 4, 7, 6], [4, 0, 3, 7], [1, 5, 6, 2], [3, 2, 6, 7], [4, 5, 1, 0]]
-	for f in faces:
-		st.add_vertex(v[f[0]])
-		st.add_vertex(v[f[1]])
-		st.add_vertex(v[f[2]])
-		st.add_vertex(v[f[0]])
-		st.add_vertex(v[f[2]])
-		st.add_vertex(v[f[3]])
-
-
-## Cabeza: prisma de 8 lados (cara de piel, parte de arriba y nuca de pelo).
-static func _head(st: SurfaceTool, c: Vector3, r: float, h: float, skin: Color, hair: Color) -> void:
-	var n := 8
-	var y0 := c.y - h * 0.5
-	var y1 := c.y + h * 0.5
-	for i in n:
-		var a0 := TAU * i / n
-		var a1 := TAU * (i + 1) / n
-		var p0 := Vector3(c.x + cos(a0) * r, 0.0, c.z + sin(a0) * r)
-		var p1 := Vector3(c.x + cos(a1) * r, 0.0, c.z + sin(a1) * r)
-		# Nuca (z > 0: atrás, del lado contrario a la cancha) con pelo.
-		var back := sin((a0 + a1) * 0.5) > 0.3
-		st.set_color(hair if back else skin)
-		st.add_vertex(Vector3(p0.x, y0, p0.z))
-		st.add_vertex(Vector3(p0.x, y1, p0.z))
-		st.add_vertex(Vector3(p1.x, y1, p1.z))
-		st.add_vertex(Vector3(p0.x, y0, p0.z))
-		st.add_vertex(Vector3(p1.x, y1, p1.z))
-		st.add_vertex(Vector3(p1.x, y0, p1.z))
-		# Tapa de arriba (pelo), un poco abombada.
-		st.set_color(hair)
-		st.add_vertex(Vector3(c.x, y1 + r * 0.45, c.z))
-		st.add_vertex(Vector3(p1.x, y1, p1.z))
-		st.add_vertex(Vector3(p0.x, y1, p0.z))
 
 
 static func _seat_mesh() -> ArrayMesh:
@@ -782,6 +748,85 @@ static func _vomitory(dark: SurfaceTool, frame: SurfaceTool, x: float, y0: float
 	_box(frame, Vector3(x - VOM_HALF - 0.15, y0, z0), Vector3(x - VOM_HALF, y0 + h, z0 + d))
 	_box(frame, Vector3(x + VOM_HALF, y0, z0), Vector3(x + VOM_HALF + 0.15, y0 + h, z0 + d))
 	_box(frame, Vector3(x - VOM_HALF - 0.15, y0 + h, z0), Vector3(x + VOM_HALF + 0.15, y0 + h + 0.15, z0 + d))
+
+
+## Hinchas que tienen una bandera con mástil (de cada cien).
+const FLAG_CHANCE := 0.012
+static var _flag_tex := {}
+
+
+## Banderas que flamean en la tribuna, con los colores del club (y su
+## escudo, si se importó uno en el editor): franjas, mitades o banda.
+static func _flags(stand: Node3D, spots: Array[Vector3], fans: Dictionary, away_end: bool,
+		rng: RandomNumberGenerator) -> void:
+	var poles := SurfaceTool.new()
+	poles.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var shader := preload("res://scripts/stadium/flag.gdshader")
+	for sp in spots:
+		var top := sp + Vector3(0.0, 3.1, 0.0)
+		_box(poles, sp + Vector3(-0.02, 0.6, -0.02), top + Vector3(0.02, 0.0, 0.02))
+		var a: Color = fans["away"] if away_end else fans["home"]
+		var b: Color = fans["away2"] if away_end else fans["home2"]
+		var crest: Texture2D = fans.get("away_crest" if away_end else "home_crest")
+		var design := rng.randi() % 4
+		var with_crest := crest != null and rng.randf() < 0.5
+		var mi := MeshInstance3D.new()
+		var q := QuadMesh.new()
+		q.size = Vector2(1.7, 1.05)
+		q.subdivide_width = 10
+		q.subdivide_depth = 4
+		mi.mesh = q
+		var m := ShaderMaterial.new()
+		m.shader = shader
+		m.set_shader_parameter("tex", flag_texture(a, b, design, crest if with_crest else null))
+		m.set_shader_parameter("phase", rng.randf() * TAU)
+		mi.material_override = m
+		mi.position = top + Vector3(0.85, -0.55, 0.0)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+		stand.add_child(mi)
+	poles.generate_normals()
+	var pm := MeshInstance3D.new()
+	pm.mesh = poles.commit()
+	pm.material_override = _mat(Color(0.75, 0.75, 0.78), 0.4)
+	pm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	stand.add_child(pm)
+
+
+## Tela de la bandera: 0 dos franjas horizontales, 1 tres verticales,
+## 2 banda en diagonal, 3 mitades verticales; con el escudo al centro.
+static func flag_texture(a: Color, b: Color, design: int, crest: Texture2D = null) -> Texture2D:
+	var key := "%s|%s|%d|%d" % [a.to_html(), b.to_html(), design, crest.get_instance_id() if crest != null else 0]
+	if _flag_tex.has(key):
+		return _flag_tex[key]
+	var w := 96
+	var h := 60
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	for y in h:
+		for x in w:
+			var c := a
+			match design:
+				0:
+					c = a if y < h / 2 else b
+				1:
+					c = b if x >= w / 3 and x < 2 * w / 3 else a
+				2:
+					c = b if absf(float(x) / w - float(y) / h) < 0.18 else a
+				_:
+					c = a if x < w / 2 else b
+			img.set_pixel(x, y, c)
+	if crest != null:
+		var ci := crest.get_image()
+		if ci != null:
+			ci = ci.duplicate()
+			if ci.is_compressed():
+				ci.decompress()
+			ci.convert(Image.FORMAT_RGBA8)
+			ci.resize(40, 40)
+			img.blend_rect(ci, Rect2i(0, 0, 40, 40), Vector2i(w / 2 - 20, h / 2 - 20))
+	var tex := ImageTexture.create_from_image(img)
+	_flag_tex[key] = tex
+	return tex
 
 
 ## Banderas colgadas de la baranda (dos franjas con los colores del club).
