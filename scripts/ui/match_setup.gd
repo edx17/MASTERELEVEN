@@ -13,19 +13,27 @@ var _thumb: TextureRect
 var _kits: Array[WEStyle.KitIcon] = []
 var _kit_labels: Array[Label] = []
 var _help: Label
+var _stadium: Label
+var _frame: WEStyle.ScreenFrame
 var _home: TeamData
 var _away: TeamData
 
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var title := WEStyle.label("PARTIDO", 30, Color(1.0, 0.9, 0.35))
-	title.position = Vector2(70, 40)
-	add_child(title)
+	_frame = WEStyle.ScreenFrame.new("Configuración del partido",
+		[[&"ui_navigate", "Cambiar"], [&"ui_accept", "Aceptar"], [&"ui_cancel", "Volver"]])
+	add_child(_frame)
+	_frame.crumb.text = "PARTIDO  /  CONFIGURACIÓN"
+	_frame.title.text = "CONFIGURACIÓN DEL PARTIDO"
+	var row := HBoxContainer.new()
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", int(WEStyle.px(40)))
+	_frame.body.add_child(row)
 	var list := VBoxContainer.new()
-	list.position = Vector2(70, 86)
-	list.add_theme_constant_override("separation", 3)
-	add_child(list)
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", int(WEStyle.px(2)))
+	row.add_child(list)
 	_add(list, "Horario", func() -> String: return _choice(GameSettings.time_choice, MatchConditions.TIME_NAMES),
 		_cycle.bind("time_choice", MatchConditions.TIME_NAMES.size()), "Tarde, atardecer o noche (con las luces del estadio).")
 	_add(list, "Clima", func() -> String: return _choice(GameSettings.weather_choice, MatchConditions.WEATHER_NAMES),
@@ -59,58 +67,94 @@ func _ready() -> void:
 			return GameSettings.PLAYER_STYLE_NAMES[clampi(GameSettings.player_style, 0, GameSettings.PLAYER_STYLE_NAMES.size() - 1)],
 		func(d: int) -> void: GameSettings.player_style = posmod(GameSettings.player_style + d, GameSettings.PLAYER_STYLE_NAMES.size()),
 		"Modelo de los jugadores. Clásicos: pocos polígonos, como el WE de PS1. Retro (beta): el modelo base estilo PS1. Detallados: el modelo con músculos. Bloques: cuadrados, con rodillas y codos que se doblan.")
-	# Jugar y Volver lado a lado, para que todo entre arriba de la caja de ayuda.
+	# Jugar y Volver lado a lado, abajo de las opciones.
 	var buttons := HBoxContainer.new()
-	buttons.add_theme_constant_override("separation", 8)
+	buttons.add_theme_constant_override("separation", int(WEStyle.px(16)))
+	list.add_child(_spacer())
 	list.add_child(buttons)
-	var go := WEStyle.bar("Jugar", func() -> void: play.emit(), 276.0, 22)
+	var go := WEStyle.make_action_button("Jugar el partido", func() -> void: play.emit(), true)
+	go.name = "Play"
+	go.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	go.focus_entered.connect(func() -> void: _help.text = "Arranca la previa del partido (con la Dirección del equipo).")
 	buttons.add_child(go)
-	var ret := WEStyle.bar("Volver", func() -> void: back.emit(), 276.0, 22)
+	var ret := WEStyle.make_action_button("Volver", func() -> void: back.emit())
+	ret.name = "Back"
+	ret.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ret.focus_entered.connect(func() -> void: _help.text = "Volver a elegir los equipos.")
 	buttons.add_child(ret)
-	# Derecha: estadio y uniformes.
-	var right := WEStyle.panel(Vector2(500, 0))
-	right.position = Vector2(700, 86)
-	add_child(right)
+	# Derecha: estadio, uniformes y la ayuda de la opción elegida.
+	var right := PanelContainer.new()
+	var sb := WEStyle.make_panel_style()
+	var pad := WEStyle.px(WEStyle.CARD_PADDING)
+	sb.content_margin_left = pad
+	sb.content_margin_right = pad
+	sb.content_margin_top = pad
+	sb.content_margin_bottom = pad
+	right.add_theme_stylebox_override("panel", sb)
+	right.custom_minimum_size.x = WEStyle.px(700)
+	row.add_child(right)
 	var rbox := VBoxContainer.new()
+	rbox.add_theme_constant_override("separation", int(WEStyle.px(12)))
 	right.add_child(rbox)
+	rbox.add_child(WEStyle.make_caption_label("Estadio"))
+	_stadium = WEStyle.make_title_label("", WEStyle.TITLE_M)
+	_stadium.clip_text = true
+	rbox.add_child(_stadium)
 	_thumb = TextureRect.new()
-	_thumb.custom_minimum_size = Vector2(476, 268)
+	_thumb.custom_minimum_size = Vector2(0, WEStyle.px(340))
 	_thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_thumb.clip_contents = true
 	rbox.add_child(_thumb)
 	var kits := HBoxContainer.new()
-	kits.alignment = BoxContainer.ALIGNMENT_CENTER
-	kits.add_theme_constant_override("separation", 60)
+	kits.add_theme_constant_override("separation", int(WEStyle.px(24)))
 	rbox.add_child(kits)
 	for i in 2:
-		var col := VBoxContainer.new()
-		kits.add_child(col)
+		var kh := HBoxContainer.new()
+		kh.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		kh.add_theme_constant_override("separation", int(WEStyle.px(12)))
+		kits.add_child(kh)
 		var kit := WEStyle.KitIcon.new()
-		kit.custom_minimum_size = Vector2(110, 110)
-		col.add_child(kit)
+		kit.custom_minimum_size = Vector2(WEStyle.px(96), WEStyle.px(104))
+		kh.add_child(kit)
 		_kits.append(kit)
-		var l := WEStyle.label("", 16)
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		col.add_child(l)
+		var kv := VBoxContainer.new()
+		kv.alignment = BoxContainer.ALIGNMENT_CENTER
+		kv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		kv.add_child(WEStyle.make_caption_label("Local" if i == 0 else "Visitante"))
+		var l := WEStyle.make_body_label("", WEStyle.BODY_L)
+		l.clip_text = true
+		kv.add_child(l)
+		kh.add_child(kv)
 		_kit_labels.append(l)
-	_help = WEStyle.help_box(self)
+	rbox.add_child(WEStyle.make_separator())
+	_help = WEStyle.make_body_label("", WEStyle.BODY_M, WEStyle.TEXT_DIM, true)
+	_help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_help.custom_minimum_size.x = WEStyle.px(600)
+	rbox.add_child(_help)
+
+
+func _spacer() -> Control:
+	var c := Control.new()
+	c.custom_minimum_size.y = WEStyle.px(12)
+	return c
 
 
 func open() -> void:
 	visible = true
 	_home = GameSettings.home_team()
 	_away = GameSettings.away_team()
+	_frame.title_info.text = "%s  vs  %s" % [_home.team_name, _away.team_name] if _home != null and _away != null else ""
 	_refresh()
 	_rows[0].grab_focus()
+	WEStyle.fade_in(_frame)
 
 
 func _add(list: VBoxContainer, caption: String, getter: Callable, stepper: Callable, help: String) -> void:
 	var row := WEStyle.OptionRow.new(caption, getter, func(d: int) -> void:
 		stepper.call(d)
-		_refresh(), help)
-	row.custom_minimum_size.y = 33
+		_refresh(), help, WEStyle.px(900))
+	row.use_modern_style()
 	row.focus_entered.connect(func() -> void: _help.text = help)
 	list.add_child(row)
 	_rows.append(row)
@@ -121,6 +165,7 @@ func _refresh() -> void:
 	for r in _rows:
 		r.queue_redraw()
 	_thumb.texture = load("res://scripts/ui/main_menu.gd").stadium_thumbnail(GameSettings.stadium_choice)
+	_stadium.text = String(_rows[8].get_value.call()).to_upper() if _rows.size() > 8 else ""
 	if _home == null:
 		return
 	var hk := _home.kit(GameSettings.home_kit)
@@ -131,7 +176,7 @@ func _refresh() -> void:
 	_kits[0].set_kit(_home, GameSettings.home_kit)
 	_kits[1].set_kit(_away, ak_i)
 	for i in 2:
-		_kit_labels[i].text = ("LOCAL\n" if i == 0 else "VISITANTE\n") + names[i]
+		_kit_labels[i].text = "%s · %s" % [names[i], "titular" if (GameSettings.home_kit if i == 0 else ak_i) == 0 else "alternativo"]
 
 
 static func _choice(i: int, names: Array) -> String:

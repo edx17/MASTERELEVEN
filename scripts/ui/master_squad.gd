@@ -14,12 +14,17 @@ extends Control
 
 signal closed
 
-const GOLD := Color(1.0, 0.9, 0.35)
-const BLUE := Color(0.6, 0.8, 1.0)
-const RED := Color(1.0, 0.55, 0.5)
-const GREEN := Color(0.55, 1.0, 0.6)
+const GOLD := WEStyle.ACCENT
+const BLUE := WEStyle.TEXT_DIM
+const RED := WEStyle.DANGER
+const GREEN := WEStyle.ACCENT_GREEN
+## Columnas de la lista: ancho (px de 1080; 0 = se estira) y alineación.
+const COLS := [28, 48, 72, 0, 64, 72, 64, 64, 96]
+const ALIGN := "CRLLRRRRL"
+const HINTS := [[&"ui_accept", "Marcar / cambiar"], [&"ui_navigate", "Formación"], [&"ui_cancel", "Volver"]]
 
 var career: MasterCareer
+var _frame: WEStyle.ScreenFrame
 var _list: VBoxContainer
 var _detail: VBoxContainer
 var _info: Label
@@ -32,6 +37,8 @@ var _focus_pid := -1
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	visible = false
+	_frame = WEStyle.ScreenFrame.new("Plantel", HINTS)
+	add_child(_frame)
 
 
 func open(c: MasterCareer) -> void:
@@ -39,6 +46,7 @@ func open(c: MasterCareer) -> void:
 	_marked = -1
 	visible = true
 	_rebuild()
+	WEStyle.fade_in(_frame)
 
 
 func _clear(n: Node) -> void:
@@ -47,18 +55,55 @@ func _clear(n: Node) -> void:
 		ch.queue_free()
 
 
-func _rebuild() -> void:
-	_clear(self)
-	_rows.clear()
-	var lp := WEStyle.panel(Vector2(700, 620))
-	lp.position = Vector2(40, 30)
-	add_child(lp)
+## Arma el cuerpo con dos columnas: la lista (expande) y la ficha (tarjeta).
+func _columns() -> VBoxContainer:
+	_clear(_frame.body)
+	var row := HBoxContainer.new()
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", int(WEStyle.px(40)))
+	_frame.body.add_child(row)
 	var left := VBoxContainer.new()
-	left.add_theme_constant_override("separation", 4)
-	lp.add_child(left)
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.add_theme_constant_override("separation", int(WEStyle.px(8)))
+	row.add_child(left)
+	var card := WEStyle.make_card()
+	card.custom_minimum_size.x = WEStyle.px(620)
+	row.add_child(card)
+	_detail = VBoxContainer.new()
+	_detail.add_theme_constant_override("separation", int(WEStyle.px(6)))
+	card.add_child(_detail)
+	return left
+
+
+func _scroll(left: VBoxContainer) -> VBoxContainer:
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	left.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 0)
+	scroll.add_child(list)
+	return list
+
+
+func _section(text: String) -> Label:
+	var l := WEStyle.make_caption_label(text)
+	l.custom_minimum_size.y = WEStyle.px(WEStyle.HEADER_ROW_H)
+	l.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	return l
+
+
+func _rebuild() -> void:
+	_rows.clear()
 	var t := career.user_team()
 	_players = t.players
-	left.add_child(WEStyle.label("PLANTEL Y DIRECCIÓN  ·  %s" % t.team_name, 22, GOLD))
+	_frame.crumb.text = "LIGA MASTER  /  PLANTEL"
+	_frame.title.text = "PLANTEL Y FORMACIÓN"
+	_frame.title_info.text = "%s · %s" % [t.team_name, career.formation_name()]
+	_frame.footer.set_hints(HINTS)
+	var left := _columns()
 	var forms := MasterCareer.FORMATIONS
 	var frow := WEStyle.OptionRow.new("Formación", func() -> String: return career.formation_name(),
 		func(dir: int) -> void:
@@ -66,41 +111,29 @@ func _rebuild() -> void:
 			career.set_formation(forms[wrapi(i + dir, 0, forms.size())])
 			career.save()
 			_marked = -1
-			_rebuild.call_deferred(), "", 676.0)
+			_rebuild.call_deferred(), "", WEStyle.px(1000))
+	frow.use_modern_style()
 	left.add_child(frow)
-	left.add_child(_cells(["", "N°", "Puesto", "Nombre", "Edad", "Media", "Evol.", "Goles", "Estado"], BLUE, 14))
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(676, 420)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.follow_focus = true
-	left.add_child(scroll)
-	_list = VBoxContainer.new()
-	_list.add_theme_constant_override("separation", 1)
-	scroll.add_child(_list)
+	left.add_child(_header(["", "N°", "Puesto", "Nombre", "Edad", "Media", "Evol.", "Goles", "Estado"]))
+	_list = _scroll(left)
+	_list.add_child(_section("Titulares"))
 	for i in _players.size():
 		_list.add_child(_row(i))
 		if i == 10:
-			_list.add_child(WEStyle.label("  Suplentes", 14, BLUE))
+			_list.add_child(_section("Suplentes"))
 		if i == 22 and _players.size() > 23:
-			_list.add_child(WEStyle.label("  Fuera de la lista (al partido van 23)", 14, BLUE))
+			_list.add_child(_section("Fuera de la lista (al partido van 23)"))
 	var btns := HBoxContainer.new()
-	btns.add_theme_constant_override("separation", 8)
+	btns.add_theme_constant_override("separation", int(WEStyle.px(16)))
 	left.add_child(btns)
-	btns.add_child(WEStyle.bar("Mejor once", func() -> void:
-		career.auto_lineup()
-		career.save()
-		_marked = -1
-		_rebuild.call_deferred(), 216.0, 20))
-	btns.add_child(WEStyle.bar("Inferiores", _open_youth, 216.0, 20))
-	btns.add_child(WEStyle.bar("Volver", _close, 216.0, 20))
-	# Derecha: la ficha.
-	var rp := WEStyle.panel(Vector2(480, 620))
-	rp.position = Vector2(760, 30)
-	add_child(rp)
-	_detail = VBoxContainer.new()
-	_detail.add_theme_constant_override("separation", 2)
-	rp.add_child(_detail)
-	_info = WEStyle.label("", 15, Color(0.8, 0.85, 0.95))
+	for spec in [["Mejor once", func() -> void:
+			career.auto_lineup()
+			career.save()
+			_marked = -1
+			_rebuild.call_deferred()], ["Inferiores", _open_youth], ["Volver", _close]]:
+		var b := WEStyle.make_action_button(spec[0], spec[1])
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btns.add_child(b)
 	var focus_i := 0
 	for i in _players.size():
 		if _players[i].pid == _focus_pid:
@@ -110,48 +143,38 @@ func _rebuild() -> void:
 		_show_detail(focus_i)
 
 
-## Ancho de cada columna de la lista.
-const COLS := [22, 40, 62, 240, 50, 56, 50, 50, 80]
+## Fila de celdas con las columnas de COLS.
+func _cells(texts: Array, color: Color, _fs: int = 0, header: bool = false) -> HBoxContainer:
+	return WEStyle.make_cells(texts, COLS, ALIGN, header, color)
 
 
-## Fila de celdas de ancho fijo (para que las columnas queden alineadas).
-func _cells(texts: Array, color: Color, fs: int) -> HBoxContainer:
-	var h := HBoxContainer.new()
-	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	h.add_theme_constant_override("separation", 4)
-	for k in texts.size():
-		var l := WEStyle.label(String(texts[k]), fs, color)
-		l.custom_minimum_size = Vector2(COLS[k], 0)
-		l.clip_text = true
-		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		h.add_child(l)
-	return h
+## Encabezado de la tabla, con el mismo margen que las filas.
+func _header(texts: Array) -> Control:
+	var m := MarginContainer.new()
+	m.add_theme_constant_override("margin_left", int(WEStyle.px(12)))
+	m.add_theme_constant_override("margin_right", int(WEStyle.px(12)))
+	m.custom_minimum_size.y = WEStyle.px(WEStyle.HEADER_ROW_H)
+	m.add_child(_cells(texts, BLUE, 0, true))
+	return m
 
 
 func _row(i: int) -> Button:
 	var p := _players[i]
 	var d := career.user_player_dict(p.pid)
-	var b := Button.new()
-	b.custom_minimum_size = Vector2(660, 28)
-	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.add_theme_font_size_override("font_size", 16)
 	var status := ""
 	if int(d.get("inj", 0)) > 0:
-		status = "  LES %d" % int(d["inj"])
+		status = "LES %d" % int(d["inj"])
 	elif int(d.get("susp", 0)) > 0:
-		status = "  SUS %d" % int(d["susp"])
+		status = "SUS %d" % int(d["susp"])
 	var mark := "▶" if i == _marked else ("●" if i < 11 else "")
-	WEStyle.style_bar(b)
-	var c := RED if status != "" else (GOLD if i == _marked else Color.WHITE)
+	var c := RED if status != "" else (GOLD if i == _marked else WEStyle.TEXT_MAIN)
 	var ev := career.overall_delta(p.pid)
 	var cells := _cells([mark, str(p.number), p.role_code, p.player_name, str(p.get_age()),
-		str(roundi(TeamDB.overall(p))), ("%+d" % ev) if ev != 0 else "", str(career.goals_of(p.pid)), status.strip_edges()], c, 16)
+		str(roundi(TeamDB.overall(p))), ("%+d" % ev) if ev != 0 else "", str(career.goals_of(p.pid)), status], c)
+	(cells.get_child(0) as Label).add_theme_color_override("font_color", GOLD if i == _marked else GREEN)
 	if ev != 0:
 		(cells.get_child(6) as Label).add_theme_color_override("font_color", GREEN if ev > 0 else RED)
-	cells.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	cells.offset_left = 14
-	b.add_child(cells)
+	var b := WEStyle.make_row_button(cells, i == _marked)
 	b.focus_entered.connect(func() -> void: _show_detail(i))
 	b.pressed.connect(_on_row.bind(i))
 	_rows.append(b)
@@ -180,43 +203,53 @@ func _show_detail(i: int) -> void:
 	var p := _players[i]
 	_focus_pid = p.pid
 	var d := career.user_player_dict(p.pid)
-	_detail.add_child(WEStyle.label(p.player_name, 22, GOLD))
-	_detail.add_child(WEStyle.label("%s · %d años · %d cm · %s · media %d" % [p.role_code, p.get_age(), p.height_cm(),
-		["diestro", "zurdo", "ambidiestro"][clampi(p.foot, 0, 2)], roundi(TeamDB.overall(p))], 15))
+	_detail.add_child(WEStyle.make_caption_label("%s · N° %d" % [p.role_code, p.number], GOLD))
+	_detail.add_child(WEStyle.make_title_label(p.player_name.to_upper(), WEStyle.TITLE_M))
+	_detail.add_child(WEStyle.make_body_label("%d años · %d cm · %s · media %d" % [p.get_age(), p.height_cm(),
+		["diestro", "zurdo", "ambidiestro"][clampi(p.foot, 0, 2)], roundi(TeamDB.overall(p))], WEStyle.BODY_M, WEStyle.TEXT_DIM))
 	var st := "Titular" if i < 11 else "Suplente"
 	if int(d.get("inj", 0)) > 0:
 		st = "Lesionado: %d fecha%s" % [int(d["inj"]), "" if int(d["inj"]) == 1 else "s"]
 	elif int(d.get("susp", 0)) > 0:
 		st = "Suspendido: %d fecha%s" % [int(d["susp"]), "" if int(d["susp"]) == 1 else "s"]
-	_detail.add_child(WEStyle.label("%s · Goles: %d · Amarillas: %d" % [st, career.goals_of(p.pid), int(d.get("yc", 0))], 15,
-		RED if st.begins_with("Les") or st.begins_with("Sus") else Color.WHITE))
-	_detail.add_child(WEStyle.label("Atributos (cambio en la temporada)", 15, BLUE))
+	_detail.add_child(WEStyle.make_body_label("%s · Goles: %d · Amarillas: %d" % [st, career.goals_of(p.pid), int(d.get("yc", 0))],
+		WEStyle.BODY_M, RED if st.begins_with("Les") or st.begins_with("Sus") else WEStyle.TEXT_MAIN))
+	_detail.add_child(WEStyle.make_separator())
+	_detail.add_child(WEStyle.make_caption_label("Atributos · cambio en la temporada"))
 	var grid := GridContainer.new()
 	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 14)
+	grid.add_theme_constant_override("h_separation", int(WEStyle.px(16)))
 	grid.add_theme_constant_override("v_separation", 0)
 	_detail.add_child(grid)
 	for k in PlayerData.ATTRIBUTES.size():
 		var attr: String = PlayerData.ATTRIBUTES[k]
 		var v := int(p.get(attr))
 		var delta := career.attr_delta(p.pid, attr, v)
-		var name := WEStyle.label(PlayerData.ATTRIBUTE_NAMES[k], 15)
-		name.custom_minimum_size = Vector2(230, 0)
+		var name := WEStyle.make_body_label(PlayerData.ATTRIBUTE_NAMES[k], WEStyle.BODY_M, WEStyle.TEXT_DIM)
+		name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		grid.add_child(name)
-		grid.add_child(WEStyle.label(str(v), 15, TeamSheet.attribute_color(v)))
-		grid.add_child(WEStyle.label(("%+d" % delta) if delta != 0 else "", 15, GREEN if delta > 0 else RED))
+		var val := WEStyle.make_body_label(str(v), WEStyle.BODY_M, TeamSheet.attribute_color(v))
+		val.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
+		val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		val.custom_minimum_size.x = WEStyle.px(40)
+		grid.add_child(val)
+		var dl := WEStyle.make_body_label(("%+d" % delta) if delta != 0 else "", WEStyle.BODY_M, GREEN if delta > 0 else RED)
+		dl.custom_minimum_size.x = WEStyle.px(40)
+		grid.add_child(dl)
 	# Media de cada temporada (se anota en el cambio de año).
 	var hist: Array = d.get("hist", [])
 	if not hist.is_empty():
 		var parts: Array = hist.slice(maxi(0, hist.size() - 5)).map(func(h: Array) -> String: return "%s: %d" % [h[0], int(h[1])])
-		var hl := WEStyle.label("Media por temporada: " + "  ·  ".join(parts), 14, BLUE)
-		hl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		hl.custom_minimum_size = Vector2(450, 0)
-		_detail.add_child(hl)
-	var help := WEStyle.label("X sobre un jugador y después sobre otro: se cambian (queda guardado para los próximos partidos). Rojo: lesionado o suspendido; si es titular, juega el mejor libre de su puesto.", 14, Color(0.7, 0.75, 0.85))
-	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	help.custom_minimum_size = Vector2(450, 0)
-	_detail.add_child(help)
+		_detail.add_child(_note("Media por temporada: " + "  ·  ".join(parts)))
+	_detail.add_child(_note("Aceptar sobre un jugador y después sobre otro: se cambian (queda guardado para los próximos partidos). Rojo: lesionado o suspendido; si es titular, juega el mejor libre de su puesto."))
+
+
+## Nota en Barlow Italic (texto secundario con salto de línea).
+func _note(text: String) -> Label:
+	var l := WEStyle.make_body_label(text, WEStyle.BODY_S, WEStyle.TEXT_DIM, true)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size.x = WEStyle.px(560)
+	return l
 
 
 # --- Inferiores ----------------------------------------------------------------------
@@ -224,70 +257,54 @@ func _show_detail(i: int) -> void:
 ## Las inferiores (Sub-20) de tu club: los que van a subir cuando falte gente
 ## en el plantel o al cumplir 21.
 func _open_youth() -> void:
-	_clear(self)
-	var lp := WEStyle.panel(Vector2(700, 620))
-	lp.position = Vector2(40, 30)
-	add_child(lp)
-	var left := VBoxContainer.new()
-	left.add_theme_constant_override("separation", 4)
-	lp.add_child(left)
+	_rows.clear()
 	var youth: Array = career.user_youth().duplicate()
 	youth.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return MasterCareer.dict_overall(a) > MasterCareer.dict_overall(b))
-	left.add_child(WEStyle.label("INFERIORES (SUB-20)  ·  %d jugadores" % youth.size(), 22, GOLD))
-	left.add_child(_cells(["", "", "Puesto", "Nombre", "Edad", "Media", "", "", ""], BLUE, 14))
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(676, 470)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.follow_focus = true
-	left.add_child(scroll)
-	var list := VBoxContainer.new()
-	list.add_theme_constant_override("separation", 1)
-	scroll.add_child(list)
-	var rp := WEStyle.panel(Vector2(480, 620))
-	rp.position = Vector2(760, 30)
-	add_child(rp)
-	_detail = VBoxContainer.new()
-	_detail.add_theme_constant_override("separation", 2)
-	rp.add_child(_detail)
+	_frame.crumb.text = "LIGA MASTER  /  PLANTEL  /  INFERIORES"
+	_frame.title.text = "INFERIORES (SUB-20)"
+	_frame.title_info.text = "%d jugadores" % youth.size()
+	_frame.footer.set_hints([[&"ui_navigate", "Navegar"], [&"ui_cancel", "Volver"]])
+	var left := _columns()
+	left.add_child(_header(["", "", "Puesto", "Nombre", "Edad", "Media", "", "", ""]))
+	var list := _scroll(left)
 	var first: Button = null
 	for d in youth:
-		var b := Button.new()
-		b.custom_minimum_size = Vector2(660, 28)
-		WEStyle.style_bar(b)
 		var cells := _cells(["", "", String(d.get("pos", "")), String(d.get("n", "")), str(int(d.get("age", 18))),
-			str(MasterCareer.dict_overall(d)), "", "", ""], Color.WHITE, 16)
-		cells.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		cells.offset_left = 14
-		b.add_child(cells)
+			str(MasterCareer.dict_overall(d)), "", "", ""], WEStyle.TEXT_MAIN)
+		var b := WEStyle.make_row_button(cells)
 		b.focus_entered.connect(_youth_detail.bind(d))
 		list.add_child(b)
 		if first == null:
 			first = b
 	if youth.is_empty():
-		left.add_child(WEStyle.label("Tu club no tiene inferiores cargadas.", 16))
-	var back := WEStyle.bar("Volver al plantel", func() -> void: _rebuild.call_deferred(), 676.0, 20)
+		left.add_child(WEStyle.make_body_label("Tu club no tiene inferiores cargadas.", WEStyle.BODY_L, WEStyle.TEXT_DIM))
+	var back := WEStyle.make_action_button("Volver al plantel", func() -> void: _rebuild.call_deferred())
 	left.add_child(back)
 	(first if first != null else back).grab_focus()
 
 
 func _youth_detail(d: Dictionary) -> void:
 	_clear(_detail)
-	_detail.add_child(WEStyle.label(String(d.get("n", "")), 22, GOLD))
-	_detail.add_child(WEStyle.label("%s · %d años · media %d" % [d.get("pos", ""), int(d.get("age", 18)),
-		MasterCareer.dict_overall(d)], 15))
+	_detail.add_child(WEStyle.make_caption_label(String(d.get("pos", "")), GOLD))
+	_detail.add_child(WEStyle.make_title_label(String(d.get("n", "")).to_upper(), WEStyle.TITLE_M))
+	_detail.add_child(WEStyle.make_body_label("%d años · media %d" % [int(d.get("age", 18)), MasterCareer.dict_overall(d)],
+		WEStyle.BODY_M, WEStyle.TEXT_DIM))
+	_detail.add_child(WEStyle.make_separator())
 	var grid := GridContainer.new()
 	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 14)
+	grid.add_theme_constant_override("h_separation", int(WEStyle.px(16)))
 	_detail.add_child(grid)
 	var a: Dictionary = d.get("a", {})
 	for k in a:
 		var ai := PlayerData.ATTRIBUTES.find(String(k))
-		grid.add_child(WEStyle.label(String(PlayerData.ATTRIBUTE_NAMES[ai]) if ai >= 0 else String(k).capitalize(), 15))
-		grid.add_child(WEStyle.label(str(int(a[k])), 15, TeamSheet.attribute_color(int(a[k]))))
-	var help := WEStyle.label("Suben solos cuando al plantel le falta gente de su puesto (primero los mejores) o al cumplir 21 años.", 14, Color(0.7, 0.75, 0.85))
-	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	help.custom_minimum_size = Vector2(450, 0)
-	_detail.add_child(help)
+		var name := WEStyle.make_body_label(String(PlayerData.ATTRIBUTE_NAMES[ai]) if ai >= 0 else String(k).capitalize(),
+			WEStyle.BODY_M, WEStyle.TEXT_DIM)
+		name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.add_child(name)
+		var val := WEStyle.make_body_label(str(int(a[k])), WEStyle.BODY_M, TeamSheet.attribute_color(int(a[k])))
+		val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		grid.add_child(val)
+	_detail.add_child(_note("Suben solos cuando al plantel le falta gente de su puesto (primero los mejores) o al cumplir 21 años."))
 
 
 func _close() -> void:

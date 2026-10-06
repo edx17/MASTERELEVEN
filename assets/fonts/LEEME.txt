@@ -1,0 +1,12 @@
+Fuentes para Master Eleven (licencia OFL, uso libre)
+
+Instalación en Godot 4:
+1. Copiar los .ttf a res://assets/fonts/ (o la carpeta de fuentes del proyecto).
+2. Godot los importa automáticamente como FontFile.
+3. Referenciarlos desde scripts/ui/we_style.gd según la guía de implementación.
+
+Uso:
+- BebasNeue-Regular.ttf → títulos, marcadores, números grandes (64/48/32 px)
+- Barlow-Regular.ttf   → cuerpo y tablas (18/16/14 px)
+- Barlow-SemiBold.ttf  → botones, keycaps, énfasis
+- Barlow-Italic.ttf    → notas y texto secundario

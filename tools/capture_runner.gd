@@ -126,6 +126,14 @@ func _ready() -> void:
 		_script = [[20, "freeze"], [25, "late"], [26, "sheet"], [45, "shot:capture_sheet_position.png"],
 			[46, "sheet_col"], [60, "shot:capture_sheet_energy.png"], [61, "sheet_col"], [62, "sheet_mark"],
 			[80, "shot:capture_sheet_condition.png"], [85, "quit"]]
+	# `--halftime`: la pantalla del entretiempo y la del final con los puntajes.
+	if "--halftime" in OS.get_cmdline_user_args():
+		_script = [[20, "freeze"], [30, "break:half"], [60, "shot:capture_halftime.png"], [61, "break:final"],
+			[62, "break:ratings"], [90, "shot:capture_fulltime_ratings.png"], [95, "quit"]]
+	# `--pause`: la pausa y su submenú de Opciones de juego.
+	if "--pause" in OS.get_cmdline_user_args():
+		_script = [[20, "freeze"], [30, "train_pause"], [50, "shot:capture_pause.png"], [51, "pause_sub:game"],
+			[70, "shot:capture_pause_sub.png"], [75, "quit"]]
 	# `--replay`: un gol y su repetición con la ficha del goleador.
 	if "--replay" in OS.get_cmdline_user_args():
 		GameSettings.show_replays = true
@@ -383,6 +391,20 @@ func _run(action: String) -> void:
 		for c in _match.get_children():
 			if c is PauseMenu:
 				(c as PauseMenu)._toggle()
+	elif action.begins_with("break:"):
+		var hs := _match.halftime_screen
+		match action.trim_prefix("break:"):
+			"half":
+				_match.phase = MatchController.Phase.HALFTIME
+				_match._show_break()
+			"final":
+				hs.close()
+				_match.phase = MatchController.Phase.FULLTIME
+				_match._show_break()
+			"ratings":
+				hs._toggle_ratings()
+	elif action.begins_with("pause_sub:"):
+		_pause_menu()._open_sub(action.trim_prefix("pause_sub:"))
 	elif action == "until_restart":
 		for i in 1200:
 			if _match.phase == MatchController.Phase.RESTART:

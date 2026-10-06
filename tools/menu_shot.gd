@@ -1,6 +1,7 @@
 extends Node
 ## Captura del menú principal (para revisar su diseño):
-## xvfb-run godot -- --menu-shot=archivo.png [--menu-page=teams]
+## xvfb-run godot -- --menu-shot=archivo.png [--menu-page=teams] [--menu-pad]
+## (--menu-pad: indicaciones de control de mando en vez de teclado)
 ## Páginas: home, modes, teams, setup, options, controls, master, master_squad,
 ## master_hub, master_end, master_plantel, master_cal,
 ## master_market, master_sell, master_pases, master_news, master_hist,
@@ -17,6 +18,8 @@ func _ready() -> void:
 func _run() -> void:
 	for f in 10:
 		await get_tree().process_frame
+	InputRouter.set_source(InputRouter.Source.GAMEPAD if OS.get_cmdline_user_args().has("--menu-pad")
+		else InputRouter.Source.KEYBOARD, true)
 	for a in OS.get_cmdline_user_args():
 		# `--menu-home=db:nat:arg`: local elegido (la elección abre en su grupo).
 		if a.begins_with("--menu-home="):

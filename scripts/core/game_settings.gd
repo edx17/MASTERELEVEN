@@ -144,10 +144,14 @@ const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", 
 	"stick_directions", "camera_preset", "show_pass_target", "offside", "home_team_path", "away_team_path",
 	"home_kit", "away_kit", "show_replays", "replay_chances", "player_style", "sfx_volume", "crowd_volume", "music_volume",
 	"show_radar", "show_score", "wc_playoff", "active_optionfile", "show_offside_line", "show_ball_landing",
-	"window_mode", "resolution", "vsync", "antialias", "render_scale", "shadow_quality", "crowd_level", "fps_limit"]
+	"window_mode", "resolution", "vsync", "antialias", "render_scale", "shadow_quality", "crowd_level", "fps_limit",
+	"input_source"]
 ## Falso en los tests y las herramientas: no leen ni pisan la configuración
 ## del jugador (así los resultados no dependen de lo que eligió).
 var persist := true
+## Último dispositivo usado en los menús (InputRouter.Source; -1 = no se sabe):
+## sólo el valor inicial de las indicaciones de control al abrir el juego.
+var input_source: int = -1
 ## Condición al azar de los jugadores en cada partido (flechas). En los
 ## tests y herramientas todos llegan normales (resultados repetibles).
 var random_conditions := true
@@ -192,6 +196,8 @@ var last_scorers: Array = []
 var last_events: Array = []
 ## Partido de la Liga Master en curso (active_save es la carrera).
 var master_match := false
+## Rótulo del marcador del HUD (competición y fecha, o "Amistoso"). No se guarda.
+var match_label := ""
 ## Volumen de efectos (silbato, pelota) y del público, 0..10.
 var sfx_volume: int = 8
 ## Pantalla del partido (pausa > Pantalla): radar y marcador/reloj.
@@ -229,6 +235,7 @@ func _ready() -> void:
 		apply_graphics.call_deferred()
 	get_tree().node_added.connect(_on_node_added)
 	InputRouter.setup_for_mode(mode)
+	InputRouter.start(input_source if persist else -1)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 	_check_capture_mode()
 	# El Editor como programa aparte (exportación "Editor", con la etiqueta

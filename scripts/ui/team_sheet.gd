@@ -25,11 +25,6 @@ const POS_COLORS := [Color(0.8, 0.72, 0.15), Color(0.2, 0.45, 0.8), Color(0.25, 
 const CONDITION_COLORS := [Color(0.95, 0.15, 0.12), Color(1.0, 0.55, 0.1), Color(0.98, 0.85, 0.15),
 	Color(0.25, 0.55, 0.95), Color(0.55, 0.55, 0.58)]
 
-const BG := Color(0.04, 0.09, 0.16, 0.95)
-const ROW := Color(0.1, 0.26, 0.46)
-const ROW_BENCH := Color(0.08, 0.17, 0.3)
-const ROW_FOCUS := Color(0.5, 0.68, 0.9)
-const ROW_MARK := Color(0.85, 0.62, 0.12)
 
 var match_ref: MatchController
 var team: Team
@@ -41,6 +36,7 @@ var _marked := {}
 var _focus_index := 0
 var _entries: Array[Dictionary] = []
 
+var _frame: WEStyle.ScreenFrame
 var _pitch: MiniPitch
 var _list: VBoxContainer
 var _menu: VBoxContainer
@@ -58,68 +54,88 @@ func _init() -> void:
 
 
 func _ready() -> void:
-	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.45)
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(dim)
-	# Izquierda: el plantel. Derecha: la cancha grande con la formación
-	# (los jugadores se acomodan solos al cambiarla), y abajo el menú y la
-	# ficha del jugador marcado.
+	_frame = WEStyle.ScreenFrame.new("Dirección del equipo", [])
+	add_child(_frame)
+	_frame.title.text = "DIRECCIÓN DEL EQUIPO"
+	# Izquierda: el plantel. Derecha: la cancha con la formación (los
+	# jugadores se acomodan solos al cambiarla), y abajo el menú y la ficha
+	# del jugador marcado.
 	var root := HBoxContainer.new()
-	root.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	root.custom_minimum_size = Vector2(1240, 690)
-	root.position = -root.custom_minimum_size * 0.5
-	root.add_theme_constant_override("separation", 14)
-	add_child(root)
-	var left := _panel(root, Vector2(470, 690))
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_theme_constant_override("separation", int(WEStyle.px(32)))
+	_frame.body.add_child(root)
 	var lbox := VBoxContainer.new()
-	lbox.add_theme_constant_override("separation", 4)
-	left.add_child(lbox)
-	_title = _label(lbox, "", 20, Color(1.0, 0.85, 0.3))
+	lbox.custom_minimum_size.x = WEStyle.px(620)
+	lbox.add_theme_constant_override("separation", 0)
+	root.add_child(lbox)
+	_title = WEStyle.make_caption_label("", WEStyle.ACCENT)
+	# El equipo y la formación van a la derecha del título (title_info).
+	_title.visible = false
+	lbox.add_child(_title)
 	var head := HBoxContainer.new()
+	head.custom_minimum_size.y = WEStyle.px(WEStyle.HEADER_ROW_H)
+	head.add_theme_constant_override("separation", int(WEStyle.px(12)))
+	var hj := WEStyle.make_caption_label("Jugador")
+	hj.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(_pad(hj))
+	_col_label = WEStyle.make_caption_label("")
+	_col_label.custom_minimum_size.x = WEStyle.px(124)
+	_col_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	head.add_child(_col_label)
 	lbox.add_child(head)
-	_label(head, "Jugador", 15, Color(0.7, 0.8, 0.95)).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_col_label = _label(head, "", 15, Color(0.7, 0.8, 0.95))
+	var ls := ScrollContainer.new()
+	ls.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	ls.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	ls.follow_focus = true
+	lbox.add_child(ls)
 	_list = VBoxContainer.new()
-	_list.add_theme_constant_override("separation", 2)
-	lbox.add_child(_list)
+	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_list.add_theme_constant_override("separation", 0)
+	ls.add_child(_list)
 	var right := VBoxContainer.new()
-	right.custom_minimum_size = Vector2(756, 690)
-	right.add_theme_constant_override("separation", 10)
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right.add_theme_constant_override("separation", int(WEStyle.px(16)))
 	root.add_child(right)
-	var pp := _panel(right, Vector2(756, 0))
+	var pp := WEStyle.make_card()
+	right.add_child(pp)
 	_pitch = MiniPitch.new()
-	_pitch.custom_minimum_size = Vector2(730, 236)
+	_pitch.custom_minimum_size = Vector2(0, WEStyle.px(300))
 	pp.add_child(_pitch)
+	_status = WEStyle.make_body_label("", WEStyle.BODY_M, WEStyle.ACCENT)
+	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	right.add_child(_status)
 	var bottom := HBoxContainer.new()
-	bottom.add_theme_constant_override("separation", 10)
+	bottom.add_theme_constant_override("separation", int(WEStyle.px(16)))
 	bottom.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right.add_child(bottom)
-	var mp := _panel(bottom, Vector2(318, 0))
+	var mp := WEStyle.make_card()
+	mp.custom_minimum_size.x = WEStyle.px(440)
+	bottom.add_child(mp)
 	# El menú es largo (tiradores, estrategias...): se desplaza con el foco
 	# para que no se corte abajo.
 	var ms := ScrollContainer.new()
 	ms.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	ms.follow_focus = true
-	ms.custom_minimum_size = Vector2(300, 0)
 	ms.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	mp.add_child(ms)
 	_menu = VBoxContainer.new()
-	_menu.add_theme_constant_override("separation", 4)
+	_menu.add_theme_constant_override("separation", int(WEStyle.px(2)))
 	_menu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ms.add_child(_menu)
-	var dp := _panel(bottom, Vector2(428, 0))
+	var dp := WEStyle.make_card()
 	dp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bottom.add_child(dp)
 	_detail = VBoxContainer.new()
-	_detail.add_theme_constant_override("separation", 3)
+	_detail.add_theme_constant_override("separation", int(WEStyle.px(4)))
 	dp.add_child(_detail)
-	_status = _label(right, "", 15, Color(0.85, 0.9, 1.0))
-	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_status.visible = false
-	var sm := ButtonIcons.Mirror.new(15, false, Color(0.85, 0.9, 1.0))
-	sm.source = _status
-	sm.custom_minimum_size = Vector2(756, 40)
-	right.add_child(sm)
+
+
+func _pad(c: Control) -> MarginContainer:
+	var m := MarginContainer.new()
+	m.add_theme_constant_override("margin_left", int(WEStyle.px(12)))
+	m.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	m.add_child(c)
+	return m
 
 
 ## Abre la pantalla para el equipo `t` (previa = cambios libres y "Jugar").
@@ -219,14 +235,19 @@ func _rebuild() -> void:
 		pending[s["in"]] = "entra"
 	for i in _entries.size():
 		var e := _entries[i]
-		if i == 11:
-			var sep := ColorRect.new()
-			sep.color = Color(1, 1, 1, 0.25)
-			sep.custom_minimum_size = Vector2(0, 2)
-			_list.add_child(sep)
+		if i == 0 or i == 11:
+			var cap := WEStyle.make_caption_label("Titulares" if i == 0 else "Suplentes")
+			cap.custom_minimum_size.y = WEStyle.px(WEStyle.HEADER_ROW_H)
+			cap.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+			_list.add_child(cap)
 		_rows.append(_row(i, e, pending.get(e["d"], "")))
-	_col_label.text = "%s" % COLUMN_NAMES[column]
+	_col_label.text = String(COLUMN_NAMES[column]).to_upper()
 	_title.text = "%s  ·  %s" % [team.team_name, team.formation.formation_name if team.formation else ""]
+	_frame.crumb.text = "PARTIDO  /  PREVIA" if prematch else "PARTIDO  /  PAUSA"
+	_frame.title_info.text = _title.text
+	var choosing := mode != Mode.SUBSTITUTE or not _marked.is_empty()
+	_frame.footer.set_hints([[&"ui_accept", "Elegir / cambiar"], [&"ui_tabs", "Columna"],
+		[&"ui_cancel", "Desmarcar" if choosing else "Volver"]])
 	_build_menu()
 	_pitch.team = team
 	_pitch.focused = _entry_player(_focus_index)
@@ -245,30 +266,12 @@ func _rebuild() -> void:
 
 
 func _row(i: int, e: Dictionary, pending: String) -> Button:
-	var b := Button.new()
-	b.custom_minimum_size = Vector2(444, 22)
-	b.focus_mode = Control.FOCUS_ALL
-	var bg := ROW if e["kind"] == "pitch" else ROW_BENCH
-	if not _marked.is_empty() and _marked["d"] == e["d"]:
-		bg = ROW_MARK
-	for st in ["normal", "hover", "focus", "pressed", "disabled"]:
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = ROW_FOCUS if st in ["focus", "hover"] else bg
-		sb.content_margin_left = 8
-		b.add_theme_stylebox_override(st, sb)
-	_list.add_child(b)
-	var hb := HBoxContainer.new()
-	hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	hb.offset_left = 8
-	hb.offset_right = -4
-	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	b.add_child(hb)
 	var d: PlayerData = e["d"]
-	var name_color := Color.WHITE
+	var name_color := WEStyle.TEXT_MAIN
 	match e["kind"]:
-		"bench": name_color = Color(0.78, 0.86, 1.0)
-		"red": name_color = Color(1.0, 0.35, 0.3)
-		"out": name_color = Color(0.5, 0.52, 0.56)
+		"bench": name_color = WEStyle.TEXT_DIM
+		"red": name_color = WEStyle.DANGER
+		"out": name_color = Color(WEStyle.TEXT_DIM, 0.6)
 	var tag := ""
 	if team.captain_data() == d:
 		tag += "  (C)"
@@ -276,12 +279,26 @@ func _row(i: int, e: Dictionary, pending: String) -> Button:
 		tag += "  [%s]" % pending
 	if e["p"] != null and (e["p"] as Footballer).injury > 0:
 		tag += "  [lesionado]" if (e["p"] as Footballer).injury == Footballer.Injury.SERIOUS else "  [golpe]"
-	var nl := _label(hb, d.player_name + tag, 15, name_color)
-	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var num := _label(hb, str(d.number), 15, Color.WHITE)
-	num.custom_minimum_size = Vector2(30, 0)
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", int(WEStyle.px(12)))
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var num := WEStyle.make_body_label(str(d.number), WEStyle.BODY_L, WEStyle.TEXT_DIM)
+	num.custom_minimum_size.x = WEStyle.px(36)
 	num.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	hb.add_child(_column_cell(e))
+	num.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hb.add_child(num)
+	var nl := WEStyle.make_body_label(d.player_name + tag, WEStyle.BODY_L, name_color)
+	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	nl.clip_text = true
+	hb.add_child(nl)
+	var cell := _column_cell(e)
+	cell.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hb.add_child(cell)
+	var marked: bool = not _marked.is_empty() and _marked["d"] == d
+	var b := WEStyle.make_row_button(hb, marked)
+	b.custom_minimum_size.y = WEStyle.px(WEStyle.ROW_H)
+	_list.add_child(b)
 	b.pressed.connect(_on_row.bind(i))
 	b.focus_entered.connect(_on_row_focus.bind(i))
 	return b
@@ -294,20 +311,21 @@ func _column_cell(e: Dictionary) -> Control:
 	match column:
 		Column.ENERGY:
 			var bar := EnergyBar.new()
-			bar.custom_minimum_size = Vector2(84, 16)
+			bar.custom_minimum_size = Vector2(WEStyle.px(124), WEStyle.px(22))
 			if p != null:
 				bar.stamina = p.stamina / 100.0
 				bar.cap = p.stamina_cap() / 100.0
 			return bar
 		Column.CONDITION:
 			var arrow := ConditionArrow.new()
-			arrow.custom_minimum_size = Vector2(84, 16)
+			arrow.custom_minimum_size = Vector2(WEStyle.px(124), WEStyle.px(22))
 			arrow.condition = team.condition_of(d)
 			return arrow
-	var cell := Label.new()
-	cell.custom_minimum_size = Vector2(84, 16)
+	var cell := WEStyle.make_body_label("", WEStyle.BODY_S, WEStyle.TEXT_MAIN)
+	cell.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
+	cell.custom_minimum_size = Vector2(WEStyle.px(124), WEStyle.px(26))
 	cell.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	cell.add_theme_font_size_override("font_size", 14)
+	cell.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	var code: String = d.role_code if d.role_code != "" else POS_CODES[d.position]
 	var pos := int(d.position)
 	if e["kind"] == "pitch" and p != null:
@@ -319,6 +337,7 @@ func _column_cell(e: Dictionary) -> Control:
 	cell.text = code
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = POS_COLORS[pos]
+	sb.set_corner_radius_all(int(WEStyle.px(WEStyle.RADIUS_BUTTON)))
 	cell.add_theme_stylebox_override("normal", sb)
 	return cell
 
@@ -432,23 +451,29 @@ func _build_menu() -> void:
 	for i in team.strategy_slots.size():
 		var on := "  (activa)" if team.strategy == team.strategy_slots[i] else ""
 		var sb := _menu_button("%s%s" % [Strategy.NAMES[team.strategy_slots[i]], on], cycle_strategy_slot.bind(i))
-		sb.icon = ButtonIcons.combo(["L2", Strategy.BUTTON_ICONS[i]], 20)
+		sb.icon = ButtonIcons.combo(["L2", Strategy.BUTTON_ICONS[i]], int(WEStyle.px(WEStyle.HINT_SIZE) * 0.8))
 
 
 func _menu_button(text: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.custom_minimum_size = Vector2(294, 25)
-	b.add_theme_font_size_override("font_size", 15)
+	b.custom_minimum_size.y = WEStyle.px(40)
 	b.clip_text = true
-	for st in ["normal", "hover", "focus", "pressed"]:
+	for st in ["normal", "pressed", "disabled"]:
 		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color(0.3, 0.5, 0.75, 0.9) if st in ["focus", "hover"] else Color(0, 0, 0, 0)
-		sb.content_margin_left = 12
+		sb.bg_color = Color(0, 0, 0, 0)
+		sb.content_margin_left = WEStyle.px(WEStyle.BUTTON_PADDING_X) * 0.6
 		b.add_theme_stylebox_override(st, sb)
-	b.add_theme_color_override("font_color", Color(0.95, 0.85, 0.45))
-	b.add_theme_color_override("font_focus_color", Color.WHITE)
+	for st in ["hover", "focus"]:
+		var fs := WEStyle.make_focus_style()
+		fs.content_margin_left = WEStyle.px(WEStyle.BUTTON_PADDING_X) * 0.6
+		b.add_theme_stylebox_override(st, fs)
+	b.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
+	b.add_theme_font_size_override("font_size", WEStyle.font_px(WEStyle.BODY_M))
+	b.add_theme_color_override("font_color", WEStyle.TEXT_MAIN)
+	for k in ["font_focus_color", "font_hover_color", "font_pressed_color"]:
+		b.add_theme_color_override(k, WEStyle.ACCENT)
 	b.pressed.connect(cb)
 	_menu.add_child(b)
 	return b
@@ -576,14 +601,15 @@ func load_plan() -> void:
 	_status.text = "Estrategia copiada."
 
 
+## Qué se está haciendo (los botones están en el pie).
 func _hint() -> String:
 	match mode:
 		Mode.CAPTAIN, Mode.FK, Mode.CK, Mode.PK, Mode.FK_LONG, Mode.CK_RIGHT:
-			return "%s: elegí un jugador de la cancha.   {O} / Esc: volver" % _mode_name(mode)
+			return "%s: elegí un jugador de la cancha." % _mode_name(mode)
 	if not _marked.is_empty():
-		return "%s marcado: elegí con quién cambiarlo.   {O} / Esc: desmarcar" % _marked["d"].player_name
+		return "%s marcado: elegí con quién cambiarlo." % _marked["d"].player_name
 	var extra := "cambio libre" if prematch else "entra en la próxima pelota parada"
-	return "{X} en dos jugadores: se intercambian (%s).   {L1} / {R1} columna" % extra
+	return "Elegí dos jugadores y se intercambian (%s)." % extra
 
 
 # --- Ficha ----------------------------------------------------------------------
@@ -599,7 +625,7 @@ func _show_detail(i: int) -> void:
 	var p: Footballer = e["p"]
 	var cond := team.condition_of(base)
 	var d: PlayerData = p.data if p != null and p.data != null else base.with_condition(cond)
-	_label(_detail, "%d  %s" % [base.number, base.player_name], 21, Color.WHITE)
+	_detail.add_child(WEStyle.make_title_label("%d  %s" % [base.number, base.player_name.to_upper()], WEStyle.TITLE_M))
 	var code: String = base.role_code if base.role_code != "" else POS_CODES[base.position]
 	if p != null and e["kind"] == "pitch":
 		code = "GK" if p.is_keeper() else role_code(p)
@@ -608,7 +634,7 @@ func _show_detail(i: int) -> void:
 		PlayerData.BUILD_NAMES.get(base.visual_build(), ""), PlayerData.CONDITION_NAMES[cond]]
 	if p != null and e["kind"] == "pitch":
 		info += "  ·  Energía %d%%" % roundi(p.stamina_cap())
-	var il := _label(_detail, info, 13, Color(0.75, 0.85, 1.0))
+	var il := _label(_detail, info, WEStyle.BODY_S, WEStyle.TEXT_DIM)
 	il.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var roles := []
 	if team.captain_data() == base:
@@ -630,30 +656,33 @@ func _show_detail(i: int) -> void:
 	if e["kind"] == "out":
 		roles.append("Ya salió")
 	if not roles.is_empty():
-		_label(_detail, " · ".join(roles), 13, Color(1.0, 0.8, 0.3))
+		_detail.add_child(WEStyle.make_caption_label(" · ".join(roles), WEStyle.ACCENT))
 	var grid := GridContainer.new()
 	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("h_separation", int(WEStyle.px(16)))
 	grid.add_theme_constant_override("v_separation", 0)
+	_detail.add_child(WEStyle.make_separator())
 	_detail.add_child(grid)
 	for k in PlayerData.ATTRIBUTES.size():
 		var v := int(d.get(PlayerData.ATTRIBUTES[k]))
 		if v <= 0:
 			continue
-		var nl := _label(grid, PlayerData.ATTRIBUTE_NAMES[k], 13, Color(0.85, 0.88, 0.95))
-		nl.custom_minimum_size = Vector2(150, 0)
+		var nl := _label(grid, PlayerData.ATTRIBUTE_NAMES[k], WEStyle.BODY_S, WEStyle.TEXT_DIM)
+		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		# Potencia de remate: también el nivel del WE (6 a 9).
 		var txt := str(v)
 		if PlayerData.ATTRIBUTES[k] == "shot_power" and d is PlayerData:
 			txt = "%d (%d)" % [v, (d as PlayerData).shot_level()]
-		var vl := _label(grid, txt, 13, attribute_color(v))
-		vl.custom_minimum_size = Vector2(30, 0)
+		var vl := _label(grid, txt, WEStyle.BODY_S, attribute_color(v))
+		vl.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
+		vl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		vl.custom_minimum_size.x = WEStyle.px(56)
 	# Etiquetas (las estrellitas del WE), en una sola línea.
 	var tags := PackedStringArray()
 	for id in base.abilities:
 		tags.append(String(PlayerData.ABILITY_NAMES.get(id, id)))
 	if not tags.is_empty():
-		var tl := _label(_detail, "★ " + "  ★ ".join(tags), 13, Color(1.0, 0.85, 0.35))
+		var tl := _label(_detail, "★ " + "  ★ ".join(tags), WEStyle.BODY_S, WEStyle.ACCENT)
 		tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 
@@ -668,25 +697,9 @@ static func attribute_color(v: int) -> Color:
 
 # --- Helpers ---------------------------------------------------------------------
 
-func _panel(parent: Control, min_size: Vector2) -> PanelContainer:
-	var pc := PanelContainer.new()
-	pc.custom_minimum_size = min_size
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = BG
-	sb.border_color = Color(0.3, 0.55, 0.85, 0.8)
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(4)
-	sb.set_content_margin_all(12)
-	pc.add_theme_stylebox_override("panel", sb)
-	parent.add_child(pc)
-	return pc
-
-
+## Texto con los tokens (font_size: BODY_L / BODY_M / BODY_S).
 func _label(parent: Control, text: String, font_size: int, color: Color) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", font_size)
-	l.add_theme_color_override("font_color", color)
+	var l := WEStyle.make_body_label(text, font_size, color)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(l)
 	return l
@@ -768,33 +781,36 @@ class MiniPitch:
 
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
-		draw_rect(r, Color(0.16, 0.42, 0.2))
 		for i in 10:
-			if i % 2 == 0:
-				draw_rect(Rect2(r.size.x * i / 10.0, 0, r.size.x / 10.0, r.size.y), Color(0.19, 0.47, 0.23))
-		var line := Color(1, 1, 1, 0.75)
-		PitchMarkings.draw_2d(self, r.grow(-10), line, 1.5)
+			draw_rect(Rect2(r.size.x * i / 10.0, 0, r.size.x / 10.0 + 1.0, r.size.y),
+				WEStyle.PITCH_DARK if i % 2 == 0 else WEStyle.PITCH_LIGHT)
+		PitchMarkings.draw_2d(self, r.grow(-WEStyle.px(12)), Color(WEStyle.TEXT_MAIN, 0.55), 1.0)
 		if team == null:
 			return
-		var font := get_theme_default_font()
+		var body := WEStyle.font(WEStyle.Typeface.BODY)
+		var semi := WEStyle.font(WEStyle.Typeface.SEMIBOLD)
+		var rad := WEStyle.px(19)
+		var fs := WEStyle.font_px(WEStyle.BODY_M)
+		var small := WEStyle.font_px(WEStyle.BODY_S) - 1
 		for p in team.players:
 			var n := shown_of(p)
-			var pos := Vector2(r.size.x * n.x, 16.0 + (r.size.y - 40.0) * n.y)
+			var pos := Vector2(r.size.x * n.x, rad + 4.0 + (r.size.y - rad * 2.0 - WEStyle.px(32)) * n.y)
 			var c := team.keeper_color if p.is_keeper() else team.color
 			if p == marked:
-				draw_circle(pos, 17.0, Color(1.0, 0.75, 0.1))
+				draw_circle(pos, rad + 4.0, WEStyle.ACCENT)
 			elif p == focused:
-				draw_circle(pos, 17.0, Color.WHITE)
-			draw_circle(pos, 13.0, c)
-			draw_arc(pos, 13.0, 0, TAU, 24, Color(0, 0, 0, 0.6), 1.5)
-			var ink := Color.BLACK if c.get_luminance() > 0.35 else Color.WHITE
-			draw_string(font, pos + Vector2(-13, 5), str(p.number), HORIZONTAL_ALIGNMENT_CENTER, 26, 14, ink)
+				draw_circle(pos, rad + 4.0, WEStyle.TEXT_MAIN)
+			draw_circle(pos, rad, c)
+			draw_arc(pos, rad, 0, TAU, 24, Color(WEStyle.BG_NIGHT, 0.7), 1.5)
+			var ink := WEStyle.BG_NIGHT if c.get_luminance() > 0.35 else WEStyle.TEXT_MAIN
+			draw_string(semi, pos + Vector2(-rad, fs * 0.35), str(p.number), HORIZONTAL_ALIGNMENT_CENTER, rad * 2.0, fs, ink)
 			var code: String = "GK" if p.is_keeper() else TeamSheet.role_code(p)
 			var pos_i := PlayerData.Position.GK if p.is_keeper() else TacticalRole.to_position(p.tactical_role)
-			draw_rect(Rect2(pos + Vector2(-47, -7), Vector2(30, 14)), POS_COLORS[pos_i])
-			draw_string(font, pos + Vector2(-47, 4), code, HORIZONTAL_ALIGNMENT_CENTER, 30, 11, Color.WHITE)
+			var tag := Rect2(pos + Vector2(-rad - WEStyle.px(46), -WEStyle.px(10)), Vector2(WEStyle.px(40), WEStyle.px(20)))
+			draw_rect(tag, POS_COLORS[pos_i])
+			draw_string(semi, Vector2(tag.position.x, tag.end.y - WEStyle.px(5)), code, HORIZONTAL_ALIGNMENT_CENTER, tag.size.x, small, WEStyle.TEXT_MAIN)
 			var surname := p.display_name.get_slice(" ", p.display_name.get_slice_count(" ") - 1)
-			draw_string(font, pos + Vector2(-45, 26), surname, HORIZONTAL_ALIGNMENT_CENTER, 90, 12, Color.WHITE)
+			draw_string(body, pos + Vector2(-WEStyle.px(70), rad + fs), surname, HORIZONTAL_ALIGNMENT_CENTER, WEStyle.px(140), small + 1, WEStyle.TEXT_MAIN)
 
 
 ## Barra de energía: lo actual, y en oscuro lo que se perdió por el desgaste.
@@ -805,9 +821,9 @@ class EnergyBar:
 
 	func _draw() -> void:
 		var r := Rect2(Vector2(4, 4), size - Vector2(8, 8))
-		draw_rect(r, Color(0.15, 0.15, 0.18))
-		draw_rect(Rect2(r.position, Vector2(r.size.x * cap, r.size.y)), Color(0.35, 0.3, 0.12))
-		var c := Color(0.35, 0.85, 0.35).lerp(Color(0.95, 0.3, 0.2), clampf(1.0 - stamina, 0.0, 1.0) * 1.4)
+		draw_rect(r, WEStyle.LINE)
+		draw_rect(Rect2(r.position, Vector2(r.size.x * cap, r.size.y)), Color(WEStyle.ACCENT, 0.3))
+		var c := WEStyle.ACCENT_GREEN.lerp(WEStyle.DANGER, clampf(1.0 - stamina, 0.0, 1.0) * 1.4)
 		draw_rect(Rect2(r.position, Vector2(r.size.x * clampf(stamina, 0.0, 1.0), r.size.y)), c)
 
 

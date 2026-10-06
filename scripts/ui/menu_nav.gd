@@ -5,6 +5,9 @@ extends Node
 ##   - Manteniendo apretado se mueve solo, cada vez más rápido.
 ## Sólo actúa cuando el foco está en un botón u opción de menú (los árboles,
 ## listas y campos de texto se manejan solos).
+##
+## Además pasa cada evento a InputRouter.observe(), que decide si se está
+## jugando con teclado o con mando (para las indicaciones de control).
 
 const FIRST_DELAY := 0.32
 const START_RATE := 0.10
@@ -17,7 +20,12 @@ var _held := 0.0
 var _next := 0.0
 
 
+func _ready() -> void:
+	InputRouter.ensure_tab_actions()
+
+
 func _input(event: InputEvent) -> void:
+	InputRouter.observe(event)
 	var up := event.is_action(&"ui_up")
 	if not up and not event.is_action(&"ui_down"):
 		return
