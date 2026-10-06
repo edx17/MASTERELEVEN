@@ -187,7 +187,11 @@ func _ready() -> void:
 		if arg.begins_with("--stadium="):
 			GameSettings.stadium_choice = int(arg.trim_prefix("--stadium="))
 	# `--intro`: la presentación previa (menú, calentamiento, túnel, presentación...).
-	if "--intro" in OS.get_cmdline_user_args():
+	# `--intro-menu`: sólo el menú previo (Comenzar, Dirección, Saltear, Salir).
+	if "--intro-menu" in OS.get_cmdline_user_args():
+		GameSettings.play_intro = true
+		_script = [[5, "freeze"], [30, "shot:intro_menu.png"], [35, "quit"]]
+	elif "--intro" in OS.get_cmdline_user_args():
 		GameSettings.play_intro = true
 		_script = [[5, "freeze"], [30, "shot:intro_menu.png"],
 			[35, "intro:1"], [36, "simulate:1.5"], [42, "shot:intro_warmup.png"],

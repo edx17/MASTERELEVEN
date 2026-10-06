@@ -703,26 +703,54 @@ func _build_ui() -> void:
 	_ui = CanvasLayer.new()
 	_ui.layer = 8
 	add_child(_ui)
-	# Menú previo al estilo WE: barras violáceas a la izquierda.
+	# Menú previo: panel lateral a la izquierda (el estadio se ve a la
+	# derecha) con el partido, las opciones y el estadio; el pie con los botones.
+	var side := PanelContainer.new()
+	side.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
+	side.offset_right = WEStyle.px(640)
+	side.offset_bottom = -WEStyle.px(WEStyle.FOOTER_H)
+	var ssb := StyleBoxFlat.new()
+	ssb.bg_color = Color(WEStyle.BG_NIGHT, 0.94)
+	ssb.border_color = WEStyle.LINE
+	ssb.border_width_right = WEStyle.BORDER
+	ssb.content_margin_left = WEStyle.px(WEStyle.MARGIN_X)
+	ssb.content_margin_right = WEStyle.px(48)
+	ssb.content_margin_top = WEStyle.px(WEStyle.MARGIN_Y)
+	ssb.content_margin_bottom = WEStyle.px(32)
+	side.add_theme_stylebox_override("panel", ssb)
+	_ui.add_child(side)
+	var footer := WEStyle.HintFooter.new("Previa", [[&"ui_navigate", "Navegar"], [&"ui_accept", "Aceptar"]])
+	footer.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	footer.offset_top = -WEStyle.px(WEStyle.FOOTER_H)
+	_ui.add_child(footer)
 	_menu = VBoxContainer.new()
-	_menu.position = Vector2(40, 90)
-	_menu.add_theme_constant_override("separation", 6)
-	_ui.add_child(_menu)
-	var title := Label.new()
-	title.text = "%s  vs  %s" % [_match.teams[0].team_name, _match.teams[1].team_name]
-	title.add_theme_font_size_override("font_size", 30)
-	title.add_theme_color_override("font_outline_color", Color.BLACK)
-	title.add_theme_constant_override("outline_size", 8)
+	_menu.add_theme_constant_override("separation", int(WEStyle.px(8)))
+	side.add_child(_menu)
+	# El panel y el pie se ven con el menú.
+	_menu.visibility_changed.connect(func() -> void:
+		side.visible = _menu.visible
+		footer.visible = _menu.visible)
+	var title := VBoxContainer.new()
+	title.add_theme_constant_override("separation", int(WEStyle.px(4)))
+	var label := GameSettings.match_label if GameSettings.match_label != "" else "Amistoso"
+	title.add_child(WEStyle.make_caption_label(label, WEStyle.ACCENT))
+	for i in 2:
+		var tl := WEStyle.make_title_label(_match.teams[i].team_name.to_upper(), WEStyle.TITLE_L)
+		tl.clip_text = true
+		title.add_child(tl)
+		if i == 0:
+			title.add_child(WEStyle.make_caption_label("vs"))
+	var sep := WEStyle.make_separator()
+	title.add_child(sep)
 	_menu.add_child(title)
 	_option("Comenzar el partido", func() -> void: _enter(Step.WARMUP))
 	_option("Dirección del equipo", open_team_sheet)
 	_option("Saltear la presentación", func() -> void: _enter(Step.DONE))
 	_option("Salir al menú", func() -> void: _match.exit_to_menu())
-	var cond := Label.new()
-	cond.text = String(StadiumStyles.current["name"]) + (" · " + _match.conditions.describe() if _match.conditions != null else "")
-	cond.add_theme_font_size_override("font_size", 18)
-	cond.add_theme_color_override("font_outline_color", Color.BLACK)
-	cond.add_theme_constant_override("outline_size", 6)
+	var cond := WEStyle.make_body_label(String(StadiumStyles.current["name"]) + (" · " + _match.conditions.describe() if _match.conditions != null else ""),
+		WEStyle.BODY_M, WEStyle.TEXT_DIM, true)
+	cond.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cond.custom_minimum_size.x = WEStyle.px(520)
 	_menu.add_child(cond)
 	var hint := ButtonIcons.IconLabel.new(18)
 	hint.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -887,7 +915,9 @@ func show_lineup(team_index: int) -> void:
 
 
 func _option(text: String, cb: Callable) -> void:
-	var b := WEStyle.bar(text, cb, 400.0, 22)
+	var first := _menu.get_children().filter(func(c: Node) -> bool: return c is Button).is_empty()
+	var b := WEStyle.make_action_button(text, cb, first)
+	b.custom_minimum_size.y = WEStyle.px(56)
 	_menu.add_child(b)
 
 
