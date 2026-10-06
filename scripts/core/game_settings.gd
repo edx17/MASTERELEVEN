@@ -154,7 +154,9 @@ func _ready() -> void:
 	UserData.ensure_dirs()
 	random_conditions = persist
 	if "--retro" in OS.get_cmdline_user_args():
-		player_style = 1
+		player_style = PlayerStyle.RETRO
+	if "--detailed" in OS.get_cmdline_user_args():
+		player_style = PlayerStyle.DETAILED
 	show_replays = persist
 	replay_chances = persist
 	if persist:

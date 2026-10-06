@@ -104,12 +104,21 @@ static func label(text: String, font_size: int, color: Color = Color.WHITE) -> L
 
 ## Fila de opción "Nombre   ◀ valor ▶": izquierda / derecha cambian el valor;
 ## X también avanza. `get_value` devuelve el texto; `step(dir)` lo cambia.
+## Si el valor no entra al lado del nombre, corre dentro de su lugar (como
+## un cartel) en vez de pisar el nombre.
 class OptionRow:
 	extends Button
+	const FS := 21
+	const SCROLL_SPEED := 45.0
+	const HOLD := 1.2
 	var caption := ""
 	var get_value: Callable
 	var step: Callable
 	var help := ""
+	var _clip: Control
+	var _val: Label
+	var _overflow := 0.0
+	var _t := 0.0
 
 	func _init(p_caption: String, p_get: Callable, p_step: Callable, p_help: String = "", width: float = 560.0) -> void:
 		caption = p_caption
@@ -117,10 +126,20 @@ class OptionRow:
 		step = p_step
 		help = p_help
 		custom_minimum_size = Vector2(width, 38)
-		add_theme_font_size_override("font_size", 21)
+		add_theme_font_size_override("font_size", FS)
 		alignment = HORIZONTAL_ALIGNMENT_LEFT
 		WEStyle.style_bar(self)
+		_clip = Control.new()
+		_clip.clip_contents = true
+		_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_clip)
+		_val = Label.new()
+		_val.add_theme_font_size_override("font_size", FS)
+		_val.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_clip.add_child(_val)
 		pressed.connect(func() -> void: change(1))
+		focus_entered.connect(queue_redraw)
+		focus_exited.connect(queue_redraw)
 		refresh()
 
 	func change(dir: int) -> void:
@@ -129,7 +148,45 @@ class OptionRow:
 
 	func refresh() -> void:
 		text = "%s" % caption
+		var v := String(get_value.call())
+		if v != _val.text:
+			_val.text = v
+			_t = 0.0
+		_layout()
 		queue_redraw()
+
+	## El valor va pegado a la derecha; si no entra entre el nombre y la flecha,
+	## se recorta y se mueve.
+	func _layout() -> void:
+		var font := get_theme_default_font()
+		var cap_w := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, FS).x + 18.0
+		var end := size.x - 44.0
+		var w := font.get_string_size(_val.text, HORIZONTAL_ALIGNMENT_LEFT, -1, FS).x
+		var avail := maxf(end - (cap_w + 40.0), 40.0)
+		var vw := minf(w, avail)
+		_overflow = maxf(w - vw, 0.0)
+		_clip.position = Vector2(end - vw, 0.0)
+		_clip.size = Vector2(vw, size.y)
+		_val.size = Vector2(w, size.y)
+		_val.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_val.position = Vector2(-_scroll_offset(), 0.0)
+		set_process(_overflow > 0.0)
+
+	func _scroll_offset() -> float:
+		if _overflow <= 0.0:
+			return 0.0
+		var move := _overflow / SCROLL_SPEED
+		var cycle := HOLD + move + HOLD
+		var t := fmod(_t, cycle)
+		return clampf((t - HOLD) / move, 0.0, 1.0) * _overflow
+
+	func _process(dt: float) -> void:
+		_t += dt
+		_val.position.x = -_scroll_offset()
+
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_RESIZED and _clip != null:
+			_layout()
 
 	func _gui_input(event: InputEvent) -> void:
 		if event.is_action_pressed(&"ui_left"):
@@ -140,18 +197,13 @@ class OptionRow:
 			accept_event()
 
 	func _draw() -> void:
-		var font := get_theme_default_font()
-		var v := String(get_value.call())
-		var fs := 21
-		var w := font.get_string_size(v, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		var c := WEStyle.BAR_TEXT_FOCUS if has_focus() else Color.WHITE
+		_val.add_theme_color_override("font_color", c)
 		var right := size.x - 22.0
 		var cy := size.y * 0.5
 		# Flechas ◀ ▶ a los costados del valor.
 		draw_colored_polygon(PackedVector2Array([Vector2(right, cy), Vector2(right - 10, cy - 7), Vector2(right - 10, cy + 7)]), c)
-		var x := right - 22.0 - w
-		draw_string(font, Vector2(x, cy + fs * 0.35), v, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, c)
-		var lx := x - 14.0
+		var lx := _clip.position.x - 14.0
 		draw_colored_polygon(PackedVector2Array([Vector2(lx - 10, cy), Vector2(lx, cy - 7), Vector2(lx, cy + 7)]), c)
 
 

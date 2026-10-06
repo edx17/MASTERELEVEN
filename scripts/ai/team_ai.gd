@@ -439,18 +439,20 @@ func _runner_spot(p: Footballer, bx: float) -> Vector3:
 
 
 ## Última línea rival (el defensor más retrasado, en espacio de este equipo).
-## Línea del offside (progreso 0..1): el último defensor de campo, pero nunca
-## antes de la mitad de la cancha ni de la pelota (ahí no hay offside). Sin
-## offside (opción apagada o entrenamiento) no limita. Antes, sin defensores
-## de campo daba 0 (el propio arco) y en el entrenamiento los delanteros iban
-## a su arco a esperar el centro.
+## Línea del offside (progreso 0..1): el penúltimo rival, con el arquero
+## incluido (si salió y quedó adelante de un defensor, la línea la marca ese
+## defensor), pero nunca antes de la mitad de la cancha ni de la pelota (ahí
+## no hay offside). Sin offside (opción apagada o entrenamiento) no limita.
 func _opponent_last_line() -> float:
 	if not GameSettings.offside or _match.training != null:
 		return 1.0
-	var best := 0.5
+	var prog: Array[float] = []
 	for o in _match.opponents_of(team).players:
-		if not o.is_keeper():
-			best = maxf(best, team.progress_of(o.flat_pos()))
+		prog.append(team.progress_of(o.flat_pos()))
+	prog.sort()
+	var best := 0.5
+	if prog.size() >= 2:
+		best = maxf(best, prog[prog.size() - 2])
 	return maxf(best, team.progress_of(_match.ball.flat_pos()))
 
 

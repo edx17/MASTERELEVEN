@@ -449,3 +449,19 @@ func test_cup_spread_before_last_rounds() -> void:
 	for v in s:
 		assert_gte(int(v), prev)
 		prev = int(v)
+
+
+## Mercado: con la lista vacía ("Todavía no hubo pases") el foco queda en
+## una fila de opción y el mando sigue andando.
+func test_market_focus_with_empty_list() -> void:
+	var m := MasterCareer.create("arg", "colon", "real", 5)
+	var mk := MasterMarket.new()
+	add_child_autofree(mk)
+	mk.open(m)
+	mk.mode = 2
+	mk.call("_rebuild")
+	await get_tree().process_frame
+	var owner := get_viewport().gui_get_focus_owner()
+	assert_not_null(owner, "hay foco")
+	assert_true(owner != null and mk.is_ancestor_of(owner), "dentro del mercado")
+	MasterCareer.deactivate()

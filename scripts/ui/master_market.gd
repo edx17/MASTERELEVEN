@@ -35,6 +35,10 @@ var _focus := 0
 var _msg := ""
 var _offer: Dictionary = {}
 var _rng := RandomNumberGenerator.new()
+## Fila de opción que se acaba de cambiar (queda con el foco al rearmar) y
+## la primera fila de opción (foco si la lista quedó vacía).
+var _keep_caption := ""
+var _first_opt: Control = null
 
 
 func _ready() -> void:
@@ -60,6 +64,7 @@ func _clear(n: Node) -> void:
 
 func _rebuild() -> void:
 	_clear(self)
+	_first_opt = null
 	var lp := WEStyle.panel(Vector2(720, 620))
 	lp.position = Vector2(30, 30)
 	add_child(lp)
@@ -106,12 +111,26 @@ func _rebuild() -> void:
 			_sell_list()
 		_:
 			_transfers_list()
+	# El foco: en la fila que se acaba de cambiar (así se puede seguir
+	# cambiándola) o, si la lista quedó vacía, en la primera fila de opción
+	# (si no, el mando no tiene dónde moverse).
+	var keep := left.get_node_or_null("Opt" + _keep_caption) if _keep_caption != "" else null
+	_keep_caption = ""
+	if keep != null:
+		(keep as Control).grab_focus()
+	elif _rows_box.get_children().filter(func(c: Node) -> bool: return c is Button).is_empty():
+		_first_opt.grab_focus()
 
 
 func _opt(caption: String, getter: Callable, step: Callable) -> WEStyle.OptionRow:
-	return WEStyle.OptionRow.new(caption, getter, func(d: int) -> void:
+	var row := WEStyle.OptionRow.new(caption, getter, func(d: int) -> void:
 		step.call(d)
+		_keep_caption = caption
 		_rebuild.call_deferred(), "", 696.0)
+	row.name = "Opt" + caption
+	if _first_opt == null:
+		_first_opt = row
+	return row
 
 
 func _cells(texts: Array, color: Color, fs: int) -> HBoxContainer:
