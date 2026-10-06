@@ -320,6 +320,7 @@ func _choose_mode(mode: int, shootout := false) -> void:
 	GameSettings.set_mode(mode)
 	GameSettings.human_side = 0
 	GameSettings.competition_match = false
+	GameSettings.match_label = "Tanda de penales" if shootout else "Amistoso"
 	_new_competition = -1
 	_teams.single = false
 	_teams.only_country = ""
@@ -643,6 +644,8 @@ func _on_competition_match(home: String, away: String, side: int) -> void:
 	GameSettings.training = false
 	GameSettings.shootout = false
 	GameSettings.competition_match = true
+	if _hub.comp != null:
+		GameSettings.match_label = "%s · %s" % [_hub.kind_title(), _hub.comp.round_name()]
 	show_page("setup")
 
 
@@ -651,6 +654,9 @@ func _on_master_match(home: String, away: String, side: int) -> void:
 	_on_competition_match(home, away, side)
 	GameSettings.competition_match = false
 	GameSettings.master_match = true
+	var mc := _master_hub.career
+	if mc != null:
+		GameSettings.match_label = "%s · %s" % [mc.current_comp_name(), mc.round_text()]
 	GameSettings.last_scorers = []
 	GameSettings.last_events = []
 

@@ -1,26 +1,34 @@
 class_name MatchHud
 extends CanvasLayer
-## HUD estilo WE2002:
-## - arriba a la izquierda: colores de los equipos y marcador ("0 - 1")
-## - arriba a la derecha: tiempo y reloj ("2nd 27:57")
+## HUD del partido (rediseño estadio de noche, tokens de WEStyle):
+## - arriba al centro: el marcador (rótulo de la competición, escudo, sigla,
+##   el resultado sobre dorado, sigla y escudo rival) y debajo el reloj; al
+##   haber un gol el resultado se enciende un instante
+## - arriba a la derecha: la estrategia de la CPU; a la izquierda, el viento
 ## - abajo al centro: radar con los 22 jugadores y la pelota
-## - abajo a los costados: panel del jugador controlado de cada lado (posición,
-##   nombre, barra de energía) y encima la barra de potencia mientras se carga.
-## Construido por código; sin marcas ni banderas reales.
+## - abajo a los costados: panel del jugador controlado de cada lado (puesto,
+##   nombre, barra de energía) y encima la barra de potencia mientras se carga
+## - carteles del partido (FALTA, CÓRNER, GOL...) en Bebas, bajo el marcador.
 
 const POS_NAMES := ["GK", "DF", "MF", "FW"]
-const POS_COLORS := [Color(0.95, 0.75, 0.15), Color(0.25, 0.6, 0.95), Color(0.3, 0.8, 0.4), Color(0.9, 0.25, 0.25)]
-const PANEL_SIZE := Vector2(250, 44)
+const POS_COLORS := [Color(0.8, 0.72, 0.15), Color(0.2, 0.45, 0.8), Color(0.25, 0.62, 0.32), Color(0.78, 0.22, 0.2)]
+## Panel del jugador (px de 1080).
+const PANEL_W := 400.0
+const PANEL_H := 72.0
+const PANEL_SIZE := Vector2(PANEL_W * 2.0 / 3.0, PANEL_H * 2.0 / 3.0)
 
 var _match: MatchController
 var _score: Label
 var _clock: Label
 ## Marcador (lo único que queda en la repetición).
 var _top: Control
+var _score_box: PanelContainer
+var _last_goals := -1
 var _was_replaying := false
-## Estrategia activa de cada equipo (debajo del reloj).
+## Estrategia activa de cada equipo (arriba a la derecha).
 var _strategy: Label
 var _banner: Label
+var _banner_box: PanelContainer
 var _hint: Label
 var _radar: Radar
 ## Paneles inferiores: [0] = equipo local (izquierda), [1] = visitante (derecha).
@@ -30,93 +38,138 @@ var _tactics: Array[TacticsBox] = []
 var _tactic_labels: Array[Label] = []
 
 
+## Caja de fondo del HUD: bg_night translúcido, borde de 1 px y radio.
+static func hud_style(alpha: float = 0.88, radius: int = WEStyle.RADIUS_BUTTON) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(WEStyle.BG_NIGHT, alpha)
+	sb.border_color = WEStyle.LINE
+	sb.set_border_width_all(WEStyle.BORDER)
+	sb.set_corner_radius_all(int(WEStyle.px(radius)))
+	sb.content_margin_left = WEStyle.px(14)
+	sb.content_margin_right = WEStyle.px(14)
+	sb.content_margin_top = WEStyle.px(4)
+	sb.content_margin_bottom = WEStyle.px(4)
+	return sb
+
+
 func setup(p_match: MatchController) -> void:
 	_match = p_match
 	layer = 5
+	var t0 := _match.teams[0]
+	var t1 := _match.teams[1]
 
-	# Marcador.
-	var top := HBoxContainer.new()
+	# Marcador al centro: rótulo, barra con el resultado y reloj.
+	var top := VBoxContainer.new()
 	_top = top
-	top.position = Vector2(24, 18)
-	top.add_theme_constant_override("separation", 8)
+	top.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	top.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	top.offset_top = WEStyle.px(24)
+	top.alignment = BoxContainer.ALIGNMENT_BEGIN
+	top.add_theme_constant_override("separation", 0)
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(top)
-	top.add_child(_flag(_match.teams[0]))
-	_score = _label("0 - 0", 30)
-	top.add_child(_score)
-	top.add_child(_flag(_match.teams[1]))
+	var label := GameSettings.match_label if GameSettings.match_label != "" else "Amistoso"
+	var tag := _tab(WEStyle.make_caption_label(label, WEStyle.ACCENT), 0.82)
+	top.add_child(tag)
+	var bar := PanelContainer.new()
+	var bsb := hud_style(0.9)
+	bsb.content_margin_top = WEStyle.px(6)
+	bsb.content_margin_bottom = WEStyle.px(6)
+	bar.add_theme_stylebox_override("panel", bsb)
+	bar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	top.add_child(bar)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", int(WEStyle.px(14)))
+	bar.add_child(row)
+	row.add_child(_crest(t0))
+	row.add_child(_code(t0))
+	_score_box = PanelContainer.new()
+	var ssb := StyleBoxFlat.new()
+	ssb.bg_color = WEStyle.ACCENT
+	ssb.set_corner_radius_all(int(WEStyle.px(WEStyle.RADIUS_BUTTON)))
+	ssb.content_margin_left = WEStyle.px(16)
+	ssb.content_margin_right = WEStyle.px(16)
+	_score_box.add_theme_stylebox_override("panel", ssb)
+	_score_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(_score_box)
+	_score = WEStyle.make_title_label("0 - 0", WEStyle.TITLE_M, WEStyle.BG_NIGHT)
+	_score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_score_box.add_child(_score)
+	row.add_child(_code(t1))
+	row.add_child(_crest(t1))
+	_clock = WEStyle.make_body_label("1T  00:00", WEStyle.BODY_L)
+	_clock.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
+	_clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	top.add_child(_tab(_clock, 0.82))
 
-	# Viento: flecha (en la dirección de pantalla) y velocidad, bajo el marcador.
+	# Viento: flecha (en la dirección de pantalla) y velocidad, arriba a la izquierda.
 	if _match.conditions != null and _match.conditions.wind_speed >= 0.5:
 		var wind := WindIndicator.new()
 		wind.wind = _match.conditions.wind_vector()
-		wind.position = Vector2(26, 64)
-		wind.size = Vector2(130, 30)
+		wind.position = Vector2(WEStyle.px(WEStyle.MARGIN_X), WEStyle.px(32))
+		wind.size = Vector2(WEStyle.px(200), WEStyle.px(44))
 		add_child(wind)
 
-	# Reloj.
-	_clock = _label("1st 00:00", 28)
-	_clock.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	_clock.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	_clock.position += Vector2(-28, 18)
-	_clock.add_theme_font_size_override("font_size", 28)
-	add_child(_clock)
-
-	_strategy = _label("", 18)
+	_strategy = WEStyle.make_body_label("", WEStyle.BODY_M, WEStyle.TEXT_MAIN)
+	_strategy.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
+	_strategy.add_theme_color_override("font_outline_color", Color(WEStyle.BG_NIGHT, 0.85))
+	_strategy.add_theme_constant_override("outline_size", 4)
 	_strategy.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	_strategy.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_strategy.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_strategy.position += Vector2(-28, 58)
+	_strategy.position += Vector2(-WEStyle.px(WEStyle.MARGIN_X), WEStyle.px(32))
 	add_child(_strategy)
 
-	# Carteles del partido (FALTA, CÓRNER, GOL...): grandes, en mayúsculas,
-	# con letra gruesa y ancha y borde oscuro (como en la TV).
-	_banner = _label("", 58)
-	var heavy := FontVariation.new()
-	heavy.base_font = _banner.get_theme_default_font()
-	heavy.variation_embolden = 1.1
-	heavy.spacing_glyph = 4
-	heavy.variation_transform = Transform2D(Vector2(1.12, 0.0), Vector2(0.0, 1.0), Vector2.ZERO)
-	_banner.add_theme_font_override("font", heavy)
-	_banner.add_theme_color_override("font_color", Color(1.0, 0.95, 0.75))
-	_banner.add_theme_color_override("font_outline_color", Color(0.05, 0.05, 0.1))
-	_banner.add_theme_constant_override("outline_size", 14)
-	_banner.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
-	_banner.add_theme_constant_override("shadow_offset_x", 3)
-	_banner.add_theme_constant_override("shadow_offset_y", 4)
-	_banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	_banner.position.y = 110
+	# Carteles del partido (FALTA, CÓRNER, GOL...): Bebas grande sobre una
+	# caja oscura con una línea dorada abajo.
+	_banner_box = PanelContainer.new()
+	var nsb := hud_style(0.85)
+	nsb.border_color = WEStyle.ACCENT
+	nsb.border_width_bottom = WEStyle.FOCUS_BORDER * 2
+	nsb.content_margin_left = WEStyle.px(40)
+	nsb.content_margin_right = WEStyle.px(40)
+	_banner_box.add_theme_stylebox_override("panel", nsb)
+	_banner_box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_banner_box.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_banner_box.offset_top = WEStyle.px(230)
+	_banner_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_banner_box)
+	_banner = WEStyle.make_title_label("", 84)
 	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	add_child(_banner)
+	_banner_box.add_child(_banner)
 
 	_radar = Radar.new()
 	_radar.setup(_match)
 	_radar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	_radar.custom_minimum_size = Radar.SIZE
 	_radar.size = Radar.SIZE
-	_radar.position = Vector2(-Radar.SIZE.x * 0.5, -Radar.SIZE.y - 14)
+	_radar.position = Vector2(-Radar.SIZE.x * 0.5, -Radar.SIZE.y - WEStyle.px(24))
 	add_child(_radar)
 
+	var mx := WEStyle.px(WEStyle.MARGIN_X)
+	var by := PANEL_SIZE.y + WEStyle.px(32)
 	for side in 2:
 		var panel := PlayerPanel.new()
 		var right := side == 1
 		panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT if right else Control.PRESET_BOTTOM_LEFT)
 		panel.size = PANEL_SIZE
-		panel.position = Vector2(-PANEL_SIZE.x - 30 if right else 30, -PANEL_SIZE.y - 28)
+		panel.position = Vector2(-PANEL_SIZE.x - mx if right else mx, -by)
 		add_child(panel)
 		_panels.append(panel)
 		# Al lado del panel, hacia el centro de la pantalla.
 		var box := TacticsBox.new()
 		box.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT if right else Control.PRESET_BOTTOM_LEFT)
 		box.size = TacticsBox.SIZE
-		box.position = Vector2(-PANEL_SIZE.x - 30 - 8 - TacticsBox.SIZE.x if right else 30 + PANEL_SIZE.x + 8, -PANEL_SIZE.y - 28)
+		var gap := WEStyle.px(12)
+		box.position = Vector2(-PANEL_SIZE.x - mx - gap - TacticsBox.SIZE.x if right else mx + PANEL_SIZE.x + gap, -by)
 		add_child(box)
 		_tactics.append(box)
-		var tl := _label("", 16)
-		tl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.45))
+		var tl := WEStyle.make_caption_label("", WEStyle.ACCENT)
+		tl.add_theme_color_override("font_outline_color", Color(WEStyle.BG_NIGHT, 0.85))
+		tl.add_theme_constant_override("outline_size", 4)
 		tl.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT if right else Control.PRESET_BOTTOM_LEFT)
-		tl.position = Vector2(-PANEL_SIZE.x - 30 if right else 30, -PANEL_SIZE.y - 28 - 24)
-		tl.size = Vector2(PANEL_SIZE.x, 22)
+		tl.position = Vector2(-PANEL_SIZE.x - mx if right else mx, -by - WEStyle.px(30))
+		tl.size = Vector2(PANEL_SIZE.x, WEStyle.px(24))
 		if right:
 			tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		add_child(tl)
@@ -131,12 +184,48 @@ func setup(p_match: MatchController) -> void:
 	add_child(_hint)
 	# Se muestra con los íconos de los botones.
 	_hint.self_modulate.a = 0.0
-	var hm := ButtonIcons.Mirror.new(18, true)
+	var hm := ButtonIcons.Mirror.new(int(WEStyle.font_px(WEStyle.BODY_L)), true)
 	hm.source = _hint
 	hm.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	hm.custom_minimum_size = Vector2(900, 30)
 	hm.position = Vector2(-450, _hint.position.y - 30)
 	add_child(hm)
+
+
+## Pestaña del marcador (rótulo arriba, reloj abajo), centrada.
+func _tab(content: Control, alpha: float) -> PanelContainer:
+	var pc := PanelContainer.new()
+	pc.add_theme_stylebox_override("panel", hud_style(alpha))
+	pc.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pc.add_child(content)
+	return pc
+
+
+func _crest(team: Team) -> Control:
+	var crest := WEStyle.Crest.new()
+	crest.team = team.data
+	crest.label_font = WEStyle.font(WEStyle.Typeface.TITLE)
+	crest.custom_minimum_size = Vector2(WEStyle.px(36), WEStyle.px(40))
+	crest.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	crest.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return crest
+
+
+func _code(team: Team) -> Label:
+	var l := WEStyle.make_body_label(team.short_name.to_upper(), WEStyle.BODY_L)
+	l.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
+	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	l.custom_minimum_size.x = WEStyle.px(64)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	return l
+
+
+## Gol: el resultado se enciende un instante (FADE_TIME).
+func _flash_score() -> void:
+	_score_box.modulate = Color(1.6, 1.6, 1.6)
+	var tw := _score_box.create_tween()
+	tw.tween_property(_score_box, "modulate", Color.WHITE, WEStyle.FADE_TIME)
 
 
 func _process(_dt: float) -> void:
@@ -145,6 +234,10 @@ func _process(_dt: float) -> void:
 	var t0 := _match.teams[0]
 	var t1 := _match.teams[1]
 	_score.text = "%d - %d" % [t0.score, t1.score]
+	var goals := t0.score + t1.score
+	if _last_goals >= 0 and goals > _last_goals:
+		_flash_score()
+	_last_goals = goals
 	# En la repetición sólo queda el marcador (la marca y el cartel los pone
 	# la repetición).
 	if _match.phase == MatchController.Phase.REPLAY:
@@ -158,16 +251,15 @@ func _process(_dt: float) -> void:
 		for c in get_children():
 			if c is CanvasItem:
 				(c as CanvasItem).visible = true
-	_clock.text = "%s %s" % ["1st" if _match.clock.half == 1 else "2nd", _match.clock.display()]
+	_clock.text = "%s  %s" % ["1T" if _match.clock.half == 1 else "2T", _match.clock.display()]
 	# Pausa > Pantalla: radar y marcador se pueden apagar.
 	_radar.visible = GameSettings.show_radar
 	_top.visible = GameSettings.show_score
-	_clock.visible = GameSettings.show_score
+	_clock.get_parent().visible = GameSettings.show_score
 	if _match.training != null:
 		# Entrenamiento: sin marcador ni reloj (los datos de la práctica los
 		# muestra TrainingSession).
 		_top.visible = false
-		_clock.visible = false
 	# Arriba a la derecha sólo la estrategia de la CPU; la del humano (y su
 	# mentalidad) va al lado del panel de su jugador.
 	var lines := []
@@ -182,6 +274,9 @@ func _process(_dt: float) -> void:
 			lines.append("%s: %s" % [t.short_name, Strategy.NAMES[t.strategy]])
 	_strategy.text = "\n".join(lines)
 	_banner.text = _match.banner_text.to_upper()
+	if _match.phase == MatchController.Phase.FULLTIME:
+		_banner.text = "FINAL   %s %d - %d %s" % [t0.short_name, t0.score, t1.score, t1.short_name]
+	_banner_box.visible = _banner.text != ""
 	if _match.phase == MatchController.Phase.FULLTIME:
 		_banner.text = "FINAL   %s %d - %d %s" % [t0.short_name, t0.score, t1.score, t1.short_name]
 		_hint.text = "{X} / Start: volver al menú"
@@ -223,25 +318,11 @@ func _reference_player(team: Team) -> Footballer:
 	return best
 
 
-func _flag(team: Team) -> Control:
-	# "Bandera" genérica de club: dos franjas con sus colores.
-	var box := HBoxContainer.new()
-	box.add_theme_constant_override("separation", 0)
-	for c in [team.color, team.secondary_color, team.color]:
-		var r := ColorRect.new()
-		r.color = c
-		r.custom_minimum_size = Vector2(12, 26)
-		box.add_child(r)
-	return box
-
-
-static func _label(text: String, size: int) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", Color(0.97, 0.97, 0.97))
-	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
-	l.add_theme_constant_override("outline_size", 6)
+static func _label(text: String, _size: int) -> Label:
+	var l := WEStyle.make_body_label(text, WEStyle.BODY_L)
+	l.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
+	l.add_theme_color_override("font_outline_color", Color(WEStyle.BG_NIGHT, 0.85))
+	l.add_theme_constant_override("outline_size", 4)
 	return l
 
 
@@ -250,74 +331,79 @@ static func _label(text: String, size: int) -> Label:
 ## equilibrada, azul defensiva); la activa encendida y las otras apagadas.
 class TacticsBox:
 	extends Control
-	const SIZE := Vector2(44, 44)
-	const COLORS := [Color(0.95, 0.2, 0.18), Color(0.25, 0.85, 0.3), Color(0.25, 0.5, 1.0)]
+	const SIZE := Vector2(48, 48)
+	const COLORS := [Color("#D95555"), Color("#3FB96B"), Color(0.3, 0.55, 0.95)]
 	var mentality := 0
 
 	func _draw() -> void:
-		draw_rect(Rect2(Vector2.ZERO, SIZE), Color(0.02, 0.04, 0.08, 0.75))
-		draw_rect(Rect2(Vector2.ZERO, SIZE), Color(1, 1, 1, 0.5), false, 1.5)
+		draw_style_box(MatchHud.hud_style(0.88), Rect2(Vector2.ZERO, SIZE))
 		# De arriba hacia abajo: ofensiva (+1), equilibrada (0), defensiva (-1).
 		for i in 3:
 			var level := 1 - i
 			var on := level == mentality
-			var c: Color = COLORS[i] if on else (COLORS[i] as Color).darkened(0.75)
-			draw_rect(Rect2(6, 6 + i * 12, SIZE.x - 12, 9), c)
+			var c: Color = COLORS[i] if on else Color(COLORS[i], 0.18)
+			draw_rect(Rect2(8, 8 + i * 11.5, SIZE.x - 16, 8), c)
 
 
 class PlayerPanel:
 	extends Control
 
-	var _pos_bg: ColorRect
 	var _pos: Label
 	var _name: Label
 	var _stamina: ColorRect
 	var _worn: ColorRect
 	var _power_bg: ColorRect
 	var _power: ColorRect
+	var _bar_x := 0.0
+	var _bar_w := 0.0
 
 	func _init() -> void:
-		var bg := ColorRect.new()
-		bg.color = Color(0.05, 0.06, 0.09, 0.82)
+		var bg := Panel.new()
+		bg.add_theme_stylebox_override("panel", MatchHud.hud_style(0.88, WEStyle.RADIUS_CARD))
 		bg.size = MatchHud.PANEL_SIZE
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(bg)
-		_pos_bg = ColorRect.new()
-		_pos_bg.position = Vector2(8, 8)
-		_pos_bg.size = Vector2(40, 24)
-		add_child(_pos_bg)
-		_pos = MatchHud._label("", 17)
-		_pos.position = Vector2(8, 7)
-		_pos.size = Vector2(40, 24)
+		var pad := WEStyle.px(12)
+		_pos = WEStyle.make_body_label("", WEStyle.BODY_S, WEStyle.TEXT_MAIN)
+		_pos.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
+		_pos.position = Vector2(pad, pad)
+		_pos.size = Vector2(WEStyle.px(52), WEStyle.px(28))
 		_pos.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_pos.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		add_child(_pos)
-		_name = MatchHud._label("", 20)
-		_name.position = Vector2(58, 5)
+		_bar_x = pad * 2.0 + WEStyle.px(52)
+		_bar_w = MatchHud.PANEL_SIZE.x - _bar_x - pad
+		_name = WEStyle.make_body_label("", WEStyle.BODY_L)
+		_name.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
+		_name.position = Vector2(_bar_x, pad - WEStyle.px(4))
+		_name.size = Vector2(_bar_w, WEStyle.px(30))
+		_name.clip_text = true
 		add_child(_name)
 		var stamina_bg := ColorRect.new()
-		stamina_bg.color = Color(0.2, 0.2, 0.22)
-		stamina_bg.position = Vector2(58, 34)
-		stamina_bg.size = Vector2(180, 5)
+		stamina_bg.color = WEStyle.LINE
+		stamina_bg.position = Vector2(_bar_x, MatchHud.PANEL_SIZE.y - pad - WEStyle.px(6))
+		stamina_bg.size = Vector2(_bar_w, WEStyle.px(6))
 		add_child(stamina_bg)
 		_stamina = ColorRect.new()
-		_stamina.color = Color(0.9, 0.35, 0.45)
+		_stamina.color = WEStyle.ACCENT_GREEN
 		_stamina.position = stamina_bg.position
 		_stamina.size = stamina_bg.size
 		add_child(_stamina)
 		# Lo que se perdió por el cansancio acumulado (ya no se recupera).
 		_worn = ColorRect.new()
-		_worn.color = Color(0.45, 0.12, 0.15)
+		_worn.color = Color(WEStyle.DANGER, 0.55)
 		_worn.position = stamina_bg.position
-		_worn.size = Vector2(0, 5)
+		_worn.size = Vector2(0, stamina_bg.size.y)
 		add_child(_worn)
 		_power_bg = ColorRect.new()
-		_power_bg.color = Color(0, 0, 0, 0.6)
-		_power_bg.position = Vector2(0, -12)
-		_power_bg.size = Vector2(MatchHud.PANEL_SIZE.x * 0.6, 8)
+		_power_bg.color = Color(WEStyle.BG_NIGHT, 0.8)
+		_power_bg.position = Vector2(0, -WEStyle.px(18))
+		_power_bg.size = Vector2(MatchHud.PANEL_SIZE.x * 0.6, WEStyle.px(10))
 		add_child(_power_bg)
 		_power = ColorRect.new()
-		_power.color = Color(1.0, 0.82, 0.15)
+		_power.color = WEStyle.ACCENT
 		_power.position = _power_bg.position
-		_power.size = Vector2(0, 8)
+		_power.size = Vector2(0, _power_bg.size.y)
 		add_child(_power)
 
 	## `power` < 0 oculta la barra de potencia.
@@ -327,13 +413,16 @@ class PlayerPanel:
 			return
 		var role := clampi(p.role, 0, 3)
 		_pos.text = MatchHud.POS_NAMES[role]
-		_pos_bg.color = MatchHud.POS_COLORS[role].darkened(0.2)
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = MatchHud.POS_COLORS[role]
+		sb.set_corner_radius_all(int(WEStyle.px(WEStyle.RADIUS_BUTTON)))
+		_pos.add_theme_stylebox_override("normal", sb)
 		_name.text = "%d  %s" % [p.number, p.display_name]
 		_name.add_theme_color_override("font_color", accent)
 		# Energía; a la derecha, en oscuro, el tope perdido por el desgaste.
-		_stamina.size.x = 180.0 * p.stamina_fraction()
-		_worn.size.x = 180.0 * clampf(p.wear / 100.0, 0.0, 1.0)
-		_worn.position.x = 58.0 + 180.0 - _worn.size.x
+		_stamina.size.x = _bar_w * p.stamina_fraction()
+		_worn.size.x = _bar_w * clampf(p.wear / 100.0, 0.0, 1.0)
+		_worn.position.x = _bar_x + _bar_w - _worn.size.x
 		_power_bg.visible = power >= 0.0
 		_power.visible = power >= 0.0
 		_power.size.x = _power_bg.size.x * clampf(power, 0.0, 1.0)
@@ -385,9 +474,9 @@ class Radar:
 	func _draw() -> void:
 		if _match == null:
 			return
-		var line := Color(1, 1, 1, 0.75)
-		draw_rect(Rect2(Vector2.ZERO, SIZE), Color(0.05, 0.12, 0.07, 0.45))
-		draw_rect(Rect2(Vector2.ZERO, SIZE), line, false, 1.5)
+		var line := Color(WEStyle.TEXT_MAIN, 0.55)
+		draw_rect(Rect2(Vector2.ZERO, SIZE), Color(WEStyle.PITCH_DARK, 0.6))
+		draw_rect(Rect2(Vector2.ZERO, SIZE), WEStyle.LINE.lightened(0.2), false, 1.0)
 		PitchMarkings.draw_2d(self, Rect2(Vector2.ZERO, SIZE), line, 1.0, Pitch.HALF_LENGTH, Pitch.HALF_WIDTH, false)
 		for t in _match.teams:
 			for p in t.players:
@@ -395,7 +484,7 @@ class Radar:
 				draw_circle(_to_radar(p.global_position), r, t.color.lightened(0.15))
 				if p.is_human():
 					draw_arc(_to_radar(p.global_position), r + 1.5, 0, TAU, 12, Color.WHITE, 1.0)
-		draw_circle(_to_radar(_match.ball.state.pos), 3.0, Color(1.0, 0.2, 0.2))
+		draw_circle(_to_radar(_match.ball.state.pos), 3.0, WEStyle.ACCENT)
 
 
 ## Flecha del viento según cómo se ve la cancha desde la cámara actual.
@@ -417,11 +506,11 @@ class WindIndicator:
 			dir = Vector2(wind.dot(right.normalized()), wind.dot(down.normalized()))
 		dir = dir.normalized() if dir.length() > 0.01 else Vector2.RIGHT
 		var c := Vector2(14, 15)
-		var col := Color(1, 1, 1, 0.9)
-		draw_circle(c, 13.0, Color(0, 0, 0, 0.45))
+		var col := WEStyle.TEXT_MAIN
+		draw_circle(c, 13.0, Color(WEStyle.BG_NIGHT, 0.75))
 		var tip := c + dir * 10.0
 		draw_line(c - dir * 9.0, tip, col, 2.5, true)
 		var side := dir.orthogonal() * 4.5
 		draw_colored_polygon(PackedVector2Array([tip + dir * 2.0, tip - dir * 5.0 + side, tip - dir * 5.0 - side]), col)
-		draw_string(get_theme_default_font(), Vector2(32, 21), "%d m/s" % roundi(wind.length()),
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 16, col)
+		draw_string(WEStyle.font(WEStyle.Typeface.SEMIBOLD), Vector2(32, 21), "%d m/s" % roundi(wind.length()),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, WEStyle.font_px(WEStyle.BODY_M), col)

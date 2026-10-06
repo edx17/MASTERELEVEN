@@ -196,6 +196,8 @@ var last_scorers: Array = []
 var last_events: Array = []
 ## Partido de la Liga Master en curso (active_save es la carrera).
 var master_match := false
+## Rótulo del marcador del HUD (competición y fecha, o "Amistoso"). No se guarda.
+var match_label := ""
 ## Volumen de efectos (silbato, pelota) y del público, 0..10.
 var sfx_volume: int = 8
 ## Pantalla del partido (pausa > Pantalla): radar y marcador/reloj.

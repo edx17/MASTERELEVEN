@@ -261,3 +261,25 @@ func test_presentation_banner_live_flag_and_photo() -> void:
 	intro._enter(MatchIntro.Step.DONE)
 	assert_null(intro.flag_mesh)
 	assert_eq(m.phase, MatchController.Phase.RESTART)
+
+
+## ETAPA 6: marcador centrado con el rótulo de la competición, reloj "1T" y
+## el resultado se enciende al haber un gol.
+func test_hud_scorebug_label_clock_and_goal_flash() -> void:
+	GameSettings.match_label = "Liga Master · Fecha 3"
+	_start()
+	var hud: MatchHud = null
+	for c in m.find_children("*", "", true, false):
+		if c is MatchHud:
+			hud = c
+	assert_not_null(hud)
+	var labels := hud._top.find_children("*", "Label", true, false).map(func(l: Label) -> String: return l.text)
+	assert_true(labels.has("LIGA MASTER · FECHA 3"), "rótulo de la competición")
+	hud._process(dt)
+	assert_string_starts_with(hud._clock.text, "1T")
+	assert_eq(hud._score.text, "0 - 0")
+	m.teams[0].score += 1
+	hud._process(dt)
+	assert_eq(hud._score.text, "1 - 0")
+	assert_gt(hud._score_box.modulate.r, 1.0, "el resultado se enciende con el gol")
+	GameSettings.match_label = ""
