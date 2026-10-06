@@ -183,3 +183,26 @@ func test_imported_crest() -> void:
 	var t := TeamDB.load_team(BOCA)
 	assert_not_null(t.crest)
 	assert_eq(t.crest.get_width(), 64)
+
+
+## Kits de Dream League Soccer: cada pieza va a su lugar de la plantilla.
+func test_dls_kit_conversion() -> void:
+	var src := Image.create(512, 512, false, Image.FORMAT_RGBA8)
+	src.fill(Color.WHITE)
+	var paint := func(r: Rect2i, c: Color) -> void: src.fill_rect(r, c)
+	paint.call(Rect2i(184, 162, 144, 214), Color.RED) # pecho
+	paint.call(Rect2i(184, 2, 144, 114), Color.BLUE) # espalda
+	paint.call(Rect2i(8, 12, 144, 106), Color.GREEN) # manga
+	paint.call(Rect2i(12, 388, 202, 118), Color.BLACK) # short
+	paint.call(Rect2i(14, 276, 136, 98), Color.YELLOW) # media
+	var out := KitTemplate.from_dls(src, 256)
+	var at := func(u: float, v: float) -> Color: return out.get_pixel(int(u * 256), int(v * 256))
+	assert_eq(at.call(0.375, 0.15), Color.RED, "pecho")
+	assert_eq(at.call(0.125, 0.15), Color.BLUE, "espalda")
+	assert_eq(at.call(0.62, 0.12), Color.GREEN, "manga")
+	assert_eq(at.call(0.12, 0.62), Color.BLACK, "short")
+	assert_eq(at.call(0.62, 0.62), Color.YELLOW, "media")
+	# Con otra medida (p. ej. 447 px) se escala.
+	src.resize(447, 447, Image.INTERPOLATE_NEAREST)
+	out = KitTemplate.from_dls(src, 256)
+	assert_eq(at.call(0.375, 0.15), Color.RED)

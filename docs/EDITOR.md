@@ -48,6 +48,19 @@ todo como estaba.
   lista; máximo 23).
 - **Nueva selección** (con plantel generado) y **Borrar selección**.
 
+## Kits de Dream League Soccer
+- En **Camisetas**: "Importar kit DLS (PNG)" elige un kit de DLS (la
+  plantilla de 512×512 con el frente al centro, la espalda arriba, las
+  mangas en las esquinas, las medias a los costados y el short abajo;
+  sirven también otras medidas y los de First Touch Soccer con la misma
+  forma). Se convierte solo a la plantilla del juego y queda como camiseta
+  titular o suplente (la elegida arriba). El escudo y los sponsors vienen en
+  el kit, así que el juego no le dibuja su escudo encima; el número sí.
+- Las plantillas DLS más viejas (con otra distribución de las piezas, como
+  algunas de 2016) no se convierten bien.
+- Los kits quedan sólo en la carpeta de tu Option File (no van al juego
+  base ni al repositorio).
+
 ## Escudos
 - En **Camisetas**, arriba: "Importar escudo (PNG)" elige una imagen (mejor
   cuadrada y con fondo transparente); se copia achicada a la carpeta del
