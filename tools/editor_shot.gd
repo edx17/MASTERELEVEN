@@ -1,6 +1,6 @@
 extends Node
 ## Captura del Editor (para revisar su diseño):
-##   xvfb-run godot -- --editor --editor-shot=archivo.png [--editor-tab=0|1|2] [--editor-select=1|3] [--editor-review-clubs] [--editor-review-squads]
+##   xvfb-run godot -- --editor --editor-shot=archivo.png [--editor-tab=0|1|2] [--editor-select=1|3] [--editor-review-clubs] [--editor-review-squads] [--editor-u20]
 
 var out := "user://editor.png"
 
@@ -20,6 +20,9 @@ func _run() -> void:
 			ed.call("_clubs_review")
 		if a == "--editor-review-squads":
 			ed.call("_squads_review")
+		if a == "--editor-u20":
+			(ed.get("_t_squad") as OptionButton).select(1)
+			ed.call("_show_team", ed.get("_t_current"))
 		if a.begins_with("--editor-select="):
 			var n := int(a.trim_prefix("--editor-select="))
 			var tree: Tree = ed.get("_tree")

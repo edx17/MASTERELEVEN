@@ -48,6 +48,9 @@ var _t_paths: Array[String] = []
 var _t_form: VBoxContainer
 var _t_roster: ItemList
 var _t_current := ""
+## Plantel que se ve del club: 0 = primera, 1 = Sub-20 (inferiores).
+var _t_squad: OptionButton
+var _p_squad: OptionButton
 
 # Importar
 var _imp_text: Label
@@ -326,6 +329,12 @@ func _players_tab() -> Control:
 	_p_team.clip_text = true
 	_p_team.item_selected.connect(func(_i: int) -> void: _refill_players())
 	filters.add_child(_p_team)
+	_p_squad = OptionButton.new()
+	for t in ["Primera", "Sub-20"]:
+		_p_squad.add_item(t)
+	_p_squad.tooltip_text = "Plantel de primera o las inferiores (Sub-20) de los clubes"
+	_p_squad.item_selected.connect(func(_i: int) -> void: _refill_players())
+	filters.add_child(_p_squad)
 	_p_line = OptionButton.new()
 	_p_line.custom_minimum_size.x = 170
 	for l in LINES:
@@ -379,9 +388,15 @@ func _on_p_group(i: int) -> void:
 
 func _player_paths() -> Array[String]:
 	var all := _group_paths(_p_group.selected)
-	if _p_team.selected <= 0:
+	if _p_team.selected > 0:
+		all = [all[_p_team.selected - 1]]
+	if _p_squad == null or _p_squad.selected != 1:
 		return all
-	var out: Array[String] = [all[_p_team.selected - 1]]
+	# Sub-20: sólo los clubes tienen inferiores.
+	var out: Array[String] = []
+	for p in all:
+		if p.begins_with("db:club:"):
+			out.append(TeamDB.u20_path(p))
 	return out
 
 
@@ -675,7 +690,19 @@ func _teams_tab() -> Control:
 	var roster_box := VBoxContainer.new()
 	roster_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right.add_child(roster_box)
-	roster_box.add_child(_lbl("Plantel (los 11 primeros son los titulares)"))
+	var sq := HBoxContainer.new()
+	roster_box.add_child(sq)
+	sq.add_child(_lbl("Plantel:"))
+	_t_squad = OptionButton.new()
+	for t in ["Primera", "Sub-20 (inferiores)"]:
+		_t_squad.add_item(t)
+	_t_squad.custom_minimum_size.x = 200
+	_t_squad.tooltip_text = "Las inferiores: juegan los torneos Sub-20 y suben a primera en la Liga Master"
+	_t_squad.item_selected.connect(func(_i: int) -> void:
+		if _t_current != "":
+			_show_team(_t_current))
+	sq.add_child(_t_squad)
+	sq.add_child(_lbl("  (en primera, los 11 primeros son los titulares)"))
 	_t_roster = ItemList.new()
 	_t_roster.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	roster_box.add_child(_t_roster)
@@ -683,13 +710,15 @@ func _teams_tab() -> Control:
 	roster_box.add_child(acts)
 	acts.add_child(_btn("▲ Subir", func() -> void: _roster_move(-1), "Lo pone antes (titular / suplente)"))
 	acts.add_child(_btn("▼ Bajar", func() -> void: _roster_move(1), ""))
+	acts.add_child(_btn("Pasar a primera / Sub-20", _roster_swap_squad,
+		"Lleva al jugador elegido de las inferiores a primera (o al revés)"))
 	acts.add_child(_btn("Nuevo jugador", func() -> void:
-		var r := model.add_player(_t_current)
+		var r := model.add_player(_roster_path())
 		_status.text = "Jugador agregado." if not r.is_empty() else "El plantel está completo (40 en clubes, 23 en selecciones).", "Alta"))
 	acts.add_child(_btn("Quitar", func() -> void:
 		var sel := _t_roster.get_selected_items()
 		if not sel.is_empty():
-			model.remove_player([_t_current, sel[0]]), "Baja"))
+			model.remove_player([_roster_path(), sel[0]]), "Baja"))
 	acts.add_child(_btn("Editar en Jugadores", _edit_in_players, "Abre el plantel en la pestaña Jugadores"))
 	return tab
 
@@ -762,21 +791,47 @@ func _show_team(path: String) -> void:
 	kit_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_t_form.add_child(kit_note)
 	_t_roster.clear()
-	var list: Array = e.get("players", [])
+	var u20 := _roster_path() != path
+	_t_squad.disabled = not path.begins_with("db:club:")
+	if _t_squad.disabled:
+		_t_squad.select(0)
+		u20 = false
+	var list: Array = model.players(_roster_path())
 	for i in list.size():
 		var d: Dictionary = list[i]
-		_t_roster.add_item("%s%2d  %-4s %s" % ["★ " if i < 11 else "   ", int(d.get("num", 0)), String(d.get("pos", "")), String(d.get("n", ""))])
+		_t_roster.add_item("%s%2d  %-4s %s%s" % ["★ " if i < 11 and not u20 else "   ", int(d.get("num", 0)),
+			String(d.get("pos", "")), String(d.get("n", "")), ("  (%d años)" % int(d.get("age", 18))) if u20 else ""])
 
 
 func _roster_move(delta: int) -> void:
 	var sel := _t_roster.get_selected_items()
 	if sel.is_empty():
 		return
-	var ref := model.move_player([_t_current, sel[0]], delta)
+	var ref := model.move_player([_roster_path(), sel[0]], delta)
 	_t_roster.select(ref[1])
 
 
+## Ruta del plantel que se está viendo (el club o su Sub-20).
+func _roster_path() -> String:
+	if _t_squad != null and _t_squad.selected == 1 and _t_current.begins_with("db:club:"):
+		return TeamDB.u20_path(_t_current)
+	return _t_current
+
+
+func _roster_swap_squad() -> void:
+	var sel := _t_roster.get_selected_items()
+	if sel.is_empty() or not _t_current.begins_with("db:club:"):
+		return
+	var from := _roster_path()
+	var to := _t_current if from != _t_current else TeamDB.u20_path(_t_current)
+	var r := model.transfer([from, sel[0]], to)
+	_status.text = ("Pasó a primera." if to == _t_current else "Pasó a las inferiores.") if not r.is_empty() \
+		else "No se pudo: el plantel de destino está completo."
+	_show_team(_t_current)
+
+
 func _edit_in_players() -> void:
+	_p_squad.select(_t_squad.selected if _t_current.begins_with("db:club:") else 0)
 	_tabs.current_tab = 0
 	_p_group.select(_t_group.selected)
 	_on_p_group(_t_group.selected)

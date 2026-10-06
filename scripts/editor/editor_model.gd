@@ -7,6 +7,8 @@ extends RefCounted
 ## Un equipo se identifica con su ruta de TeamDB (db:club:arg:boca,
 ## db:nat:arg). Los Equipos WE (.tres) son de sólo lectura.
 ## Un jugador se identifica con [ruta del equipo, índice en el plantel].
+## Las Sub-20 (inferiores) de un club se editan con su ruta de TeamDB
+## (db:u20:club:arg:boca): su plantel es el "youth" de la entrada del club.
 
 signal changed
 
@@ -38,6 +40,8 @@ static func editable(path: String) -> bool:
 ## Entrada del equipo (copia editable) con el plantel en datos: si el equipo
 ## no tenía plantel cargado (generado), se fija el generado.
 func entry(path: String) -> Dictionary:
+	if TeamDB.is_u20(path):
+		return _u20_entry(path)
 	if _entries.has(path):
 		return _entries[path]
 	var parts := path.split(":")
@@ -58,6 +62,30 @@ func entry(path: String) -> Dictionary:
 		e["players"] = list
 	_entries[path] = e
 	return e
+
+
+## Sub-20 de un club: {name, players} donde players es el "youth" de la
+## entrada del club (el mismo Array: lo que se edita acá queda en el club).
+## Si el club no tenía inferiores cargadas, se fijan las generadas.
+func _u20_entry(path: String) -> Dictionary:
+	var senior := "db:" + path.trim_prefix("db:u20:")
+	if not senior.begins_with("db:club:"):
+		return {}
+	var e := entry(senior)
+	if e.is_empty():
+		return {}
+	if (e.get("youth", []) as Array).is_empty():
+		var list: Array = []
+		var t := TeamDB.load_team(path)
+		if t != null:
+			for p in t.players:
+				list.append(TeamDB.player_to_dict(p))
+		e["youth"] = list
+	var w: Dictionary = _entries.get_or_add(path, {})
+	w["name"] = String(e.get("name", "")) + " Sub-20"
+	w["players"] = e["youth"]
+	w["senior"] = senior
+	return w
 
 
 func players(path: String) -> Array:
@@ -112,6 +140,9 @@ func undo() -> void:
 
 ## Pasa la entrada editada del equipo al Option File.
 func _commit(path: String) -> void:
+	if TeamDB.is_u20(path):
+		_commit(String(_u20_entry(path)["senior"]))
+		return
 	var e: Dictionary = _entries[path]
 	var parts := path.split(":")
 	if parts.size() == 3:

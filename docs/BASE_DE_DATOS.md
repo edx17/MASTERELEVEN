@@ -155,3 +155,11 @@ Con un club real de local y el estadio "al azar", se juega en su estadio:
 el nombre real y una forma según la capacidad (más de 65.000: cuenco de
 cuatro bandejas). Los 20-30 emblemáticos con modelo propio llegan en la etapa
 de pulido.
+
+
+### Sub-20 (inferiores)
+
+Cada club puede tener `"youth": [jugadores]` en su entrada: son sus
+inferiores. Las usan los torneos Sub-20 (`db:u20:club:pais:id`) y la Liga
+Master (suben a primera). Se cargan importando un CSV de liga juvenil o desde
+el Editor (Equipos → Plantel: Sub-20). Si un club no tiene, se generan.
