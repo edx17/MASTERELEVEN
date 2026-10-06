@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **498 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **499 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -173,6 +173,7 @@ además arma el `.exe` de Windows).
 | Menús | Circulares (arriba de todo, para arriba, va abajo de todo) y manteniendo apretado el desplazamiento se acelera (autoload MenuNav). |
 | Mercado de pases | Filtro **Liga** con tus divisiones y las ligas de todos los otros países, y filtro **Club**; se puede comprar en cualquier país (el club pasa a la carrera). |
 | Progreso de tus jugadores | Crecen o declinan de a poco durante la temporada (al 25/50/75/100 % de las fechas); columna **Evol.** en el plantel, cambio por atributo en la ficha y **media por temporada**. |
+| Editor: Sub-20 | En **Equipos**, selector **Plantel: Primera / Sub-20 (inferiores)** con alta, baja, orden y "Pasar a primera / Sub-20"; en **Jugadores**, filtro **Primera / Sub-20** para editar atributos de los pibes. Las inferiores generadas quedan fijas al editarlas. |
 | Inferiores | Botón **Inferiores** en Plantel y dirección: la Sub-20 de tu club con su ficha (si no se importó, se arma una fija al empezar la carrera). |
 
 ## Sub-20 y libres (PR #36)

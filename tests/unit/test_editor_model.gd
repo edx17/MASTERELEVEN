@@ -186,3 +186,22 @@ func test_imported_crest() -> void:
 	var t := TeamDB.load_team(BOCA)
 	assert_not_null(t.crest)
 	assert_eq(t.crest.get_width(), 64)
+
+
+func test_u20_squad_is_editable() -> void:
+	var u20 := TeamDB.u20_path(BOCA)
+	var list := m.players(u20)
+	assert_gt(list.size(), 15, "las inferiores generadas quedan como datos")
+	assert_eq(String(m.entry(u20)["name"]).ends_with("Sub-20"), true)
+	m.set_player([u20, 0], {"n": "Pibe Editado", "age": 17})
+	assert_eq(String(m.player([u20, 0])["n"]), "Pibe Editado")
+	# Queda en la entrada del club (youth) y el juego lo usa.
+	var t := TeamDB.load_team(u20)
+	assert_true(t.players.any(func(p: PlayerData) -> bool: return p.player_name == "Pibe Editado"))
+	var before := m.players(BOCA).size()
+	var moved := m.transfer([u20, 0], BOCA)
+	assert_eq(moved[0], BOCA, "sube a primera")
+	assert_eq(m.players(BOCA).size(), before + 1)
+	m.undo()
+	assert_eq(m.players(BOCA).size(), before, "deshacer")
+	assert_eq(String(m.player([u20, 0])["n"]), "Pibe Editado", "volvió a las inferiores")
