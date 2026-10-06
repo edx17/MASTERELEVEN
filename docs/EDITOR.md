@@ -48,6 +48,12 @@ todo como estaba.
   lista; máximo 23).
 - **Nueva selección** (con plantel generado) y **Borrar selección**.
 
+## Escudos
+- En **Camisetas**, arriba: "Importar escudo (PNG)" elige una imagen (mejor
+  cuadrada y con fondo transparente); se copia achicada a la carpeta del
+  Option File y el juego la muestra en lugar del escudo generado (en las
+  selecciones, en lugar de la bandera). "Quitar escudo" vuelve al generado.
+
 ## Ligas
 - Por país, sus divisiones y los clubes de cada una.
 - **Pasar de división** (ascensos y descensos a mano), **Sacar de la

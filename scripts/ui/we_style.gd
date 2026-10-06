@@ -155,6 +155,34 @@ class OptionRow:
 		draw_colored_polygon(PackedVector2Array([Vector2(lx - 10, cy), Vector2(lx, cy - 7), Vector2(lx, cy + 7)]), c)
 
 
+## Desplaza un ScrollContainer con el stick derecho del mando o con
+## RePág / AvPág (las tablas largas de las ligas y del Mundial, sin mouse).
+## Se agrega como hijo: `WEStyle.pad_scroll(scroll)`.
+class PadScroll:
+	extends Node
+	const SPEED := 900.0
+
+	func _process(dt: float) -> void:
+		var s := get_parent() as ScrollContainer
+		if s == null or not s.is_visible_in_tree():
+			return
+		var v := 0.0
+		for dev in Input.get_connected_joypads():
+			var a := Input.get_joy_axis(dev, JOY_AXIS_RIGHT_Y)
+			if absf(a) > 0.25:
+				v = a
+		if Input.is_key_pressed(KEY_PAGEDOWN):
+			v = 1.0
+		elif Input.is_key_pressed(KEY_PAGEUP):
+			v = -1.0
+		if v != 0.0:
+			s.scroll_vertical += int(v * SPEED * dt)
+
+
+static func pad_scroll(scroll: ScrollContainer) -> void:
+	scroll.add_child(PadScroll.new())
+
+
 ## Fondo animado (un brillo que late, como el del WE).
 class Backdrop:
 	extends Control
@@ -193,6 +221,13 @@ class Crest:
 			return
 		var w := size.x
 		var h := size.y
+		# Escudo importado: entero y centrado, sin deformarlo.
+		if team.crest != null:
+			var ts := team.crest.get_size()
+			var k := minf(w / ts.x, h / ts.y)
+			var sz := ts * k
+			draw_texture_rect(team.crest, Rect2((Vector2(w, h) - sz) * 0.5, sz), false)
+			return
 		# Selección: su bandera, con un borde dorado.
 		if team.flag != null:
 			var fh := minf(h * 0.8, w * 0.667)

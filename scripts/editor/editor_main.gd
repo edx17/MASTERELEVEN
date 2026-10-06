@@ -1348,6 +1348,40 @@ func _kit_tex(path: String, kit: int) -> Texture2D:
 	return t.kit_texture(kit) if t != null else null
 
 
+## Elegir un PNG para el escudo: se copia (como mucho 256 px) a la carpeta
+## de camisetas del Option File y el equipo lo usa en los menús.
+func _pick_crest(path: String) -> void:
+	var fd := FileDialog.new()
+	fd.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	fd.access = FileDialog.ACCESS_FILESYSTEM
+	fd.filters = PackedStringArray(["*.png ; Imagen PNG"])
+	fd.title = "Escudo de %s" % TeamDB.load_team(path).team_name
+	fd.size = Vector2i(900, 560)
+	add_child(fd)
+	fd.file_selected.connect(func(f: String) -> void:
+		var ok := import_crest(path, f)
+		_status.text = "Escudo importado." if ok else "No se pudo leer ese PNG."
+		fd.queue_free())
+	fd.canceled.connect(fd.queue_free)
+	fd.popup_centered()
+
+
+func import_crest(path: String, file: String) -> bool:
+	var img := Image.load_from_file(file)
+	if img == null or img.is_empty():
+		return false
+	var m := maxi(img.get_width(), img.get_height())
+	if m > 256:
+		img.resize(maxi(1, img.get_width() * 256 / m), maxi(1, img.get_height() * 256 / m), Image.INTERPOLATE_LANCZOS)
+	var dir := model.option_file.kits_dir()
+	DirAccess.make_dir_recursive_absolute(dir)
+	var name := "%s_escudo.png" % path.trim_prefix("db:").replace(":", "_")
+	if img.save_png(dir.path_join(name)) != OK:
+		return false
+	model.set_team(path, {"crest": name})
+	return true
+
+
 func _kit_file_name(path: String, kit: int) -> String:
 	return "%s_%s.png" % [path.trim_prefix("db:").replace(":", "_"), ["titular", "suplente"][kit]]
 
@@ -1362,6 +1396,22 @@ func _show_kit(path: String) -> void:
 		return
 	var key: String = ["home", "away"][_k_kit]
 	var kit := TeamDB.parse_kit(String(e.get(key, "ffffff/ffffff/ffffff")))
+	# Escudo: el generado o un PNG propio.
+	var crest_row := HBoxContainer.new()
+	crest_row.add_theme_constant_override("separation", 10)
+	_k_form.add_child(crest_row)
+	var crest := WEStyle.Crest.new()
+	crest.team = TeamDB.load_team(path)
+	crest.custom_minimum_size = Vector2(64, 74)
+	crest_row.add_child(crest)
+	var cbox := VBoxContainer.new()
+	crest_row.add_child(cbox)
+	cbox.add_child(_lbl("Escudo: %s" % (String(e["crest"]) if String(e.get("crest", "")) != "" else ("la bandera" if path.begins_with("db:nat:") else "generado (colores y sigla)"))))
+	var cbtns := HBoxContainer.new()
+	cbox.add_child(cbtns)
+	cbtns.add_child(_btn("Importar escudo (PNG)", _pick_crest.bind(path), "Elegí un PNG (mejor cuadrado y con fondo transparente)."))
+	cbtns.add_child(_btn("Quitar escudo", func() -> void: model.set_team(path, {"crest": ""}), ""))
+	_k_form.add_child(HSeparator.new())
 	var which := OptionButton.new()
 	which.add_item("Titular")
 	which.add_item("Suplente")

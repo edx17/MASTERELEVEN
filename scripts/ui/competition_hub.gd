@@ -45,7 +45,7 @@ func _clear(box: Control) -> void:
 func _rebuild() -> void:
 	_clear(_left)
 	_clear(_right)
-	var title := "MUNDIAL 2026" if comp.kind == Competition.Kind.WORLD_CUP else "%s MASTER ELEVEN" % Competition.KIND_NAMES[comp.kind].to_upper()
+	var title := "MUNDIAL" if comp.kind == Competition.Kind.WORLD_CUP else "%s MASTER ELEVEN" % Competition.KIND_NAMES[comp.kind].to_upper()
 	_left.add_child(WEStyle.label(title, 26, Color(1.0, 0.9, 0.35)))
 	if comp.kind == Competition.Kind.LEAGUE:
 		_table()
@@ -53,6 +53,7 @@ func _rebuild() -> void:
 		_world_cup_groups()
 	else:
 		_bracket()
+	_left.add_child(WEStyle.label("Stick derecho o RePág / AvPág: mover la tabla", 14, Color(0.7, 0.75, 0.85)))
 	_next_match()
 
 
@@ -66,8 +67,9 @@ func _table() -> void:
 	var big := comp.team_paths.size() > 10
 	var fs := 15 if big else 18
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(620, 540)
+	scroll.custom_minimum_size = Vector2(620, 512)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	WEStyle.pad_scroll(scroll)
 	_left.add_child(scroll)
 	var grid := GridContainer.new()
 	grid.columns = 10
@@ -100,8 +102,9 @@ func _table() -> void:
 ## (con desplazamiento).
 func _world_cup_groups() -> void:
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(620, 540)
+	scroll.custom_minimum_size = Vector2(620, 512)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	WEStyle.pad_scroll(scroll)
 	_left.add_child(scroll)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 2)
@@ -120,6 +123,8 @@ func _world_cup_groups() -> void:
 		grid.add_theme_constant_override("h_separation", 12)
 		grid.add_theme_constant_override("v_separation", 0)
 		box.add_child(grid)
+		for h in ["", "", "PJ", "DG", "GF", "Pts"]:
+			grid.add_child(WEStyle.label(h, fs - 2, Color(0.6, 0.8, 1.0)))
 		var pos := 1
 		for row in comp.group_table(gi):
 			var me: bool = row["team"] == comp.user_team
@@ -137,8 +142,9 @@ func _world_cup_groups() -> void:
 func _bracket() -> void:
 	var from := Competition.WC_GROUP_ROUNDS if comp.kind == Competition.Kind.WORLD_CUP else 0
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(620, 540)
+	scroll.custom_minimum_size = Vector2(620, 512)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	WEStyle.pad_scroll(scroll)
 	_left.add_child(scroll)
 	var box := VBoxContainer.new()
 	scroll.add_child(box)

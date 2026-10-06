@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **451 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **472 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -18,8 +18,8 @@ además arma el `.exe` de Windows).
 | 3 — IA de partido | ✅ Implementada (se sigue ajustando con tus pruebas) | — |
 | 4 — Reglas, atributos y plantel | ✅ Implementada | — |
 | 5 — Presentación moderna (estadios, animaciones, audio, repeticiones) | 🟡 Muy avanzada; falta el pelo "Detallados" y la voz del locutor | — |
-| 6 — Liga Master | 🟡 D1 hecho (carrera y temporadas); faltan D2–D4 | — |
-| 7 — Torneos | 🟡 Liga y Copa con los 8 equipos (versión inicial) | — |
+| 6 — Liga Master | 🟡 D1–D5 hechos, **pendiente de tu prueba** | #32, #33 |
+| 7 — Torneos | 🟡 Hecho en la Liga Master: copas reales de cada país y confederación, supercopas, Intercontinental, Mundial de Clubes y Mundial; **pendiente de tu prueba** | #33 |
 | 8 — Pulido | ⬜ | — |
 | Entrenamiento (Club House) | ✅ | #23 |
 | Backlog B1–B9 | ✅ | #24 |
@@ -37,7 +37,12 @@ además arma el `.exe` de Windows).
 | E3 — Editor: selecciones, ligas y copas propias | 🟡 Hecho, pendiente de tu prueba | #31 |
 | E4 — Editor: camisetas (plantilla PNG) y botines con vista 3D | 🟡 Hecho, pendiente de tu prueba | #31 |
 | Importar clubes (CSV) y Argentina sin Promocional | 🟡 Hecho, pendiente de tu prueba | #31 |
-| D1 — Liga Master: carrera, temporadas, goleadores, ascensos y descensos | 🟡 Hecho, pendiente de tu prueba | (este PR) |
+| D1 — Liga Master: carrera, temporadas, goleadores, ascensos y descensos | 🟡 Hecho, pendiente de tu prueba | #32 |
+| D2 — Liga Master: tarjetas, lesiones, evolución, retiros y juveniles | 🟡 Hecho, pendiente de tu prueba | #33 |
+| Menús: todo entra, tablas con el mando, cabeceras del Mundial | 🟡 Hecho, pendiente de tu prueba | #33 |
+| D3 — Liga Master: Plantel, Dirección guardada, Calendario; escudos PNG | 🟡 Hecho, pendiente de tu prueba | #33 |
+| D4 — Liga Master: mercado de pases con puntos WE | 🟡 Hecho, pendiente de tu prueba | #33 |
+| D5 — Liga Master: noticias, historial y palmarés | 🟡 Hecho, pendiente de tu prueba | #33 |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -140,16 +145,190 @@ además arma el `.exe` de Windows).
    ver `docs/BASE_DE_DATOS.md`): se importa y reemplaza los planteles
    generados. La lista de clubes 2026 de Argentina que pasaste se carga
    desde el Editor (Importar > Clubes y divisiones).
-3. **Paso D — Liga Master**, en cuatro PR: **D1** (hecho: carrera y
-   temporadas), **D2** (tarjetas, suspensiones, lesiones, evolución por
-   edad, retiros y juveniles), **D3** (mercado de pases con puntos WE,
-   préstamos, ventanas, IA que ficha) y **D4** (menú de la carrera estilo
-   WE, noticias, historial y palmarés).
-4. Himno propio, relator y pulido final.
-5. Editores: ya hechos (E1–E4, ver `docs/EDITOR.md`); quedan solo extras
+3. **Paso D — Liga Master**: **D1** (hecho: carrera y temporadas), **D2**
+   (hecho: tarjetas, lesiones, evolución, retiros y juveniles), **D3**
+   (hecho: Plantel, Dirección guardada, Calendario y escudos), **D4**
+   (hecho: mercado de pases con puntos WE, préstamos, ventanas, IA que
+   ficha) y **D5** (hecho: noticias, historial y palmarés).
+4. **Fase 7 — Torneos**: hecho con las copas reales (Copa Argentina con
+   fase preliminar, Trofeo de Campeones, Supercopa Argentina, FA Cup, EFL
+   Cup, Champions/Europa/Conference con fase liga de 36, Libertadores,
+   Sudamericana, Concachampions, Recopa, Supercopa de Europa,
+   Intercontinental, Mundial de Clubes) y Mundial cada 4 temporadas;
+   pendiente de tu prueba. Para que haya más clubes reales en las copas
+   continentales, sumar ligas (Uruguay, Colombia, Francia...) desde el Editor.
+5. Himno propio, relator y pulido final.
+6. Editores: ya hechos (E1–E4, ver `docs/EDITOR.md`); quedan solo extras
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Fase 7 — Torneos (en la Liga Master)
+Las copas se juegan **entre fechas de la liga** (la pantalla de la carrera
+avisa "Copa Libertadores · Octavos de final · ida"). Tu partido lo jugás o
+lo simulás; las fechas en las que tu club no juega se simulan solas.
+Clasificar depende de la **temporada anterior** de la carrera (en la
+primera, del nivel de los equipos). Código: `scripts/competition/career_cups.gd`
+(qué se juega y quién clasifica) y `competition.gd` (formatos).
+
+**Formatos nuevos** (sirven para cualquier copa):
+- Entrada escalonada: los de las divisiones de abajo arrancan en rondas
+  previas y los de arriba entran después; sorteo en cada ronda.
+- Llaves de ida y vuelta por resultado global (sin gol de visitante;
+  penales si hay empate), con la final a partido único.
+- Grupos de 4 de ida y vuelta, y fase liga de 36 (8 partidos, 2 rivales
+  de cada bombo, sin cruces del mismo país cuando se puede).
+
+**Copas nacionales**
+- **Copa Argentina** (formato real 2026): los 30 de Primera y los 15
+  mejores de la Primera Nacional entran directo a 32avos; Primera B y
+  Primera C juegan la **fase preliminar** (2 rondas) por los otros 19
+  lugares. Los 10 cupos del Federal A, que no está en la base, también
+  salen de la preliminar. Partido único con penales.
+- **Trofeo de Campeones**: campeón del Apertura (1.ª rueda de la liga)
+  contra campeón del Clausura (2.ª rueda); se juega antes de la 1.ª fecha
+  de la temporada siguiente. Si es el mismo club, juega con el mejor de la
+  tabla anual.
+- **Supercopa Argentina**: ganador del Trofeo contra el campeón de la Copa
+  Argentina (si es el mismo, contra el finalista).
+- La **Copa de la Liga** no está: desde 2026 no se juega.
+- Inglaterra: **FA Cup** (los 92; Premier y Championship entran en la 3.ª
+  ronda), **EFL Cup** (los 8 mejores de la Premier entran en 16avos) y
+  **Community Shield**.
+- España: **Copa del Rey** y **Supercopa de España** (4 equipos, a mitad
+  de temporada). Italia: **Coppa Italia** y **Supercoppa Italiana** (4
+  equipos).
+- Alemania: **DFB-Pokal** y **DFL-Supercup**. Portugal: **Taça de
+  Portugal**, **Taça da Liga** y **Supertaça**. Países Bajos: **KNVB
+  Beker** y **Johan Cruijff Schaal**. Brasil: **Copa do Brasil** y
+  **Supercopa do Brasil**. México: **Campeón de Campeones** (la Copa MX ya
+  no se juega).
+
+**Copas continentales**
+- **Champions, Europa League y Conference**: 36 equipos con fase liga.
+  Del 1.º al 8.º van a octavos y del 9.º al 24.º al playoff; las llaves son
+  de ida y vuelta.
+  - Cupos por la tabla: Inglaterra, España, Italia y Alemania 4/1/1;
+    Portugal 2/1/1; Países Bajos 2/1/2.
+  - El campeón de copa nacional va a la Europa League; el de la EFL Cup, a
+    la Conference.
+  - El campeón de la Champions y el de la Europa League entran a la
+    Champions; el de la Conference, a la Europa League.
+- **Libertadores**: 8 grupos de 4 de ida y vuelta, octavos por sorteo (1.º
+  contra 2.º) y final única. Argentina: 5 por tabla y el campeón de la Copa
+  Argentina; Brasil: 6 + la copa.
+- **Sudamericana**: los 8 terceros de la Libertadores juegan el playoff
+  contra los 2.º de grupo; los 1.º esperan en octavos.
+- **Concachampions**: 16 equipos con llaves de ida y vuelta.
+- **Nunca entran clubes del ascenso**: solo los de primera división.
+  - Sudamérica: además de Argentina y Brasil, la base trae las primeras
+    2026 de Uruguay (16 clubes), Paraguay (12), Chile (16), Colombia (20),
+    Ecuador (16), Perú (18), Bolivia (16) y Venezuela (14), con colores y
+    estadios reales (planteles generados hasta que importes los tuyos).
+  - Cupos: Argentina 5 + Copa Argentina a la Libertadores y 6 a la
+    Sudamericana; Brasil 6 y 6; el resto, 2 y 2. Los lugares que en la
+    realidad salen de las fases previas los ocupan los mejores de primera
+    que no clasificaron.
+  - Se pueden elegir también en Liga/Copa y partidos sueltos.
+- Las copas de las otras confederaciones se simulan al final de cada
+  temporada, para la Intercontinental y el Mundial de Clubes.
+
+**Copas entre campeones**
+- **Supercopa de Europa**: partido único. **Recopa Sudamericana**: ida y
+  vuelta.
+- **Copa Intercontinental FIFA**: el campeón de la Libertadores juega con
+  el de la Concachampions (Derbi de las Américas) y el ganador juega la
+  final con el campeón de la Champions.
+- **Mundial de Clubes** cada 4 años desde 2029, antes de la temporada: 32
+  equipos en 8 grupos de 4 (Europa 16, Sudamérica 10, Concacaf 6).
+  Clasifican los campeones continentales de las últimas 4 temporadas y los
+  mejores de cada confederación.
+
+**Premios en puntos WE**: Champions y Libertadores 8000; Europa League y
+Sudamericana 5000; Concachampions 5000; Conference 3500; Mundial de Clubes
+10000; Intercontinental 6000; copa nacional 3000; copa de la liga 2000;
+supercopas entre 1500 y 2500.
+
+**Mundial de selecciones** cada 4 años (2030, 2034...), al terminar la
+temporada y simulado. La selección del país se arma con los mejores 23
+entre su plantel y los jugadores de la carrera de esa nacionalidad; te
+avisa a quiénes de tu club convocaron.
+
+**Pantalla de la carrera**
+- Vista **Copas** con un selector de copa: estado, tus partidos (con el
+  global y los penales), la tabla de la fase liga con sus zonas, los grupos
+  o la ronda de la llave.
+- El resumen de fin de temporada y el **Historial** muestran los campeones
+  de todas las copas, los títulos de tu club y el récord de goles.
+- En el menú principal dice **MUNDIAL** (sin el año).
+
+## D5 — Liga Master: noticias, historial y palmarés
+- **Noticias** (Ver ◀ ▶ en la pantalla de la carrera): lesiones y
+  suspensiones de tu plantel, tus pases, los **bombazos** del mercado (los
+  tres más caros de cada ventana), campeones de cada división, cómo te fue,
+  retiros y juveniles. Con la temporada y la fecha de cada una.
+- **Historial**: el **palmarés** de tu club (títulos, ascensos y descensos),
+  una fila por temporada (año, división, posición, campeón / ascenso /
+  descenso y el goleador del club) y los clubes con más títulos de la
+  carrera.
+
+## D4 — Liga Master: mercado de pases (puntos WE)
+- **Mercado de pases** (botón en la pantalla de la carrera y en el resumen
+  de fin de temporada). Abre en las **primeras 4 fechas**, en las **4
+  alrededor de la mitad** y al **terminar la temporada**; si está cerrado,
+  dice cuándo abre.
+- **Comprar**: todos los jugadores del país, con filtros (puesto, división)
+  y orden (media, edad, precio). El **precio** sale de la media y la edad
+  (los jóvenes valen más; desde los 32, mucho menos) y el club pide 50 %
+  más por sus tres mejores. Se puede **pagar lo que piden**, **ofertar el 80
+  %** (aceptan a veces) o pedirlo a **préstamo** hasta fin de temporada (un
+  cuarto del valor; vuelve solo a su club).
+- **Vender**: un club al que le falta ese puesto ofrece entre 70 y 110 % del
+  valor (aceptás o no); también **dejar libre** o devolver un préstamo.
+- Límites: tu plantel entre 16 y 30 (al partido van 23); un club no vende
+  si le quedan 18 o menos.
+- **Los otros clubes también fichan** en la pretemporada y a mitad de
+  temporada (uno de cada cuatro, de su división o de la de abajo; el que
+  vende repone con un juvenil).
+- **Pases de la temporada**: la lista de todo el país, con los tuyos en
+  dorado.
+
+## D3 — Liga Master: Plantel, Dirección y Calendario; escudos propios
+- **Plantel y Dirección** (botón en la pantalla de la carrera): la
+  formación (◀ ▶) y los 23, con los 11 titulares arriba en el orden de los
+  puestos, edad, media, goles y estado (rojo: lesionado o suspendido). X
+  sobre un jugador y después sobre otro: se cambian. **Queda guardado** para
+  todos los partidos; si un titular no puede jugar, entra el mejor libre de
+  su puesto y al volver recupera su lugar. "Mejor once" vuelve a lo
+  automático. A la derecha, la ficha con los atributos y **cuánto cambió
+  cada uno en la temporada**.
+- **Calendario** (Ver ◀ ▶ en la pantalla de la carrera): tus partidos con
+  local / visitante, rival y resultado (verde ganado, rojo perdido) y la
+  próxima fecha marcada.
+- **Fixture**: localías alternadas como en las tablas de Berger (nadie
+  juega más de dos fechas seguidas de local o de visitante).
+- **Escudos propios**: Editor → Camisetas → "Importar escudo (PNG)". Se
+  guarda en la carpeta del Option File y se ve en los menús, la elección de
+  equipos, las tablas y la previa. Las carreras nuevas lo toman al crearse.
+
+## D2 — Liga Master: el plantel con el paso del tiempo
+- **Tarjetas y suspensiones**: 5 amarillas = 1 fecha; roja (o doble
+  amarilla) = 1 fecha, a veces 2. En tu partido cuentan las que sacó el
+  árbitro; en el resto, simuladas (más a los defensores y volantes
+  centrales).
+- **Lesiones**: en tu partido, las del juego (un golpe a veces deja afuera
+  una fecha; una lesión, de 1 a 3 casi siempre, a veces hasta 8 y rara vez
+  hasta 20); en los simulados, al azar.
+- Los lesionados y suspendidos **no entran en el once** (quedan al final del
+  plantel) y la pantalla de la carrera muestra tus bajas. Cumplen las fechas
+  solas.
+- **Cambio de año** (al terminar la temporada): todos cumplen un año; los
+  atributos suben hasta los 26, se mantienen hasta los 29 y bajan desde los
+  30 (los físicos, un poco más). **Retiros** desde los 33 (los arqueros
+  desde los 35; a los 39, seguro). Cada club **repone con juveniles** de 17
+  a 19 años hasta tener 23, con los puestos que le faltan.
+- El resumen de fin de temporada muestra tu plantel: quiénes se retiraron,
+  los juveniles nuevos y los que más crecieron.
 
 ## D1 — Liga Master: carrera y temporadas
 - **LIGA MASTER** en el menú: elegís país (los que tienen más de una

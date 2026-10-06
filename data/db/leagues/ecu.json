@@ -1,0 +1,179 @@
+{
+ "id": "ecu",
+ "name": "Ecuador",
+ "nationality": "ecu",
+ "names": "es_lat",
+ "skin": [
+  25,
+  50,
+  24,
+  1
+ ],
+ "divisions": [
+  {
+   "id": "ecu1",
+   "name": "LigaPro Serie A",
+   "level": 1,
+   "season": "2026",
+   "clubs": [
+    {
+     "id": "ldu",
+     "name": "Liga de Quito",
+     "short": "LDU",
+     "home": "ffffff/ffffff/ffffff|band|1c3a8f",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Rodrigo Paz Delgado",
+     "cap": 41000,
+     "r": 3
+    },
+    {
+     "id": "idv",
+     "name": "Independiente del Valle",
+     "short": "IDV",
+     "home": "101820/101820/101820|stripes|1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Banco Guayaquil",
+     "cap": 12000,
+     "r": 3
+    },
+    {
+     "id": "barcelonasc",
+     "name": "Barcelona SC",
+     "short": "BSC",
+     "home": "f5c400/101820/f5c400",
+     "away": "101820/101820/101820",
+     "stadium": "Monumental Banco Pichincha",
+     "cap": 57000,
+     "r": 2
+    },
+    {
+     "id": "emelec",
+     "name": "Emelec",
+     "short": "EME",
+     "home": "1c3a8f/1c3a8f/1c3a8f|hoops|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "George Capwell",
+     "cap": 40000,
+     "r": 1
+    },
+    {
+     "id": "ucatolicaec",
+     "name": "Universidad Católica",
+     "short": "UCA",
+     "home": "1c3a8f/ffffff/1c3a8f|band|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Olímpico Atahualpa",
+     "cap": 35000
+    },
+    {
+     "id": "aucas",
+     "name": "Aucas",
+     "short": "AUC",
+     "home": "f5c400/d71920/f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Gonzalo Pozo Ripalda",
+     "cap": 21000
+    },
+    {
+     "id": "orense",
+     "name": "Orense",
+     "short": "ORE",
+     "home": "00843d/ffffff/00843d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "9 de Mayo",
+     "cap": 16000
+    },
+    {
+     "id": "libertadec",
+     "name": "Libertad FC",
+     "short": "LFC",
+     "home": "f5c400/1c3a8f/f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Reina del Cisne",
+     "cap": 15000,
+     "r": -1
+    },
+    {
+     "id": "macara",
+     "name": "Macará",
+     "short": "MAC",
+     "home": "6cb4e4/ffffff/6cb4e4",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Bellavista",
+     "cap": 16000,
+     "r": -1
+    },
+    {
+     "id": "delfin",
+     "name": "Delfín",
+     "short": "DEL",
+     "home": "f5c400/1c3a8f/f5c400|band|1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Jocay",
+     "cap": 20000,
+     "r": -1
+    },
+    {
+     "id": "cuenca",
+     "name": "Deportivo Cuenca",
+     "short": "CUE",
+     "home": "d71920/101820/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Alejandro Serrano Aguilar",
+     "cap": 16500,
+     "r": -1
+    },
+    {
+     "id": "mushucruna",
+     "name": "Mushuc Runa",
+     "short": "MUS",
+     "home": "d71920/ffffff/d71920|sash|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "COAC Mushuc Runa",
+     "cap": 8000,
+     "r": -2
+    },
+    {
+     "id": "manta",
+     "name": "Manta FC",
+     "short": "MAN",
+     "home": "6cb4e4/ffffff/6cb4e4",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Jocay",
+     "cap": 20000,
+     "r": -2
+    },
+    {
+     "id": "tecnicouniv",
+     "name": "Técnico Universitario",
+     "short": "TEC",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Bellavista",
+     "cap": 16000,
+     "r": -2
+    },
+    {
+     "id": "guayaquilcity",
+     "name": "Guayaquil City",
+     "short": "GCY",
+     "home": "6cb4e4/ffffff/6cb4e4|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Christian Benítez",
+     "cap": 10000,
+     "r": -2
+    },
+    {
+     "id": "leonesfc",
+     "name": "Leones FC",
+     "short": "LEO",
+     "home": "f5c400/101820/f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Olímpico de Ibarra",
+     "cap": 18000,
+     "r": -2
+    }
+   ]
+  }
+ ]
+}

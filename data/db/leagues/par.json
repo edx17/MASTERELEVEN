@@ -1,0 +1,140 @@
+{
+ "id": "par",
+ "name": "Paraguay",
+ "nationality": "par",
+ "names": "es_lat",
+ "skin": [
+  40,
+  55,
+  4,
+  1
+ ],
+ "divisions": [
+  {
+   "id": "par1",
+   "name": "Primera División",
+   "level": 1,
+   "season": "2026",
+   "clubs": [
+    {
+     "id": "olimpia",
+     "name": "Olimpia",
+     "short": "OLI",
+     "home": "ffffff/ffffff/ffffff|band|101820",
+     "away": "101820/101820/101820",
+     "stadium": "Manuel Ferreira",
+     "cap": 15000,
+     "r": 3
+    },
+    {
+     "id": "cerroporteno",
+     "name": "Cerro Porteño",
+     "short": "CCP",
+     "home": "1c3a8f/ffffff/1c3a8f|stripes|d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "La Nueva Olla",
+     "cap": 45000,
+     "r": 3
+    },
+    {
+     "id": "libertadpy",
+     "name": "Libertad",
+     "short": "LIB",
+     "home": "ffffff/101820/101820|stripes|101820",
+     "away": "101820/101820/101820",
+     "stadium": "La Huerta",
+     "cap": 10000,
+     "r": 3
+    },
+    {
+     "id": "guarani",
+     "name": "Guaraní",
+     "short": "GUA",
+     "home": "f5c400/101820/f5c400|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Rogelio Livieres",
+     "cap": 8000,
+     "r": 1
+    },
+    {
+     "id": "nacionalpy",
+     "name": "Nacional",
+     "short": "NAC",
+     "home": "ffffff/1c3a8f/d71920|stripes|1c3a8f",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Arsenio Erico",
+     "cap": 4500
+    },
+    {
+     "id": "luqueno",
+     "name": "Sportivo Luqueño",
+     "short": "LUQ",
+     "home": "1c3a8f/ffffff/1c3a8f|stripes|f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Feliciano Cáceres",
+     "cap": 25000
+    },
+    {
+     "id": "trinidense",
+     "name": "Sportivo Trinidense",
+     "short": "TRI",
+     "home": "ffffff/1c3a8f/ffffff|band|1c3a8f",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Martín Torres",
+     "cap": 3000,
+     "r": -1
+    },
+    {
+     "id": "ameliano",
+     "name": "Sportivo Ameliano",
+     "short": "AME",
+     "home": "ffffff/ffffff/ffffff|stripes|1c3a8f",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "José Tomás Silva",
+     "cap": 3000,
+     "r": -1
+    },
+    {
+     "id": "recoleta",
+     "name": "Deportivo Recoleta",
+     "short": "REC",
+     "home": "ffffff/ffffff/ffffff|band|1c3a8f",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Ricardo Gregor",
+     "cap": 3500,
+     "r": -1
+    },
+    {
+     "id": "rubionu",
+     "name": "Rubio Ñu",
+     "short": "RÑU",
+     "home": "ffffff/00843d/ffffff|stripes|00843d",
+     "away": "00843d/00843d/00843d",
+     "stadium": "La Arboleda",
+     "cap": 5000,
+     "r": -1
+    },
+    {
+     "id": "2demayo",
+     "name": "2 de Mayo",
+     "short": "2DM",
+     "home": "101820/101820/101820|stripes|f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Río Parapití",
+     "cap": 25000,
+     "r": -1
+    },
+    {
+     "id": "sanlorenzopy",
+     "name": "Sportivo San Lorenzo",
+     "short": "SLO",
+     "home": "d71920/ffffff/d71920|band|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Gunther Vogel",
+     "cap": 5000,
+     "r": -2
+    }
+   ]
+  }
+ ]
+}

@@ -374,8 +374,9 @@ func _build_world() -> void:
 			p.tactical_role = formation.tactical_role(n)
 			team.players.append(p)
 			team.roster.append(p)
-		# Suplentes: los que siguen en la lista (se crean al entrar).
-		for n in range(starters.size(), d.players.size()):
+		# Suplentes: los que siguen en la lista, hasta completar 23 (los
+		# planteles de la Liga Master pueden tener hasta 30; se crean al entrar).
+		for n in range(starters.size(), mini(d.players.size(), 23)):
 			team.bench.append(d.players[n])
 
 	_camera = MatchCamera.new()
@@ -1227,6 +1228,7 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 	if training != null:
 		yellow_p = 0.0 # en la práctica no hay tarjetas
 	if red:
+		_log_event(offender, "r")
 		text += "   -   ROJA: %s" % offender.display_name
 		ratings.on_card(offender, true)
 		send_off(offender)
@@ -1235,6 +1237,7 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 		offender.yellow_cards += 1
 		stats["yellows"][offender.team.index] += 1
 		ratings.on_card(offender, offender.yellow_cards >= 2)
+		_log_event(offender, "y" if offender.yellow_cards < 2 else "r")
 		if offender.yellow_cards >= 2:
 			text += "   -   SEGUNDA AMARILLA, ROJA: %s" % offender.display_name
 			send_off(offender)
@@ -2560,6 +2563,15 @@ func resolve_contact(defender: Footballer, carrier: Footballer, carrier_loses: b
 		carrier.touch_block = tuning.lost_ball_cooldown
 
 
+## Tarjetas y lesiones del partido para la Liga Master
+## (GameSettings.last_events: [lado, pid, "y" amarilla / "r" roja / "i1"
+## golpe / "i2" lesión]).
+func _log_event(p: Footballer, kind: String) -> void:
+	if p == null or p.base_data == null or p.team == null:
+		return
+	GameSettings.last_events.append([p.team.index, p.base_data.pid, kind])
+
+
 ## Al que le hacen la falta se puede lesionar: un golpe (juega rengo) o algo
 ## peor (tiene que salir; la CPU lo cambia, al humano se le avisa).
 func _maybe_injure(victim: Footballer, slide: bool, from_behind: bool) -> void:
@@ -2570,6 +2582,7 @@ func _maybe_injure(victim: Footballer, slide: bool, from_behind: bool) -> void:
 
 
 func injure(p: Footballer, level: int) -> void:
+	_log_event(p, "i2" if level == Footballer.Injury.SERIOUS else "i1")
 	p.injury = maxi(p.injury, level)
 	stats["injuries"][p.team.index] += 1
 	var t := p.team
@@ -3557,5 +3570,6 @@ func exit_to_menu() -> void:
 	GameSettings.last_result = [teams[0].score, teams[1].score] if phase == Phase.FULLTIME else []
 	if phase != Phase.FULLTIME:
 		GameSettings.last_scorers = []
+		GameSettings.last_events = []
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")

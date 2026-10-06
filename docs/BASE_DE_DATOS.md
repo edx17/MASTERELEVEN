@@ -17,6 +17,7 @@ escudos, logos, marcas ni sponsors (ver `Claude.md`, Restricciones).
 | México: Liga MX (2025-26) | 18 | `mex.json` |
 | Brasil: Brasileirão (**2025**) | 20 | `bra.json` |
 | Argentina: LPF, Primera Nacional, Primera B, Primera C | 30 + 36 + 20 + 24 | `arg.json` |
+| Uruguay, Paraguay, Chile, Colombia, Ecuador, Perú, Bolivia y Venezuela: primera división (2026) | 16, 12, 16, 20, 16, 18, 16 y 14 | `uru.json`, `par.json`... (`tools/db_src/conmebol.py`) |
 
 Cada club trae nombre, sigla, camisetas titular y suplente (colores de
 camiseta / pantalón / medias y diseño), estadio y capacidad. Los archivos

@@ -1,0 +1,200 @@
+{
+ "id": "per",
+ "name": "Perú",
+ "nationality": "per",
+ "names": "andes",
+ "skin": [
+  25,
+  60,
+  14,
+  1
+ ],
+ "divisions": [
+  {
+   "id": "per1",
+   "name": "Liga 1",
+   "level": 1,
+   "season": "2026",
+   "clubs": [
+    {
+     "id": "universitario",
+     "name": "Universitario",
+     "short": "UNI",
+     "home": "f2e8cf/101820/f2e8cf",
+     "away": "8b1e2d/8b1e2d/8b1e2d",
+     "stadium": "Monumental",
+     "cap": 80000,
+     "r": 3
+    },
+    {
+     "id": "alianzalima",
+     "name": "Alianza Lima",
+     "short": "ALI",
+     "home": "1c3a8f/1c3a8f/1c3a8f|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Alejandro Villanueva",
+     "cap": 34000,
+     "r": 3
+    },
+    {
+     "id": "cristal",
+     "name": "Sporting Cristal",
+     "short": "SCR",
+     "home": "6cb4e4/ffffff/ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Alberto Gallardo",
+     "cap": 11600,
+     "r": 2
+    },
+    {
+     "id": "melgar",
+     "name": "FBC Melgar",
+     "short": "MEL",
+     "home": "d71920/101820/101820|halves|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Monumental de la UNSA",
+     "cap": 60000,
+     "r": 1
+    },
+    {
+     "id": "cienciano",
+     "name": "Cienciano",
+     "short": "CIE",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Garcilaso de la Vega",
+     "cap": 45000
+    },
+    {
+     "id": "cuscofc",
+     "name": "Cusco FC",
+     "short": "CUS",
+     "home": "f5c400/101820/f5c400",
+     "away": "101820/101820/101820",
+     "stadium": "Garcilaso de la Vega",
+     "cap": 45000
+    },
+    {
+     "id": "alianzaatl",
+     "name": "Alianza Atlético",
+     "short": "AAT",
+     "home": "ffffff/1c3a8f/ffffff",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Campeones del 36",
+     "cap": 8000,
+     "r": -1
+    },
+    {
+     "id": "garcilaso",
+     "name": "Deportivo Garcilaso",
+     "short": "GAR",
+     "home": "6cb4e4/ffffff/6cb4e4",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Garcilaso de la Vega",
+     "cap": 45000,
+     "r": -1
+    },
+    {
+     "id": "chankas",
+     "name": "Los Chankas",
+     "short": "CHA",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Los Chankas",
+     "cap": 10000,
+     "r": -1
+    },
+    {
+     "id": "adt",
+     "name": "ADT",
+     "short": "ADT",
+     "home": "1c3a8f/ffffff/1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Unión Tarma",
+     "cap": 9000,
+     "r": -1
+    },
+    {
+     "id": "huancayo",
+     "name": "Sport Huancayo",
+     "short": "SHU",
+     "home": "d71920/d71920/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Huancayo",
+     "cap": 20000,
+     "r": -1
+    },
+    {
+     "id": "grau",
+     "name": "Atlético Grau",
+     "short": "GRA",
+     "home": "ffffff/ffffff/ffffff|band|d71920",
+     "away": "d71920/d71920/d71920",
+     "stadium": "Campeones del 36",
+     "cap": 8000,
+     "r": -1
+    },
+    {
+     "id": "comerciantes",
+     "name": "Comerciantes Unidos",
+     "short": "COM",
+     "home": "1c3a8f/ffffff/1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Juan Maldonado Gamarra",
+     "cap": 9000,
+     "r": -2
+    },
+    {
+     "id": "sportboys",
+     "name": "Sport Boys",
+     "short": "SBA",
+     "home": "f2a7c3/101820/f2a7c3",
+     "away": "101820/101820/101820",
+     "stadium": "Miguel Grau",
+     "cap": 15000,
+     "r": -1
+    },
+    {
+     "id": "juanpablo",
+     "name": "Juan Pablo II College",
+     "short": "JPC",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Francisco Mendoza Pizarro",
+     "cap": 3000,
+     "r": -2
+    },
+    {
+     "id": "utc",
+     "name": "UTC",
+     "short": "UTC",
+     "home": "ffffff/101820/ffffff|band|101820",
+     "away": "101820/101820/101820",
+     "stadium": "Héroes de San Ramón",
+     "cap": 18000,
+     "r": -2
+    },
+    {
+     "id": "fccajamarca",
+     "name": "FC Cajamarca",
+     "short": "FCC",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Héroes de San Ramón",
+     "cap": 18000,
+     "r": -2
+    },
+    {
+     "id": "moquegua",
+     "name": "CD Moquegua",
+     "short": "MOQ",
+     "home": "6cb4e4/1c3a8f/6cb4e4",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "25 de Noviembre",
+     "cap": 21000,
+     "r": -2
+    }
+   ]
+  }
+ ]
+}

@@ -25,7 +25,8 @@ const PATTERNS := {"plain": 0, "stripes": 1, "pinstripes": 2, "hoops": 3, "halve
 ## división -> suma).
 const DIVISION_LEVEL := {1: 72, 2: 65, 3: 60, 4: 56, 5: 52}
 const LEAGUE_BONUS := {"eng1": 6, "esp1": 5, "ita1": 4, "ger1": 4, "por1": 0, "ned1": -1, "mex1": -1,
-	"arg1": -1, "bra1": 1, "eng2": 2, "esp2": 0, "ita2": 0, "ger2": 1}
+	"arg1": -1, "bra1": 1, "eng2": 2, "esp2": 0, "ita2": 0, "ger2": 1,
+	"uru1": -5, "col1": -5, "ecu1": -6, "par1": -6, "chi1": -6, "per1": -8, "bol1": -10, "ven1": -10}
 
 const BENCH_ROLES := [PlayerData.Position.GK, PlayerData.Position.DF, PlayerData.Position.MF,
 	PlayerData.Position.MF, PlayerData.Position.FW,
@@ -94,7 +95,10 @@ static func base_countries() -> Array:
 ## Activa un Option File (null = la base) y vuelve a armar los equipos.
 static func use_option_file(of: OptionFile) -> void:
 	option_file = of
-	reload()
+	# La base leída (JSON) no cambia: sólo se rearman los equipos.
+	_nations = []
+	_countries = []
+	_cache = {}
 
 
 static func names() -> Dictionary:
@@ -198,6 +202,23 @@ static func load_team(path: String) -> TeamData:
 	return t
 
 
+## Rearma un solo club con su entrada nueva (Liga Master: lesiones y
+## suspensiones), sin rehacer todo el país.
+static func refresh_club(country_id: String, club_id: String, entry: Dictionary) -> void:
+	_cache.erase(club_path(country_id, club_id))
+	for c in _countries:
+		if c["id"] != country_id:
+			continue
+		for d in c["divisions"]:
+			var list: Array = d["clubs"]
+			for i in list.size():
+				if String(list[i]["id"]) == club_id:
+					var e: Dictionary = entry.duplicate(true)
+					e["id"] = club_id
+					list[i] = e
+					return
+
+
 ## Olvida lo leído (después de importar o editar los JSON).
 static func reload() -> void:
 	_nations = []
@@ -250,8 +271,11 @@ static func _base_team(e: Dictionary) -> TeamData:
 	t.away_pattern = away["pattern"]
 	t.away_pattern_color = away["pattern_color"]
 	t.keeper_color = Color.html(String(e.get("keeper", "1a1a1a")))
-	# Plantillas de camiseta del Option File (editor de camisetas).
+	# Plantillas de camiseta y escudo del Option File (Editor > Camisetas).
 	if option_file != null:
+		var cf := String(e.get("crest", ""))
+		if cf != "":
+			t.crest = KitTemplate.load_texture(option_file.kits_dir().path_join(cf))
 		for i in 2:
 			var f := String(e.get(["home_tex", "away_tex"][i], ""))
 			if f != "":
@@ -281,12 +305,13 @@ static func parse_kit(s: String) -> Dictionary:
 static func _fill_players(t: TeamData, e: Dictionary, level: int, names_group: String, skin: Array, nationality: String) -> void:
 	var listed: Array = e.get("players", [])
 	if not listed.is_empty():
-		for i in mini(listed.size(), 23):
+		# Hasta 30 (Liga Master); los importados se recortan a 23 al importar.
+		for i in mini(listed.size(), 30):
 			var p := player_from_dict(listed[i], t.id, i, level)
 			if p.nationality == "":
 				p.nationality = nationality
 			t.players.append(p)
-		_order_for_formation(t)
+		_order_for_formation(t, e.get("lineup", []))
 	else:
 		generate_roster(t, level, names_group, skin, nationality, hash(t.id))
 	var cap := PlayerData.pick_captain(t.players)
@@ -311,6 +336,10 @@ static func player_from_dict(d: Dictionary, team_id: String, i: int, level: int 
 	p.age = int(d.get("age", 0))
 	p.nationality = String(d.get("nat", ""))
 	p.pid = int(d.get("pid", 0))
+	var inj := int(d.get("inj", 0))
+	var susp := int(d.get("susp", 0))
+	p.unavailable = inj > 0 or susp > 0
+	p.status_text = ("Lesión %d" % inj) if inj > 0 else (("Susp. %d" % susp) if susp > 0 else "")
 	# Aspecto (editor): -1 / ausente = automático.
 	for k in LOOK_KEYS:
 		if d.has(k):
@@ -368,21 +397,43 @@ static func position_of_code(code: String) -> int:
 
 ## Titulares según la formación: para cada puesto, el mejor libre de ese
 ## puesto general (si no hay, el mejor de los que quedan).
-static func _order_for_formation(t: TeamData) -> void:
+## Con `lineup` (pids en el orden de los puestos de la formación, Liga
+## Master), esos son los titulares; si alguno no puede jugar, entra el mejor
+## libre de su puesto.
+static func _order_for_formation(t: TeamData, lineup: Array = []) -> void:
 	if t.formation == null:
 		return
 	var pool: Array[PlayerData] = t.players.duplicate()
-	pool.sort_custom(func(a: PlayerData, b: PlayerData) -> bool: return overall(a) > overall(b))
+	# Titulares guardados (los que pueden jugar).
+	var fixed: Array = []
+	for i in t.formation.roles.size() if not lineup.is_empty() else 0:
+		var pid := int(lineup[i]) if i < lineup.size() else -1
+		var hit: PlayerData = null
+		for p in pool:
+			if p.pid == pid and pid > 0 and not p.unavailable:
+				hit = p
+		fixed.append(hit)
+		if hit != null:
+			pool.erase(hit)
+	# Los lesionados y suspendidos (Liga Master) quedan al final: no son titulares.
+	pool.sort_custom(func(a: PlayerData, b: PlayerData) -> bool:
+		if a.unavailable != b.unavailable:
+			return b.unavailable
+		return overall(a) > overall(b))
 	var xi: Array[PlayerData] = []
-	for role in t.formation.roles:
+	for ri in t.formation.roles.size():
+		var role: int = t.formation.roles[ri]
+		if ri < fixed.size() and fixed[ri] != null:
+			xi.append(fixed[ri])
+			continue
 		var pick: PlayerData = null
 		for p in pool:
-			if p.position == role:
+			if p.position == role and not p.unavailable:
 				pick = p
 				break
 		if pick == null and role != PlayerData.Position.GK:
 			for p in pool:
-				if p.position != PlayerData.Position.GK:
+				if p.position != PlayerData.Position.GK and not p.unavailable:
 					pick = p
 					break
 		if pick == null and not pool.is_empty():
