@@ -1,0 +1,182 @@
+{
+ "id": "chi",
+ "name": "Chile",
+ "nationality": "chi",
+ "names": "es_lat",
+ "skin": [
+  45,
+  50,
+  4,
+  1
+ ],
+ "divisions": [
+  {
+   "id": "chi1",
+   "name": "Liga de Primera",
+   "level": 1,
+   "season": "2026",
+   "clubs": [
+    {
+     "id": "colocolo",
+     "name": "Colo-Colo",
+     "short": "CC",
+     "home": "ffffff/101820/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Monumental David Arellano",
+     "cap": 47000,
+     "r": 3
+    },
+    {
+     "id": "udechile",
+     "name": "Universidad de Chile",
+     "short": "UCH",
+     "home": "1c3a8f/ffffff/1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Nacional Julio Martínez Prádanos",
+     "cap": 48000,
+     "r": 2
+    },
+    {
+     "id": "ucatolica",
+     "name": "Universidad Católica",
+     "short": "UC",
+     "home": "ffffff/1c3a8f/ffffff|band|1c3a8f",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Claro Arena",
+     "cap": 20000,
+     "r": 2
+    },
+    {
+     "id": "coquimbo",
+     "name": "Coquimbo Unido",
+     "short": "COQ",
+     "home": "f5c400/101820/f5c400",
+     "away": "101820/101820/101820",
+     "stadium": "Francisco Sánchez Rumoroso",
+     "cap": 18000,
+     "r": 2
+    },
+    {
+     "id": "ohiggins",
+     "name": "O'Higgins",
+     "short": "OHI",
+     "home": "6cb4e4/ffffff/6cb4e4",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "El Teniente",
+     "cap": 13800,
+     "r": 1
+    },
+    {
+     "id": "huachipato",
+     "name": "Huachipato",
+     "short": "HUA",
+     "home": "1c3a8f/101820/1c3a8f|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Huachipato-CAP Acero",
+     "cap": 10500,
+     "r": 0
+    },
+    {
+     "id": "laserena",
+     "name": "Deportes La Serena",
+     "short": "LSE",
+     "home": "d71920/1c3a8f/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "La Portada",
+     "cap": 18000,
+     "r": -1
+    },
+    {
+     "id": "nublense",
+     "name": "Ñublense",
+     "short": "ÑUB",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Nelson Oyarzún",
+     "cap": 12000,
+     "r": 0
+    },
+    {
+     "id": "everton",
+     "name": "Everton",
+     "short": "EVE",
+     "home": "1c3a8f/1c3a8f/f5c400|band|f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Sausalito",
+     "cap": 22000,
+     "r": 0
+    },
+    {
+     "id": "palestino",
+     "name": "Palestino",
+     "short": "PAL",
+     "home": "ffffff/101820/ffffff|stripes|00843d",
+     "away": "d71920/d71920/d71920",
+     "stadium": "Municipal de La Cisterna",
+     "cap": 12000,
+     "r": 0
+    },
+    {
+     "id": "audax",
+     "name": "Audax Italiano",
+     "short": "AUD",
+     "home": "00843d/ffffff/00843d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Bicentenario de La Florida",
+     "cap": 12000,
+     "r": 0
+    },
+    {
+     "id": "cobresal",
+     "name": "Cobresal",
+     "short": "COB",
+     "home": "f07a1a/ffffff/f07a1a",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "El Cobre",
+     "cap": 12000,
+     "r": -1
+    },
+    {
+     "id": "limache",
+     "name": "Deportes Limache",
+     "short": "LIM",
+     "home": "d71920/ffffff/d71920|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Ángel Navarrete",
+     "cap": 3000,
+     "r": -2
+    },
+    {
+     "id": "lacalera",
+     "name": "Unión La Calera",
+     "short": "ULC",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Nicolás Chahuán",
+     "cap": 9000,
+     "r": -1
+    },
+    {
+     "id": "udeconce",
+     "name": "Universidad de Concepción",
+     "short": "UDC",
+     "home": "f5c400/1c3a8f/f5c400",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Ester Roa Rebolledo",
+     "cap": 30000,
+     "r": -1
+    },
+    {
+     "id": "deconcepcion",
+     "name": "Deportes Concepción",
+     "short": "DCO",
+     "home": "6a2c91/ffffff/6a2c91",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Ester Roa Rebolledo",
+     "cap": 30000,
+     "r": -2
+    }
+   ]
+  }
+ ]
+}

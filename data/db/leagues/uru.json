@@ -1,0 +1,182 @@
+{
+ "id": "uru",
+ "name": "Uruguay",
+ "nationality": "uru",
+ "names": "es_uy",
+ "skin": [
+  70,
+  25,
+  4,
+  1
+ ],
+ "divisions": [
+  {
+   "id": "uru1",
+   "name": "Primera División",
+   "level": 1,
+   "season": "2026",
+   "clubs": [
+    {
+     "id": "penarol",
+     "name": "Peñarol",
+     "short": "PEÑ",
+     "home": "f5c400/101820/101820|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Campeón del Siglo",
+     "cap": 40000,
+     "r": 3
+    },
+    {
+     "id": "nacionaluy",
+     "name": "Nacional",
+     "short": "NAC",
+     "home": "ffffff/1c3a8f/d71920",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Gran Parque Central",
+     "cap": 34000,
+     "r": 3
+    },
+    {
+     "id": "defensor",
+     "name": "Defensor Sporting",
+     "short": "DEF",
+     "home": "6a2c91/ffffff/6a2c91",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Luis Franzini",
+     "cap": 18000,
+     "r": 1
+    },
+    {
+     "id": "liverpooluy",
+     "name": "Liverpool",
+     "short": "LIV",
+     "home": "1c3a8f/101820/1c3a8f|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Belvedere",
+     "cap": 10000,
+     "r": 1
+    },
+    {
+     "id": "danubio",
+     "name": "Danubio",
+     "short": "DAN",
+     "home": "ffffff/101820/ffffff|sash|101820",
+     "away": "101820/101820/101820",
+     "stadium": "Jardines del Hipódromo",
+     "cap": 18000,
+     "r": 0
+    },
+    {
+     "id": "wanderersuy",
+     "name": "Montevideo Wanderers",
+     "short": "MWA",
+     "home": "ffffff/101820/101820|stripes|101820",
+     "away": "101820/101820/101820",
+     "stadium": "Parque Viera",
+     "cap": 11000,
+     "r": 0
+    },
+    {
+     "id": "racinguy",
+     "name": "Racing",
+     "short": "RAC",
+     "home": "ffffff/101820/ffffff|stripes|00843d",
+     "away": "00843d/00843d/00843d",
+     "stadium": "Osvaldo Roberto",
+     "cap": 8500,
+     "r": -1
+    },
+    {
+     "id": "cerrolargo",
+     "name": "Cerro Largo",
+     "short": "CLA",
+     "home": "1c3a8f/ffffff/1c3a8f|band|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Ubilla",
+     "cap": 9000,
+     "r": -1
+    },
+    {
+     "id": "bostonriver",
+     "name": "Boston River",
+     "short": "BOS",
+     "home": "00843d/ffffff/00843d|band|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Campeones Olímpicos",
+     "cap": 5000,
+     "r": 0
+    },
+    {
+     "id": "progreso",
+     "name": "Progreso",
+     "short": "PRO",
+     "home": "d71920/f5c400/d71920|stripes|f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Abraham Paladino",
+     "cap": 8000,
+     "r": -2
+    },
+    {
+     "id": "mvdcity",
+     "name": "Montevideo City Torque",
+     "short": "MCT",
+     "home": "6cb4e4/ffffff/6cb4e4",
+     "away": "101820/101820/101820",
+     "stadium": "Centenario",
+     "cap": 60000,
+     "r": -1
+    },
+    {
+     "id": "juventuduy",
+     "name": "Juventud",
+     "short": "JUV",
+     "home": "00843d/ffffff/00843d|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Parque Artigas",
+     "cap": 7000,
+     "r": -1
+    },
+    {
+     "id": "cerrouy",
+     "name": "Cerro",
+     "short": "CER",
+     "home": "6cb4e4/ffffff/6cb4e4|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Luis Tróccoli",
+     "cap": 25000,
+     "r": -1
+    },
+    {
+     "id": "albion",
+     "name": "Albion",
+     "short": "ALB",
+     "home": "d71920/ffffff/1c3a8f|stripes|1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Parque Dr. Carlos Suero",
+     "cap": 3000,
+     "r": -2
+    },
+    {
+     "id": "centralespanol",
+     "name": "Central Español",
+     "short": "CES",
+     "home": "d71920/1c3a8f/d71920|stripes|1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Parque Palermo",
+     "cap": 6500,
+     "r": -2
+    },
+    {
+     "id": "maldonado",
+     "name": "Deportivo Maldonado",
+     "short": "MAL",
+     "home": "d71920/00843d/d71920|band|00843d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Domingo Burgueño",
+     "cap": 22000,
+     "r": -1
+    }
+   ]
+  }
+ ]
+}

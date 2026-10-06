@@ -1,0 +1,162 @@
+{
+ "id": "ven",
+ "name": "Venezuela",
+ "nationality": "ven",
+ "names": "es_lat",
+ "skin": [
+  30,
+  55,
+  14,
+  1
+ ],
+ "divisions": [
+  {
+   "id": "ven1",
+   "name": "Liga FUTVE",
+   "level": 1,
+   "season": "2026",
+   "clubs": [
+    {
+     "id": "caracas",
+     "name": "Caracas FC",
+     "short": "CAR",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Olímpico de la UCV",
+     "cap": 23000,
+     "r": 2
+    },
+    {
+     "id": "tachira",
+     "name": "Deportivo Táchira",
+     "short": "TAC",
+     "home": "f5c400/101820/f5c400|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Polideportivo de Pueblo Nuevo",
+     "cap": 38000,
+     "r": 2
+    },
+    {
+     "id": "laguaira",
+     "name": "Deportivo La Guaira",
+     "short": "LGU",
+     "home": "f07a1a/ffffff/f07a1a",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Olímpico de la UCV",
+     "cap": 23000,
+     "r": 1
+    },
+    {
+     "id": "metropolitanos",
+     "name": "Metropolitanos",
+     "short": "MET",
+     "home": "6a2c91/ffffff/6a2c91",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Brígido Iriarte",
+     "cap": 12000,
+     "r": 0
+    },
+    {
+     "id": "ucv",
+     "name": "Universidad Central",
+     "short": "UCV",
+     "home": "1c3a8f/ffffff/1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Olímpico de la UCV",
+     "cap": 23000,
+     "r": 0
+    },
+    {
+     "id": "portuguesa",
+     "name": "Portuguesa FC",
+     "short": "POR",
+     "home": "d71920/101820/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "José Antonio Páez",
+     "cap": 18000,
+     "r": 0
+    },
+    {
+     "id": "estudiantesmer",
+     "name": "Estudiantes de Mérida",
+     "short": "EDM",
+     "home": "d71920/ffffff/d71920|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Metropolitano de Mérida",
+     "cap": 42000,
+     "r": -1
+    },
+    {
+     "id": "carabobo",
+     "name": "Carabobo FC",
+     "short": "CBO",
+     "home": "8b1e2d/ffffff/8b1e2d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Misael Delgado",
+     "cap": 10000,
+     "r": 0
+    },
+    {
+     "id": "puertocabello",
+     "name": "Academia Puerto Cabello",
+     "short": "APC",
+     "home": "f5c400/1c3a8f/f5c400|band|1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "La Bombonerita",
+     "cap": 7500,
+     "r": 0
+    },
+    {
+     "id": "zamora",
+     "name": "Zamora FC",
+     "short": "ZAM",
+     "home": "101820/ffffff/101820|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Agustín Tovar",
+     "cap": 30000,
+     "r": -1
+    },
+    {
+     "id": "rayozuliano",
+     "name": "Rayo Zuliano",
+     "short": "RAY",
+     "home": "1c3a8f/ffffff/1c3a8f|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "José Encarnación Romero",
+     "cap": 40000,
+     "r": -1
+    },
+    {
+     "id": "monagas",
+     "name": "Monagas SC",
+     "short": "MON",
+     "home": "1c3a8f/ffffff/1c3a8f|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Monumental de Maturín",
+     "cap": 51000,
+     "r": -1
+    },
+    {
+     "id": "anzoategui",
+     "name": "Academia Anzoátegui",
+     "short": "ANZ",
+     "home": "d71920/ffffff/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "José Antonio Anzoátegui",
+     "cap": 37000,
+     "r": -2
+    },
+    {
+     "id": "trujillanos",
+     "name": "Trujillanos FC",
+     "short": "TRU",
+     "home": "8b1e2d/ffffff/8b1e2d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "José Alberto Pérez",
+     "cap": 15000,
+     "r": -2
+    }
+   ]
+  }
+ ]
+}

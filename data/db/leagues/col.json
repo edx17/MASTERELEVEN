@@ -1,0 +1,222 @@
+{
+ "id": "col",
+ "name": "Colombia",
+ "nationality": "col",
+ "names": "es_lat",
+ "skin": [
+  35,
+  50,
+  14,
+  1
+ ],
+ "divisions": [
+  {
+   "id": "col1",
+   "name": "Liga BetPlay",
+   "level": 1,
+   "season": "2026",
+   "clubs": [
+    {
+     "id": "atlnacional",
+     "name": "Atlético Nacional",
+     "short": "NAL",
+     "home": "00843d/ffffff/ffffff|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Atanasio Girardot",
+     "cap": 40000,
+     "r": 3
+    },
+    {
+     "id": "millonarios",
+     "name": "Millonarios",
+     "short": "MIL",
+     "home": "1c3a8f/ffffff/1c3a8f",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "El Campín",
+     "cap": 36000,
+     "r": 2
+    },
+    {
+     "id": "americacali",
+     "name": "América de Cali",
+     "short": "AME",
+     "home": "d71920/d71920/d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Pascual Guerrero",
+     "cap": 35000,
+     "r": 2
+    },
+    {
+     "id": "junior",
+     "name": "Junior",
+     "short": "JUN",
+     "home": "ffffff/1c3a8f/ffffff|stripes|d71920",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Metropolitano Roberto Meléndez",
+     "cap": 46000,
+     "r": 2
+    },
+    {
+     "id": "santafe",
+     "name": "Independiente Santa Fe",
+     "short": "SFE",
+     "home": "d71920/ffffff/ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "El Campín",
+     "cap": 36000,
+     "r": 1
+    },
+    {
+     "id": "deportivocali",
+     "name": "Deportivo Cali",
+     "short": "CAL",
+     "home": "00843d/ffffff/00843d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Deportivo Cali",
+     "cap": 42000,
+     "r": 0
+    },
+    {
+     "id": "medellin",
+     "name": "Independiente Medellín",
+     "short": "DIM",
+     "home": "d71920/1c3a8f/1c3a8f",
+     "away": "1c3a8f/1c3a8f/1c3a8f",
+     "stadium": "Atanasio Girardot",
+     "cap": 40000,
+     "r": 1
+    },
+    {
+     "id": "oncecaldas",
+     "name": "Once Caldas",
+     "short": "ONC",
+     "home": "ffffff/101820/ffffff",
+     "away": "101820/101820/101820",
+     "stadium": "Palogrande",
+     "cap": 31000,
+     "r": 1
+    },
+    {
+     "id": "tolima",
+     "name": "Deportes Tolima",
+     "short": "TOL",
+     "home": "8b1e2d/f5c400/8b1e2d",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Manuel Murillo Toro",
+     "cap": 28000,
+     "r": 1
+    },
+    {
+     "id": "pasto",
+     "name": "Deportivo Pasto",
+     "short": "PAS",
+     "home": "d71920/1c3a8f/f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Departamental Libertad",
+     "cap": 20000,
+     "r": -1
+    },
+    {
+     "id": "aguilas",
+     "name": "Águilas Doradas",
+     "short": "AGU",
+     "home": "f5c400/101820/f5c400",
+     "away": "101820/101820/101820",
+     "stadium": "Alberto Grisales",
+     "cap": 14000,
+     "r": -1
+    },
+    {
+     "id": "alianzafc",
+     "name": "Alianza FC",
+     "short": "ALI",
+     "home": "f5c400/00843d/f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Armando Maestre Pavajeau",
+     "cap": 11000,
+     "r": -2
+    },
+    {
+     "id": "fortalezaceif",
+     "name": "Fortaleza CEIF",
+     "short": "FOR",
+     "home": "f07a1a/101820/f07a1a",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Metropolitano de Techo",
+     "cap": 8000,
+     "r": -1
+    },
+    {
+     "id": "llaneros",
+     "name": "Llaneros",
+     "short": "LLA",
+     "home": "ffffff/d71920/ffffff|band|d71920",
+     "away": "d71920/d71920/d71920",
+     "stadium": "Bello Horizonte",
+     "cap": 15000,
+     "r": -2
+    },
+    {
+     "id": "bucaramanga",
+     "name": "Atlético Bucaramanga",
+     "short": "BUC",
+     "home": "f5c400/00843d/f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Américo Montanini",
+     "cap": 28000,
+     "r": 0
+    },
+    {
+     "id": "chico",
+     "name": "Boyacá Chicó",
+     "short": "CHI",
+     "home": "1c3a8f/ffffff/1c3a8f|stripes|ffffff",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "La Independencia",
+     "cap": 20000,
+     "r": -2
+    },
+    {
+     "id": "pereira",
+     "name": "Deportivo Pereira",
+     "short": "PER",
+     "home": "f5c400/d71920/f5c400|stripes|d71920",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Hernán Ramírez Villegas",
+     "cap": 30000,
+     "r": -1
+    },
+    {
+     "id": "jaguares",
+     "name": "Jaguares de Córdoba",
+     "short": "JAG",
+     "home": "1c3a8f/1c3a8f/1c3a8f|band|f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Jaraguay",
+     "cap": 12000,
+     "r": -2
+    },
+    {
+     "id": "cucuta",
+     "name": "Cúcuta Deportivo",
+     "short": "CUC",
+     "home": "d71920/101820/d71920|stripes|101820",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "General Santander",
+     "cap": 42000,
+     "r": -2
+    },
+    {
+     "id": "interbogota",
+     "name": "Internacional de Bogotá",
+     "short": "INT",
+     "home": "1c3a8f/ffffff/1c3a8f|band|f5c400",
+     "away": "ffffff/ffffff/ffffff",
+     "stadium": "Metropolitano de Techo",
+     "cap": 8000,
+     "r": -1
+    }
+   ]
+  }
+ ]
+}

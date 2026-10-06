@@ -82,6 +82,14 @@ const SLOTS := {
 	"ned": {"by_table": [2, 1, 2], "cup": 1},
 	"arg": {"by_table": [5, 6], "cup": 0},
 	"bra": {"by_table": [6, 6], "cup": 0},
+	"uru": {"by_table": [2, 2]},
+	"par": {"by_table": [2, 2]},
+	"chi": {"by_table": [2, 2]},
+	"col": {"by_table": [2, 2]},
+	"ecu": {"by_table": [2, 2]},
+	"per": {"by_table": [2, 2]},
+	"bol": {"by_table": [2, 2]},
+	"ven": {"by_table": [2, 2]},
 	"mex": {"by_table": [9]},
 }
 const DEFAULT_SLOTS := {"by_table": [1, 1, 1]}
@@ -283,23 +291,21 @@ static func qualify(confed: String, tables: Dictionary, cup_winners: Dictionary,
 					want -= 1
 				at += 1
 			pos[country_id] = at
-	# Los lugares que faltan: los mejores que no clasificaron (primero de
-	# primera división, después de segunda).
+	# Los lugares que faltan (en la realidad, los que pasan las fases previas
+	# o los de países que no están en la base): los mejores de primera
+	# división que no clasificaron. Nunca clubes del ascenso.
+	var pool: Array[String] = []
+	for country_id in confed_countries(confed):
+		for p in division_clubs(country_id, 0):
+			if not taken.has(p):
+				pool.append(p)
+	pool.sort_custom(func(a: String, b: String) -> bool: return strength(a, cache) > strength(b, cache))
 	for ci in comps.size():
 		var cid := String(comps[ci]["id"])
-		for level in 2:
+		for p in pool:
 			if (out[cid] as Array).size() >= int(comps[ci]["size"]):
 				break
-			var pool: Array[String] = []
-			for country_id in confed_countries(confed):
-				for p in division_clubs(country_id, level):
-					if not taken.has(p):
-						pool.append(p)
-			pool.sort_custom(func(a: String, b: String) -> bool: return strength(a, cache) > strength(b, cache))
-			for p in pool:
-				if not put.call(cid, p):
-					if (out[cid] as Array).size() >= int(comps[ci]["size"]):
-						break
+			put.call(cid, p)
 	return out
 
 

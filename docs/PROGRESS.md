@@ -220,9 +220,16 @@ primera, del nivel de los equipos). Código: `scripts/competition/career_cups.gd
 - **Sudamericana**: los 8 terceros de la Libertadores juegan el playoff
   contra los 2.º de grupo; los 1.º esperan en octavos.
 - **Concachampions**: 16 equipos con llaves de ida y vuelta.
-- Con sólo algunas ligas en la base, los lugares que en la realidad son de
-  otros países los ocupan los mejores que no clasificaron. Si agregás ligas
-  desde el Editor, sus clubes entran solos.
+- **Nunca entran clubes del ascenso**: solo los de primera división.
+  - Sudamérica: además de Argentina y Brasil, la base trae las primeras
+    2026 de Uruguay (16 clubes), Paraguay (12), Chile (16), Colombia (20),
+    Ecuador (16), Perú (18), Bolivia (16) y Venezuela (14), con colores y
+    estadios reales (planteles generados hasta que importes los tuyos).
+  - Cupos: Argentina 5 + Copa Argentina a la Libertadores y 6 a la
+    Sudamericana; Brasil 6 y 6; el resto, 2 y 2. Los lugares que en la
+    realidad salen de las fases previas los ocupan los mejores de primera
+    que no clasificaron.
+  - Se pueden elegir también en Liga/Copa y partidos sueltos.
 - Las copas de las otras confederaciones se simulan al final de cada
   temporada, para la Intercontinental y el Mundial de Clubes.
 

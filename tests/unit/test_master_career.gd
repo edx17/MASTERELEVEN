@@ -368,6 +368,9 @@ func test_cups_and_world_cup() -> void:
 	var ucl: Competition = m.cup("ucl")["comp"]
 	for id in (s["ranks"][0] as Array).slice(0, 4):
 		assert_true(ucl.team_paths.has(TeamDB.club_path("eng", String(id))), "top 4 a la Champions")
+	for cid in ["ucl", "uel", "uecl"]:
+		for p in (m.cup(cid)["comp"] as Competition).team_paths:
+			assert_true(CareerCups.division_clubs(p.get_slice(":", 2), 0).has(p), "%s: %s es de primera" % [cid, p])
 	assert_true(ucl.team_paths.has(String(cs["ucl"]["champion_path"])), "el campeón defiende el título")
 	assert_false(m.world_cup_year(), "el próximo, en 4 años")
 	# Se guarda y se carga con todas las copas.
@@ -395,6 +398,15 @@ func test_argentina_cups() -> void:
 	assert_eq(lib.team_paths.size(), 32)
 	assert_eq(sud.team_paths.size(), 32)
 	assert_eq(lib.group_rounds, 6)
+	# Clubes de los 10 países de la Conmebol y nunca del ascenso.
+	var countries := {}
+	for comp in [lib, sud]:
+		for p in (comp as Competition).team_paths:
+			var cid := p.get_slice(":", 2)
+			countries[cid] = true
+			assert_true(CareerCups.division_clubs(cid, 0).has(p), "%s es de primera" % p)
+	for cid in ["arg", "bra", "uru", "par", "chi", "col", "ecu", "per", "bol", "ven"]:
+		assert_true(countries.has(cid), "hay clubes de %s" % cid)
 	m.simulate_to_end(8)
 	var s := m.last_summary()
 	assert_eq((s["halves"] as Array).size(), 2, "Apertura y Clausura")

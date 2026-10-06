@@ -25,7 +25,8 @@ const PATTERNS := {"plain": 0, "stripes": 1, "pinstripes": 2, "hoops": 3, "halve
 ## división -> suma).
 const DIVISION_LEVEL := {1: 72, 2: 65, 3: 60, 4: 56, 5: 52}
 const LEAGUE_BONUS := {"eng1": 6, "esp1": 5, "ita1": 4, "ger1": 4, "por1": 0, "ned1": -1, "mex1": -1,
-	"arg1": -1, "bra1": 1, "eng2": 2, "esp2": 0, "ita2": 0, "ger2": 1}
+	"arg1": -1, "bra1": 1, "eng2": 2, "esp2": 0, "ita2": 0, "ger2": 1,
+	"uru1": -5, "col1": -5, "ecu1": -6, "par1": -6, "chi1": -6, "per1": -8, "bol1": -10, "ven1": -10}
 
 const BENCH_ROLES := [PlayerData.Position.GK, PlayerData.Position.DF, PlayerData.Position.MF,
 	PlayerData.Position.MF, PlayerData.Position.FW,
