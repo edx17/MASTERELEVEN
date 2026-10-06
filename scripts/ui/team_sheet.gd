@@ -92,24 +92,26 @@ func _ready() -> void:
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list.add_theme_constant_override("separation", 0)
 	ls.add_child(_list)
+	# Derecha: arriba la ficha del jugador (ancha, los atributos en cuatro
+	# columnas); abajo el menú y la cancha con su proporción real.
 	var right := VBoxContainer.new()
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right.add_theme_constant_override("separation", int(WEStyle.px(16)))
 	root.add_child(right)
-	var pp := WEStyle.make_card()
-	right.add_child(pp)
-	_pitch = MiniPitch.new()
-	_pitch.custom_minimum_size = Vector2(0, WEStyle.px(300))
-	pp.add_child(_pitch)
+	var dp := WEStyle.make_card()
+	dp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right.add_child(dp)
+	_detail = VBoxContainer.new()
+	_detail.add_theme_constant_override("separation", int(WEStyle.px(4)))
+	dp.add_child(_detail)
 	_status = WEStyle.make_body_label("", WEStyle.BODY_M, WEStyle.ACCENT)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	right.add_child(_status)
 	var bottom := HBoxContainer.new()
 	bottom.add_theme_constant_override("separation", int(WEStyle.px(16)))
-	bottom.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right.add_child(bottom)
 	var mp := WEStyle.make_card()
-	mp.custom_minimum_size.x = WEStyle.px(440)
+	mp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bottom.add_child(mp)
 	# El menú es largo (tiradores, estrategias...): se desplaza con el foco
 	# para que no se corte abajo.
@@ -122,12 +124,15 @@ func _ready() -> void:
 	_menu.add_theme_constant_override("separation", int(WEStyle.px(2)))
 	_menu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ms.add_child(_menu)
-	var dp := WEStyle.make_card()
-	dp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bottom.add_child(dp)
-	_detail = VBoxContainer.new()
-	_detail.add_theme_constant_override("separation", int(WEStyle.px(4)))
-	dp.add_child(_detail)
+	var pp := WEStyle.make_card()
+	bottom.add_child(pp)
+	_pitch = MiniPitch.new()
+	_pitch.custom_minimum_size = Vector2(WEStyle.px(PITCH_H * 105.0 / 68.0), WEStyle.px(PITCH_H))
+	pp.add_child(_pitch)
+
+
+## Alto de la cancha (px de 1080); el ancho sale de la proporción 105 x 68.
+const PITCH_H := 300.0
 
 
 func _pad(c: Control) -> MarginContainer:
@@ -659,7 +664,7 @@ func _show_detail(i: int) -> void:
 		_detail.add_child(WEStyle.make_caption_label(" · ".join(roles), WEStyle.ACCENT))
 	var grid := GridContainer.new()
 	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", int(WEStyle.px(16)))
+	grid.add_theme_constant_override("h_separation", int(WEStyle.px(40)))
 	grid.add_theme_constant_override("v_separation", 0)
 	_detail.add_child(WEStyle.make_separator())
 	_detail.add_child(grid)
@@ -667,13 +672,13 @@ func _show_detail(i: int) -> void:
 		var v := int(d.get(PlayerData.ATTRIBUTES[k]))
 		if v <= 0:
 			continue
-		var nl := _label(grid, PlayerData.ATTRIBUTE_NAMES[k], WEStyle.BODY_S, WEStyle.TEXT_DIM)
+		var nl := _label(grid, PlayerData.ATTRIBUTE_NAMES[k], WEStyle.BODY_M, WEStyle.TEXT_DIM)
 		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		# Potencia de remate: también el nivel del WE (6 a 9).
 		var txt := str(v)
 		if PlayerData.ATTRIBUTES[k] == "shot_power" and d is PlayerData:
 			txt = "%d (%d)" % [v, (d as PlayerData).shot_level()]
-		var vl := _label(grid, txt, WEStyle.BODY_S, attribute_color(v))
+		var vl := _label(grid, txt, WEStyle.BODY_M, attribute_color(v))
 		vl.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
 		vl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		vl.custom_minimum_size.x = WEStyle.px(56)
@@ -807,6 +812,9 @@ class MiniPitch:
 			var code: String = "GK" if p.is_keeper() else TeamSheet.role_code(p)
 			var pos_i := PlayerData.Position.GK if p.is_keeper() else TacticalRole.to_position(p.tactical_role)
 			var tag := Rect2(pos + Vector2(-rad - WEStyle.px(46), -WEStyle.px(10)), Vector2(WEStyle.px(40), WEStyle.px(20)))
+			if tag.position.x < 2.0:
+				# Pegado al borde (el arquero): la etiqueta va arriba de la ficha.
+				tag.position = Vector2(pos.x - tag.size.x * 0.5, pos.y - rad - tag.size.y - 2.0)
 			draw_rect(tag, POS_COLORS[pos_i])
 			draw_string(semi, Vector2(tag.position.x, tag.end.y - WEStyle.px(5)), code, HORIZONTAL_ALIGNMENT_CENTER, tag.size.x, small, WEStyle.TEXT_MAIN)
 			var surname := p.display_name.get_slice(" ", p.display_name.get_slice_count(" ") - 1)

@@ -49,6 +49,14 @@ func _run() -> void:
 				c.save()
 				GameSettings.active_save = c.file
 				page = "hub"
+			# Menú principal con una Liga Master guardada (Colón, 5 fechas jugadas).
+			if page == "home_saved":
+				var hs := MasterCareer.create("arg", "colon", "real", 21)
+				for i in 5:
+					hs.play_round([], [], 30 + i)
+				hs.save()
+				MasterCareer.deactivate()
+				page = "home"
 			# Liga Master: carrera de ejemplo (Boca con el Equipo WE, en Primera C).
 			var master_view := ""
 			if page in ["master_plantel", "master_cal", "master_market", "master_sell", "master_pases", "master_news", "master_hist", "master_cups"]:
@@ -74,6 +82,10 @@ func _run() -> void:
 				menu.set("_master_club", "boca")
 			if page == "teams":
 				menu.call("show_page", "modes")
+			# Sub-20: la página de copas con los torneos juveniles.
+			menu.set("_cups_youth", page == "u20")
+			if page == "u20":
+				page = "cups"
 			menu.call("show_page", page)
 			if master_view != "":
 				var hub: MasterHub = menu.get("_master_hub")

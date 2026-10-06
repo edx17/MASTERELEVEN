@@ -564,8 +564,9 @@ func set_human_slot(slot: int) -> void:
 ## o nada.
 ## Cámara Lejana: nombres de todos (pisa la opción de las etiquetas).
 static var names_override := false
-## Tamaño de los nombres de todos (fijo en pantalla).
-const NAME_PIXEL_SIZE := 0.00042
+## Tamaño de los nombres de todos (fijo en pantalla; con fixed_size el
+## tamaño sigue al alto de la ventana, así que se calibra a 1080p).
+const NAME_PIXEL_SIZE := 0.0002
 
 
 func refresh_label() -> void:
@@ -587,6 +588,7 @@ func refresh_label() -> void:
 			# lejos, chicos y justo arriba de la cabeza.
 			_label.visible = true
 			_label.text = display_name
+			_label.font = WEStyle.font(WEStyle.Typeface.SEMIBOLD)
 			_label.font_size = 40
 			_label.position.y = 2.25
 		0:

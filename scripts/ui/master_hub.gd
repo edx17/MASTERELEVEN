@@ -35,6 +35,9 @@ var _left: VBoxContainer
 var _center: VBoxContainer
 var _right: VBoxContainer
 var _abandon_armed := false
+## Botón principal de la columna izquierda (Jugar / Simular / Empezar la
+## temporada): adonde vuelve el foco desde el centro.
+var _primary_btn: Button
 
 
 func _ready() -> void:
@@ -94,6 +97,7 @@ func _rebuild() -> void:
 		_season_summary()
 	else:
 		_next_match()
+	_link_center_focus.call_deferred()
 
 
 # --- Centro: la sección elegida ------------------------------------------------------
@@ -166,15 +170,43 @@ func _rebuild_center() -> void:
 		keep = String(f.name)
 	_clear(_center)
 	_build_center()
+	_link_center_focus.call_deferred()
 	if keep != "":
 		var again := _center.get_node_or_null(keep)
 		if again is Control:
 			(again as Control).grab_focus()
+		else:
+			_focus_primary()
 
 
+## Cambio de sección (L1 / R1): el foco vuelve al botón principal (así Jugar
+## y Simular quedan siempre a un toque).
 func _set_view(i: int) -> void:
 	view_mode = wrapi(i, 0, VIEW_NAMES.size())
 	_rebuild_center()
+	_focus_primary()
+
+
+func _focus_primary() -> void:
+	if _primary_btn != null and is_instance_valid(_primary_btn) and _primary_btn.is_inside_tree():
+		_primary_btn.grab_focus()
+
+
+## Desde lo que toma el foco en el centro se vuelve a la izquierda: en las
+## filas de opción (izquierda/derecha cambian el valor) con arriba; en el resto
+## con izquierda.
+func _link_center_focus() -> void:
+	if _primary_btn == null or not is_instance_valid(_primary_btn) or not _primary_btn.is_inside_tree():
+		return
+	for c in _center.find_children("*", "Control", true, false):
+		var ctl := c as Control
+		if ctl.focus_mode != Control.FOCUS_ALL:
+			continue
+		var path := ctl.get_path_to(_primary_btn)
+		if ctl is WEStyle.OptionRow:
+			ctl.focus_neighbor_top = path
+		else:
+			ctl.focus_neighbor_left = path
 
 
 ## Abajo de la tabla: la fecha de la temporada en grande y el calendario.
@@ -318,6 +350,7 @@ func _next_match() -> void:
 			l.clip_text = true
 			_left.add_child(l)
 	if first != null:
+		_primary_btn = first
 		first.grab_focus()
 
 
@@ -409,6 +442,7 @@ func _season_summary() -> void:
 	next.name = "NextSeason"
 	_left.add_child(next)
 	_left.add_child(_secondary("Mercado de pases (pretemporada)", _open_market))
+	_primary_btn = next
 	next.grab_focus()
 
 
