@@ -150,3 +150,22 @@ func test_inferiores_feed_the_first_team() -> void:
 	var left: Array = m.world.clubs["arg:boca"].get("youth", [])
 	assert_false(left.any(func(d: Dictionary) -> bool: return d["n"] == "Inferior 0"))
 	MasterCareer.deactivate()
+
+
+func test_players_grow_during_the_season_and_keep_history() -> void:
+	var m := MasterCareer.create("arg", "boca", "real", 1717)
+	assert_false(m.user_youth().is_empty(), "tu club tiene inferiores (generadas si no se importaron)")
+	var young: Array = m.club_players("boca").filter(func(d: Dictionary) -> bool: return int(d.get("age", 30)) <= 21)
+	var pid := int(young[0]["pid"]) if not young.is_empty() else int(m.club_players("boca")[0]["pid"])
+	var half := m.user_league().rounds.size() / 2 + 1
+	for r in half:
+		m.play_round([], [], 50 + r)
+	assert_gt(m.growth_steps, 0, "ya hubo tramos de evolución")
+	var changed := m.club_players("boca").any(func(d: Dictionary) -> bool: return m.overall_delta(int(d["pid"])) != 0)
+	assert_true(changed, "la media cambia durante la temporada")
+	m.simulate_to_end(9)
+	assert_eq(m.growth_steps, MasterCareer.GROWTH_STEPS)
+	var d := m.user_player_dict(pid)
+	if not d.is_empty():
+		assert_eq((d.get("hist", []) as Array).size(), 1, "media de la temporada anotada")
+	MasterCareer.deactivate()

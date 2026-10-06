@@ -53,6 +53,10 @@ var next_pid := 1
 ## Atributos de tus jugadores al empezar la temporada ({pid: {attr: valor}}),
 ## para mostrar cuánto crecieron.
 var season_start: Dictionary = {}
+## Tramos de evolución ya aplicados esta temporada (los jugadores crecen o
+## declinan de a poco: al 25, 50, 75 y 100 % de las fechas).
+const GROWTH_STEPS := 4
+var growth_steps := 0
 ## Pases de la carrera: [{season, n, from, to, price, kind ("compra",
 ## "préstamo", "venta", "libre", "ia", "vuelta")}].
 var transfers: Array = []
@@ -150,6 +154,15 @@ static func create(country_id: String, club_id: String, mode: String, seed: int 
 			m.next_pid += 1
 			free.append(d)
 	m.world.clubs["%s:%s" % [country_id, FREE_CLUB]] = {"id": FREE_CLUB, "name": "Jugadores libres", "players": free}
+	# Inferiores de tu club: las importadas o, si no hay, unas generadas (fijas).
+	var mine_key := "%s:%s" % [country_id, club_id]
+	if m.world.clubs.has(mine_key) and (m.world.clubs[mine_key].get("youth", []) as Array).is_empty():
+		var list: Array = []
+		var u20 := TeamDB.load_team(TeamDB.u20_path(TeamDB.club_path(country_id, club_id)))
+		if u20 != null:
+			for p in u20.players:
+				list.append(TeamDB.player_to_dict(p))
+		m.world.clubs[mine_key]["youth"] = list
 	if m.squad_mode == "we":
 		m._make_we_squad(int(divs[start].get("level", start + 1)), String(divs[start]["id"]), rng.randi())
 	m._new_season_leagues(rng.randi())
@@ -326,6 +339,12 @@ func play_round(user_result: Array = [], user_scorers: Array = [], seed: int = 0
 		if int(d.get("inj", 0)) == 0 and int(d.get("susp", 0)) == 0:
 			_dirty[sv["club"]] = true
 	_news_absences(absent_before)
+	# Evolución de a poco durante la temporada.
+	var ul := user_league()
+	var due := int(GROWTH_STEPS * ul.current / maxi(ul.rounds.size(), 1))
+	while growth_steps < mini(due, GROWTH_STEPS):
+		_growth_step(1.0 / GROWTH_STEPS, rng)
+		growth_steps += 1
 	# Los planteles con altas o bajas nuevas se rearman.
 	for club in _dirty:
 		TeamDB.refresh_club(country, club, world.clubs["%s:%s" % [country, club]])
@@ -403,9 +422,40 @@ const CARD_WEIGHT := {"CB": 1.5, "DMF": 1.6, "LB": 1.3, "RB": 1.3, "CMF": 1.1, "
 
 
 ## Jugadores (datos del mundo) de un club de la carrera.
+## Jugadores de un club de la carrera ("id") o de otro país ("pais:id"; la
+## primera vez se copia a la carrera, con un pid por jugador).
 func club_players(club_id: String) -> Array:
-	var e: Dictionary = world.clubs.get("%s:%s" % [country, club_id], {})
+	var key := _key(club_id)
+	if not world.clubs.has(key) and club_id.contains(":"):
+		_adopt_foreign(club_id)
+	var e: Dictionary = world.clubs.get(key, {})
 	return e.get("players", [])
+
+
+## Clave del club en la carrera: "pais:id" (los de tu país van sin país).
+func _key(club_id: String) -> String:
+	return club_id if club_id.contains(":") else "%s:%s" % [country, club_id]
+
+
+## Club de otro país que entra a la carrera (para comprarle o venderle).
+func _adopt_foreign(club_id: String) -> void:
+	var cid := club_id.get_slice(":", 0)
+	var id := club_id.get_slice(":", 1)
+	var found := TeamDB.club(cid, id)
+	if found.is_empty():
+		return
+	var e: Dictionary = (found[0] as Dictionary).duplicate(true)
+	var list: Array = []
+	if (e.get("players", []) as Array).is_empty():
+		for p in TeamDB.load_team(TeamDB.club_path(cid, id)).players:
+			list.append(TeamDB.player_to_dict(p))
+	else:
+		list = e["players"]
+	for d in list:
+		d["pid"] = _new_pid()
+	e["players"] = list
+	e["id"] = id
+	world.clubs[club_id] = e
 
 
 func _player_dict(club_id: String, pid: int) -> Dictionary:
@@ -709,8 +759,13 @@ func _new_year(lists: Array, divs: Array) -> Dictionary:
 					if mine:
 						report["retired"].append(d["n"])
 					continue
-				var before := _avg(d)
-				_evolve(d, age, rng)
+				# Lo que no creció durante la temporada (si se cortó antes) crece ahora.
+				if growth_steps < GROWTH_STEPS:
+					_evolve(d, age, rng, float(GROWTH_STEPS - growth_steps) / GROWTH_STEPS)
+				var snap: Dictionary = season_start.get(str(int(d.get("pid", 0))), {})
+				var before := _avg({"a": snap, "pos": d.get("pos", "")}) if mine and not snap.is_empty() else _avg(d)
+				if mine:
+					(d.get_or_add("hist", []) as Array).append([year_label(), dict_overall(d)])
 				d["age"] = age + 1
 				d["yc"] = 0
 				d["susp"] = 0
@@ -759,10 +814,14 @@ static func _avg(d: Dictionary) -> int:
 
 ## Un año más de un jugador: todos sus atributos se mueven según la edad
 ## (con algo de azar); los físicos caen un poco más desde los 30.
-static func _evolve(d: Dictionary, age: int, rng: RandomNumberGenerator) -> void:
+static func _evolve(d: Dictionary, age: int, rng: RandomNumberGenerator, share: float = 1.0) -> void:
 	var a: Dictionary = d.get("a", {})
 	var base := growth_for_age(age)
 	for k in a:
+		# Durante la temporada se aplica de a partes (cada atributo, con
+		# chance `share`): el total del año es el mismo.
+		if share < 1.0 and rng.randf() >= share:
+			continue
 		var delta := base + rng.randi_range(-1, 1)
 		if age >= 30 and k in ["speed", "acceleration", "stamina"]:
 			delta -= 1
@@ -918,8 +977,33 @@ func has_custom_lineup() -> bool:
 	return _user_entry().has("lineup")
 
 
+## Un tramo de la evolución del año para todos los jugadores de la carrera.
+func _growth_step(share: float, rng: RandomNumberGenerator) -> void:
+	for key in world.clubs.keys():
+		if String(key).get_slice(":", 0) != country or String(key).ends_with(":" + FREE_CLUB):
+			continue
+		for d in world.clubs[key].get("players", []):
+			_evolve(d, int(d.get("age", 25)), rng, share)
+		TeamDB.refresh_club(country, String(key).get_slice(":", 1), world.clubs[key])
+
+
+## Inferiores (Sub-20) de tu club.
+func user_youth() -> Array:
+	return _user_entry().get("youth", [])
+
+
+## Cuánto cambió la media de un jugador tuyo desde que empezó la temporada.
+func overall_delta(pid: int) -> int:
+	var snap: Dictionary = season_start.get(str(pid), {})
+	var d := user_player_dict(pid)
+	if snap.is_empty() or d.is_empty():
+		return 0
+	return dict_overall(d) - dict_overall({"a": snap, "pos": d.get("pos", "")})
+
+
 ## Guarda los atributos de tus jugadores al empezar la temporada.
 func _snapshot_season() -> void:
+	growth_steps = 0
 	season_start = {}
 	for d in club_players(user_club):
 		season_start[str(d["pid"])] = (d.get("a", {}) as Dictionary).duplicate()
@@ -1018,25 +1102,41 @@ func market_text() -> String:
 ## Club de cada jugador del país: [{d, club, div}], con filtros. `line`:
 ## -1 todos, 0 arqueros... 3 delanteros; `division` -1 todas; orden "ovr",
 ## "age" o "value".
-func market_list(line: int = -1, division: int = -1, sort: String = "ovr", limit: int = 80) -> Array:
+## Jugadores en venta. `division` es una de tu país (-1: todas); con
+## `other_country`, una división de ese país. `only_club` filtra por club
+## (id o "pais:id"); FREE_CLUB son los libres.
+func market_list(line: int = -1, division: int = -1, sort: String = "ovr", limit: int = 80,
+		other_country: String = "", only_club: String = "") -> Array:
 	var out: Array = []
-	if division < 0:
+	var clubs: Array = [] # [club, div]
+	if only_club == FREE_CLUB or (division < 0 and other_country == "" and only_club == ""):
 		for d in club_players(FREE_CLUB):
 			if line < 0 or TeamDB.position_of_code(String(d.get("pos", "CMF"))) == line:
 				out.append({"d": d, "club": FREE_CLUB, "div": -1})
-	for li in leagues.size():
-		if division >= 0 and li != division:
-			continue
-		for pth in (leagues[li]["comp"] as Competition).team_paths:
-			var club := String(pth).get_slice(":", 3)
-			if club == user_club:
+	if only_club == FREE_CLUB:
+		clubs = []
+	elif other_country != "" and other_country != country:
+		var divs: Array = TeamDB.country(other_country).get("divisions", [])
+		if division >= 0 and division < divs.size():
+			for cl in divs[division]["clubs"]:
+				clubs.append(["%s:%s" % [other_country, cl["id"]], -1])
+	else:
+		for li in leagues.size():
+			if division >= 0 and li != division:
 				continue
-			for d in club_players(club):
-				if d.has("loan_from"):
-					continue
-				if line >= 0 and TeamDB.position_of_code(String(d.get("pos", "CMF"))) != line:
-					continue
-				out.append({"d": d, "club": club, "div": li})
+			for pth in (leagues[li]["comp"] as Competition).team_paths:
+				clubs.append([String(pth).get_slice(":", 3), li])
+	for cd in clubs:
+		var club := String(cd[0])
+		var li := int(cd[1])
+		if club == user_club or (only_club != "" and club != only_club):
+			continue
+		for d in club_players(club):
+			if d.has("loan_from"):
+				continue
+			if line >= 0 and TeamDB.position_of_code(String(d.get("pos", "CMF"))) != line:
+				continue
+			out.append({"d": d, "club": club, "div": li})
 	match sort:
 		"age":
 			out.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return int(x["d"].get("age", 0)) < int(y["d"].get("age", 0)))
@@ -1045,6 +1145,43 @@ func market_list(line: int = -1, division: int = -1, sort: String = "ovr", limit
 		_:
 			out.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return dict_overall(x["d"]) > dict_overall(y["d"]))
 	return out.slice(0, limit)
+
+
+## Filtros de liga del mercado: [{label, country, division}] (country ""
+## = tu país; division -1 = todas las de tu país, con los libres).
+func market_scopes() -> Array:
+	var out: Array = [{"label": "Todas las de tu país", "country": "", "division": -1}]
+	for li in leagues.size():
+		out.append({"label": division_name(li), "country": "", "division": li})
+	for c in TeamDB.countries():
+		var cid := String(c["id"])
+		if cid == country:
+			continue
+		var divs: Array = c["divisions"]
+		for di in divs.size():
+			out.append({"label": "%s · %s" % [c["name"], divs[di]["name"]], "country": cid, "division": di})
+	return out
+
+
+## Clubes de un filtro de liga: [[club, nombre]] (club = id o "pais:id").
+func scope_clubs(scope: Dictionary) -> Array:
+	var out: Array = []
+	var cid := String(scope["country"])
+	var di := int(scope["division"])
+	if cid == "":
+		for li in leagues.size():
+			if di >= 0 and li != di:
+				continue
+			for pth in (leagues[li]["comp"] as Competition).team_paths:
+				var id := String(pth).get_slice(":", 3)
+				if id != user_club:
+					out.append([id, _club_name(id)])
+	else:
+		var divs: Array = TeamDB.country(cid).get("divisions", [])
+		if di >= 0 and di < divs.size():
+			for cl in divs[di]["clubs"]:
+				out.append(["%s:%s" % [cid, cl["id"]], String(cl["name"])])
+	return out
 
 
 ## Lo que pide el club: el valor, o 50 % más si es de sus tres mejores.
@@ -1212,18 +1349,19 @@ func _move_player(from: String, to: String, d: Dictionary) -> void:
 	dest.append(d)
 	for c in [from, to]:
 		if c != FREE_CLUB:
-			TeamDB.refresh_club(country, c, world.clubs["%s:%s" % [country, c]])
+			var k := _key(c)
+			TeamDB.refresh_club(k.get_slice(":", 0), k.get_slice(":", 1), world.clubs[k])
 
 
 ## Los préstamos vuelven a su club.
 func _return_loans() -> void:
-	for key in world.clubs:
-		var club := String(key).get_slice(":", 1)
-		for d in (world.clubs[key]["players"] as Array).duplicate():
+	for key in world.clubs.keys():
+		var club := String(key).get_slice(":", 1) if String(key).get_slice(":", 0) == country else String(key)
+		for d in (world.clubs[key].get("players", []) as Array).duplicate():
 			if d.has("loan_from"):
 				var back := String(d["loan_from"])
 				d.erase("loan_from")
-				if world.clubs.has("%s:%s" % [country, back]):
+				if world.clubs.has(_key(back)):
 					_move_player(club, back, d)
 					_log_transfer({"season": season, "n": d["n"], "from": club, "to": back, "price": 0, "kind": "vuelta"})
 
@@ -1824,7 +1962,10 @@ func latest_news(n: int = 40) -> Array:
 func _club_name(club: String) -> String:
 	if club == "":
 		return "ningún club"
-	var t := TeamDB.load_team(TeamDB.club_path(country, club))
+	if club == FREE_CLUB:
+		return "libre"
+	var k := _key(club)
+	var t := TeamDB.load_team(TeamDB.club_path(k.get_slice(":", 0), k.get_slice(":", 1)))
 	return t.team_name if t != null else club
 
 
@@ -1949,7 +2090,7 @@ func to_dict() -> Dictionary:
 		"updated": updated, "country": country, "season": season, "first_year": first_year, "user_club": user_club,
 		"squad_mode": squad_mode, "points": points, "world": world.to_dict(), "leagues": ls, "scorers": scorers,
 		"history": history, "season_over": season_over, "next_pid": next_pid,
-		"season_start": season_start, "transfers": transfers, "news": news,
+		"season_start": season_start, "growth_steps": growth_steps, "transfers": transfers, "news": news,
 		"cups": cups.map(func(e: Dictionary) -> Dictionary:
 			return {"id": e["id"], "name": e["name"], "type": e["type"], "after": e["after"],
 				"mine": int(e.get("mine", -1)), "comp": (e["comp"] as Competition).to_dict()})}
@@ -1976,6 +2117,7 @@ static func from_dict(d: Dictionary) -> MasterCareer:
 	m.season_over = bool(d.get("season_over", false))
 	m.next_pid = int(d.get("next_pid", 1))
 	m.season_start = d.get("season_start", {})
+	m.growth_steps = int(d.get("growth_steps", GROWTH_STEPS))
 	m.transfers = d.get("transfers", [])
 	m.news = d.get("news", [])
 	var ints := func(a: Array) -> Array: return a.map(func(x: Variant) -> int: return int(x))

@@ -1,8 +1,9 @@
 class_name MasterMarket
 extends Control
 ## Mercado de pases de la Liga Master (puntos WE).
-##   - Comprar: jugadores de los otros clubes del país, con filtros por
-##     puesto y división y orden por media, edad o precio. Comprar al precio
+##   - Comprar: jugadores de cualquier club (de tu país o de las ligas de
+##     los otros países) y libres, con filtros por puesto, liga y club, y
+##     orden por media, edad o precio. Comprar al precio
 ##     que piden, ofertar 80 % (a veces aceptan) o pedirlo a préstamo hasta
 ##     fin de temporada.
 ##   - Vender: tus jugadores; un club ofrece puntos (aceptar o no) o se lo
@@ -27,6 +28,10 @@ var career: MasterCareer
 var mode := 0
 var line := 0
 var division := -1
+## Filtro de liga (índice en career.market_scopes()) y de club ("" = todos).
+var scope := 0
+var club_filter := ""
+var _scopes: Array = []
 var sort := 0
 var _rows_box: VBoxContainer
 var _detail: VBoxContainer
@@ -78,19 +83,25 @@ func _rebuild() -> void:
 		_focus = 0
 		_offer = {}))
 	if mode == 0:
-		var divs := career.leagues.size()
+		if _scopes.is_empty():
+			_scopes = career.market_scopes()
 		left.add_child(_opt("Puesto", func() -> String: return LINES[line], func(d: int) -> void:
 			line = wrapi(line + d, 0, LINES.size())
 			_focus = 0))
-		left.add_child(_opt("División", func() -> String: return "Todas" if division < 0 else career.division_name(division),
-			func(d: int) -> void:
-				division = wrapi(division + 1 + d, 0, divs + 1) - 1
-				_focus = 0))
+		left.add_child(_opt("Liga", func() -> String: return String(_scopes[scope]["label"]), func(d: int) -> void:
+			scope = wrapi(scope + d, 0, _scopes.size())
+			club_filter = ""
+			_focus = 0))
+		left.add_child(_opt("Club", func() -> String: return _club_filter_name(), func(d: int) -> void:
+			var opts := _club_options()
+			var i := opts.map(func(o: Array) -> String: return o[0]).find(club_filter)
+			club_filter = String(opts[wrapi(i + d, 0, opts.size())][0])
+			_focus = 0))
 		left.add_child(_opt("Orden", func() -> String: return SORT_NAMES[sort], func(d: int) -> void:
 			sort = wrapi(sort + d, 0, SORTS.size())
 			_focus = 0))
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(696, 356 if mode == 0 else 446)
+	scroll.custom_minimum_size = Vector2(696, 326 if mode == 0 else 446)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.follow_focus = true
 	left.add_child(scroll)
@@ -167,13 +178,30 @@ func _row(texts: Array, color: Color, i: int, on_focus: Callable) -> Button:
 func _club_name(club: String) -> String:
 	if club == "" or club == MasterCareer.FREE_CLUB:
 		return "(libre)"
-	return TeamDB.load_team(TeamDB.club_path(career.country, club)).team_name
+	return career._club_name(club)
+
+
+## Opciones del filtro de club: [club, nombre]; "" = todos, libres aparte.
+func _club_options() -> Array:
+	var out: Array = [["", "Todos"]]
+	if int(_scopes[scope]["division"]) < 0 and String(_scopes[scope]["country"]) == "":
+		out.append([MasterCareer.FREE_CLUB, "Libres"])
+	out.append_array(career.scope_clubs(_scopes[scope]))
+	return out
+
+
+func _club_filter_name() -> String:
+	for o in _club_options():
+		if o[0] == club_filter:
+			return String(o[1])
+	return "Todos"
 
 
 # --- Comprar ------------------------------------------------------------------------------
 
 func _buy_list() -> void:
-	_items = career.market_list(line - 1, division, SORTS[sort], 80)
+	var sc: Dictionary = _scopes[scope]
+	_items = career.market_list(line - 1, int(sc["division"]), SORTS[sort], 80, String(sc["country"]), club_filter)
 	_rows_box.add_child(_cells(["Jugador", "Club", "Edad", "Pos", "Media", "Precio"], BLUE, 14))
 	var first: Button = null
 	for i in _items.size():
