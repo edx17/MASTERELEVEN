@@ -1,8 +1,197 @@
 class_name WEStyle
 extends RefCounted
-## Estilo de los menús, a la manera del WE2002 (sin copiar logos ni marcas):
-## fondo azul oscuro con líneas finas y un brillo, barras violetas que se
-## iluminan al elegirlas, filas "◀ valor ▶" y una caja de ayuda verde abajo.
+## Fuente única de estilo de la interfaz.
+##
+## Rediseño "estadio de noche" (ver sección TOKENS): paleta, tipografías,
+## tamaños, medidas y constructores de estilos (make_*). Las pantallas nuevas
+## usan sólo estos tokens; no escriben colores ni tamaños propios.
+##
+## Lo de abajo de TOKENS es el estilo anterior (WE2002: barras violetas,
+## caja de ayuda verde); queda hasta que cada pantalla pase al rediseño.
+
+# --- TOKENS (rediseño "estadio de noche") ---------------------------------------
+# Las medidas están pensadas para 1920×1080. El juego se arma en 1280×720 y se
+# escala a la pantalla: px() pasa una medida de 1080p a la base del juego, así
+# a 1920×1080 se ve exactamente como en la guía.
+
+const DESIGN_HEIGHT := 1080.0
+const BASE_HEIGHT := 720.0
+const UI_SCALE := BASE_HEIGHT / DESIGN_HEIGHT
+
+# Paleta.
+const BG_NIGHT := Color("#0B1220")      ## fondo general
+const BG_PANEL := Color("#111A2E")      ## paneles y tarjetas
+const BG_PANEL_ALT := Color("#16223A")  ## filas alternas, hover, foco
+const ACCENT := Color("#E8C547")        ## dorado: foco, selección, datos clave
+const ACCENT_GREEN := Color("#3FB96B")  ## victoria, confirmación
+const TEXT_MAIN := Color("#EDF1F7")     ## texto principal
+const TEXT_DIM := Color("#8B96AB")      ## texto secundario, etiquetas
+const LINE := Color("#24304A")          ## bordes y separadores de 1 px
+const DANGER := Color("#D95555")        ## derrota, alertas
+
+# Tipografías (res://assets/fonts/, licencia OFL).
+enum Typeface { TITLE, BODY, SEMIBOLD, ITALIC }
+const FONT_PATHS := {
+	Typeface.TITLE: "res://assets/fonts/BebasNeue-Regular.ttf",
+	Typeface.BODY: "res://assets/fonts/Barlow-Regular.ttf",
+	Typeface.SEMIBOLD: "res://assets/fonts/Barlow-SemiBold.ttf",
+	Typeface.ITALIC: "res://assets/fonts/Barlow-Italic.ttf",
+}
+
+# Tamaños de letra (en px de 1080p).
+const TITLE_XL := 64  ## títulos de pantalla, marcadores
+const TITLE_L := 48
+const TITLE_M := 32   ## ítems del menú lateral
+const BODY_L := 18
+const BODY_M := 16    ## cuerpo y tablas
+const BODY_S := 14    ## etiquetas, keycaps
+
+# Medidas (en px de 1080p).
+const MARGIN_X := 64        ## margen lateral de pantalla
+const MARGIN_Y := 48        ## margen vertical de pantalla
+const RADIUS_CARD := 8
+const RADIUS_BUTTON := 4
+const BORDER := 1
+const FOCUS_BORDER := 2
+const ROW_H := 44           ## fila de tabla
+const HEADER_ROW_H := 36    ## encabezado de tabla
+const FOOTER_H := 56        ## pie con las indicaciones de control
+const HINT_SIZE := 28       ## círculo de botón / alto de tecla
+const SIDE_MENU_W := 420    ## menú lateral (diseño 01)
+const SIDE_ITEM_H := 72
+const CARD_PADDING := 24
+const BUTTON_PADDING_X := 20
+const FADE_TIME := 0.15     ## transiciones (s), nunca más largas
+
+static var _fonts := {}
+
+
+## Una medida de 1080p en la base del juego (1280×720).
+static func px(v: float) -> float:
+	return v * UI_SCALE
+
+
+## Tamaño de letra de 1080p en la base del juego (entero, mínimo 8).
+static func font_px(size: int) -> int:
+	return maxi(8, roundi(size * UI_SCALE))
+
+
+## La tipografía pedida (cargada una vez). Si el archivo no está, la del tema.
+static func font(face: Typeface) -> Font:
+	if not _fonts.has(face):
+		var f: Font = null
+		var path := String(FONT_PATHS[face])
+		if ResourceLoader.exists(path):
+			f = load(path) as Font
+		_fonts[face] = f if f != null else ThemeDB.fallback_font
+	return _fonts[face]
+
+
+## Tarjeta / panel: fondo bg_panel (o bg_panel_alt), borde de 1 px, radio 8.
+static func make_panel_style(alt: bool = false) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = BG_PANEL_ALT if alt else BG_PANEL
+	sb.border_color = LINE
+	sb.set_border_width_all(BORDER)
+	sb.set_corner_radius_all(int(px(RADIUS_CARD)))
+	sb.set_content_margin_all(px(CARD_PADDING))
+	sb.anti_aliasing = true
+	return sb
+
+
+## Estado con foco: borde accent de 2 px + fondo bg_panel_alt (nunca sólo el
+## color del texto). `radius`: RADIUS_BUTTON o RADIUS_CARD.
+static func make_focus_style(radius: int = RADIUS_BUTTON) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = BG_PANEL_ALT
+	sb.border_color = ACCENT
+	sb.set_border_width_all(FOCUS_BORDER)
+	sb.set_corner_radius_all(int(px(radius)))
+	sb.set_content_margin_all(px(BUTTON_PADDING_X) * 0.5)
+	sb.content_margin_left = px(BUTTON_PADDING_X)
+	sb.content_margin_right = px(BUTTON_PADDING_X)
+	sb.anti_aliasing = true
+	return sb
+
+
+## Botón en reposo ("normal"), apretado ("pressed") o deshabilitado
+## ("disabled"); "focus" y "hover" usan make_focus_style().
+static func make_button_style(state: String = "normal") -> StyleBoxFlat:
+	if state in ["focus", "hover"]:
+		return make_focus_style(RADIUS_BUTTON)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = BG_PANEL_ALT if state == "pressed" else BG_PANEL
+	if state == "disabled":
+		sb.bg_color = Color(BG_PANEL, 0.6)
+	sb.border_color = LINE
+	sb.set_border_width_all(BORDER)
+	sb.set_corner_radius_all(int(px(RADIUS_BUTTON)))
+	sb.set_content_margin_all(px(BUTTON_PADDING_X) * 0.5)
+	sb.content_margin_left = px(BUTTON_PADDING_X)
+	sb.content_margin_right = px(BUTTON_PADDING_X)
+	sb.anti_aliasing = true
+	return sb
+
+
+## Aplica el estilo nuevo a un botón (estados, Barlow SemiBold, colores).
+static func style_button(b: Button, size: int = BODY_L) -> void:
+	for st in ["normal", "hover", "focus", "pressed", "disabled"]:
+		b.add_theme_stylebox_override(st, make_button_style(st))
+	b.add_theme_font_override("font", font(Typeface.SEMIBOLD))
+	b.add_theme_font_size_override("font_size", font_px(size))
+	b.add_theme_color_override("font_color", TEXT_MAIN)
+	b.add_theme_color_override("font_hover_color", ACCENT)
+	b.add_theme_color_override("font_focus_color", ACCENT)
+	b.add_theme_color_override("font_pressed_color", ACCENT)
+	b.add_theme_color_override("font_disabled_color", TEXT_DIM)
+
+
+## Título en Bebas Neue (64 / 48 / 32).
+static func make_title_label(text: String, size: int = TITLE_L, color: Color = TEXT_MAIN) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_override("font", font(Typeface.TITLE))
+	l.add_theme_font_size_override("font_size", font_px(size))
+	l.add_theme_color_override("font_color", color)
+	return l
+
+
+## Texto en Barlow (18 / 16 / 14); `italic` para notas secundarias.
+static func make_body_label(text: String, size: int = BODY_M, color: Color = TEXT_MAIN, italic: bool = false) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_override("font", font(Typeface.ITALIC if italic else Typeface.BODY))
+	l.add_theme_font_size_override("font_size", font_px(size))
+	l.add_theme_color_override("font_color", color)
+	return l
+
+
+## Etiqueta chica en mayúsculas, con letras separadas (encabezados de tabla).
+static func make_caption_label(text: String, color: Color = TEXT_DIM) -> Label:
+	var l := make_body_label(text.to_upper(), BODY_S, color)
+	var spaced := FontVariation.new()
+	spaced.base_font = font(Typeface.SEMIBOLD)
+	spaced.spacing_glyph = 2
+	l.add_theme_font_override("font", spaced)
+	return l
+
+
+## Separador horizontal de 1 px (color line).
+static func make_separator() -> ColorRect:
+	var r := ColorRect.new()
+	r.color = LINE
+	r.custom_minimum_size = Vector2(0, BORDER)
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return r
+
+
+## Fundido de entrada (FADE_TIME); no bloquea la entrada.
+static func fade_in(c: Control) -> void:
+	c.modulate.a = 0.0
+	c.create_tween().tween_property(c, "modulate:a", 1.0, FADE_TIME)
+
+
+# --- Estilo anterior (WE2002), hasta que cada pantalla pase al rediseño ---------
 
 const BAR := Color(0.16, 0.13, 0.42, 0.92)
 const BAR_FOCUS := Color(0.42, 0.36, 0.9, 0.97)
