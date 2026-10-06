@@ -19,6 +19,9 @@ var _hub: CompetitionHub
 var _new_competition := -1
 ## Torneo Sub-20 elegido en COPA (id de CareerCups.YOUTH) y sus equipos.
 var _youth_cup := ""
+## La página "cups" muestra los torneos Sub-20 (si no, las copas).
+var _cups_youth := false
+var _cups_title: Label
 var _youth_teams: Array[String] = []
 var _continue_btn: Button
 ## Copa propia elegida (del Option File) o {}.
@@ -269,10 +272,14 @@ func _build_home() -> void:
 	_item(col, "PARTIDO", "Jugá un partido amistoso: contra la CPU, de a dos o mirá CPU contra CPU.", show_page.bind("modes"))
 	_item(col, "LIGA", "Campeonato todos contra todos con los 8 equipos. Se guarda entre partidos.",
 		_open_competition.bind(Competition.Kind.LEAGUE))
-	_item(col, "COPA", "Eliminación directa, copas de tu Option File y torneos Sub-20. Se guarda entre partidos.",
+	_item(col, "COPA", "Eliminación directa: cuartos, semis y final (con penales si empatan). Se guarda entre partidos.",
 		_open_competition.bind(Competition.Kind.CUP))
 	_item(col, "MUNDIAL", "48 selecciones: 12 grupos de 4, pasan dos por grupo y los 8 mejores terceros, después 16avos hasta la final.",
 		_open_world_cup)
+	_item(col, "SUB-20", "Torneo de Proyección, Libertadores Sub-20, UEFA Youth League y Mundial Sub-20, con las inferiores de cada club.",
+		func() -> void:
+			_cups_youth = true
+			show_page("cups"))
 	_item(col, "LIGA MASTER", "Carrera de club: elegí país y club, arrancá abajo y llevalo a primera. Temporadas completas, ascensos y descensos, goleadores y puntos WE.",
 		show_page.bind("master"))
 	_item(col, "ENTRENAMIENTO", "Club House: práctica libre, pelota parada y desafíos con récord.", show_page.bind("training"))
@@ -335,7 +342,8 @@ func _choose_mode(mode: int, shootout := false) -> void:
 func _open_competition(kind: int) -> void:
 	_custom_cup = {}
 	_youth_cup = ""
-	if kind == Competition.Kind.CUP:
+	_cups_youth = false
+	if kind == Competition.Kind.CUP and not playable_cups().is_empty():
 		show_page("cups")
 		return
 	_new_competition = kind
@@ -438,6 +446,7 @@ func _build_cups() -> void:
 	var title := WEStyle.label("COPA", 30, Color(1.0, 0.9, 0.35))
 	title.position = Vector2(80, 40)
 	p.add_child(title)
+	_cups_title = title
 	_cups_col = _column(p, Vector2(80, 100))
 	_cups_col.add_theme_constant_override("separation", 6)
 
@@ -446,6 +455,29 @@ func _build_cups_list() -> void:
 	for c in _cups_col.get_children():
 		_cups_col.remove_child(c)
 		c.queue_free()
+	_cups_title.text = "SUB-20" if _cups_youth else "COPA"
+	if _cups_youth:
+		var cache := {}
+		for yid in CareerCups.YOUTH:
+			var desc: String = {"proyeccion": "Las Sub-20 de la Liga Profesional, todos contra todos.",
+				"lib_u20": "16 Sub-20 de Sudamérica: grupos y eliminación desde cuartos.",
+				"uyl": "36 Sub-20 de Europa: fase liga y eliminación.",
+				"wc_u20": "24 selecciones Sub-20: 6 grupos, octavos con los mejores terceros."}[yid]
+			_item(_cups_col, String(CareerCups.YOUTH[yid]["name"]).to_upper(), desc, func() -> void:
+				_youth_teams = CareerCups.youth_teams(yid, cache)
+				if _youth_teams.is_empty():
+					return
+				_youth_cup = yid
+				_custom_cup = {}
+				_new_competition = Competition.Kind.CUP
+				_teams.single = true
+				_teams.only_country = ""
+				_new_master = false
+				_teams.only_paths.assign(_youth_teams.map(func(p: String) -> String: return "db:" + p.trim_prefix("db:u20:")))
+				show_page("teams"), true, 640.0)
+		_item(_cups_col, "VOLVER", "Volver al menú principal.", go_back, true, 640.0)
+		_first_focus(_cups_col)
+		return
 	_item(_cups_col, "COPA RÁPIDA", "Eliminación directa de 8: tu equipo y 7 de su grupo.", func() -> void:
 		_custom_cup = {}
 		_new_competition = Competition.Kind.CUP
@@ -454,24 +486,6 @@ func _build_cups_list() -> void:
 		_new_master = false
 		_teams.only_paths = []
 		show_page("teams"), true, 640.0)
-	var cache := {}
-	for yid in CareerCups.YOUTH:
-		var desc: String = {"proyeccion": "Las Sub-20 de la Liga Profesional, todos contra todos.",
-			"lib_u20": "16 Sub-20 de Sudamérica: grupos y eliminación desde cuartos.",
-			"uyl": "36 Sub-20 de Europa: fase liga y eliminación.",
-			"wc_u20": "24 selecciones Sub-20: 6 grupos, octavos con los mejores terceros."}[yid]
-		_item(_cups_col, String(CareerCups.YOUTH[yid]["name"]).to_upper(), desc, func() -> void:
-			_youth_teams = CareerCups.youth_teams(yid, cache)
-			if _youth_teams.is_empty():
-				return
-			_youth_cup = yid
-			_custom_cup = {}
-			_new_competition = Competition.Kind.CUP
-			_teams.single = true
-			_teams.only_country = ""
-			_new_master = false
-			_teams.only_paths.assign(_youth_teams.map(func(p: String) -> String: return "db:" + p.trim_prefix("db:u20:")))
-			show_page("teams"), true, 640.0)
 	for cup in playable_cups():
 		var n := (cup.get("teams", []) as Array).size()
 		var fmt := "liga" if String(cup.get("format", "")) == "league" else "eliminación directa"

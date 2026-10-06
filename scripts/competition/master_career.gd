@@ -604,6 +604,7 @@ func _end_season() -> void:
 	_cups_summary(summary)
 	if world_cup_year():
 		_play_world_cup(summary)
+	_awards(summary)
 	# Cambio de año: edad, evolución, retiros y juveniles (con las divisiones
 	# de la temporada que viene).
 	var report := _new_year(lists, divs)
@@ -632,6 +633,22 @@ func _end_season() -> void:
 	history.append(summary)
 	season_over = true
 	TeamDB.use_option_file(world)
+
+
+## Premios de la temporada (SeasonAwards): noticias y puntos si son de tu club.
+func _awards(summary: Dictionary) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("%s_awards_%d" % [country, season])
+	var list := SeasonAwards.compute(self, summary, rng)
+	summary["awards"] = list
+	for a in list:
+		var who := "%s (%s)" % [a["n"], a["club"]]
+		if String(a["detail"]) != "":
+			who += ", " + String(a["detail"])
+		add_news("%s %s: %s." % [a["award"], year_label(), who], "temporada")
+		if String(a.get("club_id", "")) == user_club:
+			points += AWARD_POINTS
+			add_news("¡%s, de tu club, ganó el %s!" % [a["n"], a["award"]], "club")
 
 
 # --- Cambio de año (D2) -----------------------------------------------------------------
@@ -702,6 +719,24 @@ func _new_year(lists: Array, divs: Array) -> Dictionary:
 					report["risers"].append([d["n"], _avg(d) - before])
 				kept.append(d)
 			e["players"] = kept
+			# Inferiores: crecen un año; los que pasan los 20 suben a primera
+			# (si hay lugar) o quedan libres.
+			var still: Array = []
+			for d in e.get("youth", []):
+				var yage := int(d.get("age", 18))
+				_evolve(d, yage, rng)
+				d["age"] = yage + 1
+				if yage + 1 <= TeamDB.U20_MAX_AGE:
+					still.append(d)
+				elif (e["players"] as Array).size() < MAX_SQUAD:
+					_promote(e, d)
+					if mine:
+						report["youth"].append(d["n"])
+				else:
+					d["pid"] = int(d.get("pid", 0)) if d.has("pid") else _new_pid()
+					free_agents().append(d)
+			if e.has("youth"):
+				e["youth"] = still
 			for n in _add_youth(e, level - 10, String(co.get("names", "en")), co.get("skin", [40, 30, 18, 12]),
 					String(co.get("nationality", "")), rng):
 				if mine:
@@ -742,6 +777,32 @@ func _add_youth(e: Dictionary, level: int, names_group: String, skin: Array, nat
 	var need := target - players.size()
 	if need <= 0:
 		return []
+	# Primero suben los de las inferiores del club (los mejores del puesto
+	# que más falta).
+	var promoted: Array = []
+	var youth: Array = e.get("youth", [])
+	while need > 0 and not youth.is_empty():
+		var have := [0, 0, 0, 0]
+		for d in players:
+			have[TeamDB.position_of_code(String(d.get("pos", "CMF")))] += 1
+		var want := 0
+		var gap := -99
+		for l in 4:
+			if SQUAD_LINES[l] - have[l] > gap:
+				gap = SQUAD_LINES[l] - have[l]
+				want = l
+		var best: Dictionary = {}
+		for d in youth:
+			var fits := TeamDB.position_of_code(String(d.get("pos", "CMF"))) == want
+			var best_fits := not best.is_empty() and TeamDB.position_of_code(String(best.get("pos", "CMF"))) == want
+			if best.is_empty() or (fits and not best_fits) or (fits == best_fits and _avg(d) > _avg(best)):
+				best = d
+		youth.erase(best)
+		_promote(e, best)
+		promoted.append(best["n"])
+		need -= 1
+	if need <= 0:
+		return promoted
 	var count := [0, 0, 0, 0]
 	var numbers := {}
 	for d in players:
@@ -783,7 +844,27 @@ func _add_youth(e: Dictionary, level: int, names_group: String, skin: Array, nat
 		out.append(d["n"])
 		count[pick.position] += 1
 		need -= 1
-	return out
+	return promoted + out
+
+
+## Sube un juvenil de las inferiores al plantel (con pid y un número libre).
+func _promote(e: Dictionary, d: Dictionary) -> void:
+	if not d.has("pid"):
+		d["pid"] = _new_pid()
+	var used := {}
+	for x in e["players"]:
+		used[int(x.get("num", 0))] = true
+	if used.has(int(d.get("num", 0))) or int(d.get("num", 0)) <= 0:
+		var num := 2
+		while used.has(num) and num < 99:
+			num += 1
+		d["num"] = num
+	(e["players"] as Array).append(d)
+
+
+func _new_pid() -> int:
+	next_pid += 1
+	return next_pid - 1
 
 
 # --- Plantel y Dirección del equipo (D3) ---------------------------------------------------
@@ -886,6 +967,8 @@ const MAX_SQUAD := TeamDB.CLUB_SQUAD_MAX
 const FREE_CLUB := "_libres"
 ## Prima por fichar a un libre: una parte de su valor.
 const FREE_SIGNING_SHARE := 0.1
+## Puntos WE por cada premio individual de un jugador de tu club.
+const AWARD_POINTS := 1500
 const MIN_SQUAD := 18
 ## Préstamo: una parte del valor, por lo que queda de la temporada.
 const LOAN_SHARE := 0.25

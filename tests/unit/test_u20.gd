@@ -118,3 +118,35 @@ func test_free_agents_in_the_liga_master_market() -> void:
 	# Liberar lo devuelve a la lista de libres.
 	assert_eq(m.release(int(d["pid"])), "")
 	assert_eq(m.free_agents().size(), 2)
+
+
+func test_season_awards() -> void:
+	var m := MasterCareer.create("arg", "boca", "real", 808)
+	m.simulate_to_end(3)
+	var awards: Array = m.history[m.history.size() - 1].get("awards", [])
+	var names: Array = awards.map(func(a: Dictionary) -> String: return a["award"])
+	for w in ["Balón de Oro", "Mejor jugador de América", "Mejor jugador de Europa", "Mejor jugador de África",
+			"Mejor jugador de Asia", "Premio Puskás", "Bota de Oro", "Guante de Oro", "Golden Boy"]:
+		assert_true(names.has(w), "%s en %s" % [w, names])
+	assert_true(m.news.any(func(n: Dictionary) -> bool: return String(n["text"]).begins_with("Balón de Oro")))
+	MasterCareer.deactivate()
+
+
+func test_inferiores_feed_the_first_team() -> void:
+	var of := OptionFile.new()
+	var entry: Dictionary = (TeamDB.club("arg", "boca")[0] as Dictionary).duplicate(true)
+	var youth: Array = []
+	for i in 18:
+		youth.append({"n": "Inferior %d" % i, "pos": ["GK", "CB", "CMF", "CF"][i % 4], "age": 20 if i == 0 else 17,
+			"ovr": 60, "a": {"speed": 60, "passing": 60, "shooting": 60, "technique": 60, "ball_control": 60, "defense": 60,
+			"stamina": 60, "goalkeeping": 60, "reaction": 60}})
+	entry["youth"] = youth
+	of.set_club("arg", entry)
+	TeamDB.use_option_file(of)
+	var m := MasterCareer.create("arg", "boca", "real", 909)
+	m.simulate_to_end(5)
+	var names: Array = m.club_players("boca").map(func(d: Dictionary) -> String: return d["n"])
+	assert_true(names.has("Inferior 0"), "el de 20 cumplió 21 y subió a primera")
+	var left: Array = m.world.clubs["arg:boca"].get("youth", [])
+	assert_false(left.any(func(d: Dictionary) -> bool: return d["n"] == "Inferior 0"))
+	MasterCareer.deactivate()

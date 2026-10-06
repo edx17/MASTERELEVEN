@@ -491,7 +491,7 @@ static func row_kind(club: String, league: String) -> String:
 
 
 static func _row_key(kind: String, club: String, league: String) -> String:
-	return "%s|%s|%s" % [kind, normalize(club), "" if kind == "national" else normalize(league)]
+	return "%s|%s|%s" % [kind, normalize(club), "" if kind in ["national", "nation_only"] else normalize(league)]
 
 
 ## Clubes del juego (los de la base aunque hoy no jueguen en ninguna división
@@ -541,8 +541,6 @@ static func plan_rows(rows: Array[Dictionary], of: OptionFile = null) -> Array[D
 		var club := field(row, "club")
 		var league := field(row, "league")
 		var kind := row_kind(club, league)
-		if kind == "nation_only":
-			continue
 		var key := _row_key(kind, club, league)
 		if not groups.has(key):
 			groups[key] = {"key": key, "kind": kind, "name": club if club != "" else "(sin club)",
@@ -570,10 +568,11 @@ static func plan_rows(rows: Array[Dictionary], of: OptionFile = null) -> Array[D
 
 static func _plan_entry(e: Dictionary, of: OptionFile) -> void:
 	var kind := String(e["kind"])
-	if kind == "free":
+	if kind == "free" or kind == "nation_only":
 		e["status"] = "match"
 		e["choice"] = FREE
-		e["note"] = "Sin club: van a la lista de jugadores libres."
+		e["note"] = "Sin club: van a la lista de jugadores libres." if kind == "free" \
+			else "Convocados sin club: quedan libres (y en su selección)."
 		return
 	var league := String(e["division_name"])
 	var scope := ""
@@ -635,8 +634,12 @@ static func _plan_entry(e: Dictionary, of: OptionFile) -> void:
 		return
 	e["status"] = "skip"
 	e["choice"] = ClubImporter.SKIP
+	if kind == "national":
+		e["status"] = "match"
+		e["choice"] = FREE
+		e["note"] = "El club no está en el juego: queda libre (y en su selección)."
+		return
 	match kind:
-		"national": e["note"] = "El club no está en el juego: el jugador entra solo a su selección."
 		"youth": e["note"] = "El club no está en el juego: su Sub-20 no se importa."
 		_: e["note"] = "La liga \"%s\" no está en el juego." % league
 
@@ -646,7 +649,7 @@ static func plan_options(e: Dictionary) -> Array:
 	var out: Array = []
 	if e["choice"] == "":
 		out.append(["", "— Elegí el club —"])
-	if e["kind"] == "free":
+	if e["kind"] in ["free", "nation_only", "national"]:
 		out.append([FREE, "Lista de jugadores libres"])
 	var in_league: bool = e["kind"] == "league" and String(e["division"]) != ""
 	for c in e["candidates"]:
@@ -744,8 +747,6 @@ func apply_plan(plan: Array, rows: Array[Dictionary], of: OptionFile) -> Diction
 		var nt := nation_id_of(field(row, "national_team"))
 		if nt != "":
 			marked_nation.get_or_add(nt, []).append(p)
-		if kind == "nation_only":
-			continue
 		var key := _row_key(kind, club, field(row, "league"))
 		if not dest.has(key):
 			unmatched[club] = int(unmatched.get(club, 0)) + 1
