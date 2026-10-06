@@ -32,7 +32,15 @@ const DIVISION_ALIASES := {
 	"arg2": ["primera nacional", "nacional b", "b nacional", "primera b nacional"],
 	"arg3": ["primera b", "b metro", "primera b metropolitana", "b metropolitana"],
 	"arg4": ["primera c", "primera c metropolitana"],
-	"bra1": ["brasileirao", "serie a brasil", "campeonato brasileiro"],
+	"bra1": ["brasileirao", "serie a brasil", "campeonato brasileiro", "brasileirao serie a", "campeonato brasileiro serie a"],
+	"chi1": ["primera division", "campeonato nacional", "liga de primera"],
+	"uru1": ["primera division", "campeonato uruguayo"],
+	"par1": ["primera division", "division de honor", "division profesional"],
+	"per1": ["liga 1", "primera division", "liga 1 te apuesto"],
+	"col1": ["liga betplay", "liga dimayor", "primera a", "categoria primera a"],
+	"ecu1": ["ligapro", "liga pro", "serie a", "ligapro serie a"],
+	"bol1": ["division profesional", "primera division", "liga profesional"],
+	"ven1": ["liga futve", "primera division", "liga futve 1"],
 	"eng1": ["premier league", "premier"],
 	"eng2": ["championship", "efl championship"],
 	"eng3": ["league one", "efl league one"],
@@ -81,6 +89,15 @@ static func is_club_list(rows: Array[Dictionary]) -> bool:
 ## División por nombre: [país, división] o [] si no existe.
 static func find_division(name: String, country_hint: String = "") -> Array:
 	var n := norm(name).trim_prefix("torneo ").strip_edges()
+	# "Liga 1 de Perú", "Primera División de Chile": el país va al final.
+	if country_hint == "":
+		for c in TeamDB.countries():
+			var cn := norm(String(c["name"]))
+			for sep in [" de ", " del ", " "]:
+				if n.ends_with(sep + cn) and n.length() > (sep + cn).length():
+					var r := find_division(n.substr(0, n.length() - (sep + cn).length()), String(c["id"]))
+					if not r.is_empty():
+						return r
 	var found: Array = []
 	for c in TeamDB.countries():
 		var cid := String(c["id"])

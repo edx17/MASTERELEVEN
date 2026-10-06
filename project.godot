@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 GameSettings="*res://scripts/core/game_settings.gd"
+MenuNav="*res://scripts/ui/menu_nav.gd"
 
 [display]
 

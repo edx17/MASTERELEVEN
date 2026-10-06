@@ -139,3 +139,19 @@ func test_catalog_flags_and_names() -> void:
 	assert_eq(SquadImporter.nation_id_of("Congo"), "cgo")
 	assert_eq(SquadImporter.nation_id_of("RD del Congo"), "cod")
 	assert_eq(SquadImporter.nation_id_of("Inglaterra"), "eng")
+
+
+func test_national_team_rows_and_country_suffix() -> void:
+	var rows: Array[Dictionary] = []
+	rows.append_array(_club_rows("Club Inexistente FC", "Copa América", 20, "Venezuela", "Vino ", "Venezuela"))
+	rows.append_array(_club_rows("Club Otro", "Copa del Mundo", 20, "Venezuela", "Vino ", "Venezuela"))
+	var plan := SquadImporter.plan_rows(rows, of)
+	var ven := _entry(plan, "Venezuela")
+	assert_eq(ven["kind"], "nation")
+	assert_eq(ven["status"], "new", "Venezuela no está en la base: sale del catálogo")
+	assert_eq(ven["players"], 20, "los mismos 20 en dos torneos no se cuentan dos veces")
+	var res := SquadImporter.new().apply_plan(plan, rows, of)
+	assert_eq((TeamDB.nation("ven")["players"] as Array).size(), 20, "sin repetidos")
+	assert_eq(res["new_nations"], 1)
+	assert_eq(ClubImporter.find_division("Liga 1 de Perú"), ["per", "per1"])
+	assert_eq(ClubImporter.find_division("Primera División de Chile"), ["chi", "chi1"])

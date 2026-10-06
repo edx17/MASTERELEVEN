@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **493 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **498 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -162,6 +162,18 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Correcciones de tu prueba (PR #37)
+
+| Qué | Cómo |
+|---|---|
+| Importar selecciones | La revisión muestra una fila por selección (OK = se actualiza la lista, Nueva = se crea del catálogo, Salteada = país desconocido); filtro "Solo selecciones". Sin jugadores repetidos entre torneos. Con tus CSV: 100 selecciones, 42 nuevas. |
+| Más datos para no errarle | Cada club propuesto dice división y país: "Nacional (Primera División · URU)". Al elegir una fila, abajo se explica qué se va a hacer (y por qué quedó salteada). |
+| Ligas con el país en el nombre | "Liga 1 de Perú", "Primera División de Chile" se reconocen; alias de las ligas de Sudamérica. |
+| Menús | Circulares (arriba de todo, para arriba, va abajo de todo) y manteniendo apretado el desplazamiento se acelera (autoload MenuNav). |
+| Mercado de pases | Filtro **Liga** con tus divisiones y las ligas de todos los otros países, y filtro **Club**; se puede comprar en cualquier país (el club pasa a la carrera). |
+| Progreso de tus jugadores | Crecen o declinan de a poco durante la temporada (al 25/50/75/100 % de las fechas); columna **Evol.** en el plantel, cambio por atributo en la ficha y **media por temporada**. |
+| Inferiores | Botón **Inferiores** en Plantel y dirección: la Sub-20 de tu club con su ficha (si no se importó, se arma una fija al empezar la carrera). |
 
 ## Sub-20 y libres (PR #36)
 

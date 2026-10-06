@@ -537,6 +537,8 @@ static func club_candidates(name: String, scope: String = "", of: OptionFile = n
 static func plan_rows(rows: Array[Dictionary], of: OptionFile = null) -> Array[Dictionary]:
 	var groups := {}
 	var order: Array = []
+	var nations := {}
+	var nation_order: Array = []
 	for row in rows:
 		var club := field(row, "club")
 		var league := field(row, "league")
@@ -544,11 +546,26 @@ static func plan_rows(rows: Array[Dictionary], of: OptionFile = null) -> Array[D
 		var key := _row_key(kind, club, league)
 		if not groups.has(key):
 			groups[key] = {"key": key, "kind": kind, "name": club if club != "" else "(sin club)",
-				"division_name": league, "stadium": "", "players": 0, "country": "", "division": "", "new_division": [],
+				"division_name": ("Club de convocados (%s)" % league) if kind in ["national", "nation_only"] else league,
+				"stadium": "", "players": 0, "country": "", "division": "", "new_division": [],
 				"status": "skip", "choice": ClubImporter.SKIP, "candidates": [], "note": ""}
 			order.append(key)
 		groups[key]["players"] = int(groups[key]["players"]) + 1
+		# Selecciones (columna "seleccion"): una fila por selección.
+		var nt := field(row, "national_team")
+		if nt != "":
+			var nid := nation_id_of(nt)
+			var nkey := nid if nid != "" else "?" + normalize(nt)
+			if not nations.has(nkey):
+				nations[nkey] = {"id": nid, "name": nt, "players": 0, "seen": {}}
+				nation_order.append(nkey)
+			var pn := normalize(field(row, "name"))
+			if not nations[nkey]["seen"].has(pn):
+				nations[nkey]["seen"][pn] = true
+				nations[nkey]["players"] = int(nations[nkey]["players"]) + 1
 	var out: Array[Dictionary] = []
+	for nkey in nation_order:
+		out.append(_nation_entry(nations[nkey]))
 	for key in order:
 		var e: Dictionary = groups[key]
 		_plan_entry(e, of)
@@ -564,6 +581,31 @@ static func plan_rows(rows: Array[Dictionary], of: OptionFile = null) -> Array[D
 				e["status"] = "doubt"
 				e["note"] = "Otro club del CSV quedó en el mismo club del juego: revisá cuál es."
 	return out
+
+
+## Fila de una selección del CSV: la de la base (OK), una nueva del catálogo
+## (Nueva) o una que el juego no conoce (Salteada).
+static func _nation_entry(n: Dictionary) -> Dictionary:
+	var id := String(n["id"])
+	var e := {"key": "nation|" + (id if id != "" else String(n["name"])), "kind": "nation", "name": String(n["name"]),
+		"division_name": "Selección", "stadium": "", "players": int(n["players"]), "country": id, "division": "",
+		"new_division": [], "status": "skip", "choice": ClubImporter.SKIP, "candidates": [], "note": ""}
+	if id == "":
+		e["note"] = "No se reconoce el país \"%s\"." % n["name"]
+		return e
+	var base := TeamDB.nation(id)
+	if not base.is_empty():
+		e["status"] = "match"
+		e["note"] = "Se actualiza la lista de convocados."
+		e["candidates"] = [{"id": "nat:" + id, "name": "Selección de %s (%s)" % [base["name"], id.to_upper()]}]
+	else:
+		var cat := NationCatalog.entry(id)
+		e["status"] = "new"
+		e["note"] = "Selección nueva (con bandera y camisetas del catálogo)." if int(n["players"]) >= 16 \
+			else "Selección nueva: necesita al menos 16 jugadores en el CSV."
+		e["candidates"] = [{"id": "nat:" + id, "name": "Nueva: %s (%s)" % [cat.get("name", n["name"]), id.to_upper()]}]
+	e["choice"] = "nat:" + id
+	return e
 
 
 static func _plan_entry(e: Dictionary, of: OptionFile) -> void:
@@ -652,13 +694,24 @@ static func plan_options(e: Dictionary) -> Array:
 	if e["kind"] in ["free", "nation_only", "national"]:
 		out.append([FREE, "Lista de jugadores libres"])
 	var in_league: bool = e["kind"] == "league" and String(e["division"]) != ""
+	if e["kind"] == "nation":
+		for c in e["candidates"]:
+			out.append([String(c["id"]), String(c["name"])])
+		out.append([ClubImporter.SKIP, "No importar"])
+		return out
 	for c in e["candidates"]:
-		var where := String(c["division"]) if String(c["division"]) != "" else String(c["country"]).to_upper()
-		out.append([String(c["id"]) if in_league else "%s:%s" % [c["country"], c["id"]], "%s (%s)" % [c["name"], where]])
+		out.append([String(c["id"]) if in_league else "%s:%s" % [c["country"], c["id"]], club_label(c)])
 	if in_league:
 		out.append([ClubImporter.NEW, "Club nuevo: " + String(e["name"])])
 	out.append([ClubImporter.SKIP, "No importar"])
 	return out
+
+
+## "Nacional (Primera División · URU)": el club con su división y país.
+static func club_label(c: Dictionary) -> String:
+	var cid := String(c["country"]).to_upper()
+	var div := String(c.get("division", ""))
+	return "%s (%s)" % [c["name"], ("%s · %s" % [div, cid]) if div != "" else cid]
 
 
 ## Elige un club del juego para una entrada, aunque no estuviera entre los
@@ -794,6 +847,14 @@ func apply_plan(plan: Array, rows: Array[Dictionary], of: OptionFile) -> Diction
 			free_names[normalize(String(p["n"]))] = true
 			of.free_agents.append(p)
 	TeamDB.use_option_file(of)
+	# Selecciones que se marcaron "No importar" en la revisión.
+	for e in plan:
+		if e["kind"] == "nation" and String(e["choice"]) == ClubImporter.SKIP and String(e["country"]) != "":
+			by_nation.erase(String(e["country"]))
+			marked_nation.erase(String(e["country"]))
+	for pools in [by_nation, marked_nation]:
+		for k in pools:
+			pools[k] = _unique(pools[k])
 	var nat_res := _apply_nations(by_nation, marked_nation, of)
 	TeamDB.use_option_file(of)
 	var created_nations: Array = nat_res[1]
@@ -814,6 +875,16 @@ func apply_plan(plan: Array, rows: Array[Dictionary], of: OptionFile) -> Diction
 	return {"rows": rows.size(), "players": players_total, "clubs": first.size(), "youth": youth.size(),
 		"free": free.size(), "nations": int(nat_res[0]), "new_nations": created_nations.size(),
 		"new_clubs": int(res_clubs["new"]), "unmatched": total_unmatched, "unmatched_clubs": unmatched.size()}
+
+
+## Sin repetidos (el mismo jugador en varios torneos): queda el de mejor valoración.
+static func _unique(list: Array) -> Array:
+	var by_name := {}
+	for p in list:
+		var k := normalize(String(p["n"]))
+		if not by_name.has(k) or player_score(p) > player_score(by_name[k]):
+			by_name[k] = p
+	return by_name.values()
 
 
 ## Jugadores que llegan a un club sin su lista completa (convocados): se suman
