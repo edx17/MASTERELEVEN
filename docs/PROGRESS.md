@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **510 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **515 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -170,6 +170,7 @@ además arma el `.exe` de Windows).
 | 1 | Tokens en `WEStyle`: paleta, Bebas Neue / Barlow (`assets/fonts`, OFL), tamaños y medidas de 1080p (`px()` / `font_px()` a la base 1280×720), `make_panel_style`, `make_focus_style`, `make_button_style`, `make_title_label`, `make_body_label`, `make_caption_label`, `fade_in`. | ✅ |
 | 2 | Menú principal, diseño 01 "Central de partido" (`HomeScreen`): menú lateral (Partido amistoso, Liga Master, Copa, Editar, Opciones, Salir), próximo partido (ilustrativo), Continuar, otros modos (Liga, Mundial, Sub-20, Entrenamiento), tu club. Pie con indicaciones según el dispositivo. | ✅ |
 | 3 | Regla 6 completa: `InputRouter` lleva la fuente activa (último dispositivo usado a propósito, zona muerta de move_*, margen anti-parpadeo de 0,25 s) con `events().source_changed` y `events().bindings_changed`; la fuente se guarda (`GameSettings.input_source`) sólo como valor inicial. `ButtonIcons.get_hint(acción)` lee la tecla o el botón asignados; `WEStyle.HintFooter` se rearma al vuelo sin tocar el foco. API para el resto: `HintFooter.new("NN / Pantalla", [[acción, texto], ...])` y `set_hints()`. | ✅ |
+| 4 | Diseño 03 "Mesa táctica" en la Liga Master (`master_hub.gd`) y en Liga / Copa / Mundial (`competition_hub.gd`), con el armazón común `WEStyle.MesaFrame` (encabezado, título, tres columnas, pie). Izquierda: próximo partido (Jugar / Simular) y última fecha. Centro por secciones con L1/R1 (Q/E): tabla de 44 px con números a la derecha (marca verde/roja de zona), goleadores, calendario, copas, noticias, historial; en las copas, llaves dibujadas por rondas (cruces por definir hasta la final) y fixture; en el Mundial, grupos. Derecha: dirección del club (mini cancha con la formación) o tu equipo (campaña y racha). Nuevos constructores `make_table_row`, `make_action_button`, `make_gap`, `make_vline`; `PadScroll` también de costado. Corregido: las acciones de pestañas se perdían al volver a los controles de fábrica. | ✅ |
 
 ## Correcciones de tu prueba (PR #37)
 

@@ -20,6 +20,10 @@ var _held := 0.0
 var _next := 0.0
 
 
+func _ready() -> void:
+	InputRouter.ensure_tab_actions()
+
+
 func _input(event: InputEvent) -> void:
 	InputRouter.observe(event)
 	var up := event.is_action(&"ui_up")

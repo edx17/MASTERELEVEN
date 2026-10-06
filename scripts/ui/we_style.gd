@@ -28,6 +28,8 @@ const TEXT_MAIN := Color("#EDF1F7")     ## texto principal
 const TEXT_DIM := Color("#8B96AB")      ## texto secundario, etiquetas
 const LINE := Color("#24304A")          ## bordes y separadores de 1 px
 const DANGER := Color("#D95555")        ## derrota, alertas
+const PITCH_DARK := Color("#24432F")    ## césped de la mini cancha
+const PITCH_LIGHT := Color("#2B4D36")   ## franjas del césped
 
 # Tipografías (res://assets/fonts/, licencia OFL).
 enum Typeface { TITLE, BODY, SEMIBOLD, ITALIC }
@@ -325,6 +327,248 @@ class HintFooter:
 			_row.add_child(sp)
 
 
+## Mini cancha con la formación (Dirección del club): césped a franjas,
+## líneas finas y una ficha dorada por puesto (FormationLibrary.DEFINITIONS).
+class FormationBoard:
+	extends Control
+	var formation := "4-4-2"
+
+	func set_formation(name: String) -> void:
+		formation = name
+		queue_redraw()
+
+	func _draw() -> void:
+		var r := Rect2(Vector2.ZERO, size)
+		var stripes := 8
+		for i in stripes:
+			draw_rect(Rect2(r.size.x * i / stripes, 0, r.size.x / stripes + 1, r.size.y),
+				WEStyle.PITCH_DARK if i % 2 == 0 else WEStyle.PITCH_LIGHT)
+		var m := Vector2(r.size.x * 0.05, r.size.y * 0.1)
+		var f := Rect2(m, r.size - m * 2.0)
+		var lc := Color(WEStyle.TEXT_MAIN, 0.55)
+		draw_rect(f, lc, false, 1.0)
+		draw_line(Vector2(f.get_center().x, f.position.y), Vector2(f.get_center().x, f.end.y), lc, 1.0)
+		draw_arc(f.get_center(), f.size.y * 0.22, 0, TAU, 32, lc, 1.0)
+		var bw := f.size.x * 0.1
+		var bh := f.size.y * 0.56
+		draw_rect(Rect2(f.position.x, f.get_center().y - bh * 0.5, bw, bh), lc, false, 1.0)
+		draw_rect(Rect2(f.end.x - bw, f.get_center().y - bh * 0.5, bw, bh), lc, false, 1.0)
+		var spots: Array = FormationLibrary.DEFINITIONS.get(formation, FormationLibrary.DEFINITIONS["4-4-2"])
+		var min_x := INF
+		var max_x := -INF
+		for k in range(1, spots.size()):
+			min_x = minf(min_x, float(spots[k][0]))
+			max_x = maxf(max_x, float(spots[k][0]))
+		var rad := maxf(3.0, f.size.y * 0.045)
+		for k in spots.size():
+			var x := 0.06 if k == 0 else lerpf(0.24, 0.84, (float(spots[k][0]) - min_x) / maxf(max_x - min_x, 0.001))
+			var y := 0.5 + float(spots[k][1]) * 0.42
+			var c := f.position + Vector2(f.size.x * x, f.size.y * y)
+			draw_circle(c, rad, WEStyle.ACCENT)
+			draw_arc(c, rad, 0, TAU, 16, WEStyle.BG_NIGHT, 1.0)
+
+
+## Barra de secciones (pestañas) que se cambian con L1/R1 o Q/E: la elegida
+## en dorado con una línea abajo.
+class SectionTabs:
+	extends HBoxContainer
+	var tabs: Array = []
+	var current := 0
+
+	func _init(p_tabs: Array = [], p_current: int = 0) -> void:
+		tabs = p_tabs
+		current = p_current
+		add_theme_constant_override("separation", int(WEStyle.px(28)))
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		rebuild()
+
+	func select(i: int) -> void:
+		current = i
+		rebuild()
+
+	func rebuild() -> void:
+		for c in get_children():
+			remove_child(c)
+			c.queue_free()
+		for i in tabs.size():
+			var v := VBoxContainer.new()
+			v.add_theme_constant_override("separation", int(WEStyle.px(6)))
+			var l := WEStyle.make_caption_label(String(tabs[i]), WEStyle.ACCENT if i == current else WEStyle.TEXT_DIM)
+			v.add_child(l)
+			var line := ColorRect.new()
+			line.color = WEStyle.ACCENT if i == current else Color(0, 0, 0, 0)
+			line.custom_minimum_size.y = WEStyle.FOCUS_BORDER
+			v.add_child(line)
+			add_child(v)
+
+
+## Armazón del diseño 03 "Mesa táctica": fondo, encabezado (MASTER ELEVEN y
+## la miga), título grande con un dato a la derecha, tres columnas separadas
+## por líneas finas y el pie de ayuda. Las pantallas llenan left/center/right.
+class MesaFrame:
+	extends Control
+	var left: VBoxContainer
+	var center: VBoxContainer
+	var right: VBoxContainer
+	var crumb: Label
+	var title: Label
+	var title_info: Label
+	var footer: HintFooter
+
+	func _init(screen: String = "", hints: Array = [], left_w: float = 470.0, right_w: float = 380.0) -> void:
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var bg := ColorRect.new()
+		bg.color = WEStyle.BG_NIGHT
+		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(bg)
+		var outer := VBoxContainer.new()
+		outer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		outer.add_theme_constant_override("separation", 0)
+		add_child(outer)
+		var margin := MarginContainer.new()
+		margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		margin.add_theme_constant_override("margin_left", int(WEStyle.px(WEStyle.MARGIN_X)))
+		margin.add_theme_constant_override("margin_right", int(WEStyle.px(WEStyle.MARGIN_X)))
+		margin.add_theme_constant_override("margin_top", int(WEStyle.px(WEStyle.MARGIN_Y)))
+		margin.add_theme_constant_override("margin_bottom", int(WEStyle.px(24)))
+		outer.add_child(margin)
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", int(WEStyle.px(20)))
+		margin.add_child(col)
+		# Encabezado (como el menú principal).
+		var head := HBoxContainer.new()
+		head.add_child(WEStyle.make_title_label("MASTER ELEVEN", WEStyle.TITLE_L))
+		head.add_child(WEStyle.make_gap())
+		crumb = WEStyle.make_body_label("", WEStyle.BODY_L, WEStyle.TEXT_DIM)
+		crumb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		head.add_child(crumb)
+		col.add_child(head)
+		col.add_child(WEStyle.make_separator())
+		var trow := HBoxContainer.new()
+		title = WEStyle.make_title_label("", WEStyle.TITLE_XL)
+		trow.add_child(title)
+		trow.add_child(WEStyle.make_gap())
+		title_info = WEStyle.make_body_label("", WEStyle.BODY_L, WEStyle.TEXT_DIM)
+		title_info.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		trow.add_child(title_info)
+		col.add_child(trow)
+		col.add_child(WEStyle.make_separator())
+		# Tres columnas.
+		var body := HBoxContainer.new()
+		body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		body.add_theme_constant_override("separation", int(WEStyle.px(40)))
+		col.add_child(body)
+		left = _column(WEStyle.px(left_w))
+		body.add_child(left)
+		body.add_child(WEStyle.make_vline())
+		center = _column(0)
+		center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		body.add_child(center)
+		body.add_child(WEStyle.make_vline())
+		right = _column(WEStyle.px(right_w))
+		body.add_child(right)
+		footer = WEStyle.HintFooter.new(screen, hints)
+		outer.add_child(footer)
+
+	func _column(w: float) -> VBoxContainer:
+		var v := VBoxContainer.new()
+		v.custom_minimum_size.x = w
+		v.add_theme_constant_override("separation", int(WEStyle.px(12)))
+		return v
+
+	## Vacía las tres columnas (para rearmar la pantalla).
+	func clear_columns() -> void:
+		for box in [left, center, right]:
+			WEStyle.clear_children(box)
+
+
+## Espacio que empuja lo que sigue al otro extremo de la fila.
+static func make_gap() -> Control:
+	var g := Control.new()
+	g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return g
+
+
+## Línea vertical de 1 px (separa columnas).
+static func make_vline() -> ColorRect:
+	var r := ColorRect.new()
+	r.color = LINE
+	r.custom_minimum_size.x = BORDER
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return r
+
+
+static func clear_children(box: Node) -> void:
+	for ch in box.get_children():
+		box.remove_child(ch)
+		ch.queue_free()
+
+
+## Botón de acción de las columnas ("Jugar el partido  ›"): el principal
+## relleno de dorado al enfocarlo, el resto como los botones comunes.
+static func make_action_button(text: String, cb: Callable, primary: bool = false) -> Button:
+	var b := Button.new()
+	b.text = "%s  ›" % text
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.custom_minimum_size.y = px(60)
+	if primary:
+		style_primary_button(b, BODY_L)
+	else:
+		style_button(b, BODY_L)
+	if cb.is_valid():
+		b.pressed.connect(cb)
+	return b
+
+
+## Fila de tabla (o su encabezado): la primera celda fija, la segunda se
+## estira (el equipo) y el resto son números alineados a la derecha. A la
+## izquierda, una marca de color (ascenso, descenso, clasificados); tu club
+## resaltado en dorado. Filas de ROW_H, encabezado de HEADER_ROW_H.
+static func make_table_row(cells: Array, header: bool = false, me: bool = false,
+		zone: Color = Color(0, 0, 0, 0), size: int = BODY_L) -> Control:
+	var pc := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = BG_PANEL_ALT if me else Color(0, 0, 0, 0)
+	sb.border_color = LINE
+	sb.border_width_bottom = BORDER
+	sb.content_margin_left = px(12)
+	sb.content_margin_right = px(12)
+	pc.add_theme_stylebox_override("panel", sb)
+	pc.custom_minimum_size.y = px(HEADER_ROW_H if header else ROW_H)
+	pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", int(px(8)))
+	pc.add_child(h)
+	var mark := ColorRect.new()
+	mark.color = zone
+	mark.custom_minimum_size = Vector2(px(4), 0)
+	h.add_child(mark)
+	var color := ACCENT if me else (TEXT_DIM if header else TEXT_MAIN)
+	for k in cells.size():
+		var l: Label
+		if header:
+			l = make_caption_label(String(cells[k]), TEXT_DIM)
+		else:
+			l = make_body_label(String(cells[k]), size, color)
+			if me:
+				l.add_theme_font_override("font", font(Typeface.SEMIBOLD))
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l.clip_text = true
+		if k == 0:
+			l.custom_minimum_size.x = px(56)
+		elif k == 1:
+			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		else:
+			l.custom_minimum_size.x = px(48)
+			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		h.add_child(l)
+	return pc
+
+
 # --- Estilo anterior (WE2002), hasta que cada pantalla pase al rediseño ---------
 
 const BAR := Color(0.16, 0.13, 0.42, 0.92)
@@ -442,6 +686,8 @@ class OptionRow:
 	var _val: Label
 	var _overflow := 0.0
 	var _t := 0.0
+	## Con el estilo del rediseño (tokens) en vez de la barra violeta.
+	var modern := false
 
 	func _init(p_caption: String, p_get: Callable, p_step: Callable, p_help: String = "", width: float = 560.0) -> void:
 		caption = p_caption
@@ -465,6 +711,18 @@ class OptionRow:
 		focus_exited.connect(queue_redraw)
 		refresh()
 
+	## Pasa la fila al estilo del rediseño.
+	func use_modern_style() -> void:
+		modern = true
+		WEStyle.style_button(self, WEStyle.BODY_L)
+		_val.add_theme_font_override("font", WEStyle.font(WEStyle.Typeface.SEMIBOLD))
+		_val.add_theme_font_size_override("font_size", WEStyle.font_px(WEStyle.BODY_L))
+		custom_minimum_size.y = WEStyle.px(WEStyle.ROW_H)
+		refresh()
+
+	func _fs() -> int:
+		return WEStyle.font_px(WEStyle.BODY_L) if modern else FS
+
 	func change(dir: int) -> void:
 		step.call(dir)
 		refresh()
@@ -481,10 +739,10 @@ class OptionRow:
 	## El valor va pegado a la derecha; si no entra entre el nombre y la flecha,
 	## se recorta y se mueve.
 	func _layout() -> void:
-		var font := get_theme_default_font()
-		var cap_w := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, FS).x + 18.0
+		var font := WEStyle.font(WEStyle.Typeface.SEMIBOLD) if modern else get_theme_default_font()
+		var cap_w := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, _fs()).x + 18.0
 		var end := size.x - 44.0
-		var w := font.get_string_size(_val.text, HORIZONTAL_ALIGNMENT_LEFT, -1, FS).x
+		var w := font.get_string_size(_val.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _fs()).x
 		var avail := maxf(end - (cap_w + 40.0), 40.0)
 		var vw := minf(w, avail)
 		_overflow = maxf(w - vw, 0.0)
@@ -521,6 +779,8 @@ class OptionRow:
 
 	func _draw() -> void:
 		var c := WEStyle.BAR_TEXT_FOCUS if has_focus() else Color.WHITE
+		if modern:
+			c = WEStyle.ACCENT if has_focus() else WEStyle.TEXT_MAIN
 		_val.add_theme_color_override("font_color", c)
 		var right := size.x - 22.0
 		var cy := size.y * 0.5
@@ -552,6 +812,19 @@ class PadScroll:
 			v = -1.0
 		if v != 0.0:
 			s.scroll_vertical += int(v * SPEED * dt)
+		# De costado (la llave de las copas), si la caja se mueve en horizontal.
+		if s.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+			var hx := 0.0
+			for dev in Input.get_connected_joypads():
+				var a := Input.get_joy_axis(dev, JOY_AXIS_RIGHT_X)
+				if absf(a) > 0.25:
+					hx = a
+			if Input.is_key_pressed(KEY_END):
+				hx = 1.0
+			elif Input.is_key_pressed(KEY_HOME):
+				hx = -1.0
+			if hx != 0.0:
+				s.scroll_horizontal += int(hx * SPEED * dt)
 
 
 static func pad_scroll(scroll: ScrollContainer) -> void:
@@ -630,6 +903,11 @@ class Crest:
 		while fs > 8 and font.get_string_size(team.short_name, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > w * 0.62:
 			fs -= 1
 		var ink := Color.BLACK if team.color.get_luminance() > 0.5 else Color.WHITE
+		if label_font != null:
+			# Contorno para que las siglas se lean sobre las dos mitades del escudo.
+			var halo := Color(Color.WHITE if ink == Color.BLACK else WEStyle.BG_NIGHT, 0.7)
+			draw_string_outline(font, Vector2(0, h * 0.45), team.short_name, HORIZONTAL_ALIGNMENT_CENTER, w, fs,
+				maxi(2, fs / 8), halo)
 		draw_string(font, Vector2(0, h * 0.45), team.short_name, HORIZONTAL_ALIGNMENT_CENTER, w, fs, ink)
 
 

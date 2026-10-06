@@ -31,12 +31,31 @@ static func humans_for_mode(mode: int) -> int:
 		_: return 0 # CPU_VS_CPU
 
 
+## Pestañas de las pantallas (L1/R1 o Q/E). No están en project.godot: se
+## agregan acá, también después de volver a los controles de fábrica.
+const TAB_ACTIONS := {&"ui_tab_prev": [KEY_Q, JOY_BUTTON_LEFT_SHOULDER], &"ui_tab_next": [KEY_E, JOY_BUTTON_RIGHT_SHOULDER]}
+
+
+static func ensure_tab_actions() -> void:
+	for action in TAB_ACTIONS:
+		if InputMap.has_action(action):
+			continue
+		InputMap.add_action(action)
+		var k := InputEventKey.new()
+		k.physical_keycode = TAB_ACTIONS[action][0]
+		InputMap.action_add_event(action, k)
+		var b := InputEventJoypadButton.new()
+		b.button_index = TAB_ACTIONS[action][1]
+		InputMap.action_add_event(action, b)
+
+
 static func setup_for_mode(mode: int) -> void:
 	setup(humans_for_mode(mode))
 
 
 ## Crea/recrea las acciones por jugador según los mandos conectados.
 static func setup(human_count: int) -> void:
+	ensure_tab_actions()
 	var pads: Array[int] = Input.get_connected_joypads()
 	for slot in MAX_SLOTS:
 		var use_keyboard := false
