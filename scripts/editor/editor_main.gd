@@ -1523,7 +1523,7 @@ func _import_tab() -> Control:
 	cl.add_child(_lbl("Clubes y divisiones (CSV con nombre, división, estadio):"))
 	cl.add_child(_btn("1. Revisar lista de clubes", _clubs_review, "Lee los CSV de clubes y muestra qué va a hacer con cada fila"))
 	_ci_filter = OptionButton.new()
-	for t in ["Ver todas", "Solo para revisar", "Solo nuevos", "Solo salteadas"]:
+	for t in ["Ver todas", "Solo para revisar", "Solo nuevos", "Solo salteadas", "Solo selecciones"]:
 		_ci_filter.add_item(t)
 	_ci_filter.item_selected.connect(func(_i: int) -> void: _clubs_fill())
 	cl.add_child(_ci_filter)
@@ -1560,7 +1560,16 @@ func _import_tab() -> Control:
 	_ci_tree.set_column_expand_ratio(2, 3)
 	_ci_tree.set_column_expand_ratio(4, 3)
 	_ci_tree.item_edited.connect(_clubs_edited)
+	# Al elegir una fila, abajo se explica qué va a pasar con ella.
+	_ci_tree.item_selected.connect(func() -> void:
+		var it := _ci_tree.get_selected()
+		if it != null and int(it.get_metadata(0)) < _ci_plan.size():
+			var e := _ci_plan[int(it.get_metadata(0))]
+			_ci_note.text = "%s: %s" % [e["name"], e["note"] if String(e["note"]) != "" else "Va al club elegido."])
 	tab.add_child(_ci_tree)
+	_ci_note = _lbl("Elegí una fila para ver qué se va a hacer con ella.")
+	_ci_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tab.add_child(_ci_note)
 	return tab
 
 
@@ -1572,6 +1581,7 @@ var _ci_text: Label
 var _ci_filter: OptionButton
 var _ci_stadiums: CheckBox
 var _ci_search: LineEdit
+var _ci_note: Label
 var _ci_found: OptionButton
 ## "clubs" (lista de clubes) o "squads" (planteles).
 var _ci_mode := "clubs"
@@ -1632,6 +1642,9 @@ func _clubs_assign() -> void:
 		return
 	var e := _ci_plan[int(it.get_metadata(0))]
 	var where: Array = _ci_found.get_item_metadata(_ci_found.selected)
+	if e.get("kind", "") == "nation":
+		_ci_text.text = "Las selecciones no se asignan a clubes."
+		return
 	if _ci_mode == "squads":
 		SquadImporter.plan_pick(e, where[0], where[1])
 		if String(e["choice"]) != where[1] and not String(e["choice"]).ends_with(":" + String(where[1])):
@@ -1654,7 +1667,7 @@ static func _clubs_options(e: Dictionary) -> Array:
 	if e["choice"] == "":
 		out.append(["", "— Elegí el club —"])
 	for c in e["candidates"]:
-		out.append([String(c["id"]), "%s (%s)" % [c["name"], c["division"]]])
+		out.append([String(c["id"]), "%s (%s · %s)" % [c["name"], c["division"], String(e["country"]).to_upper()]])
 	if String(e["division"]) != "":
 		out.append([ClubImporter.NEW, "Club nuevo: " + String(e["name"])])
 	out.append([ClubImporter.SKIP, "No importar"])
@@ -1674,7 +1687,12 @@ func _clubs_fill() -> void:
 		it.set_text(0, e["name"])
 		it.set_text(1, e["division_name"])
 		it.set_text(2, str(e["players"]) if _ci_mode == "squads" else String(e["stadium"]))
-		it.set_text(3, CI_STATUS[e["status"]])
+		var st := String(CI_STATUS[e["status"]])
+		if _ci_mode == "squads" and String(e["choice"]) == SquadImporter.FREE:
+			st = "Libres"
+		elif _ci_mode == "squads" and e["kind"] == "nation" and e["status"] == "new":
+			st = "Nueva"
+		it.set_text(3, st)
 		it.set_tooltip_text(3, e["note"])
 		var col: Color = {"match": Color(0.5, 0.9, 0.5), "doubt": Color(1, 0.75, 0.3), "new": Color(0.5, 0.75, 1),
 			"skip": Color(0.6, 0.6, 0.6)}[e["status"]]
@@ -1683,7 +1701,8 @@ func _clubs_fill() -> void:
 		var names: Array = []
 		var sel := -1
 		for k in opts.size():
-			names.append(String(opts[k][1]).replace(",", " "))
+			# En el desplegable del árbol "," separa opciones y ":" da un id.
+			names.append(String(opts[k][1]).replace(",", " ").replace(":", " ·"))
 			if opts[k][0] == e["choice"]:
 				sel = k
 		it.set_cell_mode(4, TreeItem.CELL_MODE_RANGE)
@@ -1694,6 +1713,16 @@ func _clubs_fill() -> void:
 			it.set_custom_color(4, Color(1, 0.75, 0.3))
 	var s := ClubImporter.summary(_ci_plan)
 	var pending := _ci_plan.filter(func(e: Dictionary) -> bool: return e["status"] == "doubt" and e["choice"] == "").size()
+	if _ci_mode == "squads" and not _ci_plan.is_empty():
+		var nats := _ci_plan.filter(func(e: Dictionary) -> bool: return e.get("kind", "") == "nation")
+		var clubs := _ci_plan.filter(func(e: Dictionary) -> bool: return e.get("kind", "") != "nation")
+		var cnt := func(list: Array, st: String) -> int: return list.filter(func(e: Dictionary) -> bool: return e["status"] == st).size()
+		var free := clubs.filter(func(e: Dictionary) -> bool: return String(e["choice"]) == SquadImporter.FREE).size()
+		_ci_text.text = ("Selecciones: %d (%d nuevas, %d salteadas). Clubes: %d (%d encontrados, %d para revisar y %d sin elegir, " \
+			+ "%d nuevos, %d a libres, %d salteados). Elegí una fila para ver el motivo.") % [nats.size(), cnt.call(nats, "new"),
+			cnt.call(nats, "skip"), clubs.size(), cnt.call(clubs, "match") - free, cnt.call(clubs, "doubt"), pending,
+			cnt.call(clubs, "new"), free, cnt.call(clubs, "skip")]
+		return
 	_ci_text.text = "%d filas: %d encontradas, %d para revisar (%d sin elegir), %d clubes nuevos, %d salteadas. Pasá el mouse por el estado para ver el motivo." % [
 		_ci_plan.size(), s["match"], s["doubt"], pending, s["new"], s["skip"]] if not _ci_plan.is_empty() else ""
 
