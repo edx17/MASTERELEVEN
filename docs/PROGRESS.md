@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **531 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **540 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -162,6 +162,26 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Base Temporada 2026 y elección de base
+
+- **Dos bases:** Ficticia (`data/db`, planteles generados) y **Temporada
+  2026** (`data/db2026`), armada con `tools/build_db.gd` desde los CSV de
+  `tools/db_src/2026/`: 20.288 jugadores, 580 clubes en 28 ligas de 18 países,
+  114 selecciones y 35 competencias.
+- **Ids únicos:** cada jugador tiene un `pid` estable y está una sola vez; las
+  selecciones guardan los pid de sus convocados (más el dorsal de la
+  selección). El mismo jugador en su club y en su selección, en todos los
+  modos; en la Liga Virtual, lo que le pasa en el club (lesión, evolución,
+  pase) lo ve la selección. Clubes `país:id`, ligas `arg1`..., competencias en
+  `competitions.json`. El generador valida que no haya ids repetidos.
+- **Elección de base:** después del título, pantalla BASE DE DATOS (Ficticia /
+  Temporada 2026, con la última usada marcada). También en OPCIONES > DATOS.
+- **Partidas y Option Files atados a su base** (`"db"`): sólo aparecen y se
+  cargan los de la base activa; los de antes son de la Ficticia.
+- Pendiente: camisetas de los 93 clubes nuevos (salen blancas), Uruguay sin
+  liga en los CSV (su selección sí está).
+- Tests: `test_db2026.gd` (8) y la pantalla de la base en `test_menus`.
 
 ## Nombre nuevo: Virtual Eleven
 

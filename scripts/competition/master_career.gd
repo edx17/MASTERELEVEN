@@ -32,6 +32,8 @@ var file := ""
 var title := ""
 ## Option File con el que se creó (sus plantillas de camisetas se siguen usando).
 var option_file := ""
+## Base del juego (TeamDB.DBS) de la carrera: sólo se juega con esa.
+var db := TeamDB.db_id
 var created := ""
 var updated := ""
 var country := ""
@@ -117,6 +119,9 @@ static func create(country_id: String, club_id: String, mode: String, seed: int 
 	var divs: Array = c["divisions"]
 	var start := start_division(country_id)
 	# Divisiones y planteles fijados (con un pid por jugador).
+	# Los jugadores de la base con id (Temporada 2026) lo conservan: es el
+	# mismo jugador en su selección. Los nuevos siguen desde el más alto.
+	m.next_pid = TeamDB.max_pid() + 1
 	var lists: Array = []
 	for d in divs:
 		var ids: Array = []
@@ -128,9 +133,11 @@ static func create(country_id: String, club_id: String, mode: String, seed: int 
 				for p in TeamDB.load_team(TeamDB.club_path(country_id, id)).players:
 					list.append(TeamDB.player_to_dict(p))
 				e["players"] = list
-			for p in e["players"]:
-				p["pid"] = m.next_pid
-				m.next_pid += 1
+			for key in ["players", "youth"]:
+				for p in e.get(key, []):
+					if int(p.get("pid", 0)) <= 0:
+						p["pid"] = m.next_pid
+						m.next_pid += 1
 			m.world.set_club(country_id, e)
 			ids.append(id)
 		lists.append(ids)
@@ -152,8 +159,9 @@ static func create(country_id: String, club_id: String, mode: String, seed: int 
 	if TeamDB.option_file != null:
 		for p in TeamDB.option_file.free_agents:
 			var d: Dictionary = (p as Dictionary).duplicate(true)
-			d["pid"] = m.next_pid
-			m.next_pid += 1
+			if int(d.get("pid", 0)) <= 0:
+				d["pid"] = m.next_pid
+				m.next_pid += 1
 			free.append(d)
 	m.world.clubs["%s:%s" % [country_id, FREE_CLUB]] = {"id": FREE_CLUB, "name": "Jugadores libres", "players": free}
 	# Inferiores de tu club: las importadas o, si no hay, unas generadas (fijas).
@@ -454,7 +462,8 @@ func _adopt_foreign(club_id: String) -> void:
 	else:
 		list = e["players"]
 	for d in list:
-		d["pid"] = _new_pid()
+		if int(d.get("pid", 0)) <= 0:
+			d["pid"] = _new_pid()
 	e["players"] = list
 	e["id"] = id
 	world.clubs[club_id] = e
@@ -1892,8 +1901,7 @@ func _play_world_cup(summary: Dictionary) -> void:
 	if not nat.is_empty():
 		var nat_name := SquadImporter.normalize(String(nat["name"]))
 		var pool: Array = []
-		for p in TeamDB.load_team(TeamDB.nation_path(country)).players:
-			pool.append(TeamDB.player_to_dict(p))
+		var by_pid := {}
 		var origin := {}
 		for key in world.clubs:
 			for d in world.clubs[key]["players"]:
@@ -1902,15 +1910,23 @@ func _play_world_cup(summary: Dictionary) -> void:
 					var c: Dictionary = d.duplicate(true)
 					pool.append(c)
 					origin[c] = String(key).get_slice(":", 1)
+					if int(c.get("pid", 0)) > 0:
+						by_pid[int(c["pid"])] = true
+		# Los de la selección que juegan afuera de la carrera (sin repetir: el
+		# mismo jugador está una sola vez, como está en la carrera).
+		for p in TeamDB.load_team(TeamDB.nation_path(country)).players:
+			if p.pid <= 0 or not by_pid.has(p.pid):
+				pool.append(TeamDB.player_to_dict(p))
 		var squad := SquadImporter.pick_squad(pool, 23, [3, 8, 7, 5])
 		for d in squad:
 			if origin.get(d, "") == user_club:
 				called_mine.append(d["n"])
 		var entry: Dictionary = nat.duplicate(true)
-		entry["players"] = squad.map(func(d: Dictionary) -> Dictionary:
-			var c := d.duplicate(true)
-			c.erase("pid")
-			return c)
+		# Los que tienen id van por referencia (son los de la carrera); el resto, copiados.
+		entry["squad"] = squad.filter(func(d: Dictionary) -> bool: return int(d.get("pid", 0)) > 0) \
+			.map(func(d: Dictionary) -> int: return int(d["pid"]))
+		entry["players"] = squad.filter(func(d: Dictionary) -> bool: return int(d.get("pid", 0)) <= 0)
+		entry.erase("nums")
 		world.set_nation(entry)
 		TeamDB.use_option_file(world)
 	var paths := Competition.world_cup_paths(GameSettings.wc_playoff)
@@ -2088,7 +2104,7 @@ func to_dict() -> Dictionary:
 	var ls: Array = []
 	for l in leagues:
 		ls.append({"division": l["division"], "comp": (l["comp"] as Competition).to_dict()})
-	return {"format": FORMAT, "version": VERSION, "title": title, "option_file": option_file, "created": created,
+	return {"format": FORMAT, "version": VERSION, "db": db, "title": title, "option_file": option_file, "created": created,
 		"updated": updated, "country": country, "season": season, "first_year": first_year, "user_club": user_club,
 		"squad_mode": squad_mode, "points": points, "world": world.to_dict(), "leagues": ls, "scorers": scorers,
 		"history": history, "season_over": season_over, "next_pid": next_pid,
@@ -2102,6 +2118,7 @@ static func from_dict(d: Dictionary) -> MasterCareer:
 	var m := MasterCareer.new()
 	m.title = String(d.get("title", ""))
 	m.option_file = String(d.get("option_file", ""))
+	m.db = TeamDB.db_of(d)
 	m.created = String(d.get("created", ""))
 	m.updated = String(d.get("updated", ""))
 	m.country = String(d.get("country", ""))
@@ -2158,7 +2175,8 @@ func save() -> void:
 
 static func load_saved(path: String) -> MasterCareer:
 	var d: Variant = UserData.read_json(path)
-	if not is_format(d):
+	# Sólo las de la base activa (las de otra base tienen otros clubes y jugadores).
+	if not is_format(d) or TeamDB.db_of(d) != TeamDB.db_id:
 		return null
 	var m := from_dict(d)
 	m.file = path
@@ -2183,7 +2201,11 @@ static func is_format(d: Variant) -> bool:
 
 
 static func has_saves() -> bool:
-	return not UserData.files_in(UserData.saves_dir("master"), "json").is_empty()
+	for f in UserData.files_in(UserData.saves_dir("master"), "json"):
+		var d: Variant = UserData.read_json(f)
+		if is_format(d) and TeamDB.db_of(d) == TeamDB.db_id:
+			return true
+	return false
 
 
 ## Carreras guardadas: [{file, title, progress, updated, option_file}].
@@ -2191,7 +2213,7 @@ static func list_saves() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for f in UserData.files_in(UserData.saves_dir("master"), "json"):
 		var d: Variant = UserData.read_json(f)
-		if not is_format(d):
+		if not is_format(d) or TeamDB.db_of(d) != TeamDB.db_id:
 			continue
 		var m := from_dict(d)
 		m.file = f
