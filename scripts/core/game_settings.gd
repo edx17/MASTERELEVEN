@@ -86,6 +86,15 @@ func apply_graphics() -> void:
 func _on_node_added(n: Node) -> void:
 	if shadow_quality == 0 and n is Light3D:
 		(n as Light3D).set_deferred("shadow_enabled", false)
+## Celular (Android / iOS, o `-- --mobile` para probarlo en la PC): siempre de
+## día y sin luces del estadio, texturas del césped más chicas.
+var force_mobile := false
+
+
+func mobile() -> bool:
+	return force_mobile or OS.has_feature("mobile") or OS.get_cmdline_user_args().has("--mobile")
+
+
 ## Dificultad de la CPU (Difficulty.Level).
 var difficulty: int = 1
 ## Condiciones del próximo partido: índice del horario / clima elegido o -1 =
@@ -359,6 +368,9 @@ func make_conditions() -> MatchConditions:
 	var c := MatchConditions.random(rng)
 	if time_choice >= 0:
 		c.time_of_day = time_choice as MatchConditions.TimeOfDay
+	# En el celular, siempre de día: sin reflectores ni luces nocturnas.
+	if mobile() and c.time_of_day > MatchConditions.TimeOfDay.AFTERNOON:
+		c.time_of_day = MatchConditions.TimeOfDay.AFTERNOON
 	if weather_choice >= 0:
 		c.weather = weather_choice as MatchConditions.Weather
 	if wind_choice >= 0:

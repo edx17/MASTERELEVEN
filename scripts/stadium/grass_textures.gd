@@ -11,6 +11,9 @@ const DIR := "res://assets/textures/grass/"
 const WORN_DIR := "res://assets/textures/grass_worn/"
 ## Tierra para las partes peladas (Poliigon, "ground").
 const DIRT_DIR := "res://assets/textures/ground/"
+## En el celular las texturas se achican a este lado como máximo (las
+## originales son de 1K-2K: mucha memoria y ancho de banda de la GPU).
+const MOBILE_MAX := 512
 
 
 static func _find(base: String, dir: String = DIR) -> Texture2D:
@@ -28,10 +31,15 @@ static func _with_mipmaps(tex: Texture2D) -> Texture2D:
 	if tex == null:
 		return null
 	var img := tex.get_image()
-	if img == null or img.has_mipmaps():
+	var shrink := GameSettings.mobile() and img != null and maxi(img.get_width(), img.get_height()) > MOBILE_MAX
+	if img == null or (img.has_mipmaps() and not shrink):
 		return tex
 	if img.is_compressed():
 		img.decompress()
+	if shrink:
+		img.clear_mipmaps()
+		var k := float(MOBILE_MAX) / maxi(img.get_width(), img.get_height())
+		img.resize(maxi(1, roundi(img.get_width() * k)), maxi(1, roundi(img.get_height() * k)), Image.INTERPOLATE_LANCZOS)
 	img.generate_mipmaps()
 	return ImageTexture.create_from_image(img)
 

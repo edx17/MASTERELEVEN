@@ -209,6 +209,8 @@ var _chilena := false
 
 
 func _ready() -> void:
+	# Para saber si se está jugando (TouchControls muestra el mando).
+	add_to_group(&"match")
 	# Copia del ajuste para este partido: el clima la modifica (césped mojado,
 	# nieve, viento) sin tocar los valores base.
 	conditions = GameSettings.make_conditions()

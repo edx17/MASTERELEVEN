@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **526 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **531 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -188,7 +188,9 @@ además arma el `.exe` de Windows).
 - **Instalarlo:** bajar el artefacto, pasar el `.apk` al celular y abrirlo (hay que permitir "instalar apps de origen desconocido").
 - **Controles táctiles** (`scripts/ui/touch_controls.gd`, sólo con pantalla táctil o `-- --touch`): stick a la izquierda; ✕ ○ □ △, L1/R1, L2/R2 a la derecha; START y SELECT arriba. Mandan los mismos eventos que un mando, así que el partido, los menús y las indicaciones de PlayStation funcionan sin cambios. Los menús también se tocan directo.
 - **Ajustes para celulares:** renderer de compatibilidad (OpenGL ES 3) en móviles, texturas ETC2/ASTC, pantalla horizontal y los datos (partidas, Option Files) en la carpeta propia de la app.
-- **Pendiente:** probarlo en un equipo real; el rendimiento en celulares de gama baja puede pedir bajar público y sombras en Opciones > Gráficos.
+- **Mando que no tapa:** sólo aparece durante el partido (en los menús y la pausa se toca la pantalla directo) y se ve tenue (30 %) mientras no se lo usa; al tocarlo se marca y se vuelve a apagar 1,2 s después de soltarlo.
+- **Perfil celular** (`GameSettings.mobile()`, o `-- --mobile` para probarlo en la PC): siempre de día (mañana o tarde; la noche y el atardecer pasan a la tarde), sin reflectores ni luces del túnel, y las texturas del césped y de la tierra se achican a 512 px al cargar.
+- **Pendiente:** medir en el Motorola Edge 60; si hace falta, bajar resolución 3D, sombras y público para el celular.
 
 ## Rediseño de la interfaz (estadio de noche)
 

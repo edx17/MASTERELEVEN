@@ -4,7 +4,9 @@ extends CanvasLayer
 ## START / SELECT. Mandan los mismos eventos que un mando de verdad
 ## (InputEventJoypadButton / InputEventJoypadMotion del dispositivo 0), así
 ## que el juego, los menús y las indicaciones funcionan sin cambios.
-## Sólo aparece con pantalla táctil (o con `-- --touch` para probarlo).
+## Sólo aparece con pantalla táctil (o con `-- --touch` para probarlo), y
+## sólo durante el partido: en los menús se toca la pantalla directamente.
+## Mientras no se lo usa se ve tenue (IDLE_ALPHA) y al tocarlo se marca.
 
 const DEVICE := 0
 ## Botones: [id del ícono, botón del mando, centro en px de 1080 desde la
@@ -29,6 +31,11 @@ const LIFT := 130.0
 ## Stick: centro desde la esquina inferior izquierda y radio (px de 1080).
 const STICK_CENTER := Vector2(260, 260)
 const STICK_RADIUS := 170.0
+## Opacidad del mando sin tocarlo / tocándolo, y cuánto tarda en apagarse
+## después de soltarlo (segundos).
+const IDLE_ALPHA := 0.3
+const ACTIVE_ALPHA := 1.0
+const FADE_DELAY := 1.2
 
 var enabled := false
 var _pad: Pad
@@ -44,7 +51,26 @@ func _ready() -> void:
 	_pad = Pad.new()
 	_pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_pad.modulate.a = IDLE_ALPHA
 	add_child(_pad)
+
+
+func _process(dt: float) -> void:
+	if _pad == null:
+		return
+	var show := in_match()
+	if _pad.visible != show:
+		_pad.visible = show
+		if not show:
+			_pad.release_all()
+	if show:
+		_pad.fade(dt)
+
+
+## ¿Se está jugando? (en la escena del partido y sin pausa: en la pausa y los
+## menús se toca la pantalla).
+func in_match() -> bool:
+	return get_tree().get_first_node_in_group(&"match") != null and not get_tree().paused
 
 
 ## El mando dibujado y los dedos: cada dedo que toca un control queda atado a
@@ -55,6 +81,22 @@ class Pad:
 	var _fingers := {}
 	var _stick := Vector2.ZERO
 	var _held := {}
+	## Segundos desde que se soltó el último dedo.
+	var _idle := 99.0
+
+	## Opacidad: plena mientras hay un dedo (y un rato después), tenue si no.
+	func fade(dt: float) -> void:
+		_idle = 0.0 if not _fingers.is_empty() else _idle + dt
+		var target := ACTIVE_ALPHA if _idle < FADE_DELAY else IDLE_ALPHA
+		modulate.a = move_toward(modulate.a, target, dt * (8.0 if target > modulate.a else 2.0))
+
+	## Suelta todo lo que estaba apretado (al salir del partido o pausar).
+	func release_all() -> void:
+		for idx in _fingers.keys():
+			_press(_fingers[idx], false, Vector2.ZERO)
+		_fingers.clear()
+		_idle = 99.0
+		modulate.a = IDLE_ALPHA
 
 	func _px(v: float) -> float:
 		return WEStyle.px(v)
@@ -69,17 +111,22 @@ class Pad:
 		return Vector2(size.x * 0.5 + _px(dx), _px(70))
 
 	func _input(event: InputEvent) -> void:
+		if not is_visible_in_tree():
+			return
 		if event is InputEventScreenTouch:
 			var t := event as InputEventScreenTouch
 			if t.pressed:
 				var hit := _hit(t.position)
 				if not hit.is_empty():
 					_fingers[t.index] = hit
+					modulate.a = ACTIVE_ALPHA
+					_idle = 0.0
 					_press(hit, true, t.position)
 					get_viewport().set_input_as_handled()
 			elif _fingers.has(t.index):
 				_press(_fingers[t.index], false, t.position)
 				_fingers.erase(t.index)
+				_idle = 0.0
 				get_viewport().set_input_as_handled()
 		elif event is InputEventScreenDrag:
 			var d := event as InputEventScreenDrag
