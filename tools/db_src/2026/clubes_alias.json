@@ -1,0 +1,14 @@
+{
+	"_info": "Clubes de los CSV que en la base tienen otro nombre: pais -> {nombre en el CSV: id del club}.",
+	"arg": {"CS Independiente Rivadavia": "indriv", "CA Independiente": "independiente", "Estudiantes": "estcaseros"},
+	"bra": {"Botafogo de Futebol e Regatas": "botafogo"},
+	"chi": {"Colo Colo": "colocolo"},
+	"ecu": {"LDU de Quito": "ldu"},
+	"eng": {"Milton Keynes Dons": "mkdons"},
+	"esp": {"Real Racing Club": "racing"},
+	"ger": {"Bayern Múnich": "bayern", "Eintracht Fráncfort": "frankfurt", "SC Friburgo": "freiburg",
+		"FC Augsburgo": "augsburg", "FC Colonia": "koln", "Hamburgo SV": "hamburg"},
+	"ita": {"Inter de Milán": "inter", "SSC Nápoles": "napoli", "Bolonia": "bologna"},
+	"per": {"CD UT Cajamarca": "utc", "Asociación Deportiva Tarma": "adt", "ADC Juan Pablo II": "juanpablo"},
+	"por": {"FC Oporto": "porto", "Sporting de Lisboa": "sporting", "CF Estrela Amadora": "estrela"}
+}

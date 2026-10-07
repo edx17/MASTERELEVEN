@@ -20,6 +20,8 @@ extends RefCounted
 ##   club_alias: {nombre normalizado: "pais:id"}  cómo se llama cada club en
 ##              los CSV importados (lo que elegiste al revisar)
 ##   free_agents: [jugadores]                 libres (sin club) importados
+##   db:        base del juego sobre la que se hizo (TeamDB.DBS); sólo se
+##              usa con esa base
 ## Las entradas tienen el mismo formato que data/db (ver docs/BASE_DE_DATOS.md).
 
 const FORMAT := "VirtualEleven OptionFile"
@@ -42,6 +44,8 @@ var countries: Dictionary = {}
 var new_divisions: Dictionary = {}
 var club_alias: Dictionary = {}
 var free_agents: Array = []
+## Base del juego (TeamDB.DBS) de este Option File.
+var db := TeamDB.db_id
 
 
 ## Carpeta con las plantillas de camisetas de este Option File.
@@ -66,7 +70,7 @@ static func list() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for f in UserData.files_in(UserData.optionfiles_dir(), EXT):
 		var d: Variant = UserData.read_json(f)
-		if is_format(d):
+		if is_format(d) and TeamDB.db_of(d) == TeamDB.db_id:
 			out.append({"name": d.get("name", f.get_file().get_basename()), "file": f, "updated": d.get("updated", ""),
 				"clubs": (d.get("clubs", {}) as Dictionary).size(), "nations": (d.get("nations", {}) as Dictionary).size()})
 	return out
@@ -74,7 +78,8 @@ static func list() -> Array[Dictionary]:
 
 static func load_file(file: String) -> OptionFile:
 	var d: Variant = UserData.read_json(file)
-	if not is_format(d):
+	# Los de otra base no se cargan (sus clubes y jugadores son otros).
+	if not is_format(d) or TeamDB.db_of(d) != TeamDB.db_id:
 		return null
 	return from_dict(d)
 
@@ -91,6 +96,7 @@ static func load_named(of_name: String) -> OptionFile:
 static func from_dict(d: Dictionary) -> OptionFile:
 	var of := OptionFile.new()
 	of.name = String(d.get("name", of.name))
+	of.db = TeamDB.db_of(d)
 	of.created = String(d.get("created", ""))
 	of.updated = String(d.get("updated", ""))
 	of.nations = d.get("nations", {})
@@ -107,7 +113,7 @@ static func from_dict(d: Dictionary) -> OptionFile:
 
 
 func to_dict() -> Dictionary:
-	return {"format": FORMAT, "version": VERSION, "name": name, "created": created, "updated": updated,
+	return {"format": FORMAT, "version": VERSION, "db": db, "name": name, "created": created, "updated": updated,
 		"nations": nations, "clubs": clubs, "divisions": divisions, "deleted_nations": deleted_nations, "cups": cups,
 		"rules": rules, "countries": countries, "new_divisions": new_divisions, "club_alias": club_alias,
 		"free_agents": free_agents}

@@ -33,6 +33,9 @@ func test_main_menu_pages_and_back() -> void:
 	# Al abrir el juego, primero el título (Press START).
 	if menu.call("_current") == "title":
 		menu.call("leave_title")
+		# Después del título se elige la base del juego.
+		assert_eq(menu.call("_current"), "database")
+		menu.call("_choose_database", TeamDB.DEFAULT_DB)
 	assert_eq(menu.call("_current"), "home")
 	menu.call("show_page", "modes")
 	assert_eq(menu.call("_current"), "modes")
@@ -41,6 +44,26 @@ func test_main_menu_pages_and_back() -> void:
 	assert_eq(menu.call("_current"), "modes")
 	menu.call("go_back")
 	assert_eq(menu.call("_current"), "home")
+
+
+func test_database_page_after_title() -> void:
+	var menu: Control = load("res://scenes/ui/main_menu.tscn").instantiate()
+	add_child_autofree(menu)
+	await get_tree().process_frame
+	menu.call("leave_title")
+	assert_eq(menu.call("_current"), "database")
+	var col: VBoxContainer = menu.get("_db_col")
+	var dbs: Array = col.get_children().filter(func(b: Node) -> bool: return b.has_meta("db")) \
+		.map(func(b: Node) -> String: return String(b.get_meta("db")))
+	assert_eq(dbs, ["ficticia", "t2026"], "una opción por base")
+	var focus := get_viewport().gui_get_focus_owner()
+	assert_eq(String(focus.get_meta("db", "")), GameSettings.database, "foco en la última que usaste")
+	assert_string_contains(menu.call("database_help", "t2026"), "jugadores")
+	menu.call("_choose_database", "t2026")
+	assert_eq(TeamDB.db_id, "t2026")
+	assert_eq(menu.call("_current"), "home")
+	menu.call("_choose_database", TeamDB.DEFAULT_DB)
+	assert_eq(TeamDB.db_id, TeamDB.DEFAULT_DB)
 
 
 func test_team_select_picks_home_then_away() -> void:

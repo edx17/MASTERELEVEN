@@ -46,6 +46,7 @@ var _history: Array[String] = []
 var _focus_memory := {}
 ## La pantalla de título (Press START) sale sólo al abrir el juego.
 static var title_seen := false
+var _db_col: VBoxContainer
 
 
 func _ready() -> void:
@@ -68,6 +69,7 @@ func _ready() -> void:
 	add_child(_help_box)
 	_help_box.visible = false
 	_build_title()
+	_build_database()
 	_build_home()
 	_build_continue()
 	_build_cups()
@@ -170,6 +172,8 @@ func show_page(page: String, remember := true) -> void:
 			_hub.open(Competition.load_saved(GameSettings.active_save))
 		"continue":
 			_build_continue_list()
+		"database":
+			_build_database_list()
 		"cups":
 			_build_cups_list()
 		"master":
@@ -218,6 +222,11 @@ func _unhandled_input(event: InputEvent) -> void:
 				or (event is InputEventMouseButton and event.pressed):
 			leave_title()
 			get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed(&"ui_cancel") and _current() == "database":
+		_history.clear()
+		show_page("title", false)
+		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed(&"ui_cancel") and _current() in ["modes", "options", "graphics", "aids", "controls", "worldcup", "continue", "data", "cups"]:
 		if _current() == "controls" and _controls_capturing():
@@ -351,9 +360,77 @@ func _build_title() -> void:
 	p.add_child(t)
 
 
+## Del título se pasa a elegir la base del juego (y de ahí al menú).
 func leave_title() -> void:
 	title_seen = true
 	_ui_sound("menu_select")
+	_history.clear()
+	show_page("database", false)
+
+
+# --- Base de datos ----------------------------------------------------------------
+
+func _build_database() -> void:
+	var p := _page("database", "BASE DE DATOS", "INICIO  /  BASE DE DATOS", "¿Con qué planteles jugás?")
+	_db_col = _column(p)
+
+
+## Una opción por base (la última que usaste, con el foco).
+func _build_database_list() -> void:
+	WEStyle.clear_children(_db_col)
+	var focus: Button = null
+	for id in TeamDB.available_dbs():
+		var b := _item(_db_col, TeamDB.db_name(id), database_help(id), _choose_database.bind(id), true, 520.0)
+		b.set_meta("db", id)
+		if id == GameSettings.database:
+			b.text += "   ·   la última que usaste"
+			focus = b
+	_item(_db_col, "Volver al título", "Volver a la pantalla de título.", func() -> void:
+		_history.clear()
+		show_page("title", false), true, 520.0)
+	if focus == null:
+		focus = _db_col.get_child(0) as Button
+	focus.grab_focus()
+	_help.text = database_help(String(focus.get_meta("db", GameSettings.database)))
+
+
+## Qué trae cada base y cuántas partidas tenés guardadas con ella.
+static func database_help(id: String) -> String:
+	var lines: Array[String] = [String(TeamDB.DBS[id]["info"])]
+	var meta: Variant = UserData.read_json(ProjectSettings.globalize_path(String(TeamDB.DBS[id]["root"]) + "meta.json"))
+	if meta is Dictionary:
+		lines.append("%d jugadores, %d clubes y %d selecciones." % [int(meta.get("players", 0)), int(meta.get("clubs", 0)),
+			int(meta.get("nations", 0))])
+	var n := saves_with_db(id)
+	lines.append("Partidas guardadas con esta base: %d." % n if n > 0 else "Todavía no tenés partidas con esta base.")
+	lines.append("Las partidas y los Option Files quedan atados a la base con la que se crearon.")
+	return "\n".join(lines)
+
+
+## Cuántas partidas (ligas, copas, Mundial y Liga Virtual) son de esa base.
+static func saves_with_db(id: String) -> int:
+	var n := 0
+	for dir in [UserData.saves_dir("ligas"), UserData.saves_dir("copas"), UserData.saves_dir("master")]:
+		for f in UserData.files_in(dir, "json"):
+			var d: Variant = UserData.read_json(f)
+			if d is Dictionary and TeamDB.db_of(d) == id:
+				n += 1
+	return n
+
+
+func _choose_database(id: String) -> void:
+	var changed := id != TeamDB.db_id
+	GameSettings.use_database(id)
+	GameSettings.save_settings()
+	if changed:
+		_teams.groups = TeamSelect.build_groups()
+		# El repechaje del Mundial sale de las selecciones de la base.
+		(_pages["worldcup"] as Control).queue_free()
+		_pages.erase("worldcup")
+		_wc_rows.clear()
+		_build_world_cup()
+		(_pages["worldcup"] as Control).visible = false
+	_history.clear()
 	show_page("home", false)
 
 
@@ -1024,6 +1101,8 @@ func _build_data() -> void:
 		func() -> void: UserData.open_folder(UserData.optionfiles_dir()), true, 760.0)
 	_item(col, "Abrir la carpeta del juego", "Documentos/VirtualEleven: configuración, Option Files, partidas guardadas e importar.",
 		func() -> void: UserData.open_folder(UserData.root()), true, 760.0)
+	_item(col, "Cambiar la base de datos", "Ficticia o Temporada 2026. Cada partida y cada Option File es de una base: sólo aparecen los de la que elijas.",
+		func() -> void: show_page("database"), true, 760.0)
 	_item(col, "Volver a la base", "Deja de usar el Option File (no lo borra: lo podés volver a elegir).",
 		func() -> void: _set_option_file(""), true, 760.0)
 	_item(col, "Volver", "Volver a Opciones.", go_back, true, 760.0)

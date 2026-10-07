@@ -318,7 +318,7 @@ func import_rows(rows: Array[Dictionary], of: OptionFile = null) -> Dictionary:
 			of.set_club(String(countries[where[0]]["id"]), club)
 	if of == null:
 		for ci in touched:
-			_save_json(TeamDB.LEAGUES_DIR + String(countries[ci]["id"]) + ".json", countries[ci])
+			_save_json(TeamDB.leagues_dir() + String(countries[ci]["id"]) + ".json", countries[ci])
 	# Selecciones: las convocatorias marcadas o los mejores 23 de cada país.
 	var nations_count := 0
 	var ns := TeamDB.nations()
@@ -331,7 +331,7 @@ func import_rows(rows: Array[Dictionary], of: OptionFile = null) -> Dictionary:
 			if of != null:
 				of.set_nation(n)
 	if nations_count > 0 and of == null:
-		_save_json(TeamDB.NATIONS_FILE, {"season": "2026", "nations": ns})
+		_save_json(TeamDB.nations_file(), {"season": "2026", "nations": ns})
 	var total_unmatched := 0
 	var names := unmatched.keys()
 	names.sort_custom(func(a: String, b: String) -> bool: return int(unmatched[a]) > int(unmatched[b]))

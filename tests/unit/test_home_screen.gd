@@ -10,6 +10,8 @@ func before_each() -> void:
 	await get_tree().process_frame
 	if menu.call("_current") == "title":
 		menu.call("leave_title")
+	if menu.call("_current") == "database":
+		menu.call("_choose_database", GameSettings.database)
 	await get_tree().process_frame
 
 

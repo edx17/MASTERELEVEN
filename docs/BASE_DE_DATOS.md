@@ -1,5 +1,53 @@
 # Base de datos real (Paso C)
 
+## Dos bases: Ficticia y Temporada 2026
+
+Al pasar la pantalla de título el juego pregunta con qué base se juega (se
+puede cambiar después en OPCIONES > DATOS > Cambiar la base de datos):
+
+| Base | Carpeta | Qué trae |
+|---|---|---|
+| **Ficticia** (`ficticia`) | `data/db/` | Lo de siempre: clubes y selecciones reales con planteles **generados** (lo que se describe más abajo). |
+| **Temporada 2026** (`t2026`) | `data/db2026/` | Los planteles reales de los CSV de `tools/db_src/2026/`: 20.288 jugadores, 580 clubes en 28 ligas de 18 países, 114 selecciones y 35 competencias. |
+
+**Partidas y Option Files atados a su base.** Cada partida (Liga, Copa,
+Mundial, Liga Virtual) y cada Option File guarda `"db"`. Sólo se listan y se
+cargan los de la base activa; los de antes (sin `"db"`) son de la Ficticia.
+
+### Ids únicos (Temporada 2026)
+
+- **Jugador:** `pid` (número). Cada jugador está **una sola vez**: en el
+  plantel de su club (`leagues/<país>.json`) o, si su club no está en las
+  ligas, en `players_ext.json` (con `club_name`). El `pid` no cambia entre
+  corridas del generador: `tools/db_src/2026/ids.json` guarda nombre +
+  nacionalidad + año de nacimiento + estatura -> pid.
+- **Selección:** id de 3 letras (`arg`, `col`...). Sus convocados van por
+  referencia: `"squad": [pid, ...]` y el dorsal de la selección en
+  `"nums": {pid: número}`. Así el que juega en River y en Colombia es **el
+  mismo jugador** en cualquier modo: si en la Liga Virtual se lesiona, mejora
+  o se va a otro club, la selección lo ve así (`TeamDB.player_by_pid`,
+  `TeamDB.nation_squad`).
+- **Club:** `país:id` (`arg:river`); **división / liga:** `arg1`, `eng2`...;
+  **competencia:** `competitions.json` (las ligas y los torneos de
+  selecciones: `sel_copa_america`, `sel_copa_del_mundo`...).
+- La Liga Virtual conserva los pid de la base; los jugadores nuevos
+  (juveniles, Equipo WE) siguen desde el más alto.
+
+### Regenerar la Temporada 2026
+
+1. Dejá los CSV (formato EA FC) en `tools/db_src/2026/ligas/` (un archivo por
+   liga: `PAÍS_NIVEL_nombre.csv`, p. ej. `ITA_1_serie_a.csv`; el prefijo dice
+   el país y la división) y `tools/db_src/2026/selecciones/`.
+2. `godot --headless -- --build-db`
+3. Revisá `tools/db_src/2026/informe.txt`: clubes en duda, convocados
+   cruzados por apellido, los que quedaron "del exterior". Si un club del CSV
+   tiene otro nombre en la base, agregalo a `tools/db_src/2026/clubes_alias.json`
+   y volvé a correr.
+
+El generador falla (y lo dice en el informe) si hay ids repetidos o
+convocados que no son de ningún jugador. Los clubes nuevos (Ligue 1, MLS,
+Série B y ascendidos) salen con camiseta blanca: se pintan en el Editor.
+
 Uso personal: nombres reales de países, ligas, clubes y jugadores; sin
 escudos, logos, marcas ni sponsors (ver `Claude.md`, Restricciones).
 
