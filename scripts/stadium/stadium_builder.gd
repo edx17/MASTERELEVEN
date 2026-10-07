@@ -520,6 +520,9 @@ static func _tunnel(stand: Node3D) -> void:
 		lamp.position = Vector3(0.0, TUNNEL_H - 0.03, z)
 		lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		stand.add_child(lamp)
+		# En el celular, sin luces del estadio (los paneles siguen brillando).
+		if GameSettings.mobile():
+			continue
 		var light := OmniLight3D.new()
 		light.light_color = Color(1.0, 0.93, 0.82)
 		light.light_energy = 2.6 if i == 0 else 2.0

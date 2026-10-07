@@ -30,7 +30,8 @@ func setup(p_conditions: MatchConditions) -> void:
 	conditions = p_conditions
 	_build_environment()
 	_build_sun()
-	if conditions.time_of_day == MatchConditions.TimeOfDay.NIGHT or conditions.time_of_day == MatchConditions.TimeOfDay.DUSK:
+	if (conditions.time_of_day == MatchConditions.TimeOfDay.NIGHT or conditions.time_of_day == MatchConditions.TimeOfDay.DUSK) \
+			and not GameSettings.mobile():
 		_build_floodlights()
 	match conditions.weather:
 		MatchConditions.Weather.RAIN:

@@ -34,8 +34,13 @@ func _ready() -> void:
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	list.add_theme_constant_override("separation", int(WEStyle.px(2)))
 	row.add_child(list)
+	# En el celular sólo de día (mañana o tarde): sin las luces del estadio.
+	var times := 2 if GameSettings.mobile() else MatchConditions.TIME_NAMES.size()
+	if GameSettings.mobile() and GameSettings.time_choice >= times:
+		GameSettings.time_choice = MatchConditions.TimeOfDay.AFTERNOON
 	_add(list, "Horario", func() -> String: return _choice(GameSettings.time_choice, MatchConditions.TIME_NAMES),
-		_cycle.bind("time_choice", MatchConditions.TIME_NAMES.size()), "Tarde, atardecer o noche (con las luces del estadio).")
+		_cycle.bind("time_choice", times), "En el celular se juega siempre de día (mañana o tarde)." if GameSettings.mobile()
+		else "Tarde, atardecer o noche (con las luces del estadio).")
 	_add(list, "Clima", func() -> String: return _choice(GameSettings.weather_choice, MatchConditions.WEATHER_NAMES),
 		_cycle.bind("weather_choice", MatchConditions.WEATHER_NAMES.size()), "Con lluvia la pelota pica menos y corre más; con nieve se frena.")
 	_add(list, "Viento", func() -> String: return _choice(GameSettings.wind_choice, GameSettings.WIND_NAMES),
