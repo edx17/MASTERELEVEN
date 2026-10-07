@@ -357,7 +357,7 @@ func test_cups_and_world_cup() -> void:
 	assert_true(bool(cs["lib"]["foreign"]), "las de otras confederaciones, simuladas")
 	assert_true(s.has("world_cup"))
 	assert_ne(String(s["world_cup"]["champion"]), "")
-	assert_eq((TeamDB.nation("eng")["players"] as Array).size(), 23, "convocados")
+	assert_eq(TeamDB.nation_squad(TeamDB.nation("eng")).size(), 23, "convocados")
 	# Temporada siguiente: supercopas con los campeones y los 4 primeros de
 	# la Premier en la Champions.
 	m.start_next_season(6)

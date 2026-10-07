@@ -143,7 +143,7 @@ const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", 
 	"pitch_choice", "pitch_wear", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
 	"stick_directions", "camera_preset", "show_pass_target", "offside", "home_team_path", "away_team_path",
 	"home_kit", "away_kit", "show_replays", "replay_chances", "player_style", "sfx_volume", "crowd_volume", "music_volume",
-	"show_radar", "show_score", "wc_playoff", "active_optionfile", "show_offside_line", "show_ball_landing",
+	"show_radar", "show_score", "wc_playoff", "active_optionfile", "database", "show_offside_line", "show_ball_landing",
 	"window_mode", "resolution", "vsync", "antialias", "render_scale", "shadow_quality", "crowd_level", "fps_limit",
 	"input_source"]
 ## Falso en los tests y las herramientas: no leen ni pisan la configuración
@@ -180,6 +180,8 @@ var wc_playoff: Array = ["ita", "pol", "kos", "den", "cod", "irq"]
 const WC_PLAYOFF_SLOTS := 6
 ## Option File activo (nombre; "" = la base del juego).
 var active_optionfile := ""
+## Base del juego elegida (TeamDB.DBS): "ficticia" o "t2026".
+var database := TeamDB.DEFAULT_DB
 ## Archivo de la Liga / Copa / Mundial que se está jugando.
 var active_save := ""
 ## El Editor se abrió desde el menú del juego (muestra "Volver al juego").
@@ -252,7 +254,7 @@ func _is_tool_run() -> bool:
 		if a.contains("gut_cmdln"):
 			return true
 	for a in OS.get_cmdline_user_args():
-		if a.begins_with("--capture=") or a.begins_with("--poses=") or a.begins_with("--stadium-thumbs=") or a.begins_with("--menu-shot=") or a.begins_with("--import-players=") or a.begins_with("--editor-shot=") or a == "--benchmark":
+		if a.begins_with("--capture=") or a.begins_with("--poses=") or a.begins_with("--stadium-thumbs=") or a.begins_with("--menu-shot=") or a.begins_with("--import-players=") or a.begins_with("--editor-shot=") or a == "--benchmark" or a == "--build-db":
 			return true
 	return false
 
@@ -269,6 +271,17 @@ func save_settings(path: String = SETTINGS_PATH) -> void:
 	for key in SAVED:
 		cfg.set_value("options", key, get(key))
 	cfg.save(path)
+
+
+## Cambia la base del juego (y su Option File, si es de esa base).
+func use_database(id: String) -> void:
+	database = id if TeamDB.available_dbs().has(id) else TeamDB.DEFAULT_DB
+	TeamDB.use_db(database)
+	apply_option_file()
+	if not TeamDB.exists(home_team_path):
+		home_team_path = DEFAULT_HOME
+	if not TeamDB.exists(away_team_path):
+		away_team_path = DEFAULT_AWAY
 
 
 ## Activa el Option File elegido (si existe; si no, la base).
@@ -309,6 +322,9 @@ func load_settings(path: String = SETTINGS_PATH) -> void:
 	if not stick_directions in STICK_OPTIONS:
 		stick_directions = tuning.stick_directions
 	camera_preset = maxi(camera_preset, 0)
+	if not TeamDB.available_dbs().has(database):
+		database = TeamDB.DEFAULT_DB
+	TeamDB.use_db(database)
 	apply_option_file()
 	if not TeamDB.exists(home_team_path):
 		home_team_path = DEFAULT_HOME
@@ -332,6 +348,8 @@ func _check_capture_mode() -> void:
 			var imp: Node = load("res://tools/import_players.gd").new()
 			imp.set("files", arg.trim_prefix("--import-players=").split(",", false))
 			get_tree().root.add_child.call_deferred(imp)
+		if arg == "--build-db":
+			get_tree().root.add_child.call_deferred(load("res://tools/build_db.gd").new())
 		if arg.begins_with("--editor-shot="):
 			var es: Node = load("res://tools/editor_shot.gd").new()
 			es.set("out", arg.trim_prefix("--editor-shot="))

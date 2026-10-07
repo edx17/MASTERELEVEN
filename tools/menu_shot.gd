@@ -6,7 +6,8 @@ extends Node
 ## master_hub, master_end, master_plantel, master_cal,
 ## master_market, master_sell, master_pases, master_news, master_hist,
 ## master_cups (con --menu-cup=ID: la copa que se ve, p. ej. lib o ucl; con
-## --menu-master=eng: carrera en Inglaterra).
+## --menu-master=eng: carrera en Inglaterra), database (elegir la base).
+## --menu-db=t2026: con la base Temporada 2026.
 
 var out := "user://menu.png"
 
@@ -20,6 +21,10 @@ func _run() -> void:
 		await get_tree().process_frame
 	InputRouter.set_source(InputRouter.Source.GAMEPAD if OS.get_cmdline_user_args().has("--menu-pad")
 		else InputRouter.Source.KEYBOARD, true)
+	for a in OS.get_cmdline_user_args():
+		# `--menu-db=t2026`: con la base Temporada 2026.
+		if a.begins_with("--menu-db="):
+			GameSettings.use_database(a.trim_prefix("--menu-db="))
 	for a in OS.get_cmdline_user_args():
 		# `--menu-home=db:nat:arg`: local elegido (la elección abre en su grupo).
 		if a.begins_with("--menu-home="):

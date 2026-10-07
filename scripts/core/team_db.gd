@@ -11,11 +11,31 @@ extends RefCounted
 ##   res://data/teams/aurora.tres   (Equipos WE, ficticios)
 ##   db:nat:arg                     (selección)
 ##   db:club:arg:boca               (club: país e id)
+##
+## Hay más de una base (DBS): la Ficticia (data/db, planteles generados) y la
+## Temporada 2026 (data/db2026, armada con tools/build_db.gd desde los CSV).
+## Se elige una al empezar (use_db); las partidas y los Option Files guardan
+## la suya. En la Temporada 2026 cada jugador tiene un id único ("pid") y las
+## selecciones guardan los ids de sus convocados ("squad"): el que juega en
+## River y en Colombia es el mismo jugador (player_by_pid).
 
+## Bases del juego: id -> {name, root, info}.
+const DBS := {
+	"ficticia": {"name": "Ficticia", "root": "res://data/db/",
+		"info": "Clubes y selecciones reales con planteles generados (los de siempre)."},
+	"t2026": {"name": "Temporada 2026", "root": "res://data/db2026/",
+		"info": "Planteles reales: cada jugador una sola vez, en su club y en su selección."},
+}
+const DEFAULT_DB := "ficticia"
+## Nombres generados (compartidos por todas las bases).
+const NAMES_FILE := "res://data/db/names.json"
+## Base Ficticia (lo que lee el importador de la consola).
 const ROOT := "res://data/db/"
 const NATIONS_FILE := "res://data/db/nations.json"
-const NAMES_FILE := "res://data/db/names.json"
 const LEAGUES_DIR := "res://data/db/leagues/"
+## Jugadores de la base que no juegan en un club de sus ligas (sólo en su
+## selección): [{pid, n, ..., club_name}].
+const EXTERNAL_FILE := "players_ext.json"
 
 ## Diseños de camiseta por nombre (TeamData.pattern).
 const PATTERNS := {"plain": 0, "stripes": 1, "pinstripes": 2, "hoops": 3, "halves": 4, "sash": 5,
@@ -43,8 +63,52 @@ static var _names: Dictionary = {}
 static var _cache: Dictionary = {}
 static var _base_nations: Array = []
 static var _base_countries: Array = []
+static var _external: Array = []
+## pid -> jugador (diccionario de la base o del Option File activo).
+static var _pid_index: Dictionary = {}
 ## Option File activo (cambios del jugador sobre la base) o null = la base.
 static var option_file: OptionFile = null
+## Base activa (DBS).
+static var db_id := DEFAULT_DB
+
+
+# --- Base activa ---------------------------------------------------------------------
+
+static func root() -> String:
+	return String(DBS.get(db_id, DBS[DEFAULT_DB])["root"])
+
+
+static func nations_file() -> String:
+	return root() + "nations.json"
+
+
+static func leagues_dir() -> String:
+	return root() + "leagues/"
+
+
+## Cambia la base activa (sin Option File) y olvida lo leído.
+static func use_db(id: String) -> void:
+	db_id = id if DBS.has(id) else DEFAULT_DB
+	option_file = null
+	reload()
+
+
+static func db_name(id: String = "") -> String:
+	return String(DBS.get(id if id != "" else db_id, DBS[DEFAULT_DB])["name"])
+
+
+## Bases que están en el juego (la Ficticia siempre).
+static func available_dbs() -> Array[String]:
+	var out: Array[String] = []
+	for id in DBS:
+		if id == DEFAULT_DB or FileAccess.file_exists(String(DBS[id]["root"]) + "nations.json"):
+			out.append(String(id))
+	return out
+
+
+## Base de una partida u Option File guardado (los de antes: la Ficticia).
+static func db_of(d: Dictionary) -> String:
+	return String(d.get("db", DEFAULT_DB))
 
 
 # --- Lectura -------------------------------------------------------------------------
@@ -68,7 +132,7 @@ static func nations() -> Array:
 ## Selecciones de la base del juego (sin cambios del jugador).
 static func base_nations() -> Array:
 	if _base_nations.is_empty():
-		var d: Variant = _read_json(NATIONS_FILE)
+		var d: Variant = _read_json(nations_file())
 		if d is Dictionary:
 			_base_nations = d.get("nations", [])
 	return _base_nations
@@ -84,13 +148,13 @@ static func countries() -> Array:
 
 static func base_countries() -> Array:
 	if _base_countries.is_empty():
-		var dir := DirAccess.open(LEAGUES_DIR)
+		var dir := DirAccess.open(leagues_dir())
 		if dir != null:
 			var files := Array(dir.get_files()).map(func(f: String) -> String: return f.trim_suffix(".remap")) \
 				.filter(func(f: String) -> bool: return f.ends_with(".json"))
 			files.sort()
 			for f in files:
-				var d: Variant = _read_json(LEAGUES_DIR + f)
+				var d: Variant = _read_json(leagues_dir() + f)
 				if d is Dictionary:
 					_base_countries.append(d)
 	return _base_countries
@@ -103,6 +167,7 @@ static func use_option_file(of: OptionFile) -> void:
 	_nations = []
 	_countries = []
 	_cache = {}
+	_pid_index = {}
 
 
 static func names() -> Dictionary:
@@ -214,6 +279,7 @@ static func load_team(path: String) -> TeamData:
 ## suspensiones), sin rehacer todo el país.
 static func refresh_club(country_id: String, club_id: String, entry: Dictionary) -> void:
 	_cache.erase(club_path(country_id, club_id))
+	_pid_index = {}
 	for c in _countries:
 		if c["id"] != country_id:
 			continue
@@ -233,8 +299,82 @@ static func reload() -> void:
 	_countries = []
 	_base_nations = []
 	_base_countries = []
+	_external = []
+	_pid_index = {}
 	_names = {}
 	_cache = {}
+
+
+# --- Jugadores por id ------------------------------------------------------------------
+
+## Jugadores de la base fuera de sus ligas (en el exterior: sólo selección).
+static func external_players() -> Array:
+	if _external.is_empty():
+		var d: Variant = _read_json(root() + EXTERNAL_FILE)
+		if d is Dictionary:
+			_external = d.get("players", [])
+	return _external
+
+
+## El jugador con ese id (como está ahora: con el Option File o la carrera
+## activos, en su club actual) o {} si no está.
+static func player_by_pid(pid: int) -> Dictionary:
+	if _pid_index.is_empty():
+		_index_players()
+	return _pid_index.get(pid, {})
+
+
+## El id más alto de la base activa (0 si no tiene ids).
+static func max_pid() -> int:
+	if _pid_index.is_empty():
+		_index_players()
+	var top := 0
+	for k in _pid_index:
+		top = maxi(top, int(k))
+	return top
+
+
+static func _index_players() -> void:
+	var idx := {}
+	for d in external_players():
+		if int(d.get("pid", 0)) > 0:
+			idx[int(d["pid"])] = d
+	if option_file != null:
+		for d in option_file.free_agents:
+			if int(d.get("pid", 0)) > 0:
+				idx[int(d["pid"])] = d
+	for c in countries():
+		for div in c["divisions"]:
+			for cl in div["clubs"]:
+				for key in ["youth", "players"]:
+					for d in cl.get(key, []):
+						if int(d.get("pid", 0)) > 0:
+							idx[int(d["pid"])] = d
+	# Carrera: los clubes del mundo que no juegan en una división (libres,
+	# clubes de otros países que entraron por el mercado).
+	if option_file != null:
+		for key in option_file.clubs:
+			for d in (option_file.clubs[key] as Dictionary).get("players", []):
+				if int(d.get("pid", 0)) > 0 and not idx.has(int(d["pid"])):
+					idx[int(d["pid"])] = d
+	_pid_index = idx if not idx.is_empty() else {0: {}}
+
+
+## Convocados de una selección: los de "squad" (ids, como están hoy en sus
+## clubes, con el dorsal de la selección de "nums") y los de "players".
+static func nation_squad(n: Dictionary) -> Array:
+	var out: Array = []
+	var nums: Dictionary = n.get("nums", {})
+	for pid in n.get("squad", []):
+		var d := player_by_pid(int(pid))
+		if d.is_empty():
+			continue
+		d = d.duplicate(true)
+		if nums.has(str(int(pid))):
+			d["num"] = int(nums[str(int(pid))])
+		out.append(d)
+	out.append_array(n.get("players", []))
+	return out
 
 
 # --- Armado ------------------------------------------------------------------------
@@ -244,7 +384,11 @@ static func build_nation(n: Dictionary) -> TeamData:
 	t.id = "nat_" + String(n["id"])
 	t.flag = FlagPainter.texture(n.get("flag", {}))
 	t.country = n["id"]
-	_fill_players(t, n, int(n.get("level", 70)), String(n.get("names", "en")), n.get("skin", [40, 30, 18, 12]),
+	var e := n
+	if n.has("squad"):
+		e = n.duplicate()
+		e["players"] = nation_squad(n)
+	_fill_players(t, e, int(n.get("level", 70)), String(n.get("names", "en")), n.get("skin", [40, 30, 18, 12]),
 		String(n.get("name", "")))
 	return t
 

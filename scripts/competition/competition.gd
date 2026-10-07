@@ -58,6 +58,8 @@ var draw_seed := 0
 ## el que se creó y fechas.
 var file := ""
 var title := ""
+## Base del juego (TeamDB.DBS) con la que se creó: sólo se juega con esa.
+var db := TeamDB.db_id
 var option_file := ""
 var created := ""
 var updated := ""
@@ -802,7 +804,7 @@ static func _add(row: Dictionary, gf: int, gc: int) -> void:
 # --- Guardado ---------------------------------------------------------------------
 
 func to_dict() -> Dictionary:
-	return {"format": "VirtualEleven Partida", "version": 1, "kind": kind, "title": title,
+	return {"format": "VirtualEleven Partida", "version": 1, "db": db, "kind": kind, "title": title,
 		"option_file": option_file, "created": created, "updated": updated,
 		"team_paths": team_paths, "user_team": user_team, "double_round": double_round,
 		"rounds": rounds, "current": current, "champion": champion, "groups": groups,
@@ -820,6 +822,7 @@ static func from_dict(d: Dictionary) -> Competition:
 	c.champion = int(d.get("champion", -1))
 	c.title = String(d.get("title", ""))
 	c.option_file = String(d.get("option_file", ""))
+	c.db = TeamDB.db_of(d)
 	c.created = String(d.get("created", ""))
 	c.updated = String(d.get("updated", ""))
 	# JSON guarda los números como float: se pasan a int.
@@ -878,7 +881,8 @@ static func load_saved(path: String = SAVE_PATH) -> Competition:
 	if not FileAccess.file_exists(path):
 		return null
 	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
-	if not d is Dictionary:
+	# Sólo las de la base activa (las de otra base tienen otros equipos).
+	if not d is Dictionary or TeamDB.db_of(d) != TeamDB.db_id:
 		return null
 	var c := from_dict(d)
 	c.file = path

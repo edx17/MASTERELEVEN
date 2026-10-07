@@ -1,0 +1,26 @@
+VIRTUAL ELEVEN · base Temporada 2026
+
+Temporada 2026: 20288 jugadores (18327 en clubes, 1961 del exterior), 580 clubes en 18 países, 114 selecciones, 35 competencias. Clubes nuevos: 93.
+Club en duda: Botafogo SP (Brasileirao Serie B) -> club nuevo
+Club en duda: FC Cajamarca (Liga 1 Perú) -> fccajamarca
+Jugadores que no entraron en el plantel (más de 40, mayores de 21): 33
+País sin ligas en los CSV (no va en la base): Uruguay
+Convocado que no está en el plantel de su club (queda del exterior): E. González (Wolverhampton Wanderers, PAR)
+Convocado que no está en el plantel de su club (queda del exterior): R. Chukwu (Toronto FC, CAN)
+Convocado que no está en el plantel de su club (queda del exterior): J. David Sánchez (Deportivo Táchira, VEN)
+Convocado que no está en el plantel de su club (queda del exterior): B. Brereton Díaz (Sheffield United, CHI)
+Convocado que no está en el plantel de su club (queda del exterior): T. Bany (West Bromwich Albion, JOR)
+Convocado que no está en el plantel de su club (queda del exterior): M. González (Alianza FC, SLV)
+Convocado que no está en el plantel de su club (queda del exterior): D. Franco (Alianza FC, SLV)
+Convocado que no está en el plantel de su club (queda del exterior): J. Sibrián (Alianza FC, SLV)
+Convocado que no está en el plantel de su club (queda del exterior): H. Romero (Alianza FC, SLV)
+Convocado que no está en el plantel de su club (queda del exterior): A. Henríquez (Alianza FC, SLV)
+Convocado que no está en el plantel de su club (queda del exterior): H. Osorio (Alianza FC, SLV)
+Convocado que no está en el plantel de su club (queda del exterior): N. Rivera (Alianza FC, SLV)
+Convocado que no está en el plantel de su club (queda del exterior): D. Cirkins (Queens Park Rangers, LVA)
+Convocados encontrados en su club: 1878 (8 por apellido, estatura y edad); del exterior: 1961.
+Cruzados por apellido (revisar):
+  J. Manuel Rengifo (Atlético Nacional) = J. Rengifo (Atlético Nacional)
+  S. Langås (Derby County) = S. Klingen Langås (Derby County)
+  D. Dan Thórhallsson (San Diego FC) = D. Thórhallsson (San Diego FC)
+  S. Teitur Thórdarson (Hannover 96) = S. Thórdarson (Hannover 96)
