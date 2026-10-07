@@ -4,9 +4,13 @@ extends CanvasLayer
 ## START / SELECT. Mandan los mismos eventos que un mando de verdad
 ## (InputEventJoypadButton / InputEventJoypadMotion del dispositivo 0), así
 ## que el juego, los menús y las indicaciones funcionan sin cambios.
-## Sólo aparece con pantalla táctil (o con `-- --touch` para probarlo), y
-## sólo durante el partido: en los menús se toca la pantalla directamente.
-## Mientras no se lo usa se ve tenue (IDLE_ALPHA) y al tocarlo se marca.
+## Sólo aparece con pantalla táctil (o con `-- --touch` para probarlo).
+##   - En el partido está siempre; mientras no se lo usa se ve tenue
+##     (IDLE_ALPHA) y al tocarlo se marca.
+##   - En los menús se toca la pantalla directamente; si hace falta el mando
+##     (una pantalla sin botones, L1/R1, START), aparece deslizando el dedo
+##     por la pantalla o tocando el botón del mando de la esquina, y se va
+##     solo después de MENU_IDLE segundos sin usarlo.
 
 const DEVICE := 0
 ## Botones: [id del ícono, botón del mando, centro en px de 1080 desde la
@@ -36,9 +40,21 @@ const STICK_RADIUS := 170.0
 const IDLE_ALPHA := 0.3
 const ACTIVE_ALPHA := 1.0
 const FADE_DELAY := 1.2
+## En los menús: cuánto hay que deslizar el dedo para que aparezca el mando
+## (px de 1080) y cuánto tarda en irse sin usarlo (segundos).
+const SWIPE := 90.0
+const MENU_IDLE := 5.0
+## Botón del mando en los menús: centro desde la esquina inferior izquierda y radio.
+const TOGGLE_CENTER := Vector2(64, 124)
+const TOGGLE_RADIUS := 40.0
 
 var enabled := false
 var _pad: Pad
+var _toggle: Toggle
+## El mando se mostró en un menú (por deslizar o por el botón).
+var menu_pad := false
+## Dedos en los menús: índice -> dónde empezó (para detectar el deslizamiento).
+var _swipes := {}
 
 
 func _ready() -> void:
@@ -46,25 +62,100 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	enabled = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile") \
 		or OS.get_cmdline_user_args().has("--touch")
-	if not enabled:
-		return
+	if enabled:
+		build()
+
+
+## Arma el mando y el botón de la esquina.
+func build() -> void:
 	_pad = Pad.new()
 	_pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_pad.modulate.a = IDLE_ALPHA
 	add_child(_pad)
+	_toggle = Toggle.new()
+	_toggle.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_toggle.pressed.connect(show_menu_pad)
+	add_child(_toggle)
 
 
 func _process(dt: float) -> void:
 	if _pad == null:
 		return
-	var show := in_match()
+	var playing := in_match()
+	if playing:
+		menu_pad = false
+	elif menu_pad and _pad.idle_time() > MENU_IDLE:
+		menu_pad = false
+	var show := playing or menu_pad
 	if _pad.visible != show:
 		_pad.visible = show
 		if not show:
 			_pad.release_all()
 	if show:
 		_pad.fade(dt)
+	_toggle.visible = not show
+
+
+## Muestra el mando en un menú (hasta que no se lo use por un rato).
+func show_menu_pad() -> void:
+	menu_pad = true
+	_pad.visible = true
+	_pad.wake()
+
+
+## En los menús, deslizar el dedo por la pantalla hace aparecer el mando.
+func _input(event: InputEvent) -> void:
+	if _pad == null or in_match() or menu_pad:
+		_swipes.clear()
+		return
+	if event is InputEventScreenTouch:
+		var t := event as InputEventScreenTouch
+		if t.pressed:
+			_swipes[t.index] = t.position
+		else:
+			_swipes.erase(t.index)
+	elif event is InputEventScreenDrag:
+		var d := event as InputEventScreenDrag
+		if _swipes.has(d.index) and d.position.distance_to(_swipes[d.index]) > WEStyle.px(SWIPE):
+			_swipes.clear()
+			show_menu_pad()
+
+
+## Botón chico con un mando en la esquina (en los menús): lo muestra.
+class Toggle:
+	extends Control
+	signal pressed
+
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_STOP
+
+	func center() -> Vector2:
+		return Vector2(WEStyle.px(TOGGLE_CENTER.x), size.y - WEStyle.px(TOGGLE_CENTER.y))
+
+	## Sólo el círculo del botón ataja los toques (el resto va al menú).
+	func _has_point(p: Vector2) -> bool:
+		return p.distance_to(center()) <= WEStyle.px(TOGGLE_RADIUS) * 1.3
+
+	func _gui_input(event: InputEvent) -> void:
+		if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+			accept_event()
+			pressed.emit()
+
+	func _draw() -> void:
+		var c := center()
+		var r := WEStyle.px(TOGGLE_RADIUS)
+		draw_circle(c, r, Color(WEStyle.BG_NIGHT, 0.55))
+		draw_arc(c, r, 0, TAU, 40, Color(WEStyle.TEXT_MAIN, 0.45), 2.0)
+		# Un mando dibujado: cuerpo, cruceta y dos botones.
+		var w := r * 1.1
+		var body := Rect2(c - Vector2(w * 0.5, w * 0.28), Vector2(w, w * 0.56))
+		draw_rect(body, Color(WEStyle.TEXT_MAIN, 0.8), false, 2.0)
+		var dp := c + Vector2(-w * 0.24, 0)
+		draw_line(dp - Vector2(w * 0.1, 0), dp + Vector2(w * 0.1, 0), Color(WEStyle.TEXT_MAIN, 0.8), 2.0)
+		draw_line(dp - Vector2(0, w * 0.1), dp + Vector2(0, w * 0.1), Color(WEStyle.TEXT_MAIN, 0.8), 2.0)
+		draw_circle(c + Vector2(w * 0.2, -w * 0.06), w * 0.05, Color(WEStyle.ACCENT, 0.9))
+		draw_circle(c + Vector2(w * 0.3, w * 0.06), w * 0.05, Color(WEStyle.ACCENT, 0.9))
 
 
 ## ¿Se está jugando? (en la escena del partido y sin pausa: en la pausa y los
@@ -83,6 +174,27 @@ class Pad:
 	var _held := {}
 	## Segundos desde que se soltó el último dedo.
 	var _idle := 99.0
+
+	func _init() -> void:
+		# Ataja los clics que genera el toque sobre el mando (que no lleguen al
+		# menú de abajo); en el resto de la pantalla no hace nada (_has_point).
+		mouse_filter = Control.MOUSE_FILTER_STOP
+
+	func _has_point(p: Vector2) -> bool:
+		return not _hit(p).is_empty()
+
+	func _gui_input(event: InputEvent) -> void:
+		if event is InputEventMouseButton:
+			accept_event()
+
+	## Segundos sin dedos sobre el mando.
+	func idle_time() -> float:
+		return 0.0 if not _fingers.is_empty() else _idle
+
+	## Recién mostrado: marcado y contando desde cero.
+	func wake() -> void:
+		_idle = 0.0
+		modulate.a = ACTIVE_ALPHA
 
 	## Opacidad: plena mientras hay un dedo (y un rato después), tenue si no.
 	func fade(dt: float) -> void:
