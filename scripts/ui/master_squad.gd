@@ -1,6 +1,6 @@
 class_name MasterSquad
 extends Control
-## Plantel y Dirección del equipo de la Liga Master (fuera del partido):
+## Plantel y Dirección del equipo de la Liga Virtual (fuera del partido):
 ## a la izquierda la formación y los 23 (los 11 titulares arriba, en el orden
 ## de los puestos); a la derecha la ficha del jugador elegido con sus
 ## atributos y cuánto cambiaron desde que empezó la temporada.
@@ -99,7 +99,7 @@ func _rebuild() -> void:
 	_rows.clear()
 	var t := career.user_team()
 	_players = t.players
-	_frame.crumb.text = "LIGA MASTER  /  PLANTEL"
+	_frame.crumb.text = "LIGA VIRTUAL  /  PLANTEL"
 	_frame.title.text = "PLANTEL Y FORMACIÓN"
 	_frame.title_info.text = "%s · %s" % [t.team_name, career.formation_name()]
 	_frame.footer.set_hints(HINTS)
@@ -260,7 +260,7 @@ func _open_youth() -> void:
 	_rows.clear()
 	var youth: Array = career.user_youth().duplicate()
 	youth.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return MasterCareer.dict_overall(a) > MasterCareer.dict_overall(b))
-	_frame.crumb.text = "LIGA MASTER  /  PLANTEL  /  INFERIORES"
+	_frame.crumb.text = "LIGA VIRTUAL  /  PLANTEL  /  INFERIORES"
 	_frame.title.text = "INFERIORES (SUB-20)"
 	_frame.title_info.text = "%d jugadores" % youth.size()
 	_frame.footer.set_hints([[&"ui_navigate", "Navegar"], [&"ui_cancel", "Volver"]])

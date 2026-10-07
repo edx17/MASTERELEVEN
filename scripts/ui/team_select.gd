@@ -36,7 +36,7 @@ var _side_panels: Array[Control] = []
 var single := false
 ## Sólo estos equipos, en un único grupo (p. ej. las 48 del Mundial).
 var only_paths: Array[String] = []
-## Sólo las divisiones de este país (Liga Master); "" = todas.
+## Sólo las divisiones de este país (Liga Virtual); "" = todas.
 var only_country := ""
 var _all_groups: Array[Dictionary] = []
 
@@ -146,7 +146,7 @@ static func build_groups() -> Array[Dictionary]:
 			out.append({"name": "%s · %s" % [String(c["name"]).to_upper(), d["name"]],
 				"sub": "%d equipos · temporada %s" % [ps.size(), d.get("season", "")], "paths": ps,
 				"kind": "division", "country": c["id"], "division": d["id"]})
-	out.append({"name": "EQUIPOS WE", "sub": "Equipos ficticios de Master Eleven", "paths": GameSettings.team_paths(),
+	out.append({"name": "EQUIPOS WE", "sub": "Equipos ficticios de Virtual Eleven", "paths": GameSettings.team_paths(),
 		"kind": "we"})
 	return out
 

@@ -1,5 +1,5 @@
 extends GutTest
-## Liga Master: después de cambiar de sección con L1 / R1 se vuelve a Jugar /
+## Liga Virtual: después de cambiar de sección con L1 / R1 se vuelve a Jugar /
 ## Simular (antes el foco quedaba trabado en las filas del centro).
 
 var hub: MasterHub

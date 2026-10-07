@@ -3,7 +3,7 @@ extends RefCounted
 ## Predio de entrenamiento del club ("Club House"): la cancha principal con
 ## un alambrado bajo, una mini tribuna con techo, el edificio de los
 ## vestuarios, canchas paralelas sin usar a los costados, el vallado alto del
-## predio con el nombre y el escudo del club (o MASTER ELEVEN) y árboles
+## predio con el nombre y el escudo del club (o VIRTUAL ELEVEN) y árboles
 ## frondosos alrededor, con una línea de bosque de fondo. Sin público.
 
 ## Estilo para las luces de la noche (Atmosphere lee los reflectores de acá).
@@ -290,11 +290,11 @@ static func _mini_stand(root: Node3D) -> void:
 
 
 ## Vallado alto del predio: postes y paños de lona con los colores del club;
-## sobre el fondo, el nombre del club (o MASTER ELEVEN) repetido y el escudo.
+## sobre el fondo, el nombre del club (o VIRTUAL ELEVEN) repetido y el escudo.
 static func _club_wall(root: Node3D, home: TeamData) -> void:
 	var main := home.color if home != null else Color(0.12, 0.16, 0.42)
 	var second := home.secondary_color if home != null else Color(0.95, 0.85, 0.3)
-	var text := home.team_name.to_upper() if home != null else "MASTER ELEVEN"
+	var text := home.team_name.to_upper() if home != null else "VIRTUAL ELEVEN"
 	var cloth := _mat(main.darkened(0.15), 0.95)
 	cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var band := _mat(second, 0.9)

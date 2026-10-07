@@ -384,7 +384,7 @@ static func report_path() -> String:
 
 ## Informe completo (todas las filas de la propuesta) en la carpeta de importar.
 func save_report(plan: Array) -> void:
-	var lines: Array[String] = ["MASTER ELEVEN · informe de importación", ""]
+	var lines: Array[String] = ["VIRTUAL ELEVEN · informe de importación", ""]
 	lines.append_array(report)
 	lines.append("")
 	var titles := {"match": "Encontrados", "doubt": "Para revisar", "new": "Clubes nuevos", "skip": "No importados"}

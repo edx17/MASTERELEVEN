@@ -1,4 +1,4 @@
-# Progreso — Master Eleven
+# Progreso — Virtual Eleven
 
 Motor: **Godot 4.7.2**, GDScript. Referencia de gameplay: WE2002 (ForeverEleven).
 Ver `Claude.md` para visión, criterios y fases.
@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **523 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **526 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -18,8 +18,8 @@ además arma el `.exe` de Windows).
 | 3 — IA de partido | ✅ Implementada (se sigue ajustando con tus pruebas) | — |
 | 4 — Reglas, atributos y plantel | ✅ Implementada | — |
 | 5 — Presentación moderna (estadios, animaciones, audio, repeticiones) | 🟡 Muy avanzada; falta la voz del locutor | — |
-| 6 — Liga Master | 🟡 D1–D5 hechos, **pendiente de tu prueba** | #32, #33 |
-| 7 — Torneos | 🟡 Hecho en la Liga Master: copas reales de cada país y confederación, supercopas, Intercontinental, Mundial de Clubes y Mundial; **pendiente de tu prueba** | #33 |
+| 6 — Liga Virtual | 🟡 D1–D5 hechos, **pendiente de tu prueba** | #32, #33 |
+| 7 — Torneos | 🟡 Hecho en la Liga Virtual: copas reales de cada país y confederación, supercopas, Intercontinental, Mundial de Clubes y Mundial; **pendiente de tu prueba** | #33 |
 | 8 — Pulido | 🟡 Opciones de gráficos y ayudas, zip portable, jugadores y público de bloques; **pendiente de tu prueba** | #35 |
 | Entrenamiento (Club House) | ✅ | #23 |
 | Backlog B1–B9 | ✅ | #24 |
@@ -37,12 +37,12 @@ además arma el `.exe` de Windows).
 | E3 — Editor: selecciones, ligas y copas propias | 🟡 Hecho, pendiente de tu prueba | #31 |
 | E4 — Editor: camisetas (plantilla PNG) y botines con vista 3D | 🟡 Hecho, pendiente de tu prueba | #31 |
 | Importar clubes (CSV) y Argentina sin Promocional | 🟡 Hecho, pendiente de tu prueba | #31 |
-| D1 — Liga Master: carrera, temporadas, goleadores, ascensos y descensos | 🟡 Hecho, pendiente de tu prueba | #32 |
-| D2 — Liga Master: tarjetas, lesiones, evolución, retiros y juveniles | 🟡 Hecho, pendiente de tu prueba | #33 |
+| D1 — Liga Virtual: carrera, temporadas, goleadores, ascensos y descensos | 🟡 Hecho, pendiente de tu prueba | #32 |
+| D2 — Liga Virtual: tarjetas, lesiones, evolución, retiros y juveniles | 🟡 Hecho, pendiente de tu prueba | #33 |
 | Menús: todo entra, tablas con el mando, cabeceras del Mundial | 🟡 Hecho, pendiente de tu prueba | #33 |
-| D3 — Liga Master: Plantel, Dirección guardada, Calendario; escudos PNG | 🟡 Hecho, pendiente de tu prueba | #33 |
-| D4 — Liga Master: mercado de pases con puntos WE | 🟡 Hecho, pendiente de tu prueba | #33 |
-| D5 — Liga Master: noticias, historial y palmarés | 🟡 Hecho, pendiente de tu prueba | #33 |
+| D3 — Liga Virtual: Plantel, Dirección guardada, Calendario; escudos PNG | 🟡 Hecho, pendiente de tu prueba | #33 |
+| D4 — Liga Virtual: mercado de pases con puntos WE | 🟡 Hecho, pendiente de tu prueba | #33 |
+| D5 — Liga Virtual: noticias, historial y palmarés | 🟡 Hecho, pendiente de tu prueba | #33 |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -145,7 +145,7 @@ además arma el `.exe` de Windows).
    ver `docs/BASE_DE_DATOS.md`): se importa y reemplaza los planteles
    generados. La lista de clubes 2026 de Argentina que pasaste se carga
    desde el Editor (Importar > Clubes y divisiones).
-3. **Paso D — Liga Master**: **D1** (hecho: carrera y temporadas), **D2**
+3. **Paso D — Liga Virtual**: **D1** (hecho: carrera y temporadas), **D2**
    (hecho: tarjetas, lesiones, evolución, retiros y juveniles), **D3**
    (hecho: Plantel, Dirección guardada, Calendario y escudos), **D4**
    (hecho: mercado de pases con puntos WE, préstamos, ventanas, IA que
@@ -163,9 +163,28 @@ además arma el `.exe` de Windows).
 
 ---
 
+## Nombre nuevo: Virtual Eleven
+
+- El juego pasa a llamarse **Virtual Eleven** y el modo carrera **Liga Virtual**:
+  títulos, menú, migas de las pantallas, carteles del estadio, repetición,
+  pausa, editor, informes de importación, ventana, exportaciones
+  (`VirtualEleven.exe`, `VirtualEleven Editor.exe`, `VirtualEleven.apk`,
+  paquete `com.virtualeleven.game`), CI y documentos.
+- **Partidas que ya tenías:** la primera vez que se abre, `Documentos/MasterEleven`
+  se renombra a `Documentos/VirtualEleven` (si la nueva todavía no existe), los
+  Option Files `.meof` pasan a `.veof` y las carreras y Option Files guardados con
+  el formato viejo se siguen cargando (`UserData.migrate_rename`,
+  `MasterCareer.is_format`, `OptionFile.is_format`).
+- Sin cambiar a propósito: los nombres internos del código (`MasterCareer`,
+  `master_hub.gd`, `saves/master`) y las semillas de los scrapers (cambiarlas
+  cambiaría los datos generados).
+- En Android el paquete es otro: la versión de prueba anterior se instala aparte
+  (conviene desinstalarla).
+- Tests: `test_rename_virtual_eleven.gd` (3).
+
 ## Android (versión de prueba)
 
-- **APK de prueba en GitHub Actions:** el job "Build de Android" del CI arma `MasterEleven.apk` (arm64, firmado con una llave de depuración) y lo deja como artefacto de cada corrida, igual que el `.exe` de Windows.
+- **APK de prueba en GitHub Actions:** el job "Build de Android" del CI arma `VirtualEleven.apk` (arm64, firmado con una llave de depuración) y lo deja como artefacto de cada corrida, igual que el `.exe` de Windows.
 - **Instalarlo:** bajar el artefacto, pasar el `.apk` al celular y abrirlo (hay que permitir "instalar apps de origen desconocido").
 - **Controles táctiles** (`scripts/ui/touch_controls.gd`, sólo con pantalla táctil o `-- --touch`): stick a la izquierda; ✕ ○ □ △, L1/R1, L2/R2 a la derecha; START y SELECT arriba. Mandan los mismos eventos que un mando, así que el partido, los menús y las indicaciones de PlayStation funcionan sin cambios. Los menús también se tocan directo.
 - **Ajustes para celulares:** renderer de compatibilidad (OpenGL ES 3) en móviles, texturas ETC2/ASTC, pantalla horizontal y los datos (partidas, Option Files) en la carpeta propia de la app.
@@ -176,12 +195,12 @@ además arma el `.exe` de Windows).
 | Etapa | Qué | Estado |
 |---|---|---|
 | 1 | Tokens en `WEStyle`: paleta, Bebas Neue / Barlow (`assets/fonts`, OFL), tamaños y medidas de 1080p (`px()` / `font_px()` a la base 1280×720), `make_panel_style`, `make_focus_style`, `make_button_style`, `make_title_label`, `make_body_label`, `make_caption_label`, `fade_in`. | ✅ |
-| 2 | Menú principal, diseño 01 "Central de partido" (`HomeScreen`): menú lateral (Partido amistoso, Liga Master, Copa, Editar, Opciones, Salir), próximo partido (ilustrativo), Continuar, otros modos (Liga, Mundial, Sub-20, Entrenamiento), tu club. Pie con indicaciones según el dispositivo. | ✅ |
+| 2 | Menú principal, diseño 01 "Central de partido" (`HomeScreen`): menú lateral (Partido amistoso, Liga Virtual, Copa, Editar, Opciones, Salir), próximo partido (ilustrativo), Continuar, otros modos (Liga, Mundial, Sub-20, Entrenamiento), tu club. Pie con indicaciones según el dispositivo. | ✅ |
 | 3 | Regla 6 completa: `InputRouter` lleva la fuente activa (último dispositivo usado a propósito, zona muerta de move_*, margen anti-parpadeo de 0,25 s) con `events().source_changed` y `events().bindings_changed`; la fuente se guarda (`GameSettings.input_source`) sólo como valor inicial. `ButtonIcons.get_hint(acción)` lee la tecla o el botón asignados; `WEStyle.HintFooter` se rearma al vuelo sin tocar el foco. API para el resto: `HintFooter.new("NN / Pantalla", [[acción, texto], ...])` y `set_hints()`. | ✅ |
-| 4 | Diseño 03 "Mesa táctica" en la Liga Master (`master_hub.gd`) y en Liga / Copa / Mundial (`competition_hub.gd`), con el armazón común `WEStyle.MesaFrame` (encabezado, título, tres columnas, pie). Izquierda: próximo partido (Jugar / Simular) y última fecha. Centro por secciones con L1/R1 (Q/E): tabla de 44 px con números a la derecha (marca verde/roja de zona), goleadores, calendario, copas, noticias, historial; en las copas, llaves dibujadas por rondas (cruces por definir hasta la final) y fixture; en el Mundial, grupos. Derecha: dirección del club (mini cancha con la formación) o tu equipo (campaña y racha). Nuevos constructores `make_table_row`, `make_action_button`, `make_gap`, `make_vline`; `PadScroll` también de costado. Corregido: las acciones de pestañas se perdían al volver a los controles de fábrica. | ✅ |
-| 5 | El mismo lenguaje en Elección de equipos, Configuración del partido, Plantel y Mercado de la Liga Master, Dirección del equipo, Pausa y Entretiempo / Resultado: `WEStyle.ScreenFrame` (encabezado, título, cuerpo, pie; `MesaFrame` lo extiende), filas de tabla con foco (`make_cells`, `make_row_button`), tarjetas (`make_card`), notas en Barlow Italic y pie de ayuda en todas. En el partido, la pausa es un panel lateral y el entretiempo dos tarjetas sobre la vuelta de cámara. Capturas nuevas: `capture_runner --pause` y `--halftime`. | ✅ |
+| 4 | Diseño 03 "Mesa táctica" en la Liga Virtual (`master_hub.gd`) y en Liga / Copa / Mundial (`competition_hub.gd`), con el armazón común `WEStyle.MesaFrame` (encabezado, título, tres columnas, pie). Izquierda: próximo partido (Jugar / Simular) y última fecha. Centro por secciones con L1/R1 (Q/E): tabla de 44 px con números a la derecha (marca verde/roja de zona), goleadores, calendario, copas, noticias, historial; en las copas, llaves dibujadas por rondas (cruces por definir hasta la final) y fixture; en el Mundial, grupos. Derecha: dirección del club (mini cancha con la formación) o tu equipo (campaña y racha). Nuevos constructores `make_table_row`, `make_action_button`, `make_gap`, `make_vline`; `PadScroll` también de costado. Corregido: las acciones de pestañas se perdían al volver a los controles de fábrica. | ✅ |
+| 5 | El mismo lenguaje en Elección de equipos, Configuración del partido, Plantel y Mercado de la Liga Virtual, Dirección del equipo, Pausa y Entretiempo / Resultado: `WEStyle.ScreenFrame` (encabezado, título, cuerpo, pie; `MesaFrame` lo extiende), filas de tabla con foco (`make_cells`, `make_row_button`), tarjetas (`make_card`), notas en Barlow Italic y pie de ayuda en todas. En el partido, la pausa es un panel lateral y el entretiempo dos tarjetas sobre la vuelta de cámara. Capturas nuevas: `capture_runner --pause` y `--halftime`. | ✅ |
 | 6 | HUD del partido: marcador centrado arriba (rótulo con la competición y la fecha o "Amistoso", escudos, siglas, resultado en Bebas sobre dorado que se enciende al haber un gol, reloj "1T 06:05" abajo), carteles en Bebas sobre caja oscura con línea dorada, paneles del jugador, mentalidad, radar y viento con los tokens. `GameSettings.match_label` lo completa el menú al lanzar el partido. | ✅ |
-| 7 | Correcciones y páginas que faltaban: en la Liga Master el foco vuelve a Jugar / Simular al cambiar de sección con L1/R1 (y desde el centro se vuelve a la izquierda); nombres de la cámara Lejana a su tamaño en 1080p; Dirección del equipo con la ficha arriba y la cancha en su proporción; menú previo al partido como panel lateral; Partido amistoso, Opciones (Gráficos, Ayudas, Datos, Controles), Mundial, Copa / Sub-20, Entrenamiento, Continuar y Liga Master nueva con el marco del rediseño y la tarjeta "Detalle". Menú principal: el próximo partido y "Tu club" salen de la partida más reciente (Liga Master o Liga / Copa / Mundial); "Continuar" la retoma y "Otras partidas" abre la lista; sin partidas lo dice. | ✅ |
+| 7 | Correcciones y páginas que faltaban: en la Liga Virtual el foco vuelve a Jugar / Simular al cambiar de sección con L1/R1 (y desde el centro se vuelve a la izquierda); nombres de la cámara Lejana a su tamaño en 1080p; Dirección del equipo con la ficha arriba y la cancha en su proporción; menú previo al partido como panel lateral; Partido amistoso, Opciones (Gráficos, Ayudas, Datos, Controles), Mundial, Copa / Sub-20, Entrenamiento, Continuar y Liga Virtual nueva con el marco del rediseño y la tarjeta "Detalle". Menú principal: el próximo partido y "Tu club" salen de la partida más reciente (Liga Virtual o Liga / Copa / Mundial); "Continuar" la retoma y "Otras partidas" abre la lista; sin partidas lo dice. | ✅ |
 
 ## Correcciones de tu prueba (PR #37)
 
@@ -202,16 +221,16 @@ además arma el `.exe` de Windows).
 |---|---|
 | Equipos Sub-20 | Cada club y selección tiene su Sub-20 (`db:u20:club:pais:id`, `db:u20:nat:id`). El de un club usa su plantel juvenil importado; el de una selección, los juveniles de esa nacionalidad que haya en los clubes. Si no alcanza, se generan pibes de 17 a 19 años, 12 puntos por debajo de primera. Misma camiseta. |
 | Torneos | **Torneo de Proyección** (las Sub-20 de la Liga Profesional, todos contra todos), **Copa Libertadores Sub-20** (16 clubes: grupos y cuartos), **UEFA Youth League** (36, fase liga y eliminación) y **Mundial Sub-20** (24 selecciones, 6 grupos, octavos con los 4 mejores terceros). |
-| Dónde | Entrada propia **SUB-20** en el menú principal (elegís tu equipo y jugás con su Sub-20) y en la **Liga Master** (se simulan en el calendario; las noticias cuentan cómo le fue a tu Sub-20). El Mundial Sub-20, los años impares. |
-| Inferiores | La Sub-20 de un club son sus inferiores: en la Liga Master, cuando falta gente, suben primero los juveniles de las inferiores (los mejores del puesto que falta); los que cumplen 21 suben a primera (o quedan libres si no hay lugar). Sólo si no alcanza se generan juveniles nuevos. |
-| Libres en la Liga Master | Los libres importados (y los que liberás) están en el mercado como "(libre)": se fichan pagando sólo una prima (10 % del valor). Los convocados de selecciones cuyo club no está en el juego también quedan libres. |
+| Dónde | Entrada propia **SUB-20** en el menú principal (elegís tu equipo y jugás con su Sub-20) y en la **Liga Virtual** (se simulan en el calendario; las noticias cuentan cómo le fue a tu Sub-20). El Mundial Sub-20, los años impares. |
+| Inferiores | La Sub-20 de un club son sus inferiores: en la Liga Virtual, cuando falta gente, suben primero los juveniles de las inferiores (los mejores del puesto que falta); los que cumplen 21 suben a primera (o quedan libres si no hay lugar). Sólo si no alcanza se generan juveniles nuevos. |
+| Libres en la Liga Virtual | Los libres importados (y los que liberás) están en el mercado como "(libre)": se fichan pagando sólo una prima (10 % del valor). Los convocados de selecciones cuyo club no está en el juego también quedan libres. |
 | Premios | Al terminar cada temporada: **Balón de Oro**, **Mejor jugador de América / Europa / África / Asia / Oceanía**, **Premio Puskás**, **Bota de Oro**, **Guante de Oro** y **Golden Boy**. Cuentan el nivel, los goles (reales en tu país, estimados afuera) y los títulos (copa continental, liga, Mundial de Clubes, Mundial). Salen en noticias, en el resumen de la temporada y en el historial; si gana un jugador de tu club, suma 1500 puntos WE. |
 
 ## Planteles de hasta 40 (PR #36)
 
 | Qué | Cómo |
 |---|---|
-| Tope por club | Los clubes guardan todos los jugadores del listado, **hasta 40** (`TeamDB.CLUB_SQUAD_MAX`). Vale para la base, el importador CSV, el editor y la Liga Master (mercado incluido). |
+| Tope por club | Los clubes guardan todos los jugadores del listado, **hasta 40** (`TeamDB.CLUB_SQUAD_MAX`). Vale para la base, el importador CSV, el editor y la Liga Virtual (mercado incluido). |
 | Lista del partido | Al partido van 23: los 11 titulares y 12 suplentes, en el orden de la Dirección del equipo. |
 | Selecciones | Siguen con 23 convocados. |
 | Generados | Los clubes sin listado se siguen generando con 23. |
@@ -289,7 +308,7 @@ además arma el `.exe` de Windows).
 - **Menús**: si el valor de una opción no entra al lado del nombre, corre
   dentro de su lugar como un cartel.
 
-## Fase 7 — Torneos (en la Liga Master)
+## Fase 7 — Torneos (en la Liga Virtual)
 Las copas se juegan **entre fechas de la liga** (la pantalla de la carrera
 avisa "Copa Libertadores · Octavos de final · ida"). Tu partido lo jugás o
 lo simulás; las fechas en las que tu club no juega se simulan solas.
@@ -388,7 +407,7 @@ avisa a quiénes de tu club convocaron.
   de todas las copas, los títulos de tu club y el récord de goles.
 - En el menú principal dice **MUNDIAL** (sin el año).
 
-## D5 — Liga Master: noticias, historial y palmarés
+## D5 — Liga Virtual: noticias, historial y palmarés
 - **Noticias** (Ver ◀ ▶ en la pantalla de la carrera): lesiones y
   suspensiones de tu plantel, tus pases, los **bombazos** del mercado (los
   tres más caros de cada ventana), campeones de cada división, cómo te fue,
@@ -398,7 +417,7 @@ avisa a quiénes de tu club convocaron.
   descenso y el goleador del club) y los clubes con más títulos de la
   carrera.
 
-## D4 — Liga Master: mercado de pases (puntos WE)
+## D4 — Liga Virtual: mercado de pases (puntos WE)
 - **Mercado de pases** (botón en la pantalla de la carrera y en el resumen
   de fin de temporada). Abre en las **primeras 4 fechas**, en las **4
   alrededor de la mitad** y al **terminar la temporada**; si está cerrado,
@@ -419,7 +438,7 @@ avisa a quiénes de tu club convocaron.
 - **Pases de la temporada**: la lista de todo el país, con los tuyos en
   dorado.
 
-## D3 — Liga Master: Plantel, Dirección y Calendario; escudos propios
+## D3 — Liga Virtual: Plantel, Dirección y Calendario; escudos propios
 - **Plantel y Dirección** (botón en la pantalla de la carrera): la
   formación (◀ ▶) y los 23, con los 11 titulares arriba en el orden de los
   puestos, edad, media, goles y estado (rojo: lesionado o suspendido). X
@@ -437,7 +456,7 @@ avisa a quiénes de tu club convocaron.
   guarda en la carpeta del Option File y se ve en los menús, la elección de
   equipos, las tablas y la previa. Las carreras nuevas lo toman al crearse.
 
-## D2 — Liga Master: el plantel con el paso del tiempo
+## D2 — Liga Virtual: el plantel con el paso del tiempo
 - **Tarjetas y suspensiones**: 5 amarillas = 1 fecha; roja (o doble
   amarilla) = 1 fecha, a veces 2. En tu partido cuentan las que sacó el
   árbitro; en el resto, simuladas (más a los defensores y volantes
@@ -456,8 +475,8 @@ avisa a quiénes de tu club convocaron.
 - El resumen de fin de temporada muestra tu plantel: quiénes se retiraron,
   los juveniles nuevos y los que más crecieron.
 
-## D1 — Liga Master: carrera y temporadas
-- **LIGA MASTER** en el menú: elegís país (los que tienen más de una
+## D1 — Liga Virtual: carrera y temporadas
+- **LIGA VIRTUAL** en el menú: elegís país (los que tienen más de una
   división), tu club y el plantel: **Plantel real** o **Equipo WE**
   (jugadores genéricos con el nombre y la camiseta de tu club; obligatorio
   con un club de primera).
@@ -485,7 +504,7 @@ avisa a quiénes de tu club convocaron.
   **CONTINUAR**.
 
 ## E1 y E2 — Option File, partidas y Editor (PR #31)
-- **Carpeta del jugador** `Documentos/MasterEleven/`: configuración,
+- **Carpeta del jugador** `Documentos/VirtualEleven/`: configuración,
   botones, Option Files, partidas (`saves/ligas`, `saves/copas`,
   `saves/master`), `importar/` y récords. Lo de versiones anteriores se
   mueve solo.
@@ -496,7 +515,7 @@ avisa a quiénes de tu club convocaron.
 - **Partidas separadas**: cada Liga, Copa y Mundial en su archivo;
   **CONTINUAR** (menú principal) las lista con dónde van y activa el Option
   File con el que se crearon.
-- **Editor** (`MasterEleven Editor.exe` o EDITOR en el menú): jugadores
+- **Editor** (`VirtualEleven Editor.exe` o EDITOR en el menú): jugadores
   (uno o varios a la vez, edición masiva), equipos (datos, camisetas en
   texto, orden del plantel, altas, bajas y pases), selecciones
   (convocatorias, nuevas, borradas), ligas (pasar de división, clubes
@@ -539,7 +558,7 @@ Detalle, fuentes y formato del CSV en `docs/BASE_DE_DATOS.md`. Tests en
 
 Detalle por pantalla en `docs/UI_WE2002.md`. Tests en `tests/unit/test_ui1.gd`.
 - **Título**: al abrir el juego, estadio de alambre azul que gira, logo
-  "MASTER ELEVEN" amarillo y rojo, "Press START Button" titilando y
+  "VIRTUAL ELEVEN" amarillo y rojo, "Press START Button" titilando y
   "© 2026 VirtualFutsal". Start / Aceptar pasa al menú (al volver de un
   partido no aparece).
 - **Partido > Tanda de penales**: sólo la definición, en el estadio elegido.
@@ -728,7 +747,7 @@ Tests: `test_backlog_b11.gd` (6).
 | Tema | Cambio |
 |---|---|
 | Tests automáticos | `.github/workflows/ci.yml`: en cada push y PR, GitHub corre los tests de GUT con Godot 4.7.2 sin pantalla (~3 min). Un push nuevo cancela la corrida anterior de la misma rama. |
-| .exe de prueba | El mismo workflow exporta el preset **Windows Desktop** (`export_presets.cfg`): un solo `MasterEleven.exe` con todo adentro. Se baja desde GitHub → *Actions* → la corrida → *Artifacts* (se guarda 30 días). |
+| .exe de prueba | El mismo workflow exporta el preset **Windows Desktop** (`export_presets.cfg`): un solo `VirtualEleven.exe` con todo adentro. Se baja desde GitHub → *Actions* → la corrida → *Artifacts* (se guarda 30 días). |
 | Sesiones en la nube | `.claude/hooks/session-start.sh` instala Godot e importa el proyecto, así Claude corre los tests y saca capturas en cada sesión. |
 | Skills de desarrollo de juegos | 25 skills de `awesome-gamedev-agent-skills` (Apache 2.0) en `.claude/skills/` (Godot 3D, animación, audio, export, shaders, UI, IA, game feel, cámara, rendimiento...). Se activan solas en las sesiones de Claude Code. |
 | Assets en el repo | Mixamo y las texturas ya no están en el `.gitignore`. Los zips/fbx/sonidos se dejan tal cual en `assets/_entrada/` (ver su LEEME) y Claude los procesa. El césped fotográfico pasó de 4K (24 MB) a 2K (1,4 MB). |
@@ -783,7 +802,7 @@ Tests: `test_backlog_b11.gd` (6).
 | B6 Gráficos | Césped mate (rugosidad mínima 0,85 y casi sin especular: no se ve de plástico); túnel con paredes claras y cuatro paneles de luz (ya no es una cueva); vincha de tela mate sin brillo; **la red se infla donde pega la pelota** (según la velocidad) y vuelve oscilando; la pelota gira en las repeticiones (de B1). |
 | B7 Cinemáticas | Calentamiento: en cada mitad dos **rondos 4 contra 1** (la pelota de utilería circula de pie en pie y el del medio la persigue) y **los arqueros en su área atajando** remates (estirada, en el aire o agachado). Presentación: cada equipo en su fila (ya no pasa uno por delante del otro) y **dolly frontal** por los 11 de cada equipo; al llegar a cada jugador aparece su cartel (número, nombre, puesto) y el público responde (señal `player_announced` para el locutor). **Repetición del offside** con la línea del penúltimo defensor sobre el césped; las atajadas en las manos quedan en los highlights; los remates cerca/al palo ya tenían repetición. |
 | B8 UI | **Íconos de los botones** dibujados en el juego (cruz, círculo, cuadrado, triángulo, L1/R1/L2/R2) en las ayudas, la pantalla de equipo, el HUD y la presentación (en los textos: `{X}`, `{SQ}`...). **Dirección del equipo** rediseñada: cancha grande con fichas (número, puesto, apellido) que se deslizan a su lugar al cambiar la formación o hacer un cambio; menú con más aire y estrategias con su combinación de botones; ficha ampliada. **Cambio de controles** (Opciones > Controles): elegís la acción y apretás el botón o la tecla nueva; si otra la usaba se intercambian; Restaurar vuelve a fábrica; se guarda en `user://controls.cfg`. Nombre flotante más chico. **Ficha ampliada**: Ataque, Defensa, Balance, Estamina, Velocidad, Aceleración, Respuesta, Potencia de salto, Precisión de cabeza, Técnica, Precisión de pase, Potencia de remate, Precisión de remate, Gambeta, Curva (+ Fuerza y Arquero), altura cargada y etiquetas Gambeteador, Lanzador de tiros libres, Especialista en penales, Lanzador de córners, Muro defensivo, Atajador de penales y Capitán. Juegan: la potencia cambia la velocidad del remate, la curva la comba, el salto el alcance del cabezazo; los lanzadores patean sus pelotas paradas si no elegiste otro; el especialista en penales y el atajador de penales tienen ventaja en los once metros; el muro entra mejor. La pantalla de entretiempo es de B1. |
-| B9 Escenarios | **Club House tipo predio**: la cancha principal con su alambrado, una mini tribuna con techo frente a la cámara, el edificio de los vestuarios, dos canchas paralelas sin usar (con líneas y arcos), el vallado alto del predio con el nombre del club (o MASTER ELEVEN) y su escudo, árboles frondosos (copas en racimo, tres verdes) y una franja de bosque en el horizonte. **Estadio "Coloso del Sur"** (inventado, `OvalStadiumBuilder`): cuenco ovalado de cuatro bandejas con butacas grises y cancha hundida tras un muro; anillo LED continuo (colores del club, en movimiento) entre la 1.ª y la 2.ª, anillo VIP vidriado con cabinas de TV sobre la tribuna principal, cinta LED en la 3.ª; techo traslúcido tipo PTFE con pasarela arriba y una línea roja en el borde interno, sobre 50 columnas de hormigón en V; pantallas anchas en las cabeceras; bancos embutidos y un único túnel central. Afuera, a nivel de calle: explanada, estacionamiento de 5 pisos con dos puentes al estadio, museo vidriado e instalaciones del club con una cancha auxiliar. Unas 28 mil personas (como Northbridge Park). |
+| B9 Escenarios | **Club House tipo predio**: la cancha principal con su alambrado, una mini tribuna con techo frente a la cámara, el edificio de los vestuarios, dos canchas paralelas sin usar (con líneas y arcos), el vallado alto del predio con el nombre del club (o VIRTUAL ELEVEN) y su escudo, árboles frondosos (copas en racimo, tres verdes) y una franja de bosque en el horizonte. **Estadio "Coloso del Sur"** (inventado, `OvalStadiumBuilder`): cuenco ovalado de cuatro bandejas con butacas grises y cancha hundida tras un muro; anillo LED continuo (colores del club, en movimiento) entre la 1.ª y la 2.ª, anillo VIP vidriado con cabinas de TV sobre la tribuna principal, cinta LED en la 3.ª; techo traslúcido tipo PTFE con pasarela arriba y una línea roja en el borde interno, sobre 50 columnas de hormigón en V; pantallas anchas en las cabeceras; bancos embutidos y un único túnel central. Afuera, a nivel de calle: explanada, estacionamiento de 5 pisos con dos puentes al estadio, museo vidriado e instalaciones del club con una cancha auxiliar. Unas 28 mil personas (como Northbridge Park). |
 
 ---
 
@@ -860,7 +879,7 @@ Modo nuevo desde el menú principal (ENTRENAMIENTO). Detalle de la arquitectura 
 
 | Pantalla | Qué tiene |
 |---|---|
-| Menú principal | Ya no se corta. Barras violetas a la izquierda: Partido, Liga, Copa, Liga Master, Entrenamiento, Editor, Opciones y Salir; las que todavía no existen aparecen apagadas. A la derecha el logo con una pelota (sin marcas) y abajo la caja verde de ayuda que explica la opción elegida. |
+| Menú principal | Ya no se corta. Barras violetas a la izquierda: Partido, Liga, Copa, Liga Virtual, Entrenamiento, Editor, Opciones y Salir; las que todavía no existen aparecen apagadas. A la derecha el logo con una pelota (sin marcas) y abajo la caja verde de ayuda que explica la opción elegida. |
 | Modo | 1 jugador vs CPU, 2 jugadores (si hay mando para el segundo) o CPU vs CPU. |
 | Elección de equipos | Grilla de escudos de los **8 equipos** (6 nuevos, todos inventados: Real Costanera, Unión Pampa, Sporting Bahía, Atlético Cordillera, Club Puerto Viejo, Norteña FC). Arriba, el local y el visitante con escudo y uniforme, y en el medio las barras de ataque, defensa, fuerza, velocidad y técnica. Primero se elige el local, después el visitante; Cuadrado (Z) elige al azar. |
 | Partido ("Match Mode") | Filas con flechas a los costados: horario, clima, viento, césped, duración, nivel de la CPU, offside, estadio y **uniforme** de cada equipo (titular o alternativo; si las camisetas se confunden, el visitante usa la otra). A la derecha, la miniatura del estadio y los dos uniformes. |
@@ -885,7 +904,7 @@ Los equipos y uniformes elegidos se guardan para el próximo partido.
 | Gol: repetición con la ficha del goleador | ✅ Hecho |
 | Presentación de jugadores en la previa con primeros planos | Fase 5, con tu modelo final |
 | Configurar controles (cambiar los botones, por mando) | Fase 8 (pulido) |
-| Liga Master, con **mercado de pases** (lista con puntos y costo, y ficha con barras) | Fase 6 |
+| Liga Virtual, con **mercado de pases** (lista con puntos y costo, y ficha con barras) | Fase 6 |
 | Liga y Copa: más equipos, fase de grupos, penales jugados, dos ruedas desde el menú | Fase 7 |
 | Editor y creación de jugadores (pelo, cara, altura, físico, edad, pie) y de equipos | Más adelante, junto al creador de estadios |
 | Sonido grabado y relato (hoy: sonido generado por código). Referencia que pasaste: https://www.youtube.com/watch?v=GQMqctHarjo | Fase 5 |
@@ -1161,7 +1180,7 @@ Se actualizó el test de la tribuna oculta.
 | Físicos | Normal, gordo, flaco, alto, bajo, fornido y musculoso: escala por hueso, compensando a los hijos, más la altura total. `PlayerData.build` lo fija a mano. Si no, sale de los atributos: arqueros y buenos cabeceadores, altos; con mucha fuerza, fornidos o musculosos; rápidos y livianos, flacos; poca resistencia, a veces gordos. `PlayerData.hair` fija el peinado. |
 
 Los cuatro estadios:
-- **Estadio Master:** el de siempre.
+- **Estadio Virtual:** el de siempre.
 - **Northbridge Park** (estilo inglés):
   - tribunas pegadas a la cancha y esquinas cerradas;
   - techo blanco en voladizo, todo techado;
@@ -1190,7 +1209,7 @@ Los cuatro estadios:
 
 **Pendiente:**
 - Creador de estadios y creador de jugadores (pedido tuyo), después del diseño final del jugador. Ya está la base: estadios como datos (`StadiumStyles`) y aspecto en `PlayerData`.
-- Medir FPS en tu máquina con el Stadio delle Torri: tiene más del doble de butacas y público que el Estadio Master.
+- Medir FPS en tu máquina con el Stadio delle Torri: tiene más del doble de butacas y público que el Estadio Virtual.
 
 ## Ronda WE2002 (4): correcciones de tu prueba
 
@@ -1292,7 +1311,7 @@ mañana / tarde, viento, lluvia, nieve, seco, húmedo."
 | Siempre corren igual / trote rápido / no caminan | La IA se acomoda al paso que pide la distancia (camina cerca, trota a media distancia, corre sólo si quedó lejos o es urgente). Animación: caminar hasta 2,4 m/s, trote hasta 6,6, sprint sólo corriendo de verdad; cadencia ajustada. Inclinación de esfuerzo en el sprint. |
 | Círculo (B) barre, X (A) entra | Defendiendo: X mantenido = presión + entrada; Círculo = barrida; Cuadrado ya no barre. |
 | Triángulo no es pase en profundidad | Pase al hueco con adelanto largo (9-24 m) y que cae **detrás de la última línea** rival. |
-| Visual como ForeverEleven | Carteles LED negros "MASTER ELEVEN." alrededor de la cancha; césped verde natural más apagado y mate; luz de menos contraste, tonemap ACES y oclusión ambiental (Forward+). |
+| Visual como ForeverEleven | Carteles LED negros "VIRTUAL ELEVEN." alrededor de la cancha; césped verde natural más apagado y mate; luz de menos contraste, tonemap ACES y oclusión ambiental (Forward+). |
 
 ### Ronda 5 (segunda tanda de animaciones + movimiento WE2002)
 | Pedido | Cambio |

@@ -62,4 +62,4 @@ func test_club_house_is_a_training_complex() -> void:
 	var plain := ClubHouseBuilder.build(null)
 	add_child_autofree(plain)
 	var l2 := plain.find_child("ClubWall", true, false).find_children("*", "Label3D", true, false)
-	assert_eq((l2[0] as Label3D).text, "MASTER ELEVEN")
+	assert_eq((l2[0] as Label3D).text, "VIRTUAL ELEVEN")

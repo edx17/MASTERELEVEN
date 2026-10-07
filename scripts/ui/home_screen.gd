@@ -19,10 +19,10 @@ extends Control
 ## La tarjeta del próximo partido y "Tu club" salen de la partida más
 ## reciente (la primera de Continuar); "Continuar" la retoma directo y, si
 ## hay más, "Otras partidas" abre la lista. Sin partidas, lo dice y el botón
-## principal empieza una Liga Master.
+## principal empieza una Liga Virtual.
 
 ## Ítems del menú lateral: [clave de la acción, texto].
-const MENU := [["friendly", "Partido amistoso"], ["master", "Liga Master"], ["cup", "Copa"],
+const MENU := [["friendly", "Partido amistoso"], ["master", "Liga Virtual"], ["cup", "Copa"],
 	["editor", "Editar"], ["options", "Opciones"], ["quit", "Salir"]]
 ## Otros modos (abajo del contenido): [acción, título, detalle].
 const OTHER_MODES := [["league", "Liga", "Todos contra todos"], ["world", "Mundial", "48 selecciones"],
@@ -62,7 +62,7 @@ static func featured_match() -> Dictionary:
 	return info
 
 
-## Datos de una partida guardada (Liga Master o Liga / Copa / Mundial), con
+## Datos de una partida guardada (Liga Virtual o Liga / Copa / Mundial), con
 ## los equipos de su Option File.
 static func match_info(file: String) -> Dictionary:
 	var prev := TeamDB.option_file
@@ -72,7 +72,7 @@ static func match_info(file: String) -> Dictionary:
 		if m == null:
 			return {}
 		m.activate()
-		out["mode"] = "Liga Master"
+		out["mode"] = "Liga Virtual"
 		out["user"] = m.user_team()
 		out["season"] = "Temporada %s" % m.year_label()
 		out["competition"] = m.current_comp_name()
@@ -145,7 +145,7 @@ func _build() -> void:
 
 func _header() -> Control:
 	var h := HBoxContainer.new()
-	h.add_child(WEStyle.make_title_label("MASTER ELEVEN", WEStyle.TITLE_L))
+	h.add_child(WEStyle.make_title_label("VIRTUAL ELEVEN", WEStyle.TITLE_L))
 	var gap := Control.new()
 	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(gap)
@@ -278,12 +278,12 @@ func _club_column() -> Control:
 
 
 ## Al abrir el menú: la partida más reciente arma la tarjeta y "Tu club";
-## sin partidas, "Empezar Liga Master".
+## sin partidas, "Empezar Liga Virtual".
 func refresh(_has_saves: bool = true) -> void:
 	featured = featured_match()
 	_fill_match()
 	_fill_club()
-	continue_button.text = "Continuar  ›" if not featured.is_empty() else "Empezar Liga Master  ›"
+	continue_button.text = "Continuar  ›" if not featured.is_empty() else "Empezar Liga Virtual  ›"
 	others_button.visible = int(featured.get("saves", 0)) > 1
 
 
@@ -303,7 +303,7 @@ func _fill_match() -> void:
 	_match_box.add_child(WEStyle.make_caption_label("Tu próximo partido"))
 	if featured.is_empty():
 		_match_box.add_child(WEStyle.make_title_label("SIN PARTIDAS GUARDADAS", WEStyle.TITLE_XL))
-		var l := WEStyle.make_body_label("Empezá una Liga Master, o una liga, copa o Mundial desde Otros modos.",
+		var l := WEStyle.make_body_label("Empezá una Liga Virtual, o una liga, copa o Mundial desde Otros modos.",
 			WEStyle.BODY_L, WEStyle.TEXT_DIM)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_match_box.add_child(l)

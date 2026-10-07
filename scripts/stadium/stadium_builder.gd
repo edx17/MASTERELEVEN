@@ -53,7 +53,7 @@ static func build(home: TeamData, away: TeamData = null, style: Dictionary = {})
 	var text_color := home.secondary_color if home != null else Color.WHITE
 	if text_color.get_luminance() < 0.25 or text_color.is_equal_approx(seat_color):
 		text_color = Color(0.95, 0.95, 0.95)
-	var name := home.team_name.to_upper() if home != null else "MASTER ELEVEN"
+	var name := home.team_name.to_upper() if home != null else "VIRTUAL ELEVEN"
 	crowd_material = ShaderMaterial.new()
 	crowd_material.shader = preload("res://scripts/stadium/crowd.gdshader")
 	var fans := {
@@ -982,7 +982,7 @@ static func _perimeter(root: Node3D, style: Dictionary) -> void:
 			board.position.y = 0.55
 			holder.add_child(board)
 			var text := Label3D.new()
-			text.text = "MASTER ELEVEN."
+			text.text = "VIRTUAL ELEVEN."
 			text.font_size = 96
 			text.pixel_size = 0.0062
 			text.outline_size = 0

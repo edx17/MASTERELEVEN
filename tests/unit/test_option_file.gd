@@ -69,7 +69,7 @@ func test_list_export_and_import() -> void:
 	of.set_nation({"id": "arg", "name": "Argentina 2026", "short": "ARG"})
 	of.save()
 	assert_eq(OptionFile.list().size(), 1)
-	var out := _root.path_join("exportado.meof")
+	var out := _root.path_join("exportado.veof")
 	assert_true(of.export_to(out))
 	var name := OptionFile.import_from(out)
 	assert_eq(name, "Temporada (2)", "no pisa el que ya está")

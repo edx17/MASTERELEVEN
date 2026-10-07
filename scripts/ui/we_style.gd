@@ -254,7 +254,7 @@ static func fade_in(c: Control) -> void:
 ## (InputRouter.events()), sin mover nada de lugar ni tocar el foco.
 ##
 ## Uso en cualquier pantalla:
-##   var foot := WEStyle.HintFooter.new("02  /  Liga Master",
+##   var foot := WEStyle.HintFooter.new("02  /  Liga Virtual",
 ##       [[&"ui_accept", "Aceptar"], [&"ui_cancel", "Volver"], [&"ui_tabs", "Sección"]])
 ##   foot.set_hints(...)  # cuando cambian las acciones disponibles
 ## Acciones: ui_accept, ui_cancel, ui_options, ui_tabs, ui_navigate (ver
@@ -402,7 +402,7 @@ class SectionTabs:
 			add_child(v)
 
 
-## Armazón de las pantallas del rediseño: fondo, encabezado (MASTER ELEVEN y
+## Armazón de las pantallas del rediseño: fondo, encabezado (VIRTUAL ELEVEN y
 ## la miga), título grande con un dato a la derecha, el cuerpo (body) y el pie
 ## de ayuda. Sin título (with_title = false) el cuerpo empieza bajo el encabezado.
 class ScreenFrame:
@@ -437,7 +437,7 @@ class ScreenFrame:
 		margin.add_child(col)
 		# Encabezado (como el menú principal).
 		var head := HBoxContainer.new()
-		head.add_child(WEStyle.make_title_label("MASTER ELEVEN", WEStyle.TITLE_L))
+		head.add_child(WEStyle.make_title_label("VIRTUAL ELEVEN", WEStyle.TITLE_L))
 		head.add_child(WEStyle.make_gap())
 		crumb = WEStyle.make_body_label("", WEStyle.BODY_L, WEStyle.TEXT_DIM)
 		crumb.size_flags_vertical = Control.SIZE_SHRINK_CENTER

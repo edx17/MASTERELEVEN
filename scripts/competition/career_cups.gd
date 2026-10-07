@@ -1,6 +1,6 @@
 class_name CareerCups
 extends RefCounted
-## Copas de la Liga Master: qué se juega en cada país y confederación, con qué
+## Copas de la Liga Virtual: qué se juega en cada país y confederación, con qué
 ## formato y quién clasifica (todo con los resultados de la temporada
 ## anterior de la carrera; en la primera, por nivel).
 ##   - Copa nacional con entrada escalonada (los de abajo arrancan antes).
@@ -459,7 +459,7 @@ static func youth_comp(id: String, paths: Array[String], user: int, seed: int) -
 	return c
 
 
-## Torneos juveniles de una temporada de la Liga Master para un club de
+## Torneos juveniles de una temporada de la Liga Virtual para un club de
 ## `country` (el Mundial Sub-20, los años impares).
 static func youth_ids(country: String, year: int) -> Array:
 	var out: Array = []

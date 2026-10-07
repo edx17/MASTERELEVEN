@@ -1,4 +1,4 @@
-# Física del juego — Master Eleven
+# Física del juego — Virtual Eleven
 
 Referencia: *Informe Técnico: Física Realista en un Juego de Fútbol* (aportado
 por el equipo). Este documento registra qué se adoptó, con qué valores, dónde
@@ -31,7 +31,7 @@ gameplay WE2002**; cuando ambos chocan, gana la jugabilidad.
 | Colisión pie-pelota por impulso elástico | En WE el pateo es una acción con dirección y potencia, no un choque físico; se mantiene `KickActions` (dirección + potencia + atributos + error). | — |
 | Esqueletos articulados, ragdoll, cinemática inversa | Requiere modelos animados. | Fase 5 (presentación) |
 | Masa de jugadores y empujones por fuerza | Hoy hay separación suave sin masa; el choque con `strength` entra con las faltas. | Fase 4 |
-| Lesiones probabilísticas | Depende de faltas/choques. | Fase 4 / Liga Master |
+| Lesiones probabilísticas | Depende de faltas/choques. | Fase 4 / Liga Virtual |
 | Árbitro con cono de visión (~120°, ~20 m), sesgo local y errores (10-20 % de faltas no vistas); faltas, tiros libres, penales, amarillas y rojas | Es el módulo de reglas. | Fase 4 |
 | Densidad del aire por altitud/clima | Parámetro ya expuesto (`air_density`); el clima llega con estadios/ligas. | Fase 5-6 |
 | Transferencia de spin en el pique, rozamiento balón-bota | Poco impacto en jugabilidad frente a su costo. | Si hace falta |

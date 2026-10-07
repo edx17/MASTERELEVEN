@@ -1,6 +1,6 @@
 extends Control
-## Editor de Master Eleven (E2): Jugadores, Equipos e Importar. Se abre como
-## programa aparte ("MasterEleven Editor.exe") o desde el menú del juego
+## Editor de Virtual Eleven (E2): Jugadores, Equipos e Importar. Se abre como
+## programa aparte ("VirtualEleven Editor.exe") o desde el menú del juego
 ## (EDITOR). Todo se guarda en el Option File elegido arriba; la base del
 ## juego no se toca.
 ##
@@ -135,7 +135,7 @@ func _top_bar() -> Control:
 	var bar := HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 10)
 	var title := Label.new()
-	title.text = "MASTER ELEVEN · EDITOR"
+	title.text = "VIRTUAL ELEVEN · EDITOR"
 	title.add_theme_font_size_override("font_size", 20)
 	title.add_theme_color_override("font_color", Color(1.0, 0.86, 0.3))
 	bar.add_child(title)
@@ -697,7 +697,7 @@ func _teams_tab() -> Control:
 	for t in ["Primera", "Sub-20 (inferiores)"]:
 		_t_squad.add_item(t)
 	_t_squad.custom_minimum_size.x = 200
-	_t_squad.tooltip_text = "Las inferiores: juegan los torneos Sub-20 y suben a primera en la Liga Master"
+	_t_squad.tooltip_text = "Las inferiores: juegan los torneos Sub-20 y suben a primera en la Liga Virtual"
 	_t_squad.item_selected.connect(func(_i: int) -> void:
 		if _t_current != "":
 			_show_team(_t_current))
@@ -1071,14 +1071,14 @@ func _leagues_tab() -> Control:
 	_l_divs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_l_divs.item_selected.connect(func(_i: int) -> void: _refresh_clubs())
 	c1.add_child(_l_divs)
-	# Liga Master: cuántos bajan de esta división (y suben de la de abajo).
+	# Liga Virtual: cuántos bajan de esta división (y suben de la de abajo).
 	var rel := HBoxContainer.new()
 	c1.add_child(rel)
 	rel.add_child(_lbl("Bajan a la de abajo:"))
 	_l_down = SpinBox.new()
 	_l_down.min_value = 0
 	_l_down.max_value = 8
-	_l_down.tooltip_text = "Liga Master: cuántos descienden de esta división y cuántos ascienden de la de abajo."
+	_l_down.tooltip_text = "Liga Virtual: cuántos descienden de esta división y cuántos ascienden de la de abajo."
 	_l_down.value_changed.connect(func(v: float) -> void:
 		var ids := _division_sel()
 		if _l_down_updating or ids.is_empty():

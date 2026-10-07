@@ -379,7 +379,7 @@ func _build_world() -> void:
 			team.players.append(p)
 			team.roster.append(p)
 		# Suplentes: los que siguen en la lista, hasta completar 23 (los
-		# planteles de la Liga Master pueden tener hasta 30; se crean al entrar).
+		# planteles de la Liga Virtual pueden tener hasta 30; se crean al entrar).
 		for n in range(starters.size(), mini(d.players.size(), 23)):
 			team.bench.append(d.players[n])
 
@@ -2592,7 +2592,7 @@ func resolve_contact(defender: Footballer, carrier: Footballer, carrier_loses: b
 		carrier.touch_block = tuning.lost_ball_cooldown
 
 
-## Tarjetas y lesiones del partido para la Liga Master
+## Tarjetas y lesiones del partido para la Liga Virtual
 ## (GameSettings.last_events: [lado, pid, "y" amarilla / "r" roja / "i1"
 ## golpe / "i2" lesión]).
 func _log_event(p: Footballer, kind: String) -> void:

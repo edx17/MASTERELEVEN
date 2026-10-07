@@ -3,7 +3,7 @@ extends RefCounted
 ## Option File (como en el PES): los cambios del jugador sobre la base del
 ## juego (data/db). La base no se toca nunca; el Option File activo se
 ## aplica encima al cargar (TeamDB). Se guarda como JSON legible en
-## Documentos/MasterEleven/optionfiles/<nombre>.meof y se puede copiar a
+## Documentos/VirtualEleven/optionfiles/<nombre>.veof y se puede copiar a
 ## otra PC o compartir.
 ##
 ## Contenido (todo opcional):
@@ -11,7 +11,7 @@ extends RefCounted
 ##   clubs:     {"pais:id": entrada completa}  clubes editados o nuevos
 ##   divisions: {"pais:division": [ids]}       qué clubes juegan cada división
 ##   deleted_nations: [ids]                    selecciones borradas
-##   rules:     {"pais:division": {"down": n}}  cuántos bajan (Liga Master)
+##   rules:     {"pais:division": {"down": n}}  cuántos bajan (Liga Virtual)
 ##   cups:      [{id, name, format, teams}]    copas propias (format "knockout"
 ##              o "league"; teams = rutas de TeamDB)
 ##   countries: {id: {id, name, nationality, names, skin}}  países nuevos
@@ -22,9 +22,12 @@ extends RefCounted
 ##   free_agents: [jugadores]                 libres (sin club) importados
 ## Las entradas tienen el mismo formato que data/db (ver docs/BASE_DE_DATOS.md).
 
-const FORMAT := "MasterEleven OptionFile"
+const FORMAT := "VirtualEleven OptionFile"
+## Los de cuando el juego se llamaba Master Eleven se siguen leyendo.
+const OLD_FORMATS := ["MasterEleven OptionFile"]
 const VERSION := 1
-const EXT := "meof"
+const EXT := "veof"
+const OLD_EXT := "meof"
 
 var name := "Mi Option File"
 var created := ""
@@ -63,7 +66,7 @@ static func list() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for f in UserData.files_in(UserData.optionfiles_dir(), EXT):
 		var d: Variant = UserData.read_json(f)
-		if d is Dictionary and d.get("format", "") == FORMAT:
+		if is_format(d):
 			out.append({"name": d.get("name", f.get_file().get_basename()), "file": f, "updated": d.get("updated", ""),
 				"clubs": (d.get("clubs", {}) as Dictionary).size(), "nations": (d.get("nations", {}) as Dictionary).size()})
 	return out
@@ -71,9 +74,14 @@ static func list() -> Array[Dictionary]:
 
 static func load_file(file: String) -> OptionFile:
 	var d: Variant = UserData.read_json(file)
-	if not d is Dictionary or d.get("format", "") != FORMAT:
+	if not is_format(d):
 		return null
 	return from_dict(d)
+
+
+## ¿Es un Option File (de este nombre del juego o del anterior)?
+static func is_format(d: Variant) -> bool:
+	return d is Dictionary and (d.get("format", "") == FORMAT or OLD_FORMATS.has(d.get("format", "")))
 
 
 static func load_named(of_name: String) -> OptionFile:

@@ -24,7 +24,7 @@ extends RefCounted
 
 const STYLES := [
 	{
-		"name": "Estadio Master",
+		"name": "Estadio Virtual",
 		"gap": 7.0, "wall": 5.0,
 		"stands": {"North": [26, 20], "West": [22, 16], "East": [22, 16], "South": [18]},
 		"corners": [],

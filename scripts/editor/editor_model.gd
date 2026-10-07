@@ -437,7 +437,7 @@ func remove_club(country_id: String, division_id: String, club_id: String) -> vo
 
 
 ## Cuántos clubes bajan de esa división a la de abajo (y suben de la de
-## abajo) en la Liga Master.
+## abajo) en la Liga Virtual.
 func set_relegation(country_id: String, division_id: String, n: int) -> void:
 	_snapshot()
 	option_file.set_relegation(country_id, division_id, n)

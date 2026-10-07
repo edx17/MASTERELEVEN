@@ -1,11 +1,11 @@
-# Editor de Master Eleven
+# Editor de Virtual Eleven
 
-Programa aparte: **MasterEleven Editor.exe** (sale junto al juego en cada
+Programa aparte: **VirtualEleven Editor.exe** (sale junto al juego en cada
 build). También se abre desde el juego: menú principal → **EDITOR** (con
 "Volver al juego" arriba).
 
 Todo lo que cambiás va al **Option File** elegido arriba (se guarda en
-`Documentos/MasterEleven/optionfiles/`). La base del juego no se toca: con
+`Documentos/VirtualEleven/optionfiles/`). La base del juego no se toca: con
 "VOLVER A LA BASE" (OPCIONES → DATOS) o eligiendo otro Option File vuelve
 todo como estaba.
 
@@ -60,7 +60,7 @@ todo como estaba.
   liga**, **Agregar club** nuevo (plantel generado según la división) y
   "Editar equipo" (lo abre en la pestaña Equipos).
 - **Bajan a la de abajo**: cuántos clubes descienden de esa división (y
-  ascienden de la de abajo) en la Liga Master. Si no se toca: 3 en
+  ascienden de la de abajo) en la Liga Virtual. Si no se toca: 3 en
   Inglaterra y 2 en el resto.
 
 ## Copas
@@ -78,7 +78,7 @@ todo como estaba.
 - **Vista 3D** del jugador con la camiseta (gira sola; botones Frente /
   Espalda).
 - **Plantilla PNG** para pintarla a mano: "Exportar plantilla" guarda el PNG
-  con los colores actuales en `Documentos/MasterEleven/plantillas/` y abre la
+  con los colores actuales en `Documentos/VirtualEleven/plantillas/` y abre la
   carpeta; lo pintás con cualquier programa (Paint, GIMP, Photoshop) **sin
   mover las piezas** (torso, mangas, short, medias: ver `docs/KIT_UV.md`),
   lo guardás con el mismo nombre y apretás "Importar plantilla". El juego

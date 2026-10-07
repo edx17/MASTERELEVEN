@@ -1,5 +1,5 @@
 extends GutTest
-## Liga Master (D1): carrera, temporada, goleadores, ascensos y descensos.
+## Liga Virtual (D1): carrera, temporada, goleadores, ascensos y descensos.
 
 var _root := ""
 

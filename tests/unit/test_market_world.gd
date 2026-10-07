@@ -1,5 +1,5 @@
 extends GutTest
-## Mercado de la Liga Master con las ligas de los otros países.
+## Mercado de la Liga Virtual con las ligas de los otros países.
 
 
 func after_each() -> void:

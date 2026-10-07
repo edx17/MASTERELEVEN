@@ -69,7 +69,7 @@ sobran se ignoran; separador `,` o `;`):
 
 ### Cómo se importa (desde el juego)
 1. **OPCIONES → DATOS → ABRIR CARPETA DE IMPORTAR** (abre
-   `Documentos/MasterEleven/importar/` en el Explorador).
+   `Documentos/VirtualEleven/importar/` en el Explorador).
 2. Copiá ahí tus CSV.
 3. **IMPORTAR PLANTELES**: muestra el resumen (jugadores, clubes,
    selecciones y los clubes que no encontró) y guarda todo en el **Option
@@ -122,15 +122,15 @@ Qué hace con cada cosa:
 - Scrapers de ejemplo (SoloAscenso, Transfermarkt): `tools/scrapers/`.
 
 ## Option File y carpeta del juego
-Todo lo del jugador va en `Documentos/MasterEleven/`:
+Todo lo del jugador va en `Documentos/VirtualEleven/`:
 
 | Qué | Dónde |
 |---|---|
 | Configuración y botones | `config.cfg`, `controles.cfg` |
-| Option Files (tus cambios sobre la base) | `optionfiles/*.meof` |
+| Option Files (tus cambios sobre la base) | `optionfiles/*.veof` (los `.meof` de Master Eleven se renombran solos) |
 | Ligas en curso | `saves/ligas/` (un archivo cada una) |
 | Copas y Mundiales en curso | `saves/copas/` |
-| Liga Master (próximamente) | `saves/master/` |
+| Liga Virtual (próximamente) | `saves/master/` |
 | CSV para importar | `importar/` |
 | Récords del entrenamiento y estrategias guardadas | `records.json`, `planes.cfg` |
 
@@ -138,7 +138,7 @@ Todo lo del jugador va en `Documentos/MasterEleven/`:
   editados o nuevos, qué clubes juegan cada división y selecciones
   borradas. Se elige en OPCIONES → DATOS ("Option File activo"); "VOLVER A
   LA BASE" deja de usarlo sin borrarlo. Para pasarlo a otra PC, copiá el
-  `.meof` a la carpeta `optionfiles` (aparece solo en la lista).
+  `.veof` a la carpeta `optionfiles` (aparece solo en la lista).
 - **CONTINUAR** (menú principal) lista las Ligas, Copas y Mundiales
   guardados con dónde van ("Fecha 7 de 29", "Cuartos de final"); al seguir
   una, se activa el Option File con el que se creó.

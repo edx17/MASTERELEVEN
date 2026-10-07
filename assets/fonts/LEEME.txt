@@ -1,4 +1,4 @@
-Fuentes para Master Eleven (licencia OFL, uso libre)
+Fuentes para Virtual Eleven (licencia OFL, uso libre)
 
 Instalación en Godot 4:
 1. Copiar los .ttf a res://assets/fonts/ (o la carpeta de fuentes del proyecto).

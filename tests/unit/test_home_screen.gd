@@ -24,7 +24,7 @@ func _home() -> HomeScreen:
 func test_side_menu_order_and_initial_focus() -> void:
 	var h := _home()
 	var names: Array = h.menu_items.map(func(b: Button) -> String: return b.text)
-	assert_eq(names, ["Partido amistoso", "Liga Master", "Copa", "Editar", "Opciones", "Salir"])
+	assert_eq(names, ["Partido amistoso", "Liga Virtual", "Copa", "Editar", "Opciones", "Salir"])
 	assert_eq(get_viewport().gui_get_focus_owner(), h.menu_items[0], "foco inicial en el primer ítem")
 	assert_almost_eq(h.menu_items[0].custom_minimum_size.y, WEStyle.px(72), 0.01)
 	assert_almost_eq(h.menu_items[0].custom_minimum_size.x, WEStyle.px(420), 0.01)
@@ -79,7 +79,7 @@ func test_featured_match_comes_from_the_save() -> void:
 	m.save()
 	var info := HomeScreen.match_info(m.file)
 	assert_false(info.is_empty())
-	assert_eq(info["mode"], "Liga Master")
+	assert_eq(info["mode"], "Liga Virtual")
 	assert_eq((info["user"] as TeamData).team_name, m.user_team().team_name)
 	var g := m.user_match()
 	var comp := m.current_comp()

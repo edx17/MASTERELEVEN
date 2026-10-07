@@ -1,12 +1,12 @@
 # Referencia de jugabilidad: Winning Eleven (PS1, WE3 a WE2002)
 
-Resumen del análisis que pasaste, cruzado con lo que tiene MASTER ELEVEN. Sirve de guía para decidir qué sigue; se actualiza a medida que avanzamos.
+Resumen del análisis que pasaste, cruzado con lo que tiene VIRTUAL ELEVEN. Sirve de guía para decidir qué sigue; se actualiza a medida que avanzamos.
 
 Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **Fase N** (va con esa fase del plan de `Claude.md`).
 
 ## 1. Movimiento, pelota e inercia
 
-| Mecánica del WE | Estado | En MASTER ELEVEN |
+| Mecánica del WE | Estado | En VIRTUAL ELEVEN |
 |---|---|---|
 | Pelota independiente del pie, con peso; con R1 se adelanta y te la anticipan | Hecho | Conducción por toques con física libre; corriendo, los toques son más largos. |
 | 8 direcciones, recortes de 45/90° | Hecho | 8, 16 o libre (pausa). Cortes secos al cambiar mucho de dirección. |
@@ -18,7 +18,7 @@ Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **F
 
 ## 2. Pases, centros y paredes
 
-| Mecánica del WE | Estado | En MASTER ELEVEN |
+| Mecánica del WE | Estado | En VIRTUAL ELEVEN |
 |---|---|---|
 | X: pase al pie rápido | Hecho | |
 | Triángulo: pase al hueco según la velocidad del que pica | Hecho | |
@@ -30,7 +30,7 @@ Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **F
 
 ## 3. Remates
 
-| Mecánica del WE | Estado | En MASTER ELEVEN |
+| Mecánica del WE | Estado | En VIRTUAL ELEVEN |
 |---|---|---|
 | Barra de potencia: poco = a las manos; mitad = misil; mucho = a la tribuna | Hecho | |
 | Doble Cuadrado: rasante | Hecho | |
@@ -43,7 +43,7 @@ Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **F
 
 ## 4. Arquero
 
-| Mecánica del WE | Estado | En MASTER ELEVEN |
+| Mecánica del WE | Estado | En VIRTUAL ELEVEN |
 |---|---|---|
 | Reflejos bajo los palos; atajada decidida por la trayectoria | Hecho | Modelo de atajada al remate; reacciona, se acomoda y se tira tarde. |
 | Triángulo: sale a achicar; corriendo reacciona peor (la vaselina entra) | Hecho | Esta ronda: hasta +0,2 s de reacción en plena carrera. |
@@ -54,7 +54,7 @@ Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **F
 
 ## 5. Defensa y árbitro
 
-| Mecánica del WE | Estado | En MASTER ELEVEN |
+| Mecánica del WE | Estado | En VIRTUAL ELEVEN |
 |---|---|---|
 | Cuadrado mantenido: un compañero presiona (2 contra 1) | Hecho | |
 | X mantenido: presión "teledirigida" (desarma la línea) | Hecho | |
@@ -65,7 +65,7 @@ Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **F
 
 ## 6. Físico y habilidades
 
-| Mecánica del WE | Estado | En MASTER ELEVEN |
+| Mecánica del WE | Estado | En VIRTUAL ELEVEN |
 |---|---|---|
 | Altura: los altos ganan los centros | Hecho | Esta ronda: los altos alcanzan más alto y ganan el duelo entre parejos. |
 | Centro de gravedad: los bajos giran más cerrado | Hecho | Esta ronda: agilidad por físico. |
@@ -76,12 +76,12 @@ Estados: **Hecho** · **Parcial** (existe, falta afinar) · **Pendiente** · **F
 
 ## 7. Plantel, condición y fatiga
 
-| Mecánica del WE | Estado | En MASTER ELEVEN |
+| Mecánica del WE | Estado | En VIRTUAL ELEVEN |
 |---|---|---|
 | Barra de energía; R1 la vacía; fundido llega tarde y patea mordido | Hecho | Energía de corto plazo y penalización de precisión, más cansancio acumulado: el tope de energía baja con los minutos y el sprint (en el HUD, la parte oscura de la barra). El entretiempo recupera el 30 %. |
 | Cambios: 3 por partido desde el banco | Hecho | Pausa → Cambios (Sale / Entra / Confirmar). La CPU cambia a los cansados desde el minuto 55. |
 | Arquero expulsado | Hecho | Entra el arquero suplente por un jugador de campo; sin cambios, va al arco un defensor con ropa de arquero y su número. |
-| Flechas de condición (roja a gris) | Hecho | 5 estados por partido (±6 / ±3 a los atributos). En la Liga Master dependerán de la forma. |
+| Flechas de condición (roja a gris) | Hecho | 5 estados por partido (±6 / ±3 a los atributos). En la Liga Virtual dependerán de la forma. |
 | Táctica libre en la pizarra y flechas de actitud por jugador | Pendiente | Hoy hay 5 formaciones; editor libre más adelante. |
 | Estrategias con L2 + botón | Hecho | Presión, contraataque, trampa del offside, por las bandas, todos al ataque, todos atrás. |
 | Lista de 23 con Puesto / Energía / Condición (L1 / R1) | Hecho | Dirección del equipo, en la pausa y en la previa. |

@@ -1,11 +1,11 @@
-MASTER ELEVEN - versión portable para Windows
+VIRTUAL ELEVEN - versión portable para Windows
 =============================================
 
 1. Descomprimí la carpeta donde quieras (no hace falta instalar nada).
-2. MasterEleven.exe: el juego.
-   MasterEleven Editor.exe: el editor de jugadores, equipos, ligas y camisetas.
+2. VirtualEleven.exe: el juego.
+   VirtualEleven Editor.exe: el editor de jugadores, equipos, ligas y camisetas.
 3. Tus datos (partidas, Option Files, planteles importados, escudos y
-   camisetas) se guardan en Documentos\MasterEleven. Para actualizar el
+   camisetas) se guardan en Documentos\VirtualEleven. Para actualizar el
    juego reemplazá esta carpeta: tus datos no se tocan.
 
 Opciones > Gráficos: si va lento, bajá las sombras, la escala de render o el

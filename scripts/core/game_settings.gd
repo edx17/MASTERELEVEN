@@ -190,11 +190,11 @@ var training_challenge: int = 0
 var human_side: int = 0
 var last_result: Array = []
 ## Goles del partido jugado: [[lado (0 local / 1 visitante), pid del autor
-## (0 si no se sabe o fue en contra)]]. Lo usa la Liga Master.
+## (0 si no se sabe o fue en contra)]]. Lo usa la Liga Virtual.
 var last_scorers: Array = []
 ## Tarjetas y lesiones del partido jugado: [[lado, pid, "y" | "r" | "i1" | "i2"]].
 var last_events: Array = []
-## Partido de la Liga Master en curso (active_save es la carrera).
+## Partido de la Liga Virtual en curso (active_save es la carrera).
 var master_match := false
 ## Rótulo del marcador del HUD (competición y fecha, o "Amistoso"). No se guarda.
 var match_label := ""
@@ -242,7 +242,7 @@ func _ready() -> void:
 	# editor_app) o con `-- --editor`.
 	if OS.has_feature("editor_app") or "--editor" in OS.get_cmdline_user_args():
 		get_tree().change_scene_to_file.call_deferred(EDITOR_SCENE)
-		get_window().title = "Master Eleven · Editor"
+		get_window().title = "Virtual Eleven · Editor"
 
 
 ## Corre un test, una captura, la hoja de poses o la prueba de rendimiento

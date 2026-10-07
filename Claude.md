@@ -1,4 +1,4 @@
-# PROYECTO "MASTER ELEVEN": sucesor espiritual moderno de Winning Eleven 2002 — Liga Master
+# PROYECTO "VIRTUAL ELEVEN": sucesor espiritual moderno de Winning Eleven 2002 — Liga Virtual
 
 ## Visión
 Juego de fútbol 3D para PC que toma el **gameplay y la lógica de Winning Eleven
@@ -14,7 +14,7 @@ jugadores relativamente simples, pero una lógica de partido que conserva WE2002
 
 **El gameplay es el producto. Los gráficos son el envoltorio.**
 
-El objetivo final sigue siendo el modo **Liga Master** (carrera de club con
+El objetivo final sigue siendo el modo **Liga Virtual** (carrera de club con
 ascensos, descensos, transferencias, torneos internacionales y Mundial), pero
 recién después de que el partido se sienta bien.
 
@@ -149,7 +149,7 @@ docs/      PROGRESS.md (estado), FISICA.md, REFERENCIA_WE.md, ENTRENAMIENTO.md
 ```
 
 ## Herramientas
-- **CI** (`.github/workflows/ci.yml`): tests de GUT y `MasterEleven.exe` de
+- **CI** (`.github/workflows/ci.yml`): tests de GUT y `VirtualEleven.exe` de
   Windows (preset de `export_presets.cfg`) en cada push; el .exe se baja de
   *Actions → Artifacts*.
 - **Sesiones de Claude en la nube**: `.claude/hooks/session-start.sh` instala
@@ -237,7 +237,7 @@ Criterio: capturas lado a lado con la referencia y 60 FPS con 22 jugadores.
   desde el córner.
 - Esqueletos con física (ragdoll en caídas, cinemática inversa al patear).
 
-### Fase 6 — Liga Master
+### Fase 6 — Liga Virtual
 - Base de datos con nombres reales (máximo 23 jugadores por plantel; Paso
   C, ver `docs/BASE_DE_DATOS.md`):
   - Selecciones (con bandera, 59): las 48 del Mundial 2026 (42 clasificadas
@@ -251,7 +251,7 @@ Criterio: capturas lado a lado con la referencia y 60 FPS con 22 jugadores.
     Portugal), Alemania (Bundesliga, 2. Bundesliga), Países Bajos
     (Eredivisie), México (Liga MX), Argentina (LPF, Primera Nacional,
     Primera B, Primera C), Brasil (Brasileirão). Sin Promocional Amateur.
-- Inicio de la Liga Master: siempre en 2.ª división; en Argentina e
+- Inicio de la Liga Virtual: siempre en 2.ª división; en Argentina e
   Inglaterra, en la más baja (Primera C / League Two). Los
   países con una sola división no son elegibles. Siempre se elige entre
   **Equipo WE** (plantel genérico) o **Club real** (el plantel del club
@@ -282,7 +282,7 @@ Criterio: capturas lado a lado con la referencia y 60 FPS con 22 jugadores.
 - Copa nacional (eliminación directa).
 - Copa continental de clubes (grupos + eliminatorias) para los mejor ubicados.
 - Mundial de selecciones cada 4 temporadas (clasificación, grupos,
-  eliminatorias), con convocatoria de jugadores de la Liga Master.
+  eliminatorias), con convocatoria de jugadores de la Liga Virtual.
 - Historial: campeones, palmarés del club, récords.
 
 ### Al final — Editores (externos si hace falta)
@@ -310,7 +310,7 @@ Criterio: capturas lado a lado con la referencia y 60 FPS con 22 jugadores.
    silenciosos.
 4. Priorizá que se sienta bien jugar por encima de agregar features. Evitar la
    trampa de "menú precioso y 700 archivos sin poder dar un pase de 5 metros".
-5. Código modular y comentado; la lógica de Liga Master desacoplada del motor
+5. Código modular y comentado; la lógica de Liga Virtual desacoplada del motor
    de partido para poder testearla sola.
 6. Si una decisión técnica es grande (arquitectura, librerías, formato de
    datos), consultame antes.

@@ -33,7 +33,7 @@ var _home: HomeScreen
 var _custom_cup: Dictionary = {}
 var _cups_col: VBoxContainer
 var _continue_col: VBoxContainer
-# Liga Master
+# Liga Virtual
 var _master_hub: MasterHub
 var _master_col: VBoxContainer
 var _master_squad_col: VBoxContainer
@@ -120,7 +120,7 @@ func _ready() -> void:
 				c.save()
 			GameSettings.last_result = []
 			show_page("hub")
-	# Volviendo de un partido de la Liga Master.
+	# Volviendo de un partido de la Liga Virtual.
 	if GameSettings.master_match:
 		GameSettings.master_match = false
 		var m := MasterCareer.load_saved(GameSettings.active_save)
@@ -591,7 +591,7 @@ func _build_cups_list() -> void:
 # --- Continuar ------------------------------------------------------------------------
 
 func _build_continue() -> void:
-	var p := _page("continue", "CONTINUAR", "PARTIDAS GUARDADAS", "Ligas, copas, Mundial y Liga Master")
+	var p := _page("continue", "CONTINUAR", "PARTIDAS GUARDADAS", "Ligas, copas, Mundial y Liga Virtual")
 	_continue_col = _column(p)
 
 
@@ -724,7 +724,7 @@ func _on_competition_match(home: String, away: String, side: int) -> void:
 	show_page("setup")
 
 
-## Jugar el partido de la fecha de la Liga Master.
+## Jugar el partido de la fecha de la Liga Virtual.
 func _on_master_match(home: String, away: String, side: int) -> void:
 	_on_competition_match(home, away, side)
 	GameSettings.competition_match = false
@@ -763,12 +763,12 @@ func _on_teams_chosen(home: String, away: String) -> void:
 	show_page("setup")
 
 
-# --- Liga Master --------------------------------------------------------------------
+# --- Liga Virtual --------------------------------------------------------------------
 
 func _build_master() -> void:
-	var p := _page("master", "CARRERA NUEVA", "LIGA MASTER  /  PAÍS", "Elegí el país y después tu club")
+	var p := _page("master", "CARRERA NUEVA", "LIGA VIRTUAL  /  PAÍS", "Elegí el país y después tu club")
 	_master_col = _column(p)
-	var q := _page("master_squad", "TU PLANTEL", "LIGA MASTER  /  PLANTEL")
+	var q := _page("master_squad", "TU PLANTEL", "LIGA VIRTUAL  /  PLANTEL")
 	_master_info = WEStyle.make_body_label("", WEStyle.BODY_L)
 	_master_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_master_info.custom_minimum_size.x = WEStyle.px(880)
@@ -1020,9 +1020,9 @@ func _build_data() -> void:
 		_import_squads, true, 760.0)
 	_item(col, "Abrir la carpeta de importar", "Abre la carpeta donde dejás los CSV de planteles.",
 		func() -> void: UserData.open_folder(UserData.import_dir()), true, 760.0)
-	_item(col, "Abrir la carpeta de Option Files", "Para copiar un Option File (.meof) de otra PC o pasarle el tuyo a alguien: aparecen solos en la lista.",
+	_item(col, "Abrir la carpeta de Option Files", "Para copiar un Option File (.veof) de otra PC o pasarle el tuyo a alguien: aparecen solos en la lista.",
 		func() -> void: UserData.open_folder(UserData.optionfiles_dir()), true, 760.0)
-	_item(col, "Abrir la carpeta del juego", "Documentos/MasterEleven: configuración, Option Files, partidas guardadas e importar.",
+	_item(col, "Abrir la carpeta del juego", "Documentos/VirtualEleven: configuración, Option Files, partidas guardadas e importar.",
 		func() -> void: UserData.open_folder(UserData.root()), true, 760.0)
 	_item(col, "Volver a la base", "Deja de usar el Option File (no lo borra: lo podés volver a elegir).",
 		func() -> void: _set_option_file(""), true, 760.0)
@@ -1113,7 +1113,7 @@ class Logo:
 			pts2.append(c + Vector2(cos(b), sin(b)) * r * 0.22)
 		draw_colored_polygon(pts2, Color(0.2, 0.2, 0.42))
 		draw_arc(c, r, 0, TAU, 64, Color(0.4, 0.4, 0.8), 3.0)
-		var title := "MASTER ELEVEN"
+		var title := "VIRTUAL ELEVEN"
 		draw_string_outline(font, Vector2(0, 54), title, HORIZONTAL_ALIGNMENT_CENTER, size.x, 50, 10, Color(0.1, 0.1, 0.35))
 		draw_string(font, Vector2(0, 54), title, HORIZONTAL_ALIGNMENT_CENTER, size.x, 50, Color(1.0, 0.88, 0.3))
 		draw_string(font, Vector2(0, size.y - 10), "fútbol de los de antes", HORIZONTAL_ALIGNMENT_CENTER, size.x, 22, Color(0.8, 0.85, 1.0))
@@ -1191,12 +1191,12 @@ class TitleScreen:
 			var lo := Vector3(signf(c) * pow(absf(c), 0.6) * (hl + 8.0), 2.0, signf(sn) * pow(absf(sn), 0.6) * (hw + 8.0))
 			var hi := Vector3(signf(c) * pow(absf(c), 0.6) * (hl + 36.0), 22.0, signf(sn) * pow(absf(sn), 0.6) * (hw + 36.0))
 			_line(lo, hi, dim)
-		# Logo: "MASTER" amarillo y "ELEVEN" rojo, con borde oscuro.
+		# Logo: "VIRTUAL" amarillo y "ELEVEN" rojo, con borde oscuro.
 		var font := get_theme_default_font()
 		var cx := size.x * 0.5
 		var y0 := size.y * 0.24
-		draw_string_outline(font, Vector2(0, y0), "MASTER", HORIZONTAL_ALIGNMENT_CENTER, size.x, 96, 18, Color(0.02, 0.02, 0.12))
-		draw_string(font, Vector2(0, y0), "MASTER", HORIZONTAL_ALIGNMENT_CENTER, size.x, 96, Color(1.0, 0.86, 0.15))
+		draw_string_outline(font, Vector2(0, y0), "VIRTUAL", HORIZONTAL_ALIGNMENT_CENTER, size.x, 96, 18, Color(0.02, 0.02, 0.12))
+		draw_string(font, Vector2(0, y0), "VIRTUAL", HORIZONTAL_ALIGNMENT_CENTER, size.x, 96, Color(1.0, 0.86, 0.15))
 		draw_string_outline(font, Vector2(0, y0 + 96), "ELEVEN", HORIZONTAL_ALIGNMENT_CENTER, size.x, 96, 18, Color(0.02, 0.02, 0.12))
 		draw_string(font, Vector2(0, y0 + 96), "ELEVEN", HORIZONTAL_ALIGNMENT_CENTER, size.x, 96, Color(0.92, 0.12, 0.12))
 		draw_line(Vector2(cx - 260, y0 + 120), Vector2(cx + 260, y0 + 120), Color(1.0, 0.86, 0.15), 4.0)
