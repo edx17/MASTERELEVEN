@@ -46,6 +46,7 @@ var _history: Array[String] = []
 var _focus_memory := {}
 ## La pantalla de título (Press START) sale sólo al abrir el juego.
 static var title_seen := false
+var _swallow_clicks_until := 0
 var _db_col: VBoxContainer
 
 
@@ -214,6 +215,22 @@ func _current() -> String:
 		if (_pages[k] as Control).visible:
 			return k
 	return ""
+
+
+## En el título, tocar la pantalla (celular) o hacer clic también es START
+## (los clics los atajaría la interfaz antes de _unhandled_input).
+## El toque genera además clics: los de ese mismo toque no llegan a la
+## pantalla siguiente (no aprietan un botón sin querer).
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and Time.get_ticks_msec() < _swallow_clicks_until:
+		get_viewport().set_input_as_handled()
+		return
+	if _current() != "title":
+		return
+	if (event is InputEventScreenTouch and event.pressed) or (event is InputEventMouseButton and event.pressed):
+		_swallow_clicks_until = Time.get_ticks_msec() + 500
+		leave_title()
+		get_viewport().set_input_as_handled()
 
 
 func _unhandled_input(event: InputEvent) -> void:

@@ -110,6 +110,9 @@ func _run() -> void:
 					var mk: MasterMarket = hub.get("_market")
 					mk.mode = {"master_market": 0, "master_sell": 1, "master_pases": 2}[master_view]
 					mk.call("_rebuild")
+	# `--menu-touchpad` (con `--touch`): el mando abierto en el menú.
+	if OS.get_cmdline_user_args().has("--menu-touchpad") and TouchControls.enabled:
+		TouchControls.show_menu_pad()
 	for f in 20:
 		await get_tree().process_frame
 	var img := get_tree().root.get_texture().get_image()

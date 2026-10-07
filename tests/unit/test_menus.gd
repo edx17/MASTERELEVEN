@@ -46,6 +46,24 @@ func test_main_menu_pages_and_back() -> void:
 	assert_eq(menu.call("_current"), "home")
 
 
+func test_tapping_the_title_screen_is_start() -> void:
+	var menu: Control = load("res://scenes/ui/main_menu.tscn").instantiate()
+	add_child_autofree(menu)
+	await get_tree().process_frame
+	menu.call("show_page", "title", false)
+	var t := InputEventScreenTouch.new()
+	t.pressed = true
+	t.position = Vector2(500, 500)
+	menu._input(t)
+	assert_eq(menu.call("_current"), "database", "tocar la pantalla de título avanza (celular)")
+	# El clic que genera ese mismo toque no aprieta nada en la pantalla siguiente.
+	var click := InputEventMouseButton.new()
+	click.pressed = true
+	click.button_index = MOUSE_BUTTON_LEFT
+	menu._input(click)
+	assert_eq(menu.call("_current"), "database")
+
+
 func test_database_page_after_title() -> void:
 	var menu: Control = load("res://scenes/ui/main_menu.tscn").instantiate()
 	add_child_autofree(menu)

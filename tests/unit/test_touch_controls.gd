@@ -66,3 +66,32 @@ func test_hidden_outside_the_match_and_releases_buttons() -> void:
 	pad.release_all()
 	Input.flush_buffered_events()
 	assert_false(Input.is_action_pressed(&"ui_accept"), "al ocultarse suelta lo apretado")
+
+
+func test_menu_pad_shows_on_swipe_and_hides_when_idle() -> void:
+	var tc = load("res://scripts/ui/touch_controls.gd").new()
+	add_child_autofree(tc)
+	if tc.get("_pad") == null:
+		tc.build()
+	assert_false(tc.menu_pad, "en los menús arranca oculto")
+	var t := InputEventScreenTouch.new()
+	t.pressed = true
+	t.position = Vector2(400, 400)
+	tc._input(t)
+	var d := InputEventScreenDrag.new()
+	d.position = Vector2(400 + WEStyle.px(tc.SWIPE) + 5, 400)
+	tc._input(d)
+	assert_true(tc.menu_pad, "deslizar el dedo muestra el mando")
+	tc._process(0.0)
+	assert_true(tc.get("_pad").visible)
+	for i in 12:
+		tc.get("_pad").fade(0.5)
+		tc._process(0.0)
+	assert_false(tc.menu_pad, "sin usarlo se va solo")
+	assert_false(tc.get("_pad").visible)
+
+
+func test_pad_only_catches_clicks_on_its_buttons() -> void:
+	var c: Vector2 = pad.button_center(Vector2(250, 150))
+	assert_true(pad._has_point(c), "sobre ✕ el toque es del mando")
+	assert_false(pad._has_point(Vector2(640, 360)), "en el resto, del menú")
