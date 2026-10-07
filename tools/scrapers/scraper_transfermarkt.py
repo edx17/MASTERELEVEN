@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Scraper de Transfermarkt -> CSV estilo FIFA para MASTERELEVEN.
+Scraper de Transfermarkt -> CSV estilo FIFA para VIRTUAL ELEVEN.
 
 Dato REAL (de la vista detallada del plantel de Transfermarkt):
   nombre, dorsal, posición principal, edad, nacionalidad, altura, pie hábil,

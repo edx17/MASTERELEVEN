@@ -210,7 +210,7 @@ static func load_team(path: String) -> TeamData:
 	return t
 
 
-## Rearma un solo club con su entrada nueva (Liga Master: lesiones y
+## Rearma un solo club con su entrada nueva (Liga Virtual: lesiones y
 ## suspensiones), sin rehacer todo el país.
 static func refresh_club(country_id: String, club_id: String, entry: Dictionary) -> void:
 	_cache.erase(club_path(country_id, club_id))
@@ -521,7 +521,7 @@ static func _order_for_formation(t: TeamData, lineup: Array = []) -> void:
 		fixed.append(hit)
 		if hit != null:
 			pool.erase(hit)
-	# Los lesionados y suspendidos (Liga Master) quedan al final: no son titulares.
+	# Los lesionados y suspendidos (Liga Virtual) quedan al final: no son titulares.
 	pool.sort_custom(func(a: PlayerData, b: PlayerData) -> bool:
 		if a.unavailable != b.unavailable:
 			return b.unavailable

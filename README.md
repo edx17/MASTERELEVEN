@@ -1,14 +1,14 @@
-# Master Eleven
+# Virtual Eleven
 
 Fútbol 3D arcade-simulación: gameplay de Winning Eleven 2002 con presentación
-moderna, y modo Liga Master como objetivo. Todo ficticio: clubes, jugadores y
+moderna, y modo Liga Virtual como objetivo. Todo ficticio: clubes, jugadores y
 torneos inventados. Ver `Claude.md` para la visión completa y
 `docs/PROGRESS.md` para el estado.
 
 ## Jugar la última versión (.exe de prueba)
-Cada push arma un `MasterEleven.exe` para Windows (un solo archivo):
+Cada push arma un `VirtualEleven.exe` para Windows (un solo archivo):
 GitHub → pestaña **Actions** → la última corrida de **CI** → abajo,
-**Artifacts** → `MasterEleven-windows-...` (zip). Se guarda 30 días.
+**Artifacts** → `VirtualEleven-windows-...` (zip). Se guarda 30 días.
 
 ## Abrirlo en el editor
 1. Bajá **Godot 4.7** (versión *Standard*, no .NET) desde https://godotengine.org/download

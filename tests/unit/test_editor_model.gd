@@ -166,7 +166,7 @@ func test_kit_template_round_trip() -> void:
 	GameSettings.home_team_path = GameSettings.DEFAULT_HOME
 
 
-## Liga Master: cuántos bajan de cada división (se puede deshacer).
+## Liga Virtual: cuántos bajan de cada división (se puede deshacer).
 func test_relegation_rule() -> void:
 	assert_eq(TeamDB.relegation_count("arg", 0), 2)
 	m.set_relegation("arg", "arg1", 3)

@@ -11,10 +11,10 @@ enum Foot { RIGHT, LEFT, BOTH }
 enum Build { AUTO = -1, NORMAL, HEAVY, SLIM, TALL, SHORT, STOCKY, MUSCULAR }
 
 @export var id: String = ""
-## Número único del jugador dentro de una Liga Master (0 = fuera de una
+## Número único del jugador dentro de una Liga Virtual (0 = fuera de una
 ## carrera): sigue al jugador aunque cambie de club u orden en el plantel.
 @export var pid: int = 0
-## Liga Master: lesionado o suspendido para el próximo partido (no entra en
+## Liga Virtual: lesionado o suspendido para el próximo partido (no entra en
 ## el once titular).
 @export var unavailable := false
 ## Texto corto del motivo ("Lesión 3", "Susp. 1") o "".

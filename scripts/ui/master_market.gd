@@ -1,6 +1,6 @@
 class_name MasterMarket
 extends Control
-## Mercado de pases de la Liga Master (puntos WE).
+## Mercado de pases de la Liga Virtual (puntos WE).
 ##   - Comprar: jugadores de cualquier club (de tu país o de las ligas de
 ##     los otros países) y libres, con filtros por puesto, liga y club, y
 ##     orden por media, edad o precio. Comprar al precio
@@ -56,7 +56,7 @@ func _ready() -> void:
 	_rng.randomize()
 	_frame = WEStyle.ScreenFrame.new("Mercado de pases", HINTS)
 	add_child(_frame)
-	_frame.crumb.text = "LIGA MASTER  /  MERCADO"
+	_frame.crumb.text = "LIGA VIRTUAL  /  MERCADO"
 	_frame.title.text = "MERCADO DE PASES"
 
 

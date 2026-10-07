@@ -569,7 +569,7 @@ class Wipe:
 		draw_colored_polygon(band, Color(0.1, 0.08, 0.32))
 		draw_rect(Rect2(x - skew, size.y * 0.44, w + skew * 2.0, size.y * 0.12), Color(0.42, 0.36, 0.9))
 		var font := get_theme_default_font()
-		draw_string(font, Vector2(x, size.y * 0.5 + 18), "MASTER ELEVEN", HORIZONTAL_ALIGNMENT_CENTER, w, 52, Color(1.0, 0.88, 0.3))
+		draw_string(font, Vector2(x, size.y * 0.5 + 18), "VIRTUAL ELEVEN", HORIZONTAL_ALIGNMENT_CENTER, w, 52, Color(1.0, 0.88, 0.3))
 
 
 ## "Swoosh" de la cortina.

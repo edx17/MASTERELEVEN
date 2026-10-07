@@ -1,5 +1,5 @@
 # Primeras divisiones 2026 de la Conmebol (además de Argentina y Brasil):
-# sobre todo para la Libertadores y la Sudamericana de la Liga Master.
+# sobre todo para la Libertadores y la Sudamericana de la Liga Virtual.
 from common import C, D, write
 W='ffffff'; K='101820'
 def club(i, n, s, home, away, stad, cap, r=0):

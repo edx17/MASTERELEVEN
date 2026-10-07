@@ -39,6 +39,6 @@ func test_fonts_load() -> void:
 		var f := WEStyle.font(face)
 		assert_not_null(f)
 		assert_ne(f, ThemeDB.fallback_font, "carga %s" % WEStyle.FONT_PATHS[face])
-	var t := WEStyle.make_title_label("MASTER ELEVEN", WEStyle.TITLE_XL)
+	var t := WEStyle.make_title_label("VIRTUAL ELEVEN", WEStyle.TITLE_XL)
 	assert_eq(t.get_theme_font_size("font_size"), 43)
 	t.free()

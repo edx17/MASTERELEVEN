@@ -1,6 +1,6 @@
 class_name SeasonAwards
 extends RefCounted
-## Premios de fin de temporada de la Liga Master: Balón de Oro, mejor jugador
+## Premios de fin de temporada de la Liga Virtual: Balón de Oro, mejor jugador
 ## de América, Europa, África, Asia y Oceanía, Premio Puskás, Bota de Oro,
 ## Guante de Oro y Golden Boy.
 ##

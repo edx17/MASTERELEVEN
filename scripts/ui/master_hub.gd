@@ -1,6 +1,6 @@
 class_name MasterHub
 extends Control
-## Liga Master, diseño 03 "Mesa táctica" (rediseño estadio de noche).
+## Liga Virtual, diseño 03 "Mesa táctica" (rediseño estadio de noche).
 ##
 ## Encabezado y pie como el menú principal; abajo, tres columnas:
 ##   - Izquierda: el próximo partido (Jugar / Simular) y las bajas; al terminar
@@ -88,8 +88,8 @@ func _rebuild() -> void:
 	_clear(_center)
 	_clear(_right)
 	var team := career.user_team()
-	_frame.crumb.text = "LIGA MASTER  /  %s" % career.year_label()
-	_frame.title.text = "LIGA MASTER · TEMPORADA %s" % career.year_label()
+	_frame.crumb.text = "LIGA VIRTUAL  /  %s" % career.year_label()
+	_frame.title.text = "LIGA VIRTUAL · TEMPORADA %s" % career.year_label()
 	_frame.title_info.text = "%s · %s puntos WE" % [team.team_name, WEStyle.thousands(career.points)]
 	_build_center()
 	_club_column()

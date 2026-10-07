@@ -53,7 +53,7 @@ func _ready() -> void:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", int(WEStyle.px(16)))
 	side.add_child(col)
-	col.add_child(WEStyle.make_caption_label("Master Eleven  ·  Partido", WEStyle.ACCENT))
+	col.add_child(WEStyle.make_caption_label("Virtual Eleven  ·  Partido", WEStyle.ACCENT))
 	_title = WEStyle.make_title_label("PAUSA", WEStyle.TITLE_L)
 	col.add_child(_title)
 	col.add_child(WEStyle.make_separator())

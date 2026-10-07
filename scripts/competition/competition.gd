@@ -10,7 +10,7 @@ extends RefCounted
 
 enum Kind { LEAGUE, CUP, WORLD_CUP }
 ## Partida suelta de versiones anteriores (las nuevas van en
-## Documentos/MasterEleven/saves/ligas o saves/copas, un archivo cada una).
+## Documentos/VirtualEleven/saves/ligas o saves/copas, un archivo cada una).
 const SAVE_PATH := "user://competition.json"
 const KIND_NAMES := ["Liga", "Copa", "Mundial"]
 const CUP_ROUND_NAMES := {64: "32avos de final", 32: "16avos de final", 16: "Octavos de final", 8: "Cuartos de final", 4: "Semifinales",
@@ -802,7 +802,7 @@ static func _add(row: Dictionary, gf: int, gc: int) -> void:
 # --- Guardado ---------------------------------------------------------------------
 
 func to_dict() -> Dictionary:
-	return {"format": "MasterEleven Partida", "version": 1, "kind": kind, "title": title,
+	return {"format": "VirtualEleven Partida", "version": 1, "kind": kind, "title": title,
 		"option_file": option_file, "created": created, "updated": updated,
 		"team_paths": team_paths, "user_team": user_team, "double_round": double_round,
 		"rounds": rounds, "current": current, "champion": champion, "groups": groups,

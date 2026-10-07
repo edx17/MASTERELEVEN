@@ -1,4 +1,4 @@
-Scrapers de planteles -> CSV estilo FC para importar en MASTER ELEVEN.
+Scrapers de planteles -> CSV estilo FC para importar en VIRTUAL ELEVEN.
 Se corren en tu compu (no son parte del juego):
 
   pip install requests beautifulsoup4

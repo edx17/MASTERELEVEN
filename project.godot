@@ -10,8 +10,8 @@ config_version=5
 
 [application]
 
-config/name="Master Eleven"
-config/description="Fútbol arcade-simulación inspirado en Winning Eleven 4 — Liga Master."
+config/name="Virtual Eleven"
+config/description="Fútbol arcade-simulación inspirado en Winning Eleven 4 — Liga Virtual."
 run/main_scene="res://scenes/ui/main_menu.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.svg"
@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 
 GameSettings="*res://scripts/core/game_settings.gd"
 MenuNav="*res://scripts/ui/menu_nav.gd"
+TouchControls="*res://scripts/ui/touch_controls.gd"
 
 [display]
 
@@ -27,6 +28,7 @@ window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/handheld/orientation=4
 
 [editor_plugins]
 
@@ -185,4 +187,6 @@ common/physics_ticks_per_second=60
 
 [rendering]
 
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_3d=2

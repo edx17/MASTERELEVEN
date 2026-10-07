@@ -1,7 +1,7 @@
 class_name CompetitionHub
 extends Control
 ## Liga / Copa / Mundial con el diseño 03 "Mesa táctica" (el mismo armazón que
-## la Liga Master, WEStyle.MesaFrame):
+## la Liga Virtual, WEStyle.MesaFrame):
 ##   - Izquierda: el próximo partido (Jugar / Simular) y la última fecha; al
 ##     terminar, el campeón.
 ##   - Centro, por secciones (L1/R1 o Q/E): en la liga, la tabla (filas de
@@ -55,7 +55,7 @@ func default_view() -> int:
 
 
 func kind_title() -> String:
-	return "MUNDIAL" if comp.kind == Competition.Kind.WORLD_CUP else "%s MASTER ELEVEN" % String(Competition.KIND_NAMES[comp.kind]).to_upper()
+	return "MUNDIAL" if comp.kind == Competition.Kind.WORLD_CUP else "%s VIRTUAL ELEVEN" % String(Competition.KIND_NAMES[comp.kind]).to_upper()
 
 
 func _rebuild() -> void:

@@ -7,7 +7,7 @@
 > "Detallados".
 
 Especificación que pasó el dueño del proyecto (octubre 2026), cruzada con
-lo que ya tiene Master Eleven (`PlayerData`, `ModelVisual`, `ClassicBody`,
+lo que ya tiene Virtual Eleven (`PlayerData`, `ModelVisual`, `ClassicBody`,
 `HairBuilder`). Estados: ✅ hecho · 🟡 parcial · ⬜ falta.
 
 ## 1. Malla y físico
@@ -37,7 +37,7 @@ lo que ya tiene Master Eleven (`PlayerData`, `ModelVisual`, `ClassicBody`,
 | Botines tipo A–H (negros clásicos, blancos/plateados, de color) **por jugador** | 🟡 Color de botines por equipo, no por jugador. | B |
 
 ## 4. Atributos
-| Pide (WE) | En Master Eleven |
+| Pide (WE) | En Virtual Eleven |
 |---|---|
 | SPEED, ACCELERATION, JUMP | `speed`, `acceleration`, `jump` ✅ |
 | BODY BALANCE / STRENGTH | `balance`, `strength` ✅ |
@@ -47,7 +47,7 @@ lo que ya tiene Master Eleven (`PlayerData`, `ModelVisual`, `ClassicBody`,
 | Pie: derecho / izquierdo / **ambos** | 🟡 `foot` RIGHT/LEFT; falta BOTH (ambidiestro: sin pierna mala). B |
 | Arquero | `goalkeeping` ✅ (el WE lo tiene aparte) |
 
-Escala: Master Eleven usa 1–99. Los valores del WE (de 1 a 19 en la ficha,
+Escala: Virtual Eleven usa 1–99. Los valores del WE (de 1 a 19 en la ficha,
 los buenos entre 12 y 19) se convierten al cargar los datos reales (paso C)
 con una tabla lineal que se va a calibrar (propuesta: 10 → 45, 15 → 72,
 19 → 95), así la potencia 6–9 y los demás efectos siguen funcionando.

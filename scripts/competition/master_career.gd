@@ -1,6 +1,6 @@
 class_name MasterCareer
 extends RefCounted
-## Liga Master (Paso D1): una carrera de club en un país.
+## Liga Virtual (Paso D1): una carrera de club en un país.
 ##   - Se elige país y club. Se arranca en la división de abajo (Argentina e
 ##     Inglaterra) o en la 2.ª (el resto); si el club es de más arriba, baja
 ##     a esa división y sube un club de cada división de por medio.
@@ -15,9 +15,11 @@ extends RefCounted
 ##     cada una por vez. Goleadores. Al terminar, ascensos y descensos
 ##     (TeamDB.relegation_count) y la temporada siguiente.
 ##   - Puntos WE: se ganan con los resultados (se gastan en el mercado, D3).
-## Se guarda en Documentos/MasterEleven/saves/master, un archivo por carrera.
+## Se guarda en Documentos/VirtualEleven/saves/master, un archivo por carrera.
 
-const FORMAT := "MasterEleven Liga Master"
+const FORMAT := "VirtualEleven Liga Virtual"
+## Carreras de cuando el juego se llamaba Master Eleven: se siguen cargando.
+const OLD_FORMATS := ["MasterEleven Liga Master"]
 const VERSION := 1
 const START_POINTS := 3000
 const POINTS := {"win": 400, "draw": 200, "loss": 100, "goal": 50, "title": 3000, "promotion": 2000}
@@ -2150,13 +2152,13 @@ func save() -> void:
 		created = now
 	updated = now
 	if title == "":
-		title = "Liga Master · %s" % user_team().team_name
+		title = "Liga Virtual · %s" % user_team().team_name
 	UserData.write_text(file, JSON.stringify(to_dict()))
 
 
 static func load_saved(path: String) -> MasterCareer:
 	var d: Variant = UserData.read_json(path)
-	if not d is Dictionary or d.get("format", "") != FORMAT:
+	if not is_format(d):
 		return null
 	var m := from_dict(d)
 	m.file = path
@@ -2175,6 +2177,11 @@ func progress_text() -> String:
 	return "Temporada %s · %s · %s" % [year_label(), division_name(user_league_index()), user_league().round_name()]
 
 
+## ¿Es una carrera guardada (de este nombre del juego o del anterior)?
+static func is_format(d: Variant) -> bool:
+	return d is Dictionary and (d.get("format", "") == FORMAT or OLD_FORMATS.has(d.get("format", "")))
+
+
 static func has_saves() -> bool:
 	return not UserData.files_in(UserData.saves_dir("master"), "json").is_empty()
 
@@ -2184,7 +2191,7 @@ static func list_saves() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for f in UserData.files_in(UserData.saves_dir("master"), "json"):
 		var d: Variant = UserData.read_json(f)
-		if not d is Dictionary or d.get("format", "") != FORMAT:
+		if not is_format(d):
 			continue
 		var m := from_dict(d)
 		m.file = f

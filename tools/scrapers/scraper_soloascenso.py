@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Scraper de SoloAscenso -> CSV estilo FIFA para MASTERELEVEN.
+Scraper de SoloAscenso -> CSV estilo FIFA para VIRTUAL ELEVEN.
 
 Qué saca de SoloAscenso (dato real):
   - club, nombre, puesto base (ARQ/DEF/MED/DEL)
@@ -39,7 +39,7 @@ CLUBES_IGNORADOS = {"AFA", "SOLOASCENSO"}
 CACHE_DIR = "cache_soloascenso"
 DELAY = 0.6          # segundos entre requests por hilo (no le peguemos fuerte al sitio)
 HILOS = 4
-HEADERS = {"User-Agent": "Mozilla/5.0 (MASTERELEVEN data builder)"}
+HEADERS = {"User-Agent": "Mozilla/5.0 (VirtualEleven data builder)"}
 
 COLUMNAS = ("short_name,club_name,nationality_name,club_jersey_number,player_positions,preferred_foot,"
             "height_cm,age,overall,seleccion,pace,shooting,passing,dribbling,defending,physic,"
