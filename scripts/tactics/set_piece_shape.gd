@@ -53,8 +53,8 @@ static func _penalty(team: Team, spot: Vector3, field: Array[Footballer]) -> Dic
 	var edge_x := side * (Pitch.HALF_LENGTH - Pitch.PENALTY_AREA_DEPTH - 1.5)
 	var n := field.size()
 	for i in n:
-		var z := lerpf(-16.0, 16.0, float(i) / maxf(n - 1, 1)) + (0.8 if team.index == 1 else -0.8)
-		out[field[i]] = Vector3(edge_x - side * (2.0 if absf(z) < 6.0 else 0.0), 0.0, z)
+		var z := lerpf(-Pitch.s(16.0), Pitch.s(16.0), float(i) / maxf(n - 1, 1)) + (0.8 if team.index == 1 else -0.8)
+		out[field[i]] = Vector3(edge_x - side * (2.0 if absf(z) < Pitch.s(6.0) else 0.0), 0.0, z)
 	return out
 
 
@@ -107,8 +107,8 @@ static func _throw_in(team: Team, spot: Vector3, field: Array[Footballer], own: 
 	var inward := Vector3(0.0, 0.0, -signf(spot.z))
 	var forward := Vector3(team.attack_dir, 0.0, 0.0)
 	var options: Array[Vector3] = [
-		spot + forward * 8.0 + inward * 5.0,
-		spot - forward * 6.0 + inward * 9.0,
+		spot + forward * Pitch.h(8.0) + inward * Pitch.h(5.0),
+		spot - forward * Pitch.h(6.0) + inward * Pitch.h(9.0),
 	]
 	var used: Array[Footballer] = []
 	for o in options:
@@ -132,12 +132,15 @@ static func _corner_attack(team: Team, spot: Vector3, field: Array[Footballer]) 
 	var zs := signf(spot.z) if spot.z != 0.0 else 1.0
 	var hl := Pitch.HALF_LENGTH
 	var box: Array[Vector3] = [
-		Vector3(side * (hl - 4.5), 0.0, zs * 2.5), # primer palo
-		Vector3(side * (hl - 5.0), 0.0, -zs * 3.5), # segundo palo
-		Vector3(side * (hl - 10.0), 0.0, 0.0), # punto penal
-		Vector3(side * (hl - 6.5), 0.0, -zs * 0.5), # centro del área chica
-		Vector3(side * (hl - 13.0), 0.0, -zs * 6.0), # borde, segundo palo
+		Vector3(side * (hl - Pitch.s(4.5)), 0.0, zs * Pitch.s(2.5)), # primer palo
+		Vector3(side * (hl - Pitch.s(5.0)), 0.0, -zs * Pitch.s(3.5)), # segundo palo
+		Vector3(side * (hl - Pitch.s(10.0)), 0.0, 0.0), # punto penal
+		Vector3(side * (hl - Pitch.s(6.5)), 0.0, -zs * Pitch.s(0.5)), # centro del área chica
+		Vector3(side * (hl - Pitch.s(13.0)), 0.0, -zs * Pitch.s(6.0)), # borde, segundo palo
 	]
+	# Futsal (4 de campo): dos al área, el resto atrás.
+	if Discipline.players() <= 5:
+		box.resize(2)
 	var out := {}
 	# Los mejores cabeceadores van al área.
 	var by_heading := field.duplicate()
@@ -152,7 +155,7 @@ static func _corner_attack(team: Team, spot: Vector3, field: Array[Footballer]) 
 			rest.append(p)
 	# Opción corta, dos al borde del área y el resto atrás para cuidar la contra.
 	var others: Array[Vector3] = [
-		spot + Vector3(-side * 6.0, 0.0, -zs * 6.0),
+		spot + Vector3(-side * Pitch.h(6.0), 0.0, -zs * Pitch.h(6.0)),
 		team.to_world(Vector2(0.78, 0.45)),
 		team.to_world(Vector2(0.78, -0.45)),
 		team.to_world(Vector2(0.5, 0.3)),
@@ -169,13 +172,13 @@ static func _corner_defend(team: Team, field: Array[Footballer]) -> Dictionary:
 	var spots: Array[Vector3] = [
 		Vector3(g * (hl - 0.5), 0.0, -(Pitch.GOAL_HALF_WIDTH - 0.3)), # palo
 		Vector3(g * (hl - 0.5), 0.0, Pitch.GOAL_HALF_WIDTH - 0.3), # palo
-		Vector3(g * (hl - 5.5), 0.0, -4.0),
-		Vector3(g * (hl - 5.5), 0.0, -1.3),
-		Vector3(g * (hl - 5.5), 0.0, 1.3),
-		Vector3(g * (hl - 5.5), 0.0, 4.0),
-		Vector3(g * (hl - 10.0), 0.0, -3.0),
-		Vector3(g * (hl - 10.0), 0.0, 3.0),
-		Vector3(g * (hl - 17.0), 0.0, 0.0), # rebote
+		Vector3(g * (hl - Pitch.s(5.5)), 0.0, -Pitch.s(4.0)),
+		Vector3(g * (hl - Pitch.s(5.5)), 0.0, -Pitch.s(1.3)),
+		Vector3(g * (hl - Pitch.s(5.5)), 0.0, Pitch.s(1.3)),
+		Vector3(g * (hl - Pitch.s(5.5)), 0.0, Pitch.s(4.0)),
+		Vector3(g * (hl - Pitch.s(10.0)), 0.0, -Pitch.s(3.0)),
+		Vector3(g * (hl - Pitch.s(10.0)), 0.0, Pitch.s(3.0)),
+		Vector3(g * (hl - Pitch.s(17.0)), 0.0, 0.0), # rebote
 		team.to_world(Vector2(0.45, 0.0)), # arriba para la contra
 	]
 	return _assign_nearest(field, spots)

@@ -104,7 +104,7 @@ func tick(p: Footballer, ai: TeamAI, dt: float) -> void:
 			ai.go_to(p, landing, true)
 			return
 	# 3) Pelota viniendo al arco (no remate): se ubica donde va a cruzar.
-	if ball.is_loose() and v.x * own > 4.0 and absf(bp.x - goal.x) < 35.0:
+	if ball.is_loose() and v.x * own > 4.0 and absf(bp.x - goal.x) < Pitch.s(35.0):
 		var t_cross := (goal.x - own * 0.6 - bp.x) / v.x
 		if t_cross > 0.0 and t_cross < 2.0:
 			var z_cross := bp.z + v.z * t_cross
@@ -117,7 +117,7 @@ func tick(p: Footballer, ai: TeamAI, dt: float) -> void:
 				return
 	# 4) Mano a mano: atacante con pelota encarando dentro del área.
 	var carrier := ball.owner_player
-	if carrier != null and carrier.team != team and Pitch.in_penalty_area(bp, own) and bp.distance_to(goal) < 14.0:
+	if carrier != null and carrier.team != team and Pitch.in_penalty_area(bp, own) and bp.distance_to(goal) < Pitch.h(14.0):
 		p.debug_state = "achica"
 		ai.go_to(p, bp, true)
 		return
@@ -138,12 +138,12 @@ func tick(p: Footballer, ai: TeamAI, dt: float) -> void:
 func _position(p: Footballer, ai: TeamAI, bp: Vector3, goal: Vector3, can_run: bool) -> void:
 	p.debug_state = "ubicación"
 	var to_ball := bp - goal
-	var off := clampf(to_ball.length() * 0.12, 0.8, 4.0)
+	var off := clampf(to_ball.length() * 0.12, Pitch.g(0.8), Pitch.h(4.0))
 	var line_x := TeamShape.defensive_line(ai.state, team.progress_of(bp))
 	if team.progress_of(bp) > 0.5:
-		off = maxf(off, clampf((line_x - 0.1) * Pitch.HALF_LENGTH * 2.0 * 0.5, 0.0, SWEEPER_MAX))
+		off = maxf(off, clampf((line_x - 0.1) * Pitch.HALF_LENGTH * 2.0 * 0.5, 0.0, Pitch.h(SWEEPER_MAX)))
 	var spot3 := goal + to_ball.normalized() * off
-	if off < 5.0:
+	if off < Pitch.h(5.0):
 		spot3.z = clampf(spot3.z, -Pitch.GOAL_HALF_WIDTH, Pitch.GOAL_HALF_WIDTH)
 	# Nunca detrás de la línea (pelota que se fue por el fondo).
 	var own := team.own_side()
@@ -172,7 +172,10 @@ func _landing_point() -> Vector3:
 func _in_goal_area(pos: Vector3) -> bool:
 	var own := team.own_side()
 	var dx := own * Pitch.HALF_LENGTH - pos.x
-	return dx * own >= 0.0 and dx * own <= Pitch.GOAL_AREA_DEPTH + 1.5 and absf(pos.z) <= Pitch.GOAL_AREA_HALF_WIDTH + 1.0
+	# Futsal (sin área chica): la mitad del área.
+	var depth := Pitch.GOAL_AREA_DEPTH if Pitch.GOAL_AREA_DEPTH > 0.0 else Pitch.PENALTY_AREA_DEPTH * 0.5
+	var half_w := Pitch.GOAL_AREA_HALF_WIDTH if Pitch.GOAL_AREA_HALF_WIDTH > 0.0 else Pitch.PENALTY_AREA_HALF_WIDTH * 0.5
+	return dx * own >= 0.0 and dx * own <= depth + 1.5 and absf(pos.z) <= half_w + 1.0
 
 
 func _arrives_first(p: Footballer, point: Vector3) -> bool:

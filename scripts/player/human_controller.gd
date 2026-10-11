@@ -179,6 +179,9 @@ func _strategy_buttons() -> void:
 			_match.set_mentality(team, team.mentality - 1)
 		if input.just_pressed(&"mentality_up"):
 			_match.set_mentality(team, team.mentality + 1)
+		# Futsal: L2 + cruceta arriba, cambio volante rápido (sale el más cansado).
+		if input.just_pressed(&"flying_sub") and Team.flying_subs():
+			_match.quick_flying_sub(team)
 	if held or _strategy_mute:
 		_strategy_mute = false
 		for b in STRATEGY_BUTTONS:

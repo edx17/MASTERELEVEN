@@ -387,6 +387,9 @@ func _build_world() -> void:
 			kit_i = 1 - kit_i
 			kit = d.kit(kit_i)
 		var team := Team.new(i, d.team_name, d.short_name, kit[0], kit[1], d.keeper_color)
+		# Futsal: rota el cuarteto cada 5' de juego (se cambia en la Dirección).
+		if Team.flying_subs():
+			team.rotation_minutes = 5.0
 		var pat := d.kit_pattern(kit_i)
 		team.pattern = pat[0]
 		team.pattern_color = pat[1]
@@ -498,6 +501,7 @@ func _physics_process(dt: float) -> void:
 		h.tick(dt)
 	for a in ais:
 		a.tick(dt)
+	_drive_flying_subs(dt)
 	if training != null:
 		training.after_ai(dt)
 	if phase == Phase.GOAL:
@@ -535,7 +539,7 @@ func _physics_process(dt: float) -> void:
 			# Ordena a la defensa con la pelota en sus manos (mientras corren
 			# los 6 s) o lejos, en el otro campo.
 			gk.directing = phase == Phase.PLAYING and (gk.ball_in_hands \
-				or ball.flat_pos().distance_to(gk.flat_pos()) > KEEPER_DIRECTING_DIST)
+				or ball.flat_pos().distance_to(gk.flat_pos()) > Pitch.s(KEEPER_DIRECTING_DIST))
 
 	# Primero las reglas (una pelota que ya cruzó la línea no se puede atajar).
 	if phase == Phase.PLAYING:
@@ -945,7 +949,7 @@ func is_chilena(p: Footballer, kind: int) -> bool:
 		return false
 	var to_goal := p.team.target_goal() - p.flat_pos()
 	to_goal.y = 0.0
-	if to_goal.length() > CHILENA_MAX_DIST:
+	if to_goal.length() > Pitch.s(CHILENA_MAX_DIST):
 		return false
 	return p.facing.dot(to_goal.normalized()) < CHILENA_BACK_DOT
 
@@ -1495,7 +1499,7 @@ const FK_LONG_DIST := 25.0
 ## Pateador elegido para un tiro libre: el de los largos de lejos, si hay.
 static func free_kick_taker_data(team: Team, spot: Vector3) -> PlayerData:
 	var d := Vector2(team.target_goal().x - spot.x, team.target_goal().z - spot.z).length()
-	if d >= FK_LONG_DIST and team.fk_long_taker != null:
+	if d >= Pitch.h(FK_LONG_DIST) and team.fk_long_taker != null:
 		return team.fk_long_taker
 	return team.fk_taker
 
@@ -1521,6 +1525,14 @@ const CPU_SUB_STAMINA := 80.0
 ## pelota parada. Devuelve false si no se puede (sin cambios, ya salió...).
 func request_sub(out: Footballer, in_data: PlayerData) -> bool:
 	var t := out.team
+	if Team.flying_subs() and not out.is_keeper():
+		# Futsal: con la pelota en juego va a la zona de cambio; parado, ya.
+		if phase == Phase.PLAYING:
+			return request_flying_sub(out, in_data)
+		if not t.players.has(out) or not t.bench.has(in_data):
+			return false
+		_complete_flying_sub(out, in_data)
+		return true
 	if t.subs_left() <= 0 or not t.players.has(out) or not t.bench.has(in_data):
 		return false
 	for s in t.pending_subs:
@@ -1544,7 +1556,9 @@ func _make_pending_subs() -> void:
 	for t in teams:
 		if not _has_human(t):
 			_cpu_strategy(t)
-			_cpu_subs(t)
+			# Futsal: la CPU hace cambios volantes (ver _flying_auto).
+			if not Team.flying_subs():
+				_cpu_subs(t)
 		for s in t.pending_subs.duplicate():
 			t.pending_subs.erase(s)
 			substitute(s["out"], s["in"])
@@ -1554,7 +1568,7 @@ func _make_pending_subs() -> void:
 ## la cancha. Devuelve el que entró (o null si no se pudo).
 func substitute(out: Footballer, in_data: PlayerData, as_keeper := false) -> Footballer:
 	var t := out.team
-	if t.subs_used >= Team.MAX_SUBS or not t.players.has(out) or not t.bench.has(in_data):
+	if (t.subs_used >= Team.MAX_SUBS and not Team.flying_subs()) or not t.players.has(out) or not t.bench.has(in_data):
 		return null
 	var p := Footballer.new()
 	add_child(p)
@@ -1574,10 +1588,165 @@ func substitute(out: Footballer, in_data: PlayerData, as_keeper := false) -> Foo
 		_leave_pitch(out)
 	else:
 		_start_sub_scene(out, p)
-	if audio != null:
+	if audio != null and not Team.flying_subs():
 		audio.applause()
 	show_toast("CAMBIO %s:  sale %s  -  entra %s" % [t.short_name, out.display_name, p.display_name], 2.5)
 	return p
+
+
+# --- Cambios volantes (futsal) -------------------------------------------------
+# Sin parar el juego y sin límite: el que sale va hasta la zona de cambio de
+# su equipo (del lado de los bancos, entre 5 y 10 m de la mitad) y recién ahí
+# entra el suplente. El que sale vuelve al banco y recupera energía (puede
+# volver a entrar). L2 + cruceta arriba: sale el más cansado. Cuartetos con
+# rotación por tiempo (Dirección del equipo) y la CPU por cansancio.
+
+## [{out, in, t}] cambios volantes en curso.
+var flying: Array[Dictionary] = []
+## Hasta cuántos cambios a la vez por equipo (de a dos, como en la cancha).
+const FLYING_AT_ONCE := 2
+## Tope para llegar a la zona de cambio (s).
+const FLYING_MAX_TIME := 9.0
+## La CPU cambia a los de menos energía que esto (y cada tanto lo revisa).
+const FLYING_CPU_STAMINA := 55.0
+var _flying_cpu_t := 0.0
+
+
+## Zona de cambio de un equipo (afuera de la banda de los bancos, en su campo).
+func flying_zone(t: Team) -> Vector3:
+	return Vector3(-t.attack_dir * 7.5, 0.0, Pitch.HALF_WIDTH + 0.4)
+
+
+func is_heading_off(p: Footballer) -> bool:
+	for f in flying:
+		if f["out"] == p:
+			return true
+	return false
+
+
+## Pide un cambio volante (futsal). false si no se puede.
+func request_flying_sub(out: Footballer, in_data: PlayerData) -> bool:
+	var t := out.team
+	if not Team.flying_subs() or not t.players.has(out) or not t.bench.has(in_data) or out.is_keeper():
+		return false
+	for f in flying:
+		if f["out"] == out or f["in"] == in_data:
+			return false
+	flying.append({"out": out, "in": in_data, "t": 0.0})
+	return true
+
+
+## Cambio rápido (L2 + cruceta arriba): sale el de campo más cansado y entra
+## el suplente de campo con más energía (del mismo puesto, si hay).
+func quick_flying_sub(t: Team) -> bool:
+	var out: Footballer = null
+	for p in t.players:
+		if p.is_keeper() or is_heading_off(p) or p == ball.owner_player:
+			continue
+		if out == null or p.stamina < out.stamina:
+			out = p
+	if out == null:
+		return false
+	var best: PlayerData = null
+	var best_score := -INF
+	for d in t.bench:
+		if d.position == PlayerData.Position.GK or flying.any(func(f: Dictionary) -> bool: return f["in"] == d):
+			continue
+		var score := t.bench_stamina(d) + (15.0 if d.position == out.data.position else 0.0)
+		if score > best_score:
+			best_score = score
+			best = d
+	if best == null or not request_flying_sub(out, best):
+		return false
+	show_toast("%s: cambio volante, sale %s" % [t.short_name, out.display_name], 1.5)
+	return true
+
+
+## Rotación de cuartetos: salen los 4 de campo y entran los primeros 4 de
+## campo del banco (de a dos).
+func rotate_quartet(t: Team) -> void:
+	var next := t.next_quartet()
+	var outs: Array[Footballer] = []
+	for p in t.players:
+		if not p.is_keeper() and not is_heading_off(p):
+			outs.append(p)
+	for i in mini(next.size(), outs.size()):
+		request_flying_sub(outs[i], next[i])
+	t.last_rotation = clock.total_game_seconds()
+	show_toast("%s: entra el otro cuarteto" % t.short_name, 1.5)
+
+
+func _drive_flying_subs(dt: float) -> void:
+	if not Team.flying_subs() or training != null:
+		return
+	for t in teams:
+		t.rest_bench(dt)
+	if phase == Phase.PLAYING:
+		_flying_auto(dt)
+	var active := [0, 0]
+	for f in flying.duplicate():
+		var out: Footballer = f["out"]
+		var t := out.team
+		if not t.players.has(out):
+			flying.erase(f)
+			continue
+		if active[t.index] >= FLYING_AT_ONCE:
+			continue
+		active[t.index] += 1
+		f["t"] += dt
+		var zone := flying_zone(t)
+		var to := zone - out.flat_pos()
+		to.y = 0.0
+		if to.length() < 1.2 or f["t"] > FLYING_MAX_TIME:
+			flying.erase(f)
+			_complete_flying_sub(out, f["in"])
+			continue
+		# Con la pelota la sigue jugando (la IA); si no, va a la zona.
+		if ball.owner_player != out and not out.is_human():
+			out.desired_move = to.normalized()
+			out.wants_sprint = to.length() > 6.0
+
+
+func _complete_flying_sub(out: Footballer, in_data: PlayerData) -> void:
+	var t := out.team
+	if not t.bench.has(in_data):
+		return
+	var energy := {"stamina": out.stamina, "wear": out.wear}
+	var out_data := out.base_data
+	# Sin la escena del cambio de fútbol (no se para el juego).
+	var was_instant := _instant_subs
+	_instant_subs = true
+	var p := substitute(out, in_data)
+	_instant_subs = was_instant
+	if p == null:
+		return
+	# Entra desde la zona de cambio (con la energía que recuperó en el banco).
+	p.teleport(flying_zone(t) + Vector3(0.0, 0.0, -0.8), Vector3(0.0, 0.0, -1.0))
+	var e: Dictionary = t.bench_energy.get(in_data, {})
+	if not e.is_empty():
+		p.wear = float(e["wear"])
+		p.stamina = minf(float(e["stamina"]), p.stamina_cap())
+		t.bench_energy.erase(in_data)
+	# El que salió vuelve al banco y descansa.
+	t.subbed_off.erase(out)
+	t.bench.append(out_data)
+	t.bench_energy[out_data] = energy
+
+
+## Rotación por tiempo (Dirección del equipo) y la CPU por cansancio.
+func _flying_auto(dt: float) -> void:
+	_flying_cpu_t += dt
+	var check := _flying_cpu_t >= 2.0
+	if check:
+		_flying_cpu_t = 0.0
+	for t in teams:
+		if t.rotation_minutes > 0.0 and clock.total_game_seconds() - t.last_rotation >= t.rotation_minutes * 60.0:
+			rotate_quartet(t)
+		elif check and not _has_human(t) and flying.filter(func(f: Dictionary) -> bool: return f["out"].team == t).is_empty():
+			for p in t.players:
+				if not p.is_keeper() and p.stamina < FLYING_CPU_STAMINA:
+					quick_flying_sub(t)
+					break
 
 
 # --- Cambio animado -------------------------------------------------------------
@@ -2567,7 +2736,7 @@ func _wants_header(p: Footballer, h: float) -> bool:
 
 ## Zona de cabezazo en un centro: dentro del área rival (o casi).
 func in_cross_zone(p: Footballer) -> bool:
-	return p.flat_pos().distance_to(p.team.target_goal()) < CROSS_HEADER_DIST
+	return p.flat_pos().distance_to(p.team.target_goal()) < Pitch.s(CROSS_HEADER_DIST)
 
 
 ## Salto anticipado: el que va a cabecear un centro (o una pelota alta que le
@@ -3789,7 +3958,7 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 			# El pateador elegido, si es para pegarle al arco; si no, el más cerca.
 			var fk := free_kick_taker_data(team, spot)
 			taker = (team.on_pitch(fk) if fk != null else team.tagged("especialista")) \
-					if spot.distance_to(team.target_goal()) < FK_TAKER_RANGE else null
+					if spot.distance_to(team.target_goal()) < Pitch.h(FK_TAKER_RANGE) else null
 			if taker == null or taker.is_keeper():
 				taker = _nearest_outfield(team, spot)
 			look = (team.target_goal() - spot).normalized()
