@@ -576,7 +576,7 @@ func _open_competition(kind: int) -> void:
 	_custom_cup = {}
 	_youth_cup = ""
 	_cups_youth = false
-	if kind == Competition.Kind.CUP and not playable_cups().is_empty():
+	if kind == Competition.Kind.CUP and (not playable_cups().is_empty() or Discipline.is_futsal()):
 		show_page("cups")
 		return
 	_new_competition = kind
@@ -602,6 +602,17 @@ func _start_competition(kind: int, my_team: String) -> void:
 		_history.append("home")
 		show_page("hub", false)
 		return
+	if Discipline.is_futsal() and (kind == Competition.Kind.LEAGUE or _custom_cup.has("futsal")):
+		c = _futsal_competition(kind, my_team)
+		if c != null:
+			c.option_file = GameSettings.active_optionfile
+			c.save()
+			GameSettings.active_save = c.file
+			_custom_cup = {}
+			_history.clear()
+			_history.append("home")
+			show_page("hub", false)
+			return
 	if not _custom_cup.is_empty():
 		var teams: Array[String] = []
 		teams.assign(_custom_cup.get("teams", []))
@@ -640,6 +651,70 @@ func _start_competition(kind: int, my_team: String) -> void:
 	_history.clear()
 	_history.append("home")
 	show_page("hub", false)
+
+
+# --- Futsal: Liga con playoff, Supercopa y torneos amistosos ---------------------------
+
+func _build_futsal_cups() -> void:
+	var start := func(cfg: Dictionary, only: Array) -> void:
+		_custom_cup = cfg
+		_new_competition = Competition.Kind.CUP
+		_teams.single = true
+		_teams.only_country = ""
+		_new_master = false
+		_teams.only_paths.assign(only)
+		show_page("teams")
+	var super_paths := FutsalLeague.supercup_paths()
+	_item(_cups_col, "Supercopa", "Los campeones de la temporada: los de las dos zonas de la D se cruzan antes y el ganador juega la semifinal con el de la A; la otra, B contra C.",
+		start.bind({"futsal": "super"}, super_paths), super_paths.size() == 5, 640.0)
+	var all_clubs: Array = []
+	for d in ["futA", "futB", "futC", "futD1", "futD2"]:
+		all_clubs.append_array(TeamDB.division_paths("arg", d))
+	_item(_cups_col, "Copa Argentina", "Todos los clubes, de la D a la A: Fase 1 con los de la D, Fase 2 con los de la C, en 32avos entran la A y la B; después, llaves hasta la final.",
+		start.bind({"futsal": "copa_arg"}, all_clubs), true, 640.0)
+	_item(_cups_col, "Torneo amistoso (8 equipos)", "Eliminación directa: tu equipo y 7 de su división.",
+		start.bind({"futsal": "cup8"}, []), true, 640.0)
+	_item(_cups_col, "Cuadrangular amistoso", "Tu equipo y 3 de su división, todos contra todos a una rueda.",
+		start.bind({"futsal": "quad"}, []), true, 640.0)
+	_item(_cups_col, "Volver", "Volver al menú principal.", go_back, true, 640.0)
+	_first_focus(_cups_col)
+
+
+## Arma la competición de futsal elegida (Liga de la división del equipo,
+## Supercopa o torneo amistoso). null si no corresponde.
+func _futsal_competition(kind: int, my_team: String) -> Competition:
+	var mode := String(_custom_cup.get("futsal", "league" if kind == Competition.Kind.LEAGUE else ""))
+	var g := _teams.group_of(my_team)
+	var division := String(_teams.groups[g].get("division", "")) if g >= 0 else ""
+	var group := _teams.group_paths_of(my_team)
+	match mode:
+		"league":
+			if division == "":
+				return null
+			var fmt := FutsalLeague.format_of(division)
+			var c := FutsalLeague.create(fmt, FutsalLeague.division_zones(division), my_team)
+			c.title = "%s · %s" % [FutsalLeague.FORMATS[fmt]["name"], c.team(c.user_team).team_name]
+			return c
+		"copa_arg":
+			var c := FutsalLeague.create_copa_argentina(my_team)
+			c.title = "Copa Argentina · %s" % c.team(c.user_team).team_name
+			return c
+		"super":
+			var paths := FutsalLeague.supercup_paths()
+			var c := FutsalLeague.create_supercup(paths, maxi(paths.find(my_team), 0))
+			c.title = "Supercopa · %s" % c.team(c.user_team).team_name
+			return c
+		"cup8", "quad":
+			var others := group.filter(func(p: String) -> bool: return p != my_team)
+			others.shuffle()
+			var n := 7 if mode == "cup8" else 3
+			var teams: Array[String] = [my_team]
+			for i in mini(n, others.size()):
+				teams.append(others[i])
+			var c := Competition.create_cup(teams, 0) if mode == "cup8" else Competition.create_league(teams, 0, false)
+			c.title = "%s · %s" % ["Torneo amistoso" if mode == "cup8" else "Cuadrangular", c.team(0).team_name]
+			return c
+	return null
 
 
 ## Equipos de la Liga o la Copa según el equipo elegido: en la Liga, toda
@@ -710,6 +785,9 @@ func _build_cups_list() -> void:
 				show_page("teams"), true, 640.0)
 		_item(_cups_col, "Volver", "Volver al menú principal.", go_back, true, 640.0)
 		_first_focus(_cups_col)
+		return
+	if Discipline.is_futsal():
+		_build_futsal_cups()
 		return
 	_item(_cups_col, "Copa rápida", "Eliminación directa de 8: tu equipo y 7 de su grupo.", func() -> void:
 		_custom_cup = {}
@@ -905,7 +983,7 @@ func _on_teams_chosen(home: String, away: String) -> void:
 		# Al Club House directo (sin configuración del partido ni presentación).
 		GameSettings.save_settings()
 		GameSettings.play_intro = false
-		get_tree().change_scene_to_file(MATCH_SCENE)
+		LoadingScreen.goto(MATCH_SCENE)
 		return
 	show_page("setup")
 
@@ -929,9 +1007,8 @@ func _build_master_list() -> void:
 		c.queue_free()
 	for co in MasterCareer.eligible_countries():
 		var id := String(co["id"])
-		var start: Dictionary = co["divisions"][MasterCareer.start_division(id)]
 		_item(_master_col, String(co["name"]).to_upper(),
-			"Empezás en %s. Podés elegir cualquier club del país: si juega más arriba, baja a esa división." % start["name"],
+			"Empezás en %s. Podés elegir cualquier club del país: si juega más arriba, baja a esa división." % MasterCareer.start_division_name(id),
 			_master_pick_country.bind(id), true, 520.0)
 	_item(_master_col, "Volver", "Volver al menú principal.", go_back, true, 520.0)
 	_first_focus(_master_col)
@@ -952,12 +1029,14 @@ func _build_master_squad() -> void:
 		_master_squad_col.remove_child(c)
 		c.queue_free()
 	var co := TeamDB.country(_master_country)
-	var start := MasterCareer.start_division(_master_country)
-	var start_name := String(co["divisions"][start]["name"])
+	var start := MasterCareer.start_division(_master_country, _master_club)
+	var start_name := MasterCareer.start_division_name(_master_country, _master_club)
 	var from := MasterCareer.division_of(_master_country, _master_club)
 	var club := TeamDB.load_team(TeamDB.club_path(_master_country, _master_club)).team_name
 	var info := "%s  ·  %s\nEmpezás en %s." % [club, co["name"], start_name]
-	if from >= 0 and from != start:
+	if Discipline.is_futsal():
+		info += "\nLiga con playoff, ascensos y descensos, Supercopa y Copa Argentina."
+	if from >= 0 and from != start and not (Discipline.is_futsal() and int(co["divisions"][from].get("level", 0)) == int(co["divisions"][start].get("level", -1))):
 		info += " %s juega en %s: baja a %s y, para que las ligas no cambien de tamaño, sube un club de cada división de por medio." % [club,
 			co["divisions"][from]["name"], start_name]
 	var forced := MasterCareer.we_forced(_master_country, _master_club)
@@ -1013,7 +1092,7 @@ func _choose_training(kind: int) -> void:
 func _start() -> void:
 	GameSettings.save_settings()
 	GameSettings.play_intro = true
-	get_tree().change_scene_to_file(MATCH_SCENE)
+	LoadingScreen.goto(MATCH_SCENE)
 
 
 # --- Opciones -------------------------------------------------------------------

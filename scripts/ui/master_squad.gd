@@ -104,7 +104,7 @@ func _rebuild() -> void:
 	_frame.title_info.text = "%s · %s" % [t.team_name, career.formation_name()]
 	_frame.footer.set_hints(HINTS)
 	var left := _columns()
-	var forms := MasterCareer.FORMATIONS
+	var forms := MasterCareer.formations()
 	var frow := WEStyle.OptionRow.new("Formación", func() -> String: return career.formation_name(),
 		func(dir: int) -> void:
 			var i := forms.find(career.formation_name())
@@ -119,10 +119,10 @@ func _rebuild() -> void:
 	_list.add_child(_section("Titulares"))
 	for i in _players.size():
 		_list.add_child(_row(i))
-		if i == 10:
+		if i == Discipline.players() - 1:
 			_list.add_child(_section("Suplentes"))
-		if i == 22 and _players.size() > 23:
-			_list.add_child(_section("Fuera de la lista (al partido van 23)"))
+		if i == _listed() - 1 and _players.size() > _listed():
+			_list.add_child(_section("Fuera de la lista (al partido van %d)" % _listed()))
 	var btns := HBoxContainer.new()
 	btns.add_theme_constant_override("separation", int(WEStyle.px(16)))
 	left.add_child(btns)
@@ -158,6 +158,11 @@ func _header(texts: Array) -> Control:
 	return m
 
 
+## Los que van al partido (23; en futsal, 5 + 9).
+static func _listed() -> int:
+	return Discipline.players() + Discipline.bench_size()
+
+
 func _row(i: int) -> Button:
 	var p := _players[i]
 	var d := career.user_player_dict(p.pid)
@@ -166,7 +171,7 @@ func _row(i: int) -> Button:
 		status = "LES %d" % int(d["inj"])
 	elif int(d.get("susp", 0)) > 0:
 		status = "SUS %d" % int(d["susp"])
-	var mark := "▶" if i == _marked else ("●" if i < 11 else "")
+	var mark := "▶" if i == _marked else ("●" if i < Discipline.players() else "")
 	var c := RED if status != "" else (GOLD if i == _marked else WEStyle.TEXT_MAIN)
 	var ev := career.overall_delta(p.pid)
 	var cells := _cells([mark, str(p.number), p.role_code, p.player_name, str(p.get_age()),
@@ -207,7 +212,7 @@ func _show_detail(i: int) -> void:
 	_detail.add_child(WEStyle.make_title_label(p.player_name.to_upper(), WEStyle.TITLE_M))
 	_detail.add_child(WEStyle.make_body_label("%d años · %d cm · %s · media %d" % [p.get_age(), p.height_cm(),
 		["diestro", "zurdo", "ambidiestro"][clampi(p.foot, 0, 2)], roundi(TeamDB.overall(p))], WEStyle.BODY_M, WEStyle.TEXT_DIM))
-	var st := "Titular" if i < 11 else "Suplente"
+	var st := "Titular" if i < Discipline.players() else "Suplente"
 	if int(d.get("inj", 0)) > 0:
 		st = "Lesionado: %d fecha%s" % [int(d["inj"]), "" if int(d["inj"]) == 1 else "s"]
 	elif int(d.get("susp", 0)) > 0:

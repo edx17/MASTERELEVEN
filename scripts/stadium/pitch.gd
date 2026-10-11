@@ -23,6 +23,11 @@ static var SECOND_PENALTY_DISTANCE := 0.0
 ## Escala de la cancha respecto de la de fútbol (largo): para cámaras y
 ## distancias pensadas para 105 m.
 static var SCALE := 1.0
+## Área redondeada del futsal: dos cuartos de círculo (radio = profundidad)
+## centrados al costado de los postes, unidos por una recta.
+static var ROUNDED_AREA := false
+## Distancia de los rivales en una pelota parada (9,15 m; 5 m en futsal).
+static var RESTART_DISTANCE := 9.15
 
 
 ## Pone las medidas de una disciplina ({half_length, half_width, ...}).
@@ -41,13 +46,39 @@ static func configure(d: Dictionary) -> void:
 	PENALTY_SPOT_DISTANCE = float(d.get("penalty_spot", 11.0))
 	LINE_WIDTH = float(d.get("line_width", 0.12))
 	SECOND_PENALTY_DISTANCE = float(d.get("second_penalty_spot", 0.0))
+	ROUNDED_AREA = bool(d.get("rounded_area", false))
+	RESTART_DISTANCE = float(d.get("restart_distance", 9.15))
 	SCALE = HALF_LENGTH / 52.5
+
+
+## Distancia de la cancha de fútbol llevada a esta cancha (proporcional al
+## largo): ubicaciones, zonas, cortes del campo.
+static func s(meters: float) -> float:
+	return meters * SCALE
+
+
+## Distancia "de juego" (pases, remates, despejes, presión): se achica con la
+## cancha pero no tanto (los jugadores y la pelota no se achican).
+static func h(meters: float) -> float:
+	return meters * maxf(SCALE, 0.5)
+
+
+## Medida lateral relativa al arco (puntería): 1 en fútbol, ~0,41 en futsal.
+static func g(meters: float) -> float:
+	return meters * GOAL_HALF_WIDTH / 3.66
 
 
 ## Está dentro del área grande del arco ubicado en el lado `side` (+1 / -1).
 static func in_penalty_area(pos: Vector3, side: int) -> bool:
 	var dx := side * HALF_LENGTH - pos.x
-	return dx * side >= 0.0 and dx * side <= PENALTY_AREA_DEPTH and absf(pos.z) <= PENALTY_AREA_HALF_WIDTH
+	if dx * side < 0.0 or dx * side > PENALTY_AREA_DEPTH or absf(pos.z) > PENALTY_AREA_HALF_WIDTH:
+		return false
+	if not ROUNDED_AREA:
+		return true
+	var straight := PENALTY_AREA_HALF_WIDTH - PENALTY_AREA_DEPTH
+	if absf(pos.z) <= straight:
+		return true
+	return Vector2(dx, absf(pos.z) - straight).length() <= PENALTY_AREA_DEPTH
 
 
 ## Punto central del arco del lado `side`.

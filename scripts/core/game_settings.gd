@@ -93,6 +93,8 @@ var force_mobile := false
 
 ## Futsal: piso de la cancha (Discipline.SURFACES: parquet, pista azul o negra).
 var court_surface: int = 0
+## Futsal: estadio (GymBuilder.Style: microestadio, pabellón o ginásio).
+var gym_style: int = 0
 
 
 ## ¿Se cobra el offside? (el futsal no tiene).
@@ -161,7 +163,7 @@ const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", 
 	"pitch_choice", "pitch_wear", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
 	"stick_directions", "camera_preset", "show_pass_target", "offside", "home_team_path", "away_team_path",
 	"home_kit", "away_kit", "show_replays", "replay_chances", "player_style", "sfx_volume", "crowd_volume", "music_volume",
-	"show_radar", "show_score", "wc_playoff", "active_optionfile", "database", "court_surface", "show_offside_line", "show_ball_landing",
+	"show_radar", "show_score", "wc_playoff", "active_optionfile", "database", "court_surface", "gym_style", "show_offside_line", "show_ball_landing",
 	"window_mode", "resolution", "vsync", "antialias", "render_scale", "shadow_quality", "crowd_level", "fps_limit",
 	"input_source"]
 ## Falso en los tests y las herramientas: no leen ni pisan la configuración
@@ -357,6 +359,7 @@ func load_settings(path: String = SETTINGS_PATH) -> void:
 	pitch_choice = clampi(pitch_choice, -1, PITCH_NAMES.size() - 1)
 	pitch_wear = clampi(pitch_wear, 0, PITCH_WEAR_NAMES.size() - 1)
 	stadium_choice = clampi(stadium_choice, -1, StadiumStyles.STYLES.size() - 1)
+	gym_style = clampi(gym_style, 0, 2)
 	game_speed = clampi(game_speed, -2, 2)
 	player_label = clampi(player_label, 0, PLAYER_LABEL_NAMES.size() - 1)
 	keeper_auto_action = clampi(keeper_auto_action, 0, 1)

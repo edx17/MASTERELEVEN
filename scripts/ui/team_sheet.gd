@@ -451,6 +451,11 @@ func _build_menu() -> void:
 	_menu_button("Penales: %s" % _taker_name(team.pk_taker), _choose.bind(Mode.PK))
 	_menu_button("Capitán: %s" % _taker_name(team.captain, team.captain_data()), _choose.bind(Mode.CAPTAIN))
 	_menu_button("Formación: %s" % (team.formation.formation_name if team.formation else "-"), _next_formation)
+	if Team.flying_subs():
+		# Futsal: el segundo cuarteto son los primeros 4 de campo del banco.
+		var q := team.next_quartet().map(func(d: PlayerData) -> String: return d.player_name.get_slice(" ", d.player_name.get_slice_count(" ") - 1))
+		_menu_button("Rotación: %s" % rotation_name(team.rotation_minutes), _next_rotation)
+		_menu_button("Cuarteto 2: %s" % (", ".join(q) if not q.is_empty() else "-"), func() -> void: pass)
 	_menu_button("Copiar estrategia: guardar", save_plan)
 	_menu_button("Copiar estrategia: cargar", load_plan)
 	for i in team.strategy_slots.size():
@@ -482,6 +487,20 @@ func _menu_button(text: String, cb: Callable) -> Button:
 	b.pressed.connect(cb)
 	_menu.add_child(b)
 	return b
+
+
+## Futsal: cada cuántos minutos entra el otro cuarteto (0 = a mano).
+const ROTATIONS := [0.0, 3.0, 5.0, 7.0]
+
+
+static func rotation_name(minutes: float) -> String:
+	return "a mano (L2 + arriba)" if minutes <= 0.0 else "cada %d'" % int(minutes)
+
+
+func _next_rotation() -> void:
+	var i := ROTATIONS.find(team.rotation_minutes)
+	team.rotation_minutes = ROTATIONS[(i + 1) % ROTATIONS.size()]
+	_build_menu()
 
 
 func _taker_name(d: PlayerData, auto: PlayerData = null) -> String:

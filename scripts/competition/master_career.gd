@@ -82,10 +82,25 @@ static func eligible_countries() -> Array:
 	return TeamDB.countries().filter(func(c: Dictionary) -> bool: return (c["divisions"] as Array).size() >= 2)
 
 
-## Índice de la división donde se arranca en ese país.
-static func start_division(country_id: String) -> int:
+## Índice de la división donde se arranca en ese país. En futsal se arranca
+## en la D: un club de la D se queda en su zona; los de más arriba, a la Zona 2.
+static func start_division(country_id: String, club_id: String = "") -> int:
 	var n := (TeamDB.country(country_id).get("divisions", []) as Array).size()
-	return n - 1 if START_AT_BOTTOM.has(country_id) else mini(1, n - 1)
+	if Discipline.is_futsal() and club_id != "":
+		var d := division_of(country_id, club_id)
+		var divs: Array = TeamDB.country(country_id).get("divisions", [])
+		if d >= 0 and FutsalLeague.format_of(String(divs[d]["id"])) == "futD":
+			return d
+	return n - 1 if START_AT_BOTTOM.has(country_id) or Discipline.is_futsal() else mini(1, n - 1)
+
+
+## Nombre de la división donde se arranca (en futsal, "Primera D").
+static func start_division_name(country_id: String, club_id: String = "") -> String:
+	var divs: Array = TeamDB.country(country_id).get("divisions", [])
+	var d := String(divs[start_division(country_id, club_id)]["id"])
+	if Discipline.is_futsal():
+		return String(FutsalLeague.FORMATS[FutsalLeague.format_of(d)]["name"])
+	return String(divs[start_division(country_id, club_id)]["name"])
 
 
 ## Índice de la división del club en el país (o -1).
@@ -117,7 +132,7 @@ static func create(country_id: String, club_id: String, mode: String, seed: int 
 	rng.seed = seed if seed != 0 else randi()
 	var c := TeamDB.country(country_id)
 	var divs: Array = c["divisions"]
-	var start := start_division(country_id)
+	var start := start_division(country_id, club_id)
 	# Divisiones y planteles fijados (con un pid por jugador).
 	# Los jugadores de la base con id (Temporada 2026) lo conservan: es el
 	# mismo jugador en su selección. Los nuevos siguen desde el más alto.
@@ -186,7 +201,7 @@ func _make_we_squad(level_index: int, division_id: String, seed: int) -> void:
 	var e: Dictionary = world.clubs[key]
 	var co := TeamDB.country(country)
 	var t := TeamData.new()
-	var fname := String(e.get("formation", "4-4-2"))
+	var fname := String(e.get("formation", Discipline.default_formation()))
 	var fpath := Discipline.formation_path(fname)
 	t.formation = load(fpath) if ResourceLoader.exists(fpath) else load(Discipline.formation_path(Discipline.default_formation()))
 	t.id = "%s_%s_we" % [country, user_club]
@@ -206,6 +221,17 @@ func _make_we_squad(level_index: int, division_id: String, seed: int) -> void:
 func _new_season_leagues(seed: int) -> void:
 	leagues.clear()
 	activate()
+	# Futsal: Liga con playoff por categoría (la D, con sus dos zonas).
+	if futsal():
+		var ld := league_divs()
+		for i in ld.size():
+			var zones: Array = []
+			for zid in ld[i]["zones"]:
+				zones.append(TeamDB.division_paths(country, String(zid)))
+			var fc := FutsalLeague.create(String(ld[i]["fmt"]), zones, user_path(), seed + i)
+			leagues.append({"division": String(ld[i]["id"]), "comp": fc})
+		_new_season_cups(seed + 100)
+		return
 	var divs: Array = TeamDB.country(country)["divisions"]
 	for i in divs.size():
 		var paths: Array[String] = []
@@ -215,6 +241,131 @@ func _new_season_leagues(seed: int) -> void:
 		var comp := Competition.create_league(paths, me, true, seed + i)
 		leagues.append({"division": String(divs[i]["id"]), "comp": comp})
 	_new_season_cups(seed + 100)
+
+
+# --- Futsal (F6) -----------------------------------------------------------------------
+# La Liga Virtual de futsal: una FutsalLeague por categoría (la D con sus dos
+# zonas), ascensos por campeonato y por playoff, descensos por tabla, la
+# Supercopa y la Copa Argentina en la temporada. Sin copas internacionales,
+# Mundial ni Sub-20.
+
+## Clubes (ids) de una liga de futsal en el orden de la fase de liga; en la
+## D, las dos zonas intercaladas por ubicación.
+static func futsal_order(comp: Competition) -> Array:
+	var idx: Array = []
+	for gi in comp.groups.size():
+		for row in comp.group_table(gi):
+			idx.append(int(row["team"]))
+	if comp.groups.size() > 1:
+		idx.sort_custom(func(a: int, b: int) -> bool: return FutsalLeague.rank_of(comp, a) < FutsalLeague.rank_of(comp, b))
+	return idx.map(func(i: int) -> String: return comp.team_paths[i].get_slice(":", 3))
+
+
+## Campeón de la liga: en la A el del playoff; en el resto, el 1.º de la tabla.
+static func futsal_champion(comp: Competition) -> String:
+	var f: Dictionary = FutsalLeague.FORMATS.get(comp.fmt, {})
+	if not bool(f.get("league_champ", false)) and comp.champion >= 0:
+		return comp.team_paths[comp.champion].get_slice(":", 3)
+	var order := futsal_order(comp)
+	return String(order[0]) if not order.is_empty() else ""
+
+
+## Los que ascienden: el campeón (de cada zona en la D) y el del playoff.
+static func futsal_promoted(comp: Competition) -> Array:
+	var out: Array = []
+	var f: Dictionary = FutsalLeague.FORMATS.get(comp.fmt, {})
+	if not bool(f.get("league_champ", false)):
+		return out
+	for gi in comp.groups.size():
+		out.append(comp.team_paths[int(comp.group_table(gi)[0]["team"])].get_slice(":", 3))
+	if comp.champion >= 0:
+		var w := comp.team_paths[comp.champion].get_slice(":", 3)
+		if not out.has(w):
+			out.append(w)
+	return out
+
+
+## Ascensos y descensos entre categorías (en `lists`, una lista por liga).
+func _futsal_moves(ranks: Array, lists: Array, summary: Dictionary) -> void:
+	for i in ranks.size() - 1:
+		var upper: Competition = leagues[i]["comp"]
+		var up := futsal_promoted(leagues[i + 1]["comp"])
+		var k := mini(int(FutsalLeague.FORMATS.get(upper.fmt, {}).get("down", 0)), (ranks[i] as Array).size())
+		var down: Array = (ranks[i] as Array).slice((ranks[i] as Array).size() - k) if k > 0 else []
+		for id in down:
+			lists[i].erase(id)
+			lists[i + 1].append(id)
+		for id in up:
+			lists[i + 1].erase(id)
+			lists[i].append(id)
+		summary["divisions"][i]["down"] = down
+		summary["divisions"][i + 1]["up"] = up
+
+
+## Campeones para la Supercopa de la temporada que viene: [A (playoff), B, C,
+## D Zona 1, D Zona 2] (rutas).
+func _futsal_champions(_summary: Dictionary) -> Array:
+	var out: Array = []
+	for l in leagues:
+		var comp: Competition = l["comp"]
+		if comp.groups.size() > 1:
+			for gi in comp.groups.size():
+				out.append(comp.team_paths[int(comp.group_table(gi)[0]["team"])])
+		else:
+			out.append(TeamDB.club_path(country, futsal_champion(comp)))
+	return out
+
+
+## Divisiones de la temporada que viene. En la D, cada club se queda en su
+## zona; los que descienden van a la zona con menos clubes.
+func _futsal_set_divisions(lists: Array) -> void:
+	var ld := league_divs()
+	for i in ld.size():
+		var zones: Array = ld[i]["zones"]
+		if zones.size() == 1:
+			world.set_division(country, String(zones[0]), lists[i])
+			continue
+		var comp: Competition = leagues[i]["comp"]
+		var per: Array = []
+		var was := {}
+		for gi in zones.size():
+			per.append([])
+			if gi < comp.groups.size():
+				for t in comp.groups[gi]:
+					was[comp.team_paths[int(t)].get_slice(":", 3)] = gi
+		var newcomers: Array = []
+		for id in lists[i]:
+			if was.has(id):
+				(per[int(was[id])] as Array).append(id)
+			else:
+				newcomers.append(id)
+		for id in newcomers:
+			var z := 0
+			for gi in per.size():
+				if (per[gi] as Array).size() < (per[z] as Array).size():
+					z = gi
+			(per[z] as Array).append(id)
+		for gi in zones.size():
+			world.set_division(country, String(zones[gi]), per[gi])
+
+
+## Copas de futsal de la temporada: la Supercopa (con los campeones de la
+## temporada pasada; en la primera, los de la base) y la Copa Argentina.
+func _futsal_cups(rng: RandomNumberGenerator, lr: int, me: String) -> void:
+	var last := last_summary()
+	var sp: Array[String] = []
+	if last.has("futsal_super"):
+		sp.assign(last["futsal_super"])
+	else:
+		sp = FutsalLeague.supercup_paths()
+	if sp.size() == 5:
+		_add_cup("fut_super", "Supercopa Argentina", "super", FutsalLeague.create_supercup(sp, sp.find(me)), [0, 1, 2])
+	var ca := FutsalLeague.create_copa_argentina(me, rng.randi())
+	_add_cup("fut_copa", "Copa Argentina", "national", ca, spread(COPA_ARG_ROUNDS, lr))
+
+
+## Rondas de la Copa Argentina de futsal (Fase 1, Fase 2, 32avos ... final).
+const COPA_ARG_ROUNDS := 8
 
 
 # --- Mundo activo ---------------------------------------------------------------------
@@ -252,8 +403,32 @@ func user_league() -> Competition:
 
 
 func division_name(i: int) -> String:
-	var divs: Array = TeamDB.country(country).get("divisions", [])
+	var divs: Array = league_divs()
 	return String(divs[i]["name"]) if i < divs.size() else ""
+
+
+## ¿Carrera de futsal? (la base es de futsal).
+func futsal() -> bool:
+	return TeamDB.discipline_of_db(db) == "futsal"
+
+
+## Divisiones en el orden de `leagues`. En futsal, una por categoría: la D
+## junta sus dos zonas ({id, fmt, name, level, down, zones: [ids]}).
+func league_divs() -> Array:
+	var divs: Array = TeamDB.country(country).get("divisions", [])
+	if not futsal():
+		return divs
+	var out: Array = []
+	for d in divs:
+		var id := String(d["id"])
+		var fmt := FutsalLeague.format_of(id)
+		if not out.is_empty() and String(out.back()["fmt"]) == fmt:
+			(out.back()["zones"] as Array).append(id)
+			continue
+		var f: Dictionary = FutsalLeague.FORMATS.get(fmt, {})
+		out.append({"id": id, "fmt": fmt, "name": String(f.get("name", d["name"])), "level": int(d.get("level", out.size() + 1)),
+			"down": int(f.get("down", d.get("down", 0))), "zones": [id]})
+	return out
 
 
 func year_label() -> String:
@@ -364,7 +539,7 @@ func play_round(user_result: Array = [], user_scorers: Array = [], seed: int = 0
 		var lists: Array = []
 		for l in leagues:
 			lists.append((l["comp"] as Competition).team_paths.map(func(pth: String) -> String: return pth.get_slice(":", 3)))
-		_ai_window(rng, lists, TeamDB.country(country)["divisions"])
+		_ai_window(rng, lists, league_divs())
 	_auto_cups(rng)
 	if leagues.all(func(l: Dictionary) -> bool: return (l["comp"] as Competition).finished()):
 		_end_season()
@@ -578,7 +753,7 @@ const SCORER_WEIGHT := {"CF": 4.5, "SS": 4.0, "WG": 3.5, "AMF": 3.5, "LMF": 2.5,
 
 ## Autor de un gol simulado: entre los titulares, según puesto y remate.
 static func pick_scorer(t: TeamData, rng: RandomNumberGenerator) -> PlayerData:
-	var xi := t.players.slice(0, mini(11, t.players.size()))
+	var xi := t.players.slice(0, mini(Discipline.players(), t.players.size()))
 	var total := 0.0
 	var weights: Array[float] = []
 	for p in xi:
@@ -614,22 +789,26 @@ func top_scorers(division: int = -1, n: int = 20) -> Array:
 func _end_season() -> void:
 	activate()
 	_finish_cups()
-	var divs: Array = TeamDB.country(country)["divisions"]
+	var divs: Array = league_divs()
 	var ranks: Array = [] # por división: ids en el orden de la tabla
 	var summary := {"season": season, "year": year_label(), "divisions": [], "user": {}}
 	for li in leagues.size():
 		var comp: Competition = leagues[li]["comp"]
-		var ids: Array = []
-		for row in comp.standings():
-			ids.append(comp.team_paths[row["team"]].get_slice(":", 3))
+		var ids: Array = futsal_order(comp) if futsal() else []
+		if not futsal():
+			for row in comp.standings():
+				ids.append(comp.team_paths[row["team"]].get_slice(":", 3))
 		ranks.append(ids)
 		var top := top_scorers(li, 1)
-		summary["divisions"].append({"id": leagues[li]["division"], "name": division_name(li), "champion": ids[0],
+		summary["divisions"].append({"id": leagues[li]["division"], "name": division_name(li),
+			"champion": futsal_champion(comp) if futsal() else ids[0],
 			"top_scorer": top[0] if not top.is_empty() else {}, "up": [], "down": []})
 	var lists: Array = []
 	for ids in ranks:
 		lists.append((ids as Array).duplicate())
-	for i in ranks.size() - 1:
+	if futsal():
+		_futsal_moves(ranks, lists, summary)
+	for i in (ranks.size() - 1 if not futsal() else 0):
 		var k := mini(TeamDB.relegation_count(country, i), mini((ranks[i] as Array).size(), (ranks[i + 1] as Array).size()))
 		if k <= 0:
 			continue
@@ -651,19 +830,22 @@ func _end_season() -> void:
 		points += int(POINTS["promotion"])
 	elif (summary["divisions"][mine]["down"] as Array).has(user_club):
 		went = "down"
-	if pos == 1:
+	var champ := String(summary["divisions"][mine]["champion"]) == user_club
+	if champ:
 		points += int(POINTS["title"])
 	summary["user"] = {"division": mine, "division_name": division_name(mine), "pos": pos, "went": went}
 	# Tablas finales (para las copas de la temporada que viene), Apertura y
 	# Clausura, copas y Mundial.
 	summary["ranks"] = ranks
-	if CareerCups.HALVES.has(country):
+	if futsal():
+		summary["futsal_super"] = _futsal_champions(summary)
+	elif CareerCups.HALVES.has(country):
 		var top: Competition = leagues[0]["comp"]
 		var half := top.rounds.size() / 2
 		summary["halves"] = [top.team_paths[top.standings(0, half)[0]["team"]],
 			top.team_paths[top.standings(half, top.rounds.size())[0]["team"]]]
 	_cups_summary(summary)
-	if world_cup_year():
+	if world_cup_year() and not futsal():
 		_play_world_cup(summary)
 	_awards(summary)
 	# Cambio de año: edad, evolución, retiros y juveniles (con las divisiones
@@ -678,7 +860,7 @@ func _end_season() -> void:
 	for d in summary["divisions"]:
 		add_news("%s %s: campeón %s." % [d["name"], year_label(), _club_name(String(d["champion"]))], "temporada")
 	var verdict := "Terminaste %d.º en %s." % [pos, division_name(mine)]
-	if pos == 1:
+	if champ:
 		verdict = "¡Campeones de %s %s!" % [division_name(mine), year_label()]
 	if went == "up":
 		verdict += " ¡Ascenso!"
@@ -689,8 +871,11 @@ func _end_season() -> void:
 		add_news("Se retiró %s." % n, "club")
 	if not (report["youth"] as Array).is_empty():
 		add_news("Suben de las inferiores: %s." % ", ".join(report["youth"]), "club")
-	for i in divs.size():
-		world.set_division(country, String(divs[i]["id"]), lists[i])
+	if futsal():
+		_futsal_set_divisions(lists)
+	else:
+		for i in divs.size():
+			world.set_division(country, String(divs[i]["id"]), lists[i])
 	history.append(summary)
 	season_over = true
 	TeamDB.use_option_file(world)
@@ -743,8 +928,21 @@ static func retire_chance(age: int, keeper: bool) -> float:
 
 
 ## Mínimo por puesto al reponer con juveniles: [arqueros, defensores,
-## volantes, delanteros] (23 en total).
+## volantes, delanteros] (23 en total; en futsal, 14).
 const SQUAD_LINES := [3, 8, 7, 5]
+const FUTSAL_SQUAD_LINES := [2, 4, 5, 3]
+
+
+static func squad_lines() -> Array:
+	return FUTSAL_SQUAD_LINES if Discipline.is_futsal() else SQUAD_LINES
+
+
+## Plantel completo al reponer con juveniles (23; en futsal, 14).
+static func squad_target() -> int:
+	var n := 0
+	for k in squad_lines():
+		n += int(k)
+	return n
 
 
 ## Todos cumplen un año: evolucionan, algunos se retiran y cada club repone
@@ -842,9 +1040,9 @@ static func _evolve(d: Dictionary, age: int, rng: RandomNumberGenerator, share: 
 ## Repone el plantel hasta 23 con juveniles de los puestos que faltan.
 ## Devuelve sus nombres.
 func _add_youth(e: Dictionary, level: int, names_group: String, skin: Array, nationality: String,
-		rng: RandomNumberGenerator, target: int = 23) -> Array:
+		rng: RandomNumberGenerator, target: int = -1) -> Array:
 	var players: Array = e["players"]
-	var need := target - players.size()
+	var need := (target if target > 0 else squad_target()) - players.size()
 	if need <= 0:
 		return []
 	# Primero suben los de las inferiores del club (los mejores del puesto
@@ -858,8 +1056,8 @@ func _add_youth(e: Dictionary, level: int, names_group: String, skin: Array, nat
 		var want := 0
 		var gap := -99
 		for l in 4:
-			if SQUAD_LINES[l] - have[l] > gap:
-				gap = SQUAD_LINES[l] - have[l]
+			if squad_lines()[l] - have[l] > gap:
+				gap = squad_lines()[l] - have[l]
 				want = l
 		var best: Dictionary = {}
 		for d in youth:
@@ -880,7 +1078,7 @@ func _add_youth(e: Dictionary, level: int, names_group: String, skin: Array, nat
 		numbers[int(d.get("num", 0))] = true
 	var t := TeamData.new()
 	t.id = "youth_%d" % next_pid
-	t.formation = load("res://data/formations/f_4-4-2.tres")
+	t.formation = load(Discipline.formation_path(Discipline.default_formation()))
 	TeamDB.generate_roster(t, level, names_group, skin, nationality, rng.randi())
 	var pool := t.players.duplicate()
 	var out: Array = []
@@ -889,7 +1087,7 @@ func _add_youth(e: Dictionary, level: int, names_group: String, skin: Array, nat
 		var line := 0
 		var worst := -99
 		for l in 4:
-			var gap: int = SQUAD_LINES[l] - count[l]
+			var gap: int = squad_lines()[l] - count[l]
 			if gap > worst:
 				worst = gap
 				line = l
@@ -942,6 +1140,11 @@ func _new_pid() -> int:
 const FORMATIONS := ["4-4-2", "4-3-3", "4-2-3-1", "3-5-2", "5-3-2"]
 
 
+## Formaciones para elegir en el Plantel (las de futsal en futsal).
+static func formations() -> Array:
+	return Discipline.formations() if Discipline.is_futsal() else FORMATIONS
+
+
 func _user_entry() -> Dictionary:
 	return world.clubs["%s:%s" % [country, user_club]]
 
@@ -951,7 +1154,7 @@ func _refresh_user() -> void:
 
 
 func formation_name() -> String:
-	return String(_user_entry().get("formation", "4-4-2"))
+	return String(_user_entry().get("formation", Discipline.default_formation()))
 
 
 ## Cambia la formación (los titulares se vuelven a elegir solos).
@@ -974,7 +1177,7 @@ func swap_players(pid_a: int, pid_b: int) -> void:
 		return
 	order[ia] = pid_b
 	order[ib] = pid_a
-	_user_entry()["lineup"] = order.slice(0, 11)
+	_user_entry()["lineup"] = order.slice(0, Discipline.players())
 	_refresh_user()
 
 
@@ -1065,6 +1268,12 @@ const FREE_SIGNING_SHARE := 0.1
 ## Puntos WE por cada premio individual de un jugador de tu club.
 const AWARD_POINTS := 1500
 const MIN_SQUAD := 18
+## En futsal (planteles de 14).
+const FUTSAL_MIN_SQUAD := 10
+
+
+static func min_squad() -> int:
+	return FUTSAL_MIN_SQUAD if Discipline.is_futsal() else MIN_SQUAD
 ## Préstamo: una parte del valor, por lo que queda de la temporada.
 const LOAN_SHARE := 0.25
 ## Ofertar por debajo del precio: chance de que acepten.
@@ -1212,7 +1421,7 @@ func cannot_buy(club: String, cost: int) -> String:
 		return "El mercado está cerrado."
 	if club_players(user_club).size() >= MAX_SQUAD:
 		return "Tu plantel ya tiene %d jugadores." % MAX_SQUAD
-	if club != FREE_CLUB and club_players(club).size() <= MIN_SQUAD:
+	if club != FREE_CLUB and club_players(club).size() <= min_squad():
 		return "No lo venden: les quedaría el plantel corto."
 	if cost > points:
 		return "No te alcanzan los puntos (faltan %d)." % (cost - points)
@@ -1292,7 +1501,7 @@ func sell_offer(pid: int, rng: RandomNumberGenerator = null) -> Dictionary:
 				continue
 			var have := club_players(club).filter(func(x: Dictionary) -> bool:
 				return TeamDB.position_of_code(String(x.get("pos", "CMF"))) == line).size()
-			var need: float = SQUAD_LINES[line] - have + r.randf() * 2.0
+			var need: float = squad_lines()[line] - have + r.randf() * 2.0
 			if need > best_need:
 				best_need = need
 				best = club
@@ -1402,7 +1611,7 @@ func _ai_window(rng: RandomNumberGenerator, lists: Array, divs: Array) -> void:
 			var from := ""
 			for dj in range(di, mini(di + 2, lists.size())):
 				for other in lists[dj]:
-					if other == club or other == user_club or club_players(other).size() <= MIN_SQUAD:
+					if other == club or other == user_club or club_players(other).size() <= min_squad():
 						continue
 					for x in club_players(other):
 						if x.has("loan_from") or moved.has(int(x["pid"])) or TeamDB.position_of_code(String(x.get("pos", "CMF"))) != line:
@@ -1424,7 +1633,7 @@ func _ai_window(rng: RandomNumberGenerator, lists: Array, divs: Array) -> void:
 			var div: Dictionary = divs[mini(dj_of(lists, from), divs.size() - 1)]
 			var level := int(TeamDB.DIVISION_LEVEL.get(int(div.get("level", 1)), 56)) - 10
 			_add_youth(e, level, String(co.get("names", "en")), co.get("skin", [40, 30, 18, 12]),
-				String(co.get("nationality", "")), rng, MIN_SQUAD + 2)
+				String(co.get("nationality", "")), rng, min_squad() + 2)
 	big.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["price"]) > int(b["price"]))
 	for t in big.slice(0, 3):
 		add_news("Bombazo: %s pasa de %s a %s." % [t["n"], _club_name(t["from"]), _club_name(t["to"])], "bombazo")
@@ -1610,6 +1819,10 @@ func _new_season_cups(seed: int) -> void:
 	var last := last_summary()
 	var lr := user_league().rounds.size()
 	var me := user_path()
+	if futsal():
+		_futsal_cups(rng, lr, me)
+		_auto_cups(rng)
+		return
 	var confed := CareerCups.confed_of(country)
 	# Mundial de Clubes (antes de empezar la temporada).
 	var y := first_year + season - 1
@@ -1865,6 +2078,8 @@ func _cups_summary(summary: Dictionary) -> void:
 ## Las copas principales de las otras confederaciones (simuladas), para la
 ## Intercontinental y el Mundial de Clubes.
 func _foreign_cups(summary: Dictionary) -> void:
+	if futsal():
+		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash("%s_foreign_%d" % [country, season])
 	var cache := {}
@@ -1887,6 +2102,8 @@ func _foreign_cups(summary: Dictionary) -> void:
 
 
 func world_cup_year() -> bool:
+	if futsal():
+		return false
 	var y := first_year + season - 1
 	return y >= WORLD_CUP_FIRST and (y - WORLD_CUP_FIRST) % 4 == 0
 

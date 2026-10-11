@@ -128,7 +128,8 @@ var ratings := PlayerRatings.new()
 var stats := {"shots": [0, 0], "saves": [0, 0], "tackles": [0, 0], "tackles_won": [0, 0],
 	"fouls": [0, 0], "yellows": [0, 0], "reds": [0, 0], "offsides": [0, 0], "subs": [0, 0], "injuries": [0, 0], "contacts": [0, 0],
 	"chilenas": [0, 0], "corners": [0, 0], "possession": [0.0, 0.0],
-	"free_kicks": [0, 0], "penalties": [0, 0], "goals_1st": [0, 0], "goals_2nd": [0, 0]}
+	"free_kicks": [0, 0], "penalties": [0, 0], "goals_1st": [0, 0], "goals_2nd": [0, 0],
+	"acc_fouls": [0, 0]}
 ## Atajada planificada para el último remate (ver SaveModel):
 ## {keeper, will_save, parry, point, time_left, chance}. Vacío si no hay.
 var save_plan := {}
@@ -147,6 +148,13 @@ var hands_time: float = 0.0
 ## Arquero que soltó la pelota de las manos (Triángulo): no la puede volver a
 ## agarrar hasta que la toque otro jugador (reglamento).
 var keeper_released: Footballer = null
+## Futsal: arquero que jugó la pelota en su campo; no la puede volver a
+## tocar ahí hasta que la toque un rival (pase atrás). `_keeper_mate_touch`:
+## ya la tocó un compañero después.
+var keeper_played: Footballer = null
+var _keeper_mate_touch := false
+## Futsal: tiro libre directo sin barrera (desde la 6.ª falta acumulada).
+var free_kick_no_wall := false
 ## Pared en curso (L1 + X): {passer, receiver, run, time}. Vacío = ninguna.
 var one_two := {}
 ## Mensaje grande para el HUD ("¡GOL!", "CÓRNER", ...).
@@ -221,7 +229,7 @@ func _ready() -> void:
 	randomize()
 	Engine.time_scale = GameSettings.game_time_scale()
 	_build_world()
-	clock = MatchClock.new(float(GameSettings.match_minutes))
+	clock = MatchClock.new(float(GameSettings.match_minutes), Discipline.half_minutes())
 	_setup_controllers()
 	# El HUD va después de los controladores: necesita saber cuántos humanos hay.
 	_hud = MatchHud.new()
@@ -298,15 +306,34 @@ func restart_ready() -> bool:
 
 
 ## Saque de arco: la pelota quieta en el piso (el arquero no la lleva aunque
-## sea el ejecutor).
+## sea el ejecutor). En futsal es con la mano (ver hand_clearance).
 func goal_kick_in_progress() -> bool:
-	return phase == Phase.RESTART and restart_type == MatchRules.Restart.GOAL_KICK and restart_taker != null
+	return phase == Phase.RESTART and restart_type == MatchRules.Restart.GOAL_KICK and restart_taker != null \
+		and not hand_clearance()
+
+
+## Futsal: saque de arco con la mano (el arquero la tiene en las manos en su
+## área y la tira; no toma carrera).
+func hand_clearance() -> bool:
+	return phase == Phase.RESTART and restart_type == MatchRules.Restart.GOAL_KICK \
+		and bool(Discipline.rule("hand_clearance", false))
+
+
+## Tiempo para sacar una pelota parada (6 s en fútbol, 4 en futsal).
+static func restart_limit() -> float:
+	return float(Discipline.rule("restart_limit", THROW_IN_LIMIT))
+
+
+## Tiempo del arquero con la pelota (6 s en las manos en fútbol; 4 s con la
+## pelota controlada en su campo en futsal).
+static func keeper_limit() -> float:
+	return float(Discipline.rule("keeper_limit", KEEPER_HANDS_LIMIT))
 
 
 ## Pelota parada con carrera en curso: la pelota queda quieta (el que patea
 ## no la lleva) hasta que llega y le pega.
 func runup_in_progress() -> bool:
-	return phase == Phase.RESTART and restart_type in RUNUP_TYPES and restart_taker != null
+	return phase == Phase.RESTART and restart_type in RUNUP_TYPES and restart_taker != null and not hand_clearance()
 
 
 func attack_dirs() -> Array[int]:
@@ -329,7 +356,7 @@ func _build_world() -> void:
 	var pitch := PitchBuilder.build(atmosphere.grass_params())
 	add_child(pitch)
 	if Discipline.is_futsal():
-		stadium = GymBuilder.build(GameSettings.home_team())
+		stadium = GymBuilder.build(GameSettings.home_team(), GameSettings.gym_style)
 	elif GameSettings.training:
 		stadium = ClubHouseBuilder.build(GameSettings.home_team())
 	else:
@@ -360,6 +387,9 @@ func _build_world() -> void:
 			kit_i = 1 - kit_i
 			kit = d.kit(kit_i)
 		var team := Team.new(i, d.team_name, d.short_name, kit[0], kit[1], d.keeper_color)
+		# Futsal: rota el cuarteto cada 5' de juego (se cambia en la Dirección).
+		if Team.flying_subs():
+			team.rotation_minutes = 5.0
 		var pat := d.kit_pattern(kit_i)
 		team.pattern = pat[0]
 		team.pattern_color = pat[1]
@@ -399,6 +429,8 @@ func _build_world() -> void:
 	referee = Referee.new()
 	add_child(referee)
 	referee.teleport(Vector3(0.0, 0.0, -Referee.TRAIL_Z))
+	if Discipline.is_futsal():
+		_setup_futsal_officials()
 
 	replay = Replay.new()
 	add_child(replay)
@@ -469,6 +501,8 @@ func _physics_process(dt: float) -> void:
 		h.tick(dt)
 	for a in ais:
 		a.tick(dt)
+	_drive_flying_subs(dt)
+	_drive_keeper_player()
 	if training != null:
 		training.after_ai(dt)
 	if phase == Phase.GOAL:
@@ -497,6 +531,7 @@ func _physics_process(dt: float) -> void:
 	ball.tick(dt)
 	if referee != null:
 		referee.tick(dt, ball.global_position, phase == Phase.PLAYING)
+	_tick_futsal_officials(dt)
 	_update_set_piece_camera(dt)
 	for t in teams:
 		var gk := t.keeper()
@@ -505,7 +540,7 @@ func _physics_process(dt: float) -> void:
 			# Ordena a la defensa con la pelota en sus manos (mientras corren
 			# los 6 s) o lejos, en el otro campo.
 			gk.directing = phase == Phase.PLAYING and (gk.ball_in_hands \
-				or ball.flat_pos().distance_to(gk.flat_pos()) > KEEPER_DIRECTING_DIST)
+				or ball.flat_pos().distance_to(gk.flat_pos()) > Pitch.s(KEEPER_DIRECTING_DIST))
 
 	# Primero las reglas (una pelota que ya cruzó la línea no se puede atajar).
 	if phase == Phase.PLAYING:
@@ -571,6 +606,10 @@ func _update_phase(dt: float) -> void:
 			save_plan = {}
 	match phase:
 		Phase.RESTART:
+			# Futsal: los 4 s (y el saque) recién después de las señas del
+			# árbitro (contar la barrera, marcar el lateral).
+			if not _officials_ready():
+				_restart_elapsed = 0.0
 			_restart_elapsed += dt
 			if _restart_elapsed > 0.8:
 				banner_text = ""
@@ -663,6 +702,9 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 	if player == null:
 		return null
 	var from_restart := restart_type if phase == Phase.RESTART else -1
+	var clearance := hand_clearance()
+	if clearance and kind in [KickActions.Kind.SHOT, KickActions.Kind.CLEAR]:
+		kind = KickActions.Kind.LONG_PASS # con la mano no se remata
 	kicks.set_piece = from_restart in [MatchRules.Restart.FREE_KICK, MatchRules.Restart.PENALTY]
 	kicks.penalty = from_restart == MatchRules.Restart.PENALTY
 	# El adelantado que la juega de primera (cabezazo, remate) también está
@@ -676,7 +718,7 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 	if phase == Phase.RESTART:
 		if player != restart_taker or _restart_elapsed < RESTART_HUMAN_DELAY or not sub_scenes.is_empty():
 			return null
-		if restart_type in RUNUP_TYPES and not _goal_kick_kicking:
+		if restart_type in RUNUP_TYPES and not _goal_kick_kicking and not clearance:
 			# La orden se guarda: primero toma carrera hasta la pelota.
 			if _goal_kick_order.is_empty() and goal_kick_stage != GoalKickStage.BACKING:
 				_goal_kick_order = [kind, dir, power, receiver_hint, variant, _custom_kick, pending_curl]
@@ -688,7 +730,12 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 		ball.frozen = false
 		player.locked = false
 		wall_targets = {}
-		kicks.throw_in_mode = restart_type == MatchRules.Restart.THROW_IN
+		# En futsal el lateral se saca con el pie (una patada común).
+		kicks.throw_in_mode = restart_type == MatchRules.Restart.THROW_IN and not Discipline.rule("kick_in", false)
+		kicks.hands_only = clearance
+		free_kick_no_wall = false
+		for r in _line_refs():
+			r.cancel_count()
 		restart_taker = null
 		banner_text = ""
 		_set_phase(Phase.PLAYING)
@@ -719,7 +766,9 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 		_chilena = false
 		player.stagger(CHILENA_DOWN)
 	kicks.throw_in_mode = false
+	kicks.hands_only = false
 	kick_count += 1
+	_on_keeper_kick(player)
 	save_plan = {}
 	if kind == KickActions.Kind.SHOT:
 		stats["shots"][player.team.index] += 1
@@ -877,7 +926,8 @@ var _throw_holder: Footballer
 
 func _update_throw_in_hold() -> void:
 	var holder: Footballer = null
-	if phase == Phase.RESTART and restart_type == MatchRules.Restart.THROW_IN and restart_taker != null:
+	if phase == Phase.RESTART and restart_type == MatchRules.Restart.THROW_IN and restart_taker != null \
+			and not Discipline.rule("kick_in", false):
 		holder = restart_taker
 	if _throw_holder != null and _throw_holder != holder and _throw_holder.visual != null:
 		_throw_holder.visual.throw_hold = false
@@ -900,7 +950,7 @@ func is_chilena(p: Footballer, kind: int) -> bool:
 		return false
 	var to_goal := p.team.target_goal() - p.flat_pos()
 	to_goal.y = 0.0
-	if to_goal.length() > CHILENA_MAX_DIST:
+	if to_goal.length() > Pitch.s(CHILENA_MAX_DIST):
 		return false
 	return p.facing.dot(to_goal.normalized()) < CHILENA_BACK_DOT
 
@@ -917,8 +967,9 @@ func _show_kick(kicker: Footballer) -> void:
 	if kicks.throw_in_mode:
 		ev = PlayerVisual.Event.THROW
 	elif _in_kick and kicks.hand_throw:
-		# Saque con la mano del arquero: rodando, como en las bochas.
-		ev = PlayerVisual.Event.ROLL
+		# Saque con la mano del arquero: rodando, como en las bochas (en el
+		# saque de arco largo del futsal, por arriba de la cabeza).
+		ev = PlayerVisual.Event.THROW if kicks.hands_only and ball.state.vel.y > 2.0 else PlayerVisual.Event.ROLL
 	elif ball.state.pos.y > 1.3:
 		ev = PlayerVisual.Event.HEADER
 	elif kicker.is_keeper() and ball.state.pos.y > 0.5:
@@ -1110,6 +1161,9 @@ func _try_take_loose_ball() -> void:
 			continue
 		if keeper_kick and p.team != kicker.team:
 			continue
+		# Futsal: el arquero de la CPU no la vuelve a tocar (pase atrás).
+		if keeper_locked(p) and _human_for(p) == null:
+			continue
 		var d := p.flat_pos().distance_to(bp)
 		if p.state == Footballer.State.SLIDING:
 			if d < tuning.slide_reach and h < 0.7:
@@ -1225,12 +1279,25 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 	var awarded := victim.team.index
 	var type := MatchRules.Restart.FREE_KICK
 	var text := "FALTA"
+	free_kick_no_wall = false
+	var acc := count_accumulated_foul(offender.team.index)
 	if Pitch.in_penalty_area(spot, offender.team.own_side()):
 		type = MatchRules.Restart.PENALTY
 		text = "¡PENAL!"
 		spot = penalty_spot(offender.team)
 	else:
 		spot = Pitch.clamp_to_field(spot, 1.0)
+		var limit: Variant = Discipline.rule("foul_limit")
+		if limit != null and acc > int(limit):
+			# Futsal: 6.ª falta acumulada o más, tiro libre directo sin barrera
+			# desde el doble penal (o desde donde fue, si es más cerca del arco).
+			free_kick_no_wall = true
+			text = "%d.ª FALTA ACUMULADA: SIN BARRERA" % acc
+			var dp := second_penalty_spot(offender.team)
+			if (dp.x - spot.x) * offender.team.own_side() > 0.0:
+				spot = dp
+		elif limit != null and acc == int(limit):
+			text = "FALTA   -   %d.ª ACUMULADA" % acc
 	# Tarjeta (como en el WE): barrida de atrás = roja directa casi siempre;
 	# si no, amarilla a veces, y la segunda amarilla es roja. Al arquero
 	# también lo pueden echar (ver _replace_keeper).
@@ -1260,9 +1327,13 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 	# El árbitro va hasta el infractor y le muestra la tarjeta (antes de la
 	# repetición).
 	var carded := text.contains("AMARILLA") or text.contains("ROJA")
+	# Futsal: el árbitro más cercano entra a marcarla y avisa a la mesa.
+	var foul_ref: Referee = _ref_foul(spot, victim.team, carded) if Discipline.is_futsal() else null
 	if carded and referee != null:
 		card_scene = {"offender": offender, "red": text.contains("ROJA"), "pos": offender_pos,
 			"facing": offender_facing, "stage": 0, "t": 0.0}
+		if foul_ref != null:
+			card_scene["ref"] = foul_ref
 	# Repetición de la falta (siempre: hubo un jugador derribado).
 	# Cartel: número y nombre del infractor (con la tarjeta, si hubo).
 	var caption := Replay.player_line(offender)
@@ -1429,7 +1500,7 @@ const FK_LONG_DIST := 25.0
 ## Pateador elegido para un tiro libre: el de los largos de lejos, si hay.
 static func free_kick_taker_data(team: Team, spot: Vector3) -> PlayerData:
 	var d := Vector2(team.target_goal().x - spot.x, team.target_goal().z - spot.z).length()
-	if d >= FK_LONG_DIST and team.fk_long_taker != null:
+	if d >= Pitch.h(FK_LONG_DIST) and team.fk_long_taker != null:
 		return team.fk_long_taker
 	return team.fk_taker
 
@@ -1455,6 +1526,14 @@ const CPU_SUB_STAMINA := 80.0
 ## pelota parada. Devuelve false si no se puede (sin cambios, ya salió...).
 func request_sub(out: Footballer, in_data: PlayerData) -> bool:
 	var t := out.team
+	if Team.flying_subs() and not out.is_keeper():
+		# Futsal: con la pelota en juego va a la zona de cambio; parado, ya.
+		if phase == Phase.PLAYING:
+			return request_flying_sub(out, in_data)
+		if not t.players.has(out) or not t.bench.has(in_data):
+			return false
+		_complete_flying_sub(out, in_data)
+		return true
 	if t.subs_left() <= 0 or not t.players.has(out) or not t.bench.has(in_data):
 		return false
 	for s in t.pending_subs:
@@ -1478,7 +1557,9 @@ func _make_pending_subs() -> void:
 	for t in teams:
 		if not _has_human(t):
 			_cpu_strategy(t)
-			_cpu_subs(t)
+			# Futsal: la CPU hace cambios volantes (ver _flying_auto).
+			if not Team.flying_subs():
+				_cpu_subs(t)
 		for s in t.pending_subs.duplicate():
 			t.pending_subs.erase(s)
 			substitute(s["out"], s["in"])
@@ -1486,15 +1567,19 @@ func _make_pending_subs() -> void:
 
 ## Cambio: `in_data` (del banco) entra en el puesto de `out`, en su lugar de
 ## la cancha. Devuelve el que entró (o null si no se pudo).
-func substitute(out: Footballer, in_data: PlayerData, as_keeper := false) -> Footballer:
+## `opts` (arquero jugador del futsal): role, spot (Vector2 de la
+## formación), tactical, shirt (camiseta de arquero).
+func substitute(out: Footballer, in_data: PlayerData, as_keeper := false, opts := {}) -> Footballer:
 	var t := out.team
-	if t.subs_used >= Team.MAX_SUBS or not t.players.has(out) or not t.bench.has(in_data):
+	if (t.subs_used >= Team.MAX_SUBS and not Team.flying_subs()) or not t.players.has(out) or not t.bench.has(in_data):
 		return null
 	var p := Footballer.new()
 	add_child(p)
 	var role: int = Footballer.Role.GK if as_keeper else out.role
-	p.setup(t, in_data, role, out.base_spot, tuning)
-	p.tactical_role = out.tactical_role
+	role = int(opts.get("role", role))
+	p.keeper_shirt = bool(opts.get("shirt", false))
+	p.setup(t, in_data, role, opts.get("spot", out.base_spot), tuning)
+	p.tactical_role = int(opts.get("tactical", out.tactical_role))
 	p.teleport(out.flat_pos(), out.facing)
 	t.players[t.players.find(out)] = p
 	var slot := t.slot_of(out)
@@ -1508,10 +1593,286 @@ func substitute(out: Footballer, in_data: PlayerData, as_keeper := false) -> Foo
 		_leave_pitch(out)
 	else:
 		_start_sub_scene(out, p)
-	if audio != null:
+	if audio != null and not Team.flying_subs():
 		audio.applause()
 	show_toast("CAMBIO %s:  sale %s  -  entra %s" % [t.short_name, out.display_name, p.display_name], 2.5)
 	return p
+
+
+# --- Cambios volantes (futsal) -------------------------------------------------
+# Sin parar el juego y sin límite: el que sale va hasta la zona de cambio de
+# su equipo (del lado de los bancos, entre 5 y 10 m de la mitad) y recién ahí
+# entra el suplente. El que sale vuelve al banco y recupera energía (puede
+# volver a entrar). L2 + cruceta arriba: sale el más cansado. Cuartetos con
+# rotación por tiempo (Dirección del equipo) y la CPU por cansancio.
+
+## [{out, in, t}] cambios volantes en curso.
+var flying: Array[Dictionary] = []
+## Hasta cuántos cambios a la vez por equipo (de a dos, como en la cancha).
+const FLYING_AT_ONCE := 2
+## Tope para llegar a la zona de cambio (s).
+const FLYING_MAX_TIME := 9.0
+## La CPU cambia a los de menos energía que esto (y cada tanto lo revisa).
+const FLYING_CPU_STAMINA := 55.0
+var _flying_cpu_t := 0.0
+
+
+## Zona de cambio de un equipo (afuera de la banda de los bancos, en su campo).
+func flying_zone(t: Team) -> Vector3:
+	return Vector3(-t.attack_dir * 7.5, 0.0, Pitch.HALF_WIDTH + 0.4)
+
+
+func is_heading_off(p: Footballer) -> bool:
+	for f in flying:
+		if f["out"] == p:
+			return true
+	return false
+
+
+## Pide un cambio volante (futsal). false si no se puede. Con `opts` (ver
+## substitute) también sale el arquero (arquero jugador).
+func request_flying_sub(out: Footballer, in_data: PlayerData, opts := {}) -> bool:
+	var t := out.team
+	if not Team.flying_subs() or not t.players.has(out) or not t.bench.has(in_data) or (out.is_keeper() and opts.is_empty()):
+		return false
+	for f in flying:
+		if f["out"] == out or f["in"] == in_data:
+			return false
+	flying.append({"out": out, "in": in_data, "t": 0.0, "opts": opts})
+	return true
+
+
+## Cambio rápido (L2 + cruceta arriba): sale el de campo más cansado y entra
+## el suplente de campo con más energía (del mismo puesto, si hay).
+func quick_flying_sub(t: Team) -> bool:
+	var out: Footballer = null
+	for p in t.players:
+		if p.is_keeper() or p.keeper_shirt or is_heading_off(p) or p == ball.owner_player:
+			continue
+		if out == null or p.stamina < out.stamina:
+			out = p
+	if out == null:
+		return false
+	var best: PlayerData = null
+	var best_score := -INF
+	for d in t.bench:
+		if d.position == PlayerData.Position.GK or flying.any(func(f: Dictionary) -> bool: return f["in"] == d):
+			continue
+		var score := t.bench_stamina(d) + (15.0 if d.position == out.data.position else 0.0)
+		if score > best_score:
+			best_score = score
+			best = d
+	if best == null or not request_flying_sub(out, best):
+		return false
+	show_toast("%s: cambio volante, sale %s" % [t.short_name, out.display_name], 1.5)
+	return true
+
+
+## Rotación de cuartetos: salen los 4 de campo y entran los primeros 4 de
+## campo del banco (de a dos).
+func rotate_quartet(t: Team) -> void:
+	var next := t.next_quartet()
+	var outs: Array[Footballer] = []
+	if keeper_player_state(t) != KeeperPlayer.OFF:
+		return # con el arquero jugador, después
+	for p in t.players:
+		if not p.is_keeper() and not p.keeper_shirt and not is_heading_off(p):
+			outs.append(p)
+	for i in mini(next.size(), outs.size()):
+		request_flying_sub(outs[i], next[i])
+	t.last_rotation = clock.total_game_seconds()
+	show_toast("%s: entra el otro cuarteto" % t.short_name, 1.5)
+
+
+func _drive_flying_subs(dt: float) -> void:
+	if not Team.flying_subs() or training != null:
+		return
+	for t in teams:
+		t.rest_bench(dt)
+	if phase == Phase.PLAYING:
+		_flying_auto(dt)
+	var active := [0, 0]
+	for f in flying.duplicate():
+		var out: Footballer = f["out"]
+		var t := out.team
+		if not t.players.has(out):
+			flying.erase(f)
+			continue
+		if active[t.index] >= FLYING_AT_ONCE:
+			continue
+		active[t.index] += 1
+		f["t"] += dt
+		var zone := flying_zone(t)
+		var to := zone - out.flat_pos()
+		to.y = 0.0
+		if to.length() < 1.2 or f["t"] > FLYING_MAX_TIME:
+			flying.erase(f)
+			_complete_flying_sub(out, f["in"], f.get("opts", {}))
+			continue
+		# Con la pelota la sigue jugando (la IA); si no, va a la zona.
+		if ball.owner_player != out and not out.is_human():
+			out.desired_move = to.normalized()
+			out.wants_sprint = to.length() > 6.0
+
+
+func _complete_flying_sub(out: Footballer, in_data: PlayerData, opts := {}) -> void:
+	var t := out.team
+	if not t.bench.has(in_data):
+		return
+	var energy := {"stamina": out.stamina, "wear": out.wear}
+	var out_data := out.base_data
+	# Sin la escena del cambio de fútbol (no se para el juego).
+	var was_instant := _instant_subs
+	_instant_subs = true
+	var p := substitute(out, in_data, false, opts)
+	_instant_subs = was_instant
+	if p == null:
+		return
+	# Entra desde la zona de cambio (con la energía que recuperó en el banco).
+	p.teleport(flying_zone(t) + Vector3(0.0, 0.0, -0.8), Vector3(0.0, 0.0, -1.0))
+	var e: Dictionary = t.bench_energy.get(in_data, {})
+	if not e.is_empty():
+		p.wear = float(e["wear"])
+		p.stamina = minf(float(e["stamina"]), p.stamina_cap())
+		t.bench_energy.erase(in_data)
+	# El que salió vuelve al banco y descansa.
+	t.subbed_off.erase(out)
+	t.bench.append(out_data)
+	t.bench_energy[out_data] = energy
+
+
+# --- Arquero jugador (futsal) -------------------------------------------------
+# Orden (L2 + cruceta abajo; la CPU, si va perdiendo por 1 o 2 sobre el
+# final): en cada ataque el arquero sale por la zona de cambio y entra un
+# jugador de campo con la camiseta de arquero para jugar 5 contra 4; al
+# perder la pelota ese jugador sale y vuelve el arquero a su arco.
+
+enum KeeperPlayer { OFF, GOING_OUT, IN, GOING_BACK }
+## Por equipo: {state, gk (PlayerData), gk_spot, gk_role, player (Footballer)}.
+var _kp: Array[Dictionary] = [{"state": KeeperPlayer.OFF}, {"state": KeeperPlayer.OFF}]
+
+
+func keeper_player_state(t: Team) -> int:
+	return int(_kp[t.index]["state"])
+
+
+## Prende o apaga la orden (humano: L2 + cruceta abajo).
+func toggle_keeper_player(t: Team) -> void:
+	if not Team.flying_subs():
+		return
+	t.keeper_player = not t.keeper_player
+	show_toast("%s: arquero jugador %s" % [t.short_name, "SÍ (5 contra 4 en cada ataque)" if t.keeper_player else "NO"], 2.0)
+
+
+## El que entra de arquero jugador: el de campo del banco con más energía y
+## mejor pie (pase).
+func _keeper_player_pick(t: Team) -> PlayerData:
+	var best: PlayerData = null
+	var best_score := -INF
+	for d in t.bench:
+		if d.position == PlayerData.Position.GK:
+			continue
+		var score := t.bench_stamina(d) + float(d.passing)
+		if score > best_score:
+			best_score = score
+			best = d
+	return best
+
+
+func _drive_keeper_player() -> void:
+	if not Team.flying_subs() or training != null:
+		return
+	for t in teams:
+		var kp := _kp[t.index]
+		var owner := ball.owner_player
+		var ours := owner != null and owner.team == t
+		var lost := (owner != null and owner.team != t) or (owner == null and ball.last_touch_team != t.index and ball.kick_age > 0.6)
+		match int(kp["state"]):
+			KeeperPlayer.OFF:
+				if t.keeper_player and phase == Phase.PLAYING and ours and not owner.is_keeper() \
+						and t.progress_of(ball.flat_pos()) > 0.45:
+					var gk := t.keeper()
+					var in_data := _keeper_player_pick(t)
+					if gk != null and in_data != null and not is_heading_off(gk):
+						# Juega arriba (como el pívot), con la camiseta de arquero.
+						var opts := {"role": Footballer.Role.FW, "spot": Vector2(0.62, 0.0),
+							"tactical": TacticalRole.Kind.ST, "shirt": true}
+						if request_flying_sub(gk, in_data, opts):
+							kp["state"] = KeeperPlayer.GOING_OUT
+							kp["gk"] = gk.base_data
+							kp["gk_spot"] = gk.base_spot
+							kp["gk_tactical"] = gk.tactical_role
+							kp["fly"] = in_data
+			KeeperPlayer.GOING_OUT:
+				var gk_on := t.on_pitch(kp["gk"])
+				if gk_on == null:
+					# Ya cambió: adentro el arquero jugador.
+					kp["state"] = KeeperPlayer.IN
+					kp["player"] = t.on_pitch(kp["fly"])
+					show_toast("%s: 5 CONTRA 4" % t.short_name, 1.5)
+				elif lost or not t.keeper_player:
+					# Perdió la pelota antes de salir: se queda en el arco.
+					flying = flying.filter(func(f: Dictionary) -> bool: return f["out"] != gk_on)
+					kp["state"] = KeeperPlayer.OFF
+			KeeperPlayer.IN:
+				var fp: Footballer = kp.get("player")
+				if fp == null or not t.players.has(fp):
+					kp["state"] = KeeperPlayer.OFF
+				elif (lost or not t.keeper_player) and phase == Phase.PLAYING:
+					if request_flying_sub(fp, kp["gk"], _keeper_back_opts(kp)):
+						kp["state"] = KeeperPlayer.GOING_BACK
+			KeeperPlayer.GOING_BACK:
+				if t.keeper() != null:
+					kp["state"] = KeeperPlayer.OFF
+
+
+func _keeper_back_opts(kp: Dictionary) -> Dictionary:
+	return {"role": Footballer.Role.GK, "spot": kp["gk_spot"], "tactical": kp["gk_tactical"]}
+
+
+## Pelota parada: vuelve el arquero de una (con el arquero jugador adentro o
+## saliendo). `keep` = el equipo que saca sigue con 5 contra 4.
+func restore_keepers(keep: int = -1) -> void:
+	if not Team.flying_subs():
+		return
+	for t in teams:
+		var kp := _kp[t.index]
+		var st := int(kp["state"])
+		if st == KeeperPlayer.OFF or t.index == keep:
+			continue
+		if st == KeeperPlayer.GOING_OUT:
+			var gk_on := t.on_pitch(kp["gk"])
+			flying = flying.filter(func(f: Dictionary) -> bool: return f["out"] != gk_on)
+			kp["state"] = KeeperPlayer.OFF
+			continue
+		var fp: Footballer = kp.get("player")
+		flying = flying.filter(func(f: Dictionary) -> bool: return f["out"] != fp)
+		if fp != null and t.players.has(fp) and t.bench.has(kp["gk"]):
+			_complete_flying_sub(fp, kp["gk"], _keeper_back_opts(kp))
+			var gk := t.keeper()
+			if gk != null:
+				gk.teleport(t.own_goal() + Vector3(-t.own_side() * 1.0, 0.0, 0.0), Vector3(t.attack_dir, 0.0, 0.0))
+		kp["state"] = KeeperPlayer.OFF
+
+
+## Rotación por tiempo (Dirección del equipo) y la CPU por cansancio.
+func _flying_auto(dt: float) -> void:
+	_flying_cpu_t += dt
+	var check := _flying_cpu_t >= 2.0
+	if check:
+		_flying_cpu_t = 0.0
+	for t in teams:
+		if check and not _has_human(t):
+			# CPU: arquero jugador si va perdiendo por 1 o 2 sobre el final.
+			var diff := t.score - opponents_of(t).score
+			t.keeper_player = clock.football_minute() >= 78.0 and diff < 0 and diff >= -2
+		if t.rotation_minutes > 0.0 and clock.total_game_seconds() - t.last_rotation >= t.rotation_minutes * 60.0:
+			rotate_quartet(t)
+		elif check and not _has_human(t) and flying.filter(func(f: Dictionary) -> bool: return f["out"].team == t).is_empty():
+			for p in t.players:
+				if not p.is_keeper() and p.stamina < FLYING_CPU_STAMINA:
+					quick_flying_sub(t)
+					break
 
 
 # --- Cambio animado -------------------------------------------------------------
@@ -1579,9 +1940,10 @@ func _start_sub_scene(out: Footballer, p: Footballer) -> void:
 
 
 func _show_fourth_official(spot: Vector3) -> void:
-	if fourth_official == null:
-		fourth_official = Referee.new()
-		add_child(fourth_official)
+	if fourth_official == null or _sub_board == null:
+		if fourth_official == null:
+			fourth_official = Referee.new()
+			add_child(fourth_official)
 		# Cartel luminoso de los cambios, en alto.
 		_sub_board = MeshInstance3D.new()
 		var box := BoxMesh.new()
@@ -1604,7 +1966,7 @@ func _show_fourth_official(spot: Vector3) -> void:
 
 
 func _drive_sub_scenes(dt: float) -> void:
-	if fourth_official != null and fourth_official.visible:
+	if fourth_official != null and fourth_official.visible and not fourth_official.bench_walker:
 		fourth_official.tick(dt, ball.global_position, false)
 	for sc in sub_scenes.duplicate():
 		sc["t"] += dt
@@ -1703,7 +2065,11 @@ func _finish_sub_scene(sc: Dictionary) -> void:
 	if sub_scenes.is_empty():
 		if fourth_official != null:
 			fourth_official.target = Vector3.INF
-			fourth_official.visible = false
+			fourth_official.look = Vector3.INF
+			# En futsal sigue caminando entre los bancos.
+			fourth_official.visible = fourth_official.bench_walker
+			if _sub_board != null:
+				_sub_board.visible = false
 		if _sub_cam and _camera != null and phase != Phase.REPLAY and not set_piece_cam:
 			_camera.end_cinematic()
 		_sub_cam = false
@@ -1766,7 +2132,7 @@ func _replace_keeper(t: Team, slot: int) -> void:
 ## La CPU cambia (de a uno por pelota parada) al más cansado desde el minuto
 ## 55, por un suplente del mismo puesto si hay.
 func _cpu_subs(t: Team) -> void:
-	if t.subs_left() <= 0 or clock.total_game_seconds() < CPU_SUB_MINUTE * 60.0:
+	if t.subs_left() <= 0 or clock.football_minute() < CPU_SUB_MINUTE:
 		return
 	var tired: Footballer = null
 	for p in t.players:
@@ -1869,7 +2235,7 @@ func set_strategy(t: Team, kind: int) -> void:
 ## La CPU: todos al ataque si va perdiendo desde el 70', todos atrás si gana
 ## desde el 80'; si no, sin estrategia (la presión ya la decide su IA).
 func _cpu_strategy(t: Team) -> void:
-	var minute := clock.total_game_seconds() / 60.0
+	var minute := clock.football_minute()
 	var diff := t.score - opponents_of(t).score
 	var kind := Strategy.Kind.NONE
 	if minute >= 70.0 and diff < 0:
@@ -1887,6 +2253,21 @@ func _has_human(t: Team) -> bool:
 
 
 ## Punto penal frente al arco de `team`.
+## Futsal: suma una falta acumulada al equipo (las cuenta por tiempo) y
+## devuelve cuántas lleva. En fútbol no cuentan (devuelve 0).
+func count_accumulated_foul(team_index: int) -> int:
+	if Discipline.rule("foul_limit") == null:
+		return 0
+	stats["acc_fouls"][team_index] += 1
+	return int(stats["acc_fouls"][team_index])
+
+
+## Futsal: punto del doble penal (a 10 m) del arco de `team`.
+func second_penalty_spot(team: Team) -> Vector3:
+	var side := team.own_side()
+	return Vector3(side * (Pitch.HALF_LENGTH - Pitch.SECOND_PENALTY_DISTANCE), 0.0, 0.0)
+
+
 func penalty_spot(team: Team) -> Vector3:
 	return Vector3(team.own_side() * (Pitch.HALF_LENGTH - Pitch.PENALTY_SPOT_DISTANCE), 0.0, 0.0)
 
@@ -1902,14 +2283,24 @@ const KEEPER_HANDS_LIMIT := 6.0
 func _update_keeper_hands(dt: float) -> void:
 	if keeper_released != null and ball.last_toucher != keeper_released:
 		keeper_released = null
+	var futsal := Discipline.is_futsal()
+	if futsal:
+		_check_keeper_second_touch()
 	var gk := ball.owner_player
-	if phase != Phase.PLAYING or gk == null or not ball.in_hands:
+	# Futsal: cuenta con la pelota controlada en su campo (manos o pies).
+	var holding := ball.in_hands if not futsal else \
+		(gk != null and gk.is_keeper() and gk.team.progress_of(gk.flat_pos()) < 0.5)
+	if phase != Phase.PLAYING or gk == null or not holding:
 		hands_time = 0.0
 		return
 	hands_time += dt
-	if hands_time < KEEPER_HANDS_LIMIT:
+	if hands_time < keeper_limit():
 		return
 	hands_time = 0.0
+	if futsal:
+		# 4 segundos: tiro libre indirecto para el rival.
+		award_indirect(opponents_of(gk.team).index, gk.flat_pos(), "4 SEGUNDOS DEL ARQUERO")
+		return
 	if GameSettings.keeper_auto_action == 1:
 		keeper_drop(gk)
 	else:
@@ -1921,12 +2312,15 @@ func _update_keeper_hands(dt: float) -> void:
 func _check_throw_in_limit() -> void:
 	if restart_taker == null or not restart_type in TIMED_RESTARTS:
 		return
-	if _restart_elapsed < THROW_IN_LIMIT:
+	if _restart_elapsed < restart_limit() or not sub_scenes.is_empty():
 		return
 	# Con carrera: si ya dio la orden (está corriendo a la pelota), no se toca.
 	if restart_type in RUNUP_TYPES and (not _goal_kick_order.is_empty() or goal_kick_stage == GoalKickStage.RUNNING):
 		return
 	var taker := restart_taker
+	if Discipline.is_futsal():
+		_restart_time_out(taker)
+		return
 	match restart_type:
 		MatchRules.Restart.THROW_IN, MatchRules.Restart.FREE_KICK:
 			# Corto al compañero más cerca.
@@ -1957,12 +2351,111 @@ func _check_throw_in_limit() -> void:
 func throw_in_time_left() -> float:
 	if phase != Phase.RESTART or not restart_type in TIMED_RESTARTS or restart_taker == null:
 		return -1.0
-	return maxf(0.0, THROW_IN_LIMIT - _restart_elapsed)
+	return maxf(0.0, restart_limit() - _restart_elapsed)
 
 
-## Segundos que le quedan al arquero con la pelota en las manos (para el HUD).
+## Segundos que le quedan al arquero con la pelota en las manos (para el HUD;
+## en futsal, también con los pies en su campo).
 func hands_time_left() -> float:
-	return maxf(0.0, KEEPER_HANDS_LIMIT - hands_time) if ball.in_hands and phase == Phase.PLAYING else -1.0
+	if phase != Phase.PLAYING or (not ball.in_hands and hands_time <= 0.0):
+		return -1.0
+	return maxf(0.0, keeper_limit() - hands_time)
+
+
+# --- Reglas del futsal ------------------------------------------------------
+
+## Futsal: no se sacó en 4 s. Lateral -> lateral del rival; córner -> saque
+## de arco del rival; tiro libre -> indirecto del rival en el mismo lugar;
+## saque de arco -> indirecto del rival en la línea del área.
+func _restart_time_out(taker: Footballer) -> void:
+	var rival := opponents_of(taker.team).index
+	var spot := ball.flat_pos()
+	var out: MatchRules.Outcome
+	match restart_type:
+		MatchRules.Restart.THROW_IN:
+			out = MatchRules.Outcome.new(MatchRules.Restart.THROW_IN, rival, spot)
+		MatchRules.Restart.CORNER:
+			var side := int(signf(spot.x))
+			out = MatchRules.Outcome.new(MatchRules.Restart.GOAL_KICK, rival, clearance_spot(side, spot.z))
+		_:
+			award_indirect(rival, spot, "4 SEGUNDOS")
+			return
+	out.spot.y = tuning.ball_radius
+	_stop_for(out, "4 SEGUNDOS")
+
+
+## Tiro libre indirecto para `team_index` (en el área, desde su línea).
+func award_indirect(team_index: int, spot: Vector3, text: String) -> void:
+	var own_side := opponents_of(teams[team_index]).own_side()
+	var s := Vector3(spot.x, 0.0, spot.z)
+	if Pitch.in_penalty_area(s, own_side):
+		s.x = own_side * (Pitch.HALF_LENGTH - Pitch.PENALTY_AREA_DEPTH - 0.1)
+	s = Pitch.clamp_to_field(s, 1.0)
+	_stop_for(MatchRules.Outcome.new(MatchRules.Restart.FREE_KICK, team_index, Vector3(s.x, tuning.ball_radius, s.z)), text)
+
+
+## Corta el juego (o la pelota parada en curso) y deja pendiente `out`.
+func _stop_for(out: MatchRules.Outcome, text: String) -> void:
+	if audio != null:
+		audio.crowd_whistles(0.5)
+	if restart_taker != null:
+		restart_taker.locked = false
+		restart_taker.speed_override = 0.0
+	restart_taker = null
+	_goal_kick_order = []
+	goal_kick_stage = GoalKickStage.READY
+	wall_targets = {}
+	free_kick_no_wall = false
+	keeper_played = null
+	hands_time = 0.0
+	ball.owner_player = null
+	ball.in_hands = false
+	ball.intended_receiver = null
+	ball.frozen = false
+	ball.state.vel = Vector3.ZERO
+	save_plan = {}
+	_pending = out
+	banner_text = text
+	show_toast(text, 2.0)
+	_phase_timer = STOP_DELAY
+	_set_phase(Phase.STOPPED)
+
+
+## Futsal: lugar del saque de arco (el arquero, en su área, cerca del arco).
+static func clearance_spot(side: int, z: float) -> Vector3:
+	return Vector3(side * (Pitch.HALF_LENGTH - 1.5), 0.0, clampf(z, -2.5, 2.5))
+
+
+## El arquero jugó la pelota en su campo: empieza la regla del pase atrás.
+func _on_keeper_kick(p: Footballer) -> void:
+	if not Discipline.rule("keeper_second_touch", false) or not p.is_keeper():
+		return
+	if p.team.progress_of(p.flat_pos()) < 0.5:
+		keeper_played = p
+		_keeper_mate_touch = false
+
+
+## Futsal: el arquero que la jugó la vuelve a tocar en su campo después de un
+## compañero (sin que la toque un rival): indirecto para el rival.
+func _check_keeper_second_touch() -> void:
+	var gk := keeper_played
+	if gk == null or phase != Phase.PLAYING:
+		return
+	var last := ball.last_toucher
+	if last == null or ball.last_touch_team != gk.team.index or gk.team.progress_of(ball.flat_pos()) >= 0.5:
+		keeper_played = null
+		return
+	if last != gk:
+		_keeper_mate_touch = true
+	elif _keeper_mate_touch:
+		keeper_played = null
+		award_indirect(opponents_of(gk.team).index, gk.flat_pos(), "PASE ATRÁS AL ARQUERO")
+
+
+## Futsal: el arquero no puede volver a tocarla (la IA no se la da ni él la
+## va a buscar).
+func keeper_locked(p: Footballer) -> bool:
+	return p != null and p == keeper_played and _keeper_mate_touch
 
 
 ## El arquero suelta la pelota y la juega con los pies (Triángulo, o al
@@ -2283,7 +2776,7 @@ func _smother_catch(gk: Footballer, height: float) -> bool:
 
 ## El equipo va ganando sobre el final (desde el 75'): hace tiempo.
 func wasting_time(t: Team) -> bool:
-	return t.score > opponents_of(t).score and clock.total_game_seconds() / 60.0 >= 75.0
+	return t.score > opponents_of(t).score and clock.football_minute() >= 75.0
 
 
 ## Gesto del arquero al embolsarla según la altura de la pelota.
@@ -2369,7 +2862,7 @@ func _wants_header(p: Footballer, h: float) -> bool:
 
 ## Zona de cabezazo en un centro: dentro del área rival (o casi).
 func in_cross_zone(p: Footballer) -> bool:
-	return p.flat_pos().distance_to(p.team.target_goal()) < CROSS_HEADER_DIST
+	return p.flat_pos().distance_to(p.team.target_goal()) < Pitch.s(CROSS_HEADER_DIST)
 
 
 ## Salto anticipado: el que va a cabecear un centro (o una pelota alta que le
@@ -2903,6 +3396,7 @@ func _on_replay_finished() -> void:
 ## donde cometió la falta, aunque lo hayan echado) y, ya enfrente, levanta la
 ## tarjeta con la cámara cerca. Después sigue la repetición.
 func _drive_card_scene(dt: float) -> void:
+	var ref: Referee = card_scene.get("ref", referee)
 	var off: Footballer = card_scene["offender"]
 	var pos: Vector3 = card_scene["pos"]
 	card_scene["t"] += dt
@@ -2912,16 +3406,16 @@ func _drive_card_scene(dt: float) -> void:
 			off.global_position = pos
 			off.velocity = Vector3.ZERO
 			off.facing = card_scene["facing"]
-			referee.approach(pos, referee.global_position)
-		off.look_at_point(referee.global_position)
-		if referee.arrived() or card_scene["t"] > CARD_APPROACH_MAX:
-			if not referee.arrived():
-				referee.teleport(referee.target)
-			referee.show_card(card_scene["red"])
-			off.look_at_point(referee.global_position)
+			ref.approach(pos, ref.global_position)
+		off.look_at_point(ref.global_position)
+		if ref.arrived() or card_scene["t"] > CARD_APPROACH_MAX:
+			if not ref.arrived():
+				ref.teleport(ref.target)
+			ref.show_card(card_scene["red"])
+			off.look_at_point(ref.global_position)
 			# Toma de costado: el árbitro con la tarjeta y el amonestado.
-			var mid := (referee.global_position + pos) * 0.5
-			var across := (pos - referee.global_position).cross(Vector3.UP).normalized()
+			var mid := (ref.global_position + pos) * 0.5
+			var across := (pos - ref.global_position).cross(Vector3.UP).normalized()
 			if across.z < 0.0:
 				across = -across # del lado de la cámara del partido
 			_camera.set_shot(mid + across * 5.5 + Vector3(0, 1.7, 0), mid + Vector3(0, 1.45, 0), 34.0)
@@ -2930,7 +3424,9 @@ func _drive_card_scene(dt: float) -> void:
 	elif card_scene["t"] >= Referee.CARD_TIME + 0.2:
 		if off.sent_off:
 			off.visible = false
-		referee.release()
+		ref.release()
+		if Discipline.is_futsal():
+			_signal_table(ref)
 		_camera.end_cinematic()
 		card_scene = {}
 		_phase_timer = minf(_phase_timer, 0.0)
@@ -2941,10 +3437,11 @@ func _drive_card_scene(dt: float) -> void:
 func _hold_card_offender(dt: float) -> void:
 	if card_scene.is_empty():
 		return
+	var ref: Referee = card_scene.get("ref", referee)
 	var off: Footballer = card_scene["offender"]
 	off.desired_move = Vector3.ZERO
 	off.wants_sprint = false
-	off.look_at_point(referee.global_position)
+	off.look_at_point(ref.global_position)
 	if off.sent_off and off.visible:
 		off.tick(dt, false)
 
@@ -3273,6 +3770,8 @@ func hide_players_for_break() -> void:
 		p.velocity = Vector3.ZERO
 	if referee != null:
 		referee.visible = false
+	for r in _futsal_officials():
+		r.visible = false
 	ball.visible = false
 
 
@@ -3282,6 +3781,8 @@ func _show_players_after_break() -> void:
 			p.visible = true
 	if referee != null:
 		referee.visible = training == null
+	for r in _futsal_officials():
+		r.visible = training == null
 	ball.visible = true
 
 
@@ -3305,6 +3806,8 @@ func start_second_half() -> void:
 	for p in all_players():
 		p.rest_at_halftime()
 	clock.start_second_half()
+	# Futsal: las faltas acumuladas son por tiempo.
+	stats["acc_fouls"] = [0, 0]
 	ball.frozen = false
 	walk_off = {}
 	_show_players_after_break()
@@ -3339,14 +3842,188 @@ func _begin_restart(type: int, taker: Footballer) -> void:
 	ball.frozen = true
 	_goal_kick_order = []
 	goal_kick_stage = GoalKickStage.READY
-	if type == MatchRules.Restart.GOAL_KICK:
+	if hand_clearance_for(type):
+		# Futsal: el arquero la tiene en las manos y la tira (sin carrera).
+		ball.give_to(taker, false, true)
+		ball.frozen = false
+	elif type == MatchRules.Restart.GOAL_KICK:
 		# El arquero se mueve solo (toma carrera); la pelota queda en la línea.
 		taker.locked = false
 		goal_kick_stage = GoalKickStage.BACKING
 	_set_phase(Phase.RESTART)
 
 
+static func hand_clearance_for(type: int) -> bool:
+	return type == MatchRules.Restart.GOAL_KICK and bool(Discipline.rule("hand_clearance", false))
+
+
+## Tiro libre sin barrera: un defensor que quedó entre la pelota y su arco
+## pasa detrás de la línea de la pelota, a 5 m como mínimo.
+static func no_wall_spot(pos: Vector3, ball_spot: Vector3, own_side: int) -> Vector3:
+	var out := pos
+	# Detrás de la pelota = más lejos de su arco que la pelota.
+	if (out.x - ball_spot.x) * own_side > -1.0:
+		out.x = ball_spot.x - own_side * 1.5
+	var away := Vector3(out.x - ball_spot.x, 0.0, out.z - ball_spot.z)
+	if away.length() < 5.0:
+		away = away.normalized() * 5.0 if away.length() > 0.1 else Vector3(-own_side * 5.0, 0.0, 0.0)
+		out = Vector3(ball_spot.x + away.x, 0.0, ball_spot.z + away.z)
+	return Pitch.clamp_to_field(out, 0.5)
+
+
+# --- Árbitros del futsal ----------------------------------------------------
+
+## Mesa de control (frente a los bancos): ahí se anotan faltas y tarjetas.
+static func table_spot() -> Vector3:
+	return Vector3(0.0, 0.0, Pitch.HALF_WIDTH + 2.2)
+
+
+## Segundo árbitro (por la otra banda) y cuarto árbitro (entre los bancos).
+var referee2: Referee
+var _keeper_counting := false
+
+
+## Árbitro por la banda de enfrente (del lado del arco +X) y segundo árbitro
+## por la de los bancos (del lado del arco -X): siempre en diagonal.
+func _setup_futsal_officials() -> void:
+	referee.line_side = -1
+	referee.line_lead = 1
+	referee.teleport(Referee.line_point(Vector3.ZERO, -1, 1))
+	referee2 = Referee.new()
+	referee2.name = "Referee2"
+	add_child(referee2)
+	referee2.line_side = 1
+	referee2.line_lead = -1
+	referee2.teleport(Referee.line_point(Vector3.ZERO, 1, -1))
+	fourth_official = Referee.new()
+	fourth_official.name = "FourthOfficial"
+	add_child(fourth_official)
+	fourth_official.bench_walker = true
+	fourth_official.line_side = 1
+	fourth_official.teleport(Referee.bench_point(0.0, 1))
+
+
+## Los dos árbitros de banda (vacío en fútbol).
+func _line_refs() -> Array[Referee]:
+	var out: Array[Referee] = []
+	if referee2 != null:
+		out.append(referee)
+		out.append(referee2)
+	return out
+
+
+## Los árbitros de más del futsal (se ocultan en el entretiempo).
+func _futsal_officials() -> Array[Referee]:
+	var out: Array[Referee] = []
+	if referee2 != null:
+		out.append(referee2)
+		if fourth_official != null:
+			out.append(fourth_official)
+	return out
+
+
+func _tick_futsal_officials(dt: float) -> void:
+	if referee2 == null:
+		return
+	referee2.tick(dt, ball.global_position, phase == Phase.PLAYING)
+	if fourth_official != null and fourth_official.visible and sub_scenes.is_empty():
+		fourth_official.tick(dt, ball.global_position, false)
+	# Cuenta de los 4 s del arquero con la pelota en su campo.
+	var counting := phase == Phase.PLAYING and hands_time > 0.0
+	if counting and not _keeper_counting:
+		var r := nearest_line_ref(ball.flat_pos())
+		if r != null and not r.busy():
+			r.queue(Vector3.INF, PlayerVisual.Event.REF_COUNT, ball.flat_pos(), keeper_limit())
+	elif not counting and _keeper_counting:
+		for r in _line_refs():
+			r.cancel_count()
+	_keeper_counting = counting
+
+
+func nearest_line_ref(pos: Vector3) -> Referee:
+	var best: Referee = null
+	var best_d := INF
+	for r in _line_refs():
+		var d := Vector3(r.global_position.x, 0.0, r.global_position.z).distance_to(Vector3(pos.x, 0.0, pos.z))
+		if d < best_d:
+			best_d = d
+			best = r
+	return best
+
+
+## Los árbitros terminaron las señas previas al saque (la cuenta no cuenta).
+func _officials_ready() -> bool:
+	for r in _line_refs():
+		for st in r._steps:
+			if int(st["event"]) != PlayerVisual.Event.REF_COUNT:
+				return false
+	return true
+
+
+## Seña a la mesa (anotar la falta acumulada o la tarjeta).
+func _signal_table(r: Referee) -> void:
+	r.queue(Vector3.INF, PlayerVisual.Event.REF_TABLE, table_spot(), 1.4)
+
+
+## Falta: el árbitro más cercano entra unos metros a la cancha, señala para
+## quién es y (si no hay tarjeta, que viene después) avisa a la mesa.
+func _ref_foul(spot: Vector3, awarded: Team, carded: bool) -> Referee:
+	var r := nearest_line_ref(spot)
+	if r == null:
+		return null
+	r.clear_steps()
+	var from := Referee.line_point(spot, r.line_side, 0)
+	from.x = clampf(spot.x, -Pitch.HALF_LENGTH + 1.0, Pitch.HALF_LENGTH - 1.0)
+	var into := Vector3(spot.x, 0.0, spot.z) - from
+	var entry := from + into.normalized() * clampf(into.length() - 1.5, 0.0, 3.5) if into.length() > 0.1 else from
+	var face := Vector3(0.0, 0.0, -r.line_side)
+	var side := Referee.arm_toward(Vector3(awarded.attack_dir, 0.0, 0.0), face)
+	r.queue(entry, PlayerVisual.Event.REF_POINT, entry + face * 5.0, 1.1, side)
+	if not carded:
+		_signal_table(r)
+	return r
+
+
+## Pelota parada: lateral (señala para quién es), barrera (cuenta los 5 m
+## caminando y marca el límite con el brazo) y la cuenta de los 4 s.
+func _ref_restart(outcome: MatchRules.Outcome, team: Team) -> void:
+	var spot := Vector3(outcome.spot.x, 0.0, outcome.spot.z)
+	match outcome.type:
+		MatchRules.Restart.THROW_IN:
+			var side_z := int(signf(spot.z)) if spot.z != 0.0 else 1
+			var r: Referee = referee if referee.line_side == side_z else referee2
+			r.cancel_count()
+			var stand := Referee.line_point(spot, r.line_side, 0)
+			stand.x = clampf(spot.x - team.attack_dir * 2.0, -Pitch.HALF_LENGTH + 1.0, Pitch.HALF_LENGTH - 1.0)
+			var face := Vector3(0.0, 0.0, -r.line_side)
+			r.queue(stand, PlayerVisual.Event.REF_POINT, stand + face * 5.0, 1.0,
+				Referee.arm_toward(Vector3(team.attack_dir, 0.0, 0.0), face))
+			r.queue(Vector3.INF, PlayerVisual.Event.REF_COUNT, spot, restart_limit())
+		MatchRules.Restart.FREE_KICK:
+			var r := nearest_line_ref(spot)
+			r.cancel_count()
+			if not wall_targets.is_empty():
+				var goal := opponents_of(team).own_goal()
+				var dir := Vector3(goal.x - spot.x, 0.0, goal.z - spot.z).normalized()
+				var perp := Vector3(-dir.z, 0.0, dir.x)
+				# Del lado de su banda.
+				if perp.z * r.line_side < 0.0:
+					perp = -perp
+				var start := spot + perp * 1.0
+				var wall_half := wall_targets.size() * 0.33 + 0.8
+				var end := spot + dir * Pitch.RESTART_DISTANCE + perp * wall_half
+				r.queue(start, -1, spot, 0.2)
+				r.queue(end, PlayerVisual.Event.REF_WALL, spot, 1.8,
+					Referee.arm_toward(-perp, (spot - end).normalized()), true)
+			r.queue(Vector3.INF, PlayerVisual.Event.REF_COUNT, spot, restart_limit())
+		MatchRules.Restart.CORNER, MatchRules.Restart.GOAL_KICK:
+			var r := nearest_line_ref(spot)
+			r.cancel_count()
+			r.queue(Vector3.INF, PlayerVisual.Event.REF_COUNT, spot, restart_limit())
+
+
 func _setup_kickoff(kicking_team: int) -> void:
+	restore_keepers()
 	# En el saque del medio todos se reubican: el cambio es directo.
 	_instant_subs = true
 	_make_pending_subs()
@@ -3367,11 +4044,20 @@ func _setup_kickoff(kicking_team: int) -> void:
 		referee.release()
 		referee.teleport(Referee.kickoff_spot(kt.attack_dir))
 		referee.facing = (-referee.global_position).normalized()
+	# Futsal: cada árbitro en su banda, a la altura de la mitad.
+	for r in _line_refs():
+		r.clear_steps()
+		r.release()
+		r.teleport(Referee.line_point(Vector3.ZERO, r.line_side, r.line_lead))
+		r.facing = Vector3(0.0, 0.0, -r.line_side)
 	banner_text = "SAQUE DEL MEDIO" if clock.half == 1 and teams[0].score + teams[1].score == 0 else ""
 	_begin_restart(MatchRules.Restart.KICKOFF, taker)
 
 
 func _setup_restart(outcome: MatchRules.Outcome) -> void:
+	# Futsal: el que saca puede seguir con el arquero jugador; el otro, no.
+	restore_keepers(outcome.team if outcome.type in [MatchRules.Restart.THROW_IN, MatchRules.Restart.CORNER,
+		MatchRules.Restart.FREE_KICK] else -1)
 	_make_pending_subs()
 	if outcome.type == MatchRules.Restart.FREE_KICK:
 		stats["free_kicks"][outcome.team] += 1
@@ -3387,6 +4073,9 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 			taker = team.keeper()
 			stand = spot - Vector3(team.attack_dir * 0.6, 0.0, 0.0)
 			look = Vector3(team.attack_dir, 0.0, 0.0)
+			if Discipline.rule("hand_clearance", false):
+				# Futsal: con la pelota en las manos, parado donde está la pelota.
+				stand = Vector3(spot.x, 0.0, spot.z)
 		MatchRules.Restart.CORNER:
 			var ck := corner_taker_data(team, spot)
 			taker = team.on_pitch(ck) if ck != null else team.tagged("corners")
@@ -3399,7 +4088,7 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 			# El pateador elegido, si es para pegarle al arco; si no, el más cerca.
 			var fk := free_kick_taker_data(team, spot)
 			taker = (team.on_pitch(fk) if fk != null else team.tagged("especialista")) \
-					if spot.distance_to(team.target_goal()) < FK_TAKER_RANGE else null
+					if spot.distance_to(team.target_goal()) < Pitch.h(FK_TAKER_RANGE) else null
 			if taker == null or taker.is_keeper():
 				taker = _nearest_outfield(team, spot)
 			look = (team.target_goal() - spot).normalized()
@@ -3435,7 +4124,19 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 	set_piece_aim_yaw = 0.0
 	taker.teleport(stand, look)
 	wall_targets = {}
-	if outcome.type == MatchRules.Restart.FREE_KICK:
+	if outcome.type == MatchRules.Restart.FREE_KICK and free_kick_no_wall:
+		# Futsal, desde la 6.ª falta acumulada: sin barrera; los rivales (menos
+		# el arquero) detrás de la pelota y a 5 m.
+		for t in teams:
+			var targets := SetPieceShape.targets(t, outcome.type, outcome.team, ball.flat_pos(), taker)
+			for p in targets:
+				if p == taker:
+					continue
+				var to: Vector3 = targets[p]
+				if t != team and not p.is_keeper():
+					to = no_wall_spot(to, spot, t.own_side())
+				p.teleport(to, (spot - to).normalized())
+	elif outcome.type == MatchRules.Restart.FREE_KICK:
 		_build_wall(opponents_of(team), spot)
 		# Todos ya en su lugar al armarse el tiro libre (como en el WE): nadie
 		# corre con la pelota quieta y los rivales quedan a 9,15 m.
@@ -3445,6 +4146,8 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 				if p != taker and not wall_targets.has(p):
 					p.teleport(targets[p], (spot - targets[p]).normalized())
 	_begin_restart(outcome.type, taker)
+	if Discipline.is_futsal():
+		_ref_restart(outcome, team)
 
 
 ## Dónde arranca la carrera del saque de arco: atrás de la pelota y un poco
@@ -3507,13 +4210,17 @@ func _drive_goal_kick() -> void:
 ## pelota, en la línea hacia el centro del arco.
 func _build_wall(defenders: Team, spot: Vector3) -> void:
 	var goal := defenders.own_goal()
-	var dist := spot.distance_to(goal)
+	# En una cancha más chica (futsal) las distancias se achican.
+	var k := maxf(Pitch.SCALE, 0.5)
+	var dist := spot.distance_to(goal) / k
 	if dist > 32.0:
 		return
 	var count := 4 if dist < 22.0 else (3 if dist < 27.0 else 2)
+	# Futsal: con 4 jugadores de campo, barrera de 2 como mucho.
+	count = mini(count, maxi(Discipline.players() - 3, 2))
 	var dir := (goal - spot).normalized()
 	var side := Vector3(-dir.z, 0.0, dir.x)
-	var center := spot + dir * Pitch.CENTER_CIRCLE_RADIUS
+	var center := spot + dir * Pitch.RESTART_DISTANCE
 	var used: Array[Footballer] = []
 	for i in count:
 		var pos := center + side * (i - (count - 1) * 0.5) * 0.65
@@ -3564,7 +4271,7 @@ func _nearest_outfield(team: Team, pos: Vector3) -> Footballer:
 func _keep_distance_from_restart() -> void:
 	if restart_taker == null:
 		return
-	var min_d := Pitch.CENTER_CIRCLE_RADIUS
+	var min_d := Pitch.RESTART_DISTANCE
 	var bp := ball.flat_pos()
 	for p in opponents_of(restart_taker.team).players:
 		var d := p.flat_pos() - bp
@@ -3613,4 +4320,4 @@ func exit_to_menu() -> void:
 		GameSettings.last_scorers = []
 		GameSettings.last_events = []
 	get_tree().paused = false
-	get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")
+	LoadingScreen.goto("res://scenes/ui/main_menu.tscn")

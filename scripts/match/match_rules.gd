@@ -37,6 +37,9 @@ static func check(ball_pos: Vector3, ball_radius: float, last_touch_team: int, a
 			var corner := Vector3(side * (hl - 0.4), ball_radius, zs * (hw - 0.4))
 			return Outcome.new(Restart.CORNER, attacker, corner)
 		var gk_spot := Vector3(side * (hl - Pitch.GOAL_AREA_DEPTH), ball_radius, zs * 4.0)
+		if Pitch.GOAL_AREA_DEPTH <= 0.0:
+			# Futsal (sin área chica): el arquero saca con la mano cerca del arco.
+			gk_spot = Vector3(side * (hl - 1.5), ball_radius, clampf(ball_pos.z, -2.5, 2.5))
 		return Outcome.new(Restart.GOAL_KICK, defender, gk_spot)
 	if absf(ball_pos.z) > hw + ball_radius:
 		var thrower := 1 - last_touch_team if last_touch_team >= 0 else 0

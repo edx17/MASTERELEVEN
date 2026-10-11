@@ -26,6 +26,9 @@ var ball: Ball
 var tuning: Tuning
 ## Lateral en curso: los pases salen con las manos.
 var throw_in_mode: bool = false
+## Futsal, saque de arco: el arquero la tira con la mano (rodando o por el
+## aire), no la patea de volea.
+var hands_only: bool = false
 ## Presión rival sobre el pateador (0..1); la fija el partido antes de patear.
 var pressure: float = 0.0
 ## Último error aplicado en grados (depuración / tests).
@@ -66,7 +69,9 @@ func execute(kind: int, player: Footballer, dir: Vector3, power: float) -> Footb
 			ball.state.pos = player.flat_pos() + d * 0.6 + Vector3.UP * tuning.ball_radius
 			ball.state.vel = Vector3.ZERO
 			return short_pass(player, dir, power, forced)
-		return long_pass(player, dir, maxf(power, 0.4), forced)
+		# Saque de arco del futsal: largo también con la mano (un tirón alto).
+		hand_throw = hands_only
+		return long_pass(player, dir, maxf(power, 0.4) * (0.8 if hands_only else 1.0), forced)
 	match kind:
 		Kind.SHORT_PASS:
 			return short_pass(player, dir, power, forced)
@@ -150,11 +155,11 @@ func _pick(player: Footballer, dir: Vector3, min_d: float, max_d: float, prefer_
 ## compañero más cercano a esa dirección (hasta 100°): un pelotazo al vacío
 ## sin nadie que vaya a buscarlo casi nunca es lo que se quiso hacer.
 func _pick_long(player: Footballer, dir: Vector3) -> Footballer:
-	var r := _pick(player, dir, 12.0, 75.0, true)
+	var r := _pick(player, dir, Pitch.h(12.0), 75.0, true)
 	if r != null:
 		return r
 	var mates := _mates(player)
-	var idx := PassTargeting.choose(kick_origin(player), dir, _positions(mates), 100.0, 10.0, 75.0, false)
+	var idx := PassTargeting.choose(kick_origin(player), dir, _positions(mates), 100.0, Pitch.h(10.0), 75.0, false)
 	return mates[idx] if idx >= 0 else null
 
 
@@ -178,7 +183,7 @@ func short_pass(player: Footballer, dir: Vector3, power: float, forced: Football
 	var arrive := lerpf(tuning.short_pass_arrive_min, tuning.short_pass_arrive_max, power)
 	var target: Vector3
 	if receiver == null:
-		target = ball.flat_pos() + d * lerpf(8.0, 18.0, power)
+		target = ball.flat_pos() + d * Pitch.h(lerpf(8.0, 18.0, power))
 	else:
 		target = _lead_target(receiver, arrive)
 	_ground_pass_to(player, target, arrive, dir, power)
@@ -194,7 +199,7 @@ func through_pass(player: Footballer, dir: Vector3, power: float, forced: Footba
 	var lead := lerpf(tuning.through_lead_min, tuning.through_lead_max, power)
 	var target: Vector3
 	if receiver == null:
-		target = ball.flat_pos() + d * (12.0 + lead)
+		target = ball.flat_pos() + d * (Pitch.h(12.0) + lead)
 	else:
 		var attack := Vector3(player.team.attack_dir, 0.0, 0.0)
 		var run := (attack * 0.65 + d * 0.35).normalized()
@@ -203,7 +208,7 @@ func through_pass(player: Footballer, dir: Vector3, power: float, forced: Footba
 		# línea rival (el receptor la gana corriendo), no en los pies.
 		var line := last_defender_x(player.team)
 		var dir_x := float(player.team.attack_dir)
-		if (target.x - line) * dir_x < 4.0 and (line * dir_x) < Pitch.HALF_LENGTH - 8.0:
+		if (target.x - line) * dir_x < Pitch.s(4.0) and (line * dir_x) < Pitch.HALF_LENGTH - Pitch.s(8.0):
 			target.x = line + dir_x * 4.0
 	target = Pitch.clamp_to_field(target, 1.5)
 	if v == Variant.HIGH:
@@ -251,7 +256,7 @@ func long_pass(player: Footballer, dir: Vector3, power: float, forced: Footballe
 	if cross:
 		receiver = forced if forced != null else _best_in_box(player)
 		var side := player.team.attack_dir
-		var box_spot := Vector3(side * (Pitch.HALF_LENGTH - 9.0), 0.0, -signf(ball.state.pos.z) * 1.5)
+		var box_spot := Vector3(side * (Pitch.HALF_LENGTH - Pitch.s(9.0)), 0.0, -signf(ball.state.pos.z) * Pitch.g(1.5))
 		target = receiver.flat_pos() if receiver != null else box_spot
 		# El stick corre el centro al primer o segundo palo.
 		target.z += clampf(d.z, -1.0, 1.0) * 4.0 * (1.0 if receiver == null else 0.4)
@@ -260,7 +265,7 @@ func long_pass(player: Footballer, dir: Vector3, power: float, forced: Footballe
 			# Centro rasante (triple Círculo): tenso y por el piso al primer
 			# palo, para empujarla.
 			if forced == null:
-				target = Vector3(side * (Pitch.HALF_LENGTH - 5.0), 0.0, signf(ball.state.pos.z) * 2.0)
+				target = Vector3(side * (Pitch.HALF_LENGTH - Pitch.s(5.0)), 0.0, signf(ball.state.pos.z) * Pitch.g(2.0))
 				receiver = _closest_mate_to(player, target)
 			target = Pitch.clamp_to_field(target, 0.5)
 			_ground_pass_to(player, target, 9.0, dir, power)
@@ -298,7 +303,7 @@ func long_pass(player: Footballer, dir: Vector3, power: float, forced: Footballe
 ## Banda en el último tercio: el pase largo se convierte en centro.
 static func is_cross_position(player: Footballer, ball_pos: Vector3) -> bool:
 	var progress := player.team.progress_of(ball_pos)
-	return progress > 0.7 and absf(ball_pos.z) > Pitch.PENALTY_AREA_HALF_WIDTH - 4.0
+	return progress > 0.7 and absf(ball_pos.z) > Pitch.PENALTY_AREA_HALF_WIDTH - Pitch.s(4.0)
 
 
 func _best_in_box(player: Footballer) -> Footballer:
@@ -344,7 +349,7 @@ static func power_speed_factor(lvl: float) -> float:
 
 ## Con nivel 8 o más llega entero de 30-40 m; con 6, pierde fuerza.
 static func long_range_factor(lvl: float, dist: float) -> float:
-	var far := clampf((dist - LONG_RANGE) / 16.0, 0.0, 1.0)
+	var far := clampf((dist - Pitch.h(LONG_RANGE)) / Pitch.h(16.0), 0.0, 1.0)
 	var weak := clampf((8.0 - lvl) / 2.0, 0.0, 1.0)
 	return 1.0 - LONG_LOSS * far * weak
 
@@ -360,16 +365,16 @@ func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, pl
 	var side := player.team.attack_dir
 	var aim_z := 0.0
 	if absf(dir.z) > 0.2:
-		aim_z = signf(dir.z) * lerpf(1.8, 3.1, absf(dir.z))
+		aim_z = signf(dir.z) * Pitch.g(lerpf(1.8, 3.1, absf(dir.z)))
 	else:
-		aim_z = randf_range(-1.2, 1.2) if randomize_error else 0.0
+		aim_z = Pitch.g(randf_range(-1.2, 1.2)) if randomize_error else 0.0
 	if placed:
 		# Colocado (R2): abre el pie y busca el palo (el que marca el stick o,
 		# sin stick, el más lejano), sacrificando potencia por precisión.
 		var post_side := signf(dir.z) if absf(dir.z) > 0.2 else -signf(ball.state.pos.z)
 		if post_side == 0.0:
 			post_side = 1.0
-		aim_z = post_side * 3.0
+		aim_z = post_side * Pitch.g(3.0)
 	var goal := Vector3(side * Pitch.HALF_LENGTH, 0.0, aim_z)
 	var to := goal - ball.flat_pos()
 	var flat := Vector3(to.x, 0.0, to.z).normalized()
@@ -394,7 +399,7 @@ func shoot(player: Footballer, dir: Vector3, power: float, low: bool = false, pl
 		err *= WEAK_FOOT_ERROR
 	# Habilidades especiales.
 	if data != null:
-		if data.has_ability("goleador") and to.length() < 20.0:
+		if data.has_ability("goleador") and to.length() < Pitch.h(20.0):
 			err *= 0.8
 		if header and data.has_ability("cabeceador"):
 			err *= 0.75
@@ -502,7 +507,7 @@ func _closest_mate_to(player: Footballer, point: Vector3) -> Footballer:
 ## de la línea. La potencia lo hace más alto y más largo.
 func chip(player: Footballer, dir: Vector3, power: float) -> void:
 	var side := player.team.attack_dir
-	var aim_z := signf(dir.z) * 1.5 if absf(dir.z) > 0.2 else 0.0
+	var aim_z := signf(dir.z) * Pitch.g(1.5) if absf(dir.z) > 0.2 else 0.0
 	var goal := Vector3(side * Pitch.HALF_LENGTH, 0.0, aim_z)
 	var to := goal - ball.flat_pos()
 	var flat := Vector3(to.x, 0.0, to.z).normalized()
@@ -539,7 +544,7 @@ func clearance(player: Footballer, dir: Vector3, power: float) -> void:
 		d = (d + fwd * 1.5).normalized()
 	# A fondo sale al campo rival (como en el WE); los fuertes, más lejos.
 	var strong := lerpf(0.9, 1.12, PlayerData.unit(player.data.strength)) if player.data != null else 1.0
-	var reach := lerpf(CLEAR_MIN, CLEAR_MAX, maxf(power, 0.5)) * strong
+	var reach := Pitch.h(lerpf(CLEAR_MIN, CLEAR_MAX, maxf(power, 0.5))) * strong
 	var target := Pitch.clamp_to_field(ball.flat_pos() + d * reach, 1.0)
 	ball.intended_receiver = null
 	_lob_to(player, target, 34.0, Vector3.ZERO, power)

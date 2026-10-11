@@ -107,7 +107,10 @@ static func evaluate(plan: Plan, keeper_pos: Vector3, reaction: int, goalkeeping
 	plan.margin = best
 	# Con margen justo (0) no es moneda al aire: la estirada al límite suele
 	# no llegar limpia.
-	plan.chance = clampf(0.45 + plan.margin * 0.7, 0.03, 0.9)
+	# En futsal el arco es chico y el arquero lo cubre casi entero: atajar
+	# cuesta más de lo que dice la distancia (remates a quemarropa, pantallas).
+	var base: float = Discipline.rule("save_base", 0.45)
+	plan.chance = clampf(base + plan.margin * 0.7, 0.03, Discipline.rule("save_cap", 0.9))
 	return plan
 
 

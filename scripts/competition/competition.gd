@@ -54,6 +54,12 @@ var extra: Array = []
 ## Nombre especial de una fecha ({"índice": "Playoffs"}).
 var labels: Dictionary = {}
 var draw_seed := 0
+## Futsal (ver FutsalLeague): formato de la división ("futA"...), quién está
+## mejor ubicado tras la fase de liga ({"equipo": valor}) y el resumen de la
+## temporada (campeones, ascensos, descensos).
+var fmt := ""
+var rank := {}
+var notes: Array = []
 ## Archivo de esta partida, nombre para el menú CONTINUAR, Option File con
 ## el que se creó y fechas.
 var file := ""
@@ -410,6 +416,9 @@ func alive(team_i: int) -> bool:
 		return true
 	if seeds.has(team_i):
 		return true
+	# Copa Argentina de futsal: exento en esta ronda.
+	if ko == "copa_arg" and extra.has(team_i):
+		return true
 	for s in range(stage + 1, entries.size()):
 		if (entries[s] as Array).has(team_i):
 			return true
@@ -478,6 +487,8 @@ func round_name(i: int = -1) -> String:
 	if i < 0:
 		i = current
 	if kind == Kind.WORLD_CUP and i < group_rounds:
+		if ko == "futsal":
+			return "Fecha %d de %d" % [i + 1, group_rounds]
 		return "%s · fecha %d de %d" % ["Fase liga" if ko == "swiss" else "Fase de grupos", i + 1, group_rounds]
 	if kind == Kind.CUP or kind == Kind.WORLD_CUP:
 		if i >= rounds.size() or (rounds[i] as Array).is_empty():
@@ -558,7 +569,8 @@ func complete_round(user_result: Array = [], seed: int = 0) -> void:
 		var knockout := kind == Kind.CUP or (kind == Kind.WORLD_CUP and current >= group_rounds)
 		if knockout and int(g.get("leg", 0)) != 1 and res.size() == 2:
 			var agg: Array = g.get("agg", [0, 0])
-			if res[0] + int(agg[0]) == res[1] + int(agg[1]):
+			# Futsal: en cuartos, empate en el global = pasa el mejor ubicado.
+			if res[0] + int(agg[0]) == res[1] + int(agg[1]) and not g.has("adv"):
 				res.append_array(penalty_shootout(rng))
 		g["result"] = res
 	current += 1
@@ -580,7 +592,10 @@ func _next_ko() -> void:
 		var back := []
 		for g in last:
 			var r: Array = g["result"]
-			back.append({"home": g["away"], "away": g["home"], "result": [], "leg": 2, "agg": [r[1], r[0]]})
+			var bg := {"home": g["away"], "away": g["home"], "result": [], "leg": 2, "agg": [r[1], r[0]]}
+			if g.has("adv"):
+				bg["adv"] = g["adv"]
+			back.append(bg)
 		rounds.append(back)
 		if labels.has(str(current - 1)):
 			labels[str(current)] = labels[str(current - 1)]
@@ -589,6 +604,15 @@ func _next_ko() -> void:
 	for g in last:
 		winners.append(winner(g))
 	stage += 1
+	if ko == "futsal":
+		FutsalLeague.next_round(self, winners)
+		return
+	if ko == "copa_arg":
+		FutsalLeague.copa_next(self, winners)
+		return
+	if ko == "super" and stage == 1:
+		FutsalLeague.super_semis(self, winners[0])
+		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = draw_seed + stage
 	if not seeds.is_empty():
@@ -609,7 +633,8 @@ func _next_ko() -> void:
 ## Agrega una ronda de llave con los cruces [local, visitante] (de ida y
 ## vuelta si corresponde; la final, siempre a partido único).
 func _push_ko(pairs: Array, label: String = "") -> void:
-	var two := legs == 2 and pairs.size() > 1
+	# Futsal: la final también es de ida y vuelta.
+	var two := legs == 2 and (pairs.size() > 1 or ko == "futsal")
 	var games := []
 	for pr in pairs:
 		var g := {"home": pr[0], "away": pr[1], "result": []}
@@ -628,6 +653,8 @@ func _after_groups() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = draw_seed
 	match ko:
+		"futsal":
+			FutsalLeague.after_league(self)
 		"swiss":
 			var table := standings(0, group_rounds)
 			seeds = table.slice(0, 8).map(func(r: Dictionary) -> int: return r["team"])
@@ -756,6 +783,8 @@ static func winner(g: Dictionary) -> int:
 		return g["home"] if h > a else g["away"]
 	if r.size() >= 4:
 		return g["home"] if r[2] > r[3] else g["away"]
+	if g.has("adv"):
+		return int(g["adv"])
 	return -1
 
 
@@ -809,7 +838,8 @@ func to_dict() -> Dictionary:
 		"team_paths": team_paths, "user_team": user_team, "double_round": double_round,
 		"rounds": rounds, "current": current, "champion": champion, "groups": groups,
 		"group_rounds": group_rounds, "ko": ko, "legs": legs, "entries": entries, "stage_names": stage_names,
-		"stage": stage, "seeds": seeds, "extra": extra, "labels": labels, "draw_seed": draw_seed}
+		"stage": stage, "seeds": seeds, "extra": extra, "labels": labels, "draw_seed": draw_seed,
+		"fmt": fmt, "rank": rank, "notes": notes}
 
 
 static func from_dict(d: Dictionary) -> Competition:
@@ -840,6 +870,9 @@ static func from_dict(d: Dictionary) -> Competition:
 	c.extra = ints.call(d.get("extra", []))
 	c.labels = d.get("labels", {})
 	c.draw_seed = int(d.get("draw_seed", 0))
+	c.fmt = String(d.get("fmt", ""))
+	c.rank = d.get("rank", {})
+	c.notes = d.get("notes", [])
 	for r in d.get("rounds", []):
 		var games := []
 		for g in r:
@@ -848,6 +881,8 @@ static func from_dict(d: Dictionary) -> Competition:
 				gm["leg"] = int(g["leg"])
 			if g.has("agg"):
 				gm["agg"] = ints.call(g["agg"])
+			if g.has("adv"):
+				gm["adv"] = int(g["adv"])
 			games.append(gm)
 		c.rounds.append(games)
 	return c

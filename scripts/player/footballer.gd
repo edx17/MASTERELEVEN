@@ -31,6 +31,8 @@ var display_name: String = ""
 var base_spot: Vector2 = Vector2.ZERO
 ## Rol táctico del puesto (TacticalRole.Kind).
 var tactical_role: int = TacticalRole.Kind.CM
+## Futsal: arquero jugador (jugador de campo con la camiseta de arquero).
+var keeper_shirt := false
 
 # --- Entradas escritas por el controlador (humano o IA) ----------------------
 var desired_move: Vector3 = Vector3.ZERO
@@ -224,11 +226,12 @@ static func long_sleeves_for(d: PlayerData, keeper: bool, cond: MatchConditions)
 
 
 func kit_colors() -> Dictionary:
-	var shirt := team.keeper_color if is_keeper() else team.color
-	var socks := team.socks_color if team.socks_color.a > 0.0 and not is_keeper() else shirt
+	var gk_kit := is_keeper() or keeper_shirt
+	var shirt := team.keeper_color if gk_kit else team.color
+	var socks := team.socks_color if team.socks_color.a > 0.0 and not gk_kit else shirt
 	var colors := {"shirt": shirt, "shorts": team.secondary_color, "socks": socks, "number": number}
 	# Diseño de la camiseta (el arquero va liso, de su color).
-	if not is_keeper():
+	if not gk_kit:
 		colors["pattern"] = team.pattern
 		colors["shirt2"] = team.pattern_color
 	if is_keeper():

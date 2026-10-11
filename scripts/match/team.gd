@@ -35,6 +35,18 @@ var subbed_off: Array[Footballer] = []
 var subs_used: int = 0
 ## Cambios pedidos que se hacen en la próxima pelota parada: [{out, in}].
 var pending_subs: Array[Dictionary] = []
+## Futsal (cambios volantes, sin límite): energía de los que salieron y
+## descansan en el banco (PlayerData -> {stamina, wear}); se recuperan.
+var bench_energy := {}
+## Rotación de cuartetos cada tantos minutos de juego (0 = a mano). El
+## segundo cuarteto son los primeros 4 jugadores de campo del banco.
+var rotation_minutes: float = 0.0
+## Minuto de juego (total en segundos) de la última rotación.
+var last_rotation: float = 0.0
+## Futsal: orden de arquero jugador (L2 + cruceta abajo): en cada ataque
+## sale el arquero y entra un jugador de campo con camiseta de arquero (5
+## contra 4); al perder la pelota vuelve el arquero.
+var keeper_player := false
 ## Condición del día de cada jugador del plantel (PlayerData -> Condition).
 var conditions := {}
 ## Capitán y pateadores elegidos en la Dirección del equipo (null = automático).
@@ -111,7 +123,39 @@ func on_pitch(d: PlayerData) -> Footballer:
 
 
 func subs_left() -> int:
+	if flying_subs():
+		return 99
 	return MAX_SUBS - subs_used - pending_subs.size()
+
+
+## Futsal: cambios volantes ilimitados (el que sale puede volver a entrar).
+static func flying_subs() -> bool:
+	return bool(Discipline.rule("flying_subs", false))
+
+
+## Energía con la que entraría un suplente (los que descansan, lo que
+## recuperaron; los que no jugaron, llenos).
+func bench_stamina(d: PlayerData) -> float:
+	var e: Dictionary = bench_energy.get(d, {})
+	return float(e.get("stamina", 100.0))
+
+
+## Los que descansan recuperan energía (y algo del desgaste).
+func rest_bench(dt: float) -> void:
+	for d in bench_energy:
+		var e: Dictionary = bench_energy[d]
+		e["wear"] = maxf(0.0, float(e["wear"]) - 0.12 * dt)
+		e["stamina"] = minf(100.0 - float(e["wear"]), float(e["stamina"]) + 4.0 * dt)
+
+
+## Segundo cuarteto: los primeros cuatro jugadores de campo del banco (el
+## orden se arma en la Dirección del equipo).
+func next_quartet() -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	for d in bench:
+		if d.position != PlayerData.Position.GK and out.size() < 4:
+			out.append(d)
+	return out
 
 
 ## Suplente arquero en el banco (o null).

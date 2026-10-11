@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **554 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **595 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -162,6 +162,97 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Futsal — F6: Liga Virtual de futsal, estadios y pantalla de carga
+
+- **Liga Virtual de futsal** (carrera): se arranca en la Primera D (un club
+  de la D se queda en su zona; uno de más arriba baja a la Zona 2 y sube un
+  club por categoría). Cada temporada: Liga con playoff por categoría (A, B,
+  C y la D con sus dos zonas), ascensos por campeonato y playoff (B y C: 2;
+  D: los 2 campeones de zona y el del playoff), descensos por tabla (A 2,
+  B 2, C 3; los que bajan a la D van a la zona con menos clubes), Supercopa
+  con los campeones de la temporada anterior y Copa Argentina repartida en
+  la temporada. Sin copas internacionales, Mundial ni Sub-20. Planteles de
+  14 (mínimo 10 para vender), formaciones de futsal en el Plantel, tablas
+  por zona con el playoff en el centro de la carrera.
+- **Estadios** (Configuración del partido, fila **Estadio**):
+  - Microestadio (Argentina): el gimnasio del club, ahora con trapos en la
+    baranda, ventanitas altas y marcador de pared.
+  - Pabellón (España): arena oscura con butacas de plástico del color del
+    club en tres lados (el nombre escrito con las butacas vacías), cintas
+    LED, pantallas en las cabeceras, techo negro con parrilla y anillo de
+    luz con el color del club.
+  - Ginásio (Brasil): olla de cemento empinada con gradas a franjas de los
+    colores del club, alambrado, bandeirões, la torcida con banderas detrás
+    de un arco, techo en bóveda con lucernarios y ventanales basculantes.
+  - Los tres con **marcador vivo** (goles, reloj y faltas acumuladas). Las
+    paredes llegan hasta el techo (no se ve el cielo por arriba).
+- **Pantalla de carga** (`LoadingScreen`, autoload) entre el menú y el
+  partido y al volver: escudos, equipos y estadio, un consejo de los
+  controles (de fútbol o futsal, con los íconos de los botones), barra de
+  carga; la escena se carga en otro hilo y el sonido se apaga mientras
+  tanto (antes quedaba la pantalla quieta con el ruido de la cancha).
+- Capturas: `--capture=<dir> --db=futsal_afa --gym=0|1|2`.
+- Tests: `test_futsal_career.gd` (9).
+
+## Futsal — F5: Liga con playoff, Supercopa, Copa Argentina y amistosos
+
+- Liga por división: ida y vuelta (la D en dos zonas) y playoff con el
+  formato acordado (A: playoff = campeón; B/C: campeón + playoff del 2.º al
+  9.º; D: campeón de cada zona + playoff cruzado). Ventaja del mejor ubicado
+  en cuartos, penales desde semis; la vuelta en cancha del mejor ubicado.
+- Supercopa (repechaje de la D; A-D y B-C) y Copa Argentina (Fase 1 la D,
+  Fase 2 + la C, 32avos + A y B, llaves hasta la final).
+- Torneo amistoso de 8 y cuadrangular.
+- Tests: `test_futsal_competitions.gd` (7).
+
+## Futsal — F4: arquero jugador
+
+- L2 + cruceta abajo: en cada ataque sale el arquero y entra un jugador con
+  camiseta de arquero (5 contra 4); al perder la pelota vuelve el arquero.
+- Pelota parada del rival, saque de arco o del medio: vuelve de una.
+- El rival le tira al arco vacío desde lejos; la CPU lo usa si va perdiendo
+  por 1 o 2 sobre el final.
+- Simulación con la orden siempre prendida: 15 a 19 ataques de 5 contra 4
+  por partido, sin trabas.
+- Tests: 3 nuevos en `test_futsal_rules.gd`.
+
+## Futsal — F3: IA a escala y cambios volantes
+
+- La IA, los pases, los remates (puntería al arco de 3 m), los despejes, las
+  pelotas paradas y el arquero ahora usan distancias de la cancha de futsal.
+  Ya hay goles: 3-2 y 5-8 en simulaciones CPU contra CPU (antes 0-0 / 0-1).
+- Cambios volantes sin límite por la zona de cambio; L2 + cruceta arriba =
+  cambio rápido; rotación de cuartetos (Dirección del equipo: a mano, cada
+  3', 5' o 7'); la CPU rota y cambia a los cansados; energía que se
+  recupera en el banco.
+- Tests: 4 nuevos en `test_futsal_rules.gd`.
+
+## Futsal — árbitros por las bandas y señas
+
+- Dos árbitros por las bandas en diagonal (uno cerca del inicio del ataque y
+  otro cerca del arco) y un cuarto árbitro entre los bancos.
+- Señas: entrar a marcar la falta, avisar a la mesa, contar los 5 m de la
+  barrera caminando y marcar el límite, para quién es el lateral y la cuenta
+  de los 4 s con el brazo.
+- Corrección: barrera y rivales a 5 m en futsal (estaban a 3).
+- Captura de las señas: `--capture=<dir> --db=futsal_afa --referees`.
+- Tests: 5 nuevos en `test_futsal_rules.gd`.
+
+## Futsal — F2: reglamento
+
+Detalle en `docs/FUTSAL.md` (sección Reglamento).
+
+- Reloj 2 x 20 parado (corre con la pelota en juego; 5 min reales por tiempo).
+- Lateral con el pie; saque de arco con la mano desde el área.
+- 4 segundos para sacar (si no, saca el rival) y 4 segundos del arquero con
+  la pelota en su campo; pase atrás al arquero sancionado.
+- Faltas acumuladas por tiempo en el HUD; desde la 6.ª, tiro libre sin
+  barrera desde el doble penal.
+- Área redondeada de verdad para penales e indirectos.
+- Pendiente para F3: el arquero ataja casi todo en el arco chico (en una
+  simulación CPU contra CPU salió 0-1 con 50 remates); se ajusta con la IA.
+- Tests: `test_futsal_rules.gd` (13).
 
 ## Futsal 5 contra 5 — F0 y F1
 

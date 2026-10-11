@@ -1042,6 +1042,28 @@ func _apply_gestures() -> void:
 			var up := minf(k * 6.0, 1.0) * minf((1.0 - k) * 6.0, 1.0)
 			_rotate_bone("upperarm_r", Vector3.RIGHT, -2.85 * up)
 			_rotate_bone("upperarm_r", Vector3.FORWARD, 0.15 * up)
+		Event.REF_POINT, Event.REF_WALL:
+			# Árbitro: brazo estirado al costado, a la altura del hombro (para
+			# quién es el lateral o la falta; el límite de la barrera).
+			var on := minf(k * 6.0, 1.0) * minf((1.0 - k) * 6.0, 1.0)
+			var right := _event_side > 0.0
+			_rotate_bone("upperarm_r" if right else "upperarm_l", Vector3.FORWARD, (1.0 if right else -1.0) * (ARM_DOWN + 0.08) * on)
+			_rotate_bone("lowerarm_r" if right else "lowerarm_l", Vector3.RIGHT, 0.1 * on)
+		Event.REF_TABLE:
+			# Árbitro: hacia la mesa, brazo derecho en alto y el izquierdo
+			# señalando (anota la falta o la tarjeta).
+			var on := minf(k * 6.0, 1.0) * minf((1.0 - k) * 6.0, 1.0)
+			_rotate_bone("upperarm_r", Vector3.RIGHT, -2.6 * on)
+			_rotate_bone("upperarm_r", Vector3.FORWARD, 0.2 * on)
+			_rotate_bone("upperarm_l", Vector3.RIGHT, -1.45 * on)
+		Event.REF_COUNT:
+			# Cuenta de los 4 segundos: el brazo se estira y se repliega una
+			# vez por segundo.
+			var on := minf(k * 12.0, 1.0) * minf((1.0 - k) * 12.0, 1.0)
+			var beat := sin(fmod(_event_t, 1.0) * PI)
+			_rotate_bone("upperarm_r", Vector3.RIGHT, -(0.6 + 1.0 * beat) * on)
+			_rotate_bone("upperarm_r", Vector3.FORWARD, (0.35 + 0.6 * beat) * on)
+			_rotate_bone("lowerarm_r", Vector3.RIGHT, -(1.2 - 1.1 * beat) * on)
 		Event.CHEER:
 			# Brazos arriba festejando desde donde está (los puños suben y bajan).
 			var up := minf(k * 6.0, 1.0) * minf((1.0 - k) * 6.0, 1.0)
