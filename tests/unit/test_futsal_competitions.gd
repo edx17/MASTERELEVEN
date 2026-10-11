@@ -2,16 +2,20 @@ extends GutTest
 ## Futsal F5: Liga con playoff (A, B, C, D en zonas), Supercopa y torneos
 ## amistosos.
 
-var _saved_db := ""
+var _saved := {}
 
 
 func before_all() -> void:
-	_saved_db = GameSettings.database
+	for k in ["database", "home_team_path", "away_team_path"]:
+		_saved[k] = GameSettings.get(k)
 	GameSettings.use_database("futsal_afa")
 
 
+## Vuelve todo como estaba (la base de futsal cambia local y visitante).
 func after_all() -> void:
-	GameSettings.use_database(_saved_db if _saved_db != "" else TeamDB.DEFAULT_DB)
+	GameSettings.use_database(String(_saved["database"]) if String(_saved["database"]) != "" else TeamDB.DEFAULT_DB)
+	for k in _saved:
+		GameSettings.set(k, _saved[k])
 
 
 func _play_league(c: Competition) -> void:
