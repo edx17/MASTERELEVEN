@@ -100,6 +100,12 @@ static func match_info(file: String) -> Dictionary:
 		if c.option_file != cur:
 			TeamDB.use_option_file(OptionFile.load_named(c.option_file) if c.option_file != "" else null)
 		out["mode"] = "Mundial" if c.kind == Competition.Kind.WORLD_CUP else String(Competition.KIND_NAMES[c.kind])
+		if c.ko == "futsal":
+			out["mode"] = "Liga"
+		elif c.ko == "super":
+			out["mode"] = "Supercopa"
+		elif c.ko == "copa_arg":
+			out["mode"] = "Copa Argentina"
 		out["user"] = c.team(c.user_team)
 		out["competition"] = c.title if c.title != "" else c.default_title()
 		out["round"] = c.progress_text()

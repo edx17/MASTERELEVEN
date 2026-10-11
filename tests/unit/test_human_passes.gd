@@ -5,6 +5,18 @@ extends GutTest
 var m: MatchController
 var inp: ScriptedInput
 var dt := 1.0 / 60.0
+var _random_conditions := true
+
+
+## Sin la condición del día (flechas): se sortea aparte y cambiaba los
+## atributos de un pase a otro (el test era intermitente).
+func before_all() -> void:
+	_random_conditions = GameSettings.random_conditions
+	GameSettings.random_conditions = false
+
+
+func after_all() -> void:
+	GameSettings.random_conditions = _random_conditions
 
 
 func _setup() -> void:
@@ -66,6 +78,9 @@ func _success_rate(action: StringName, stick: Vector3, frames: int, exact: bool 
 	var n := 12
 	for i in n:
 		_setup()
+		# La partida llama a randomize() al armarse: la semilla va después,
+		# así el resultado no depende del azar (era un test intermitente).
+		seed(20261004 + i)
 		_step(60)
 		var carrier: Footballer = m.teams[0].players[6]
 		_give(carrier, Vector3(-6.0 + i * 0.4, 0, 3.0 - i * 0.5))
@@ -95,8 +110,7 @@ func test_square_pass_arrives() -> void:
 
 
 func test_long_pass_is_controlled_in_the_air() -> void:
-	# Semilla fija: con 24 pases el porcentaje varía con el azar (67-92 %).
-	seed(20261004)
+	# Semilla fija por pase (ver _success_rate): con azar variaba 67-92 %.
 	var rate := _success_rate(&"pass_long", Vector3(1, 0, 0.3), 24)
 	gut.p("pase largo controlado: %.0f %%" % (rate * 100.0))
 	assert_gte(rate, 0.75)

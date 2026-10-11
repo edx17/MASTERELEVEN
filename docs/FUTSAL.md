@@ -13,7 +13,7 @@ menús); cambian la cancha, el reglamento, la base y las competencias.
 | F2 | Reglas propias: lateral con el pie, saque de arco con la mano, 4 segundos, pase atrás al arquero, faltas acumuladas y doble penal, reloj parado (2 x 20, 5 min reales por tiempo) | ✅ |
 | F3 | IA de futsal (1-2-1, 2-2, 1-3, 3-1, 4-0) y cambios volantes (L2 rápido; cuartetos y rotación por tiempo en Dirección de Equipo) | ✅ |
 | F4 | Arquero jugador: orden por ataque; entra un jugador con camiseta de arquero para el 5 contra 4 y, al perder la pelota, corre al banco y vuelve el arquero | ✅ |
-| F5 | Amistosos, torneos amistosos y Liga con playoffs, ascensos/descensos y Supercopa | |
+| F5 | Amistosos, torneos amistosos y Liga con playoffs, ascensos/descensos y Supercopa | ✅ |
 | F6 | Liga Virtual de futsal (carrera) y estadios tipo España y Brasil | |
 
 ## Cómo se elige
@@ -98,6 +98,29 @@ fútbol sigue igual.
     o 7' de juego, o a mano (por defecto, cada 5').
   - La CPU rota el cuarteto y además cambia a los que se cansan.
 - En una simulación CPU contra CPU: 3-2 y 5-8, con unos 28 cambios por equipo.
+
+## Competencias (F5)
+
+Menú de futsal: **Liga** (la de la división de tu club) y **Copa** (Supercopa,
+Copa Argentina, torneo amistoso de 8 y cuadrangular).
+
+- **Liga** (`FutsalLeague`): fase de liga de ida y vuelta (la D en Zona 1 y
+  Zona 2) y después el playoff con las reglas de arriba: cuartos con ventaja
+  del mejor ubicado, semis y final con penales, ida y vuelta (la vuelta en
+  cancha del mejor ubicado; la final también). La tabla marca el campeón, la
+  zona de playoff y los que descienden; al final, el resumen de la
+  temporada (campeón, ascensos y descensos).
+- **Supercopa:** los campeones de la temporada anterior (el 1.º de cada tabla
+  de la base): repechaje entre los de las dos zonas de la D y semifinales A
+  contra el de la D y B contra C; final.
+- **Copa Argentina** (los 92 clubes, entrada escalonada): Fase 1 con los de
+  la D; Fase 2 con los que pasaron y los de la C; en 32avos entran la A y la
+  B; después, llaves a partido único hasta la final (penales). Como la
+  cuenta no cierra justa, los mejor ubicados quedan exentos donde hace falta
+  (1 en la Fase 2 y 9 en 32avos, para que 16avos sea de 32). En la Liga
+  Virtual de futsal (F6) va a ser parte de la temporada.
+- **Torneos amistosos:** copa de 8 (eliminación directa) y cuadrangular
+  (todos contra todos), con tu club y otros de su división.
 
 ## Arquero jugador (F4)
 

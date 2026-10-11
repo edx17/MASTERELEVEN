@@ -46,6 +46,19 @@ func _run() -> void:
 				c.save()
 				GameSettings.active_save = c.file
 				page = "hub"
+			# Futsal: Primera D (dos zonas) terminada la fase de liga y con los
+			# cuartos del playoff jugados (`--menu-page=futsal_league`).
+			if page in ["futsal_league", "futsal_bracket"]:
+				var zones := FutsalLeague.division_zones("futD1")
+				var fl := FutsalLeague.create("futD", zones, zones[0][1], 3)
+				var s := 1
+				while fl.current < fl.group_rounds + (2 if page == "futsal_bracket" else 0):
+					fl.complete_round([], s)
+					s += 1
+				fl.title = "Primera D · %s" % fl.team(fl.user_team).team_name
+				fl.save()
+				GameSettings.active_save = fl.file
+				page = "hub"
 			# Mundial con la fecha 1 jugada (la pantalla de grupos).
 			if page == "wc":
 				var wc: Array[String] = menu.call("world_cup_paths", GameSettings.wc_playoff)

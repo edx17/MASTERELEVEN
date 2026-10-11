@@ -42,6 +42,8 @@ func views() -> Array:
 		Competition.Kind.LEAGUE:
 			return ["Tabla", "Fixture"]
 		Competition.Kind.WORLD_CUP:
+			if comp.ko == "futsal":
+				return ["Posiciones", "Llaves", "Fixture"]
 			return ["Grupos", "Llaves", "Fixture"]
 	return ["Llaves", "Fixture"]
 
@@ -55,6 +57,12 @@ func default_view() -> int:
 
 
 func kind_title() -> String:
+	if comp.ko == "futsal":
+		return "LIGA · %s" % String(FutsalLeague.FORMATS.get(comp.fmt, {}).get("name", "Futsal")).to_upper()
+	if comp.ko == "super":
+		return "SUPERCOPA"
+	if comp.ko == "copa_arg":
+		return "COPA ARGENTINA"
 	return "MUNDIAL" if comp.kind == Competition.Kind.WORLD_CUP else "%s VIRTUAL ELEVEN" % String(Competition.KIND_NAMES[comp.kind]).to_upper()
 
 
@@ -88,7 +96,8 @@ func _build_center() -> void:
 	var c := _frame.center
 	var names := views()
 	var head := HBoxContainer.new()
-	var heading := {"Tabla": "Tabla de posiciones", "Grupos": "Fase de grupos", "Llaves": "Llaves", "Fixture": "Fixture"}
+	var heading := {"Tabla": "Tabla de posiciones", "Grupos": "Fase de grupos", "Llaves": "Llaves", "Fixture": "Fixture",
+		"Posiciones": "Tabla de posiciones"}
 	head.add_child(WEStyle.make_title_label(String(heading[names[view]]).to_upper(), WEStyle.TITLE_M))
 	head.add_child(WEStyle.make_gap())
 	var meta := WEStyle.make_body_label("Terminada" if comp.finished() else comp.round_name(), WEStyle.BODY_L, WEStyle.TEXT_DIM)
@@ -104,7 +113,7 @@ func _build_center() -> void:
 	match String(names[view]):
 		"Tabla":
 			_table(body)
-		"Grupos":
+		"Grupos", "Posiciones":
 			_groups(body)
 		"Llaves":
 			_bracket(body)
@@ -174,20 +183,27 @@ func _groups(body: Control) -> void:
 		if gi != mine:
 			order.append(gi)
 	var thirds := comp.groups.size() == 12
+	var futsal := comp.ko == "futsal"
 	for gi in order:
-		var cap := WEStyle.make_caption_label("Grupo %s" % Competition.WC_GROUP_LETTERS[gi],
-			WEStyle.ACCENT if gi == mine else WEStyle.TEXT_DIM)
+		var cap_text := ("Zona %d" % (gi + 1) if comp.groups.size() > 1 else "Tabla") if futsal else "Grupo %s" % Competition.WC_GROUP_LETTERS[gi]
+		var cap := WEStyle.make_caption_label(cap_text, WEStyle.ACCENT if gi == mine else WEStyle.TEXT_DIM)
 		cap.custom_minimum_size.y = WEStyle.px(WEStyle.HEADER_ROW_H)
 		cap.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 		rows.add_child(cap)
-		rows.add_child(WEStyle.make_table_row(["Pos.", "Selección", "PJ", "DG", "GF", "Pts"], true))
+		rows.add_child(WEStyle.make_table_row(["Pos.", "Equipo" if futsal else "Selección", "PJ", "DG", "GF", "Pts"], true))
 		var pos := 1
-		for row in comp.group_table(gi):
+		var table := comp.group_table(gi)
+		for row in table:
 			var zone := WEStyle.ACCENT_GREEN if pos <= 2 else (Color(WEStyle.ACCENT_GREEN, 0.4) if thirds and pos == 3 else Color(0, 0, 0, 0))
+			if futsal:
+				zone = FutsalLeague.zone_color(comp, pos, table.size())
 			var dg := int(row["dg"])
 			rows.add_child(WEStyle.make_table_row(["%02d" % pos, _name(row["team"]), str(row["pj"]),
 				("%+d" % dg) if dg != 0 else "0", str(row["gf"]), str(row["pts"])], false, row["team"] == comp.user_team, zone))
 			pos += 1
+	if futsal:
+		body.add_child(WEStyle.make_body_label(FutsalLeague.legend(comp), WEStyle.BODY_S, WEStyle.TEXT_DIM))
+		return
 	body.add_child(WEStyle.make_body_label("Verde: pasan los dos primeros%s" % (" y los 8 mejores terceros" if thirds else ""),
 		WEStyle.BODY_S, WEStyle.TEXT_DIM))
 
@@ -213,6 +229,8 @@ func bracket_columns() -> Array:
 	elif comp.kind == Competition.Kind.WORLD_CUP:
 		# Todavía en grupos: los 16avos (o la ronda que corresponda) por definir.
 		n = 16 if comp.groups.size() == 12 else comp.groups.size()
+		if comp.ko == "futsal":
+			n = 4 # cuartos del playoff
 		cols.append(_empty_column(n))
 	while n > 1 and comp.champion < 0:
 		n = (n + 1) / 2
@@ -311,7 +329,7 @@ func _next_match() -> void:
 	var g := comp.user_match()
 	var first: Button
 	if g.is_empty():
-		left.add_child(_wrap("Tu equipo quedó eliminado.", WEStyle.TEXT_DIM))
+		left.add_child(_wrap("Tu equipo pasa de ronda sin jugar (exento)." if comp.alive(comp.user_team) else "Tu equipo quedó eliminado.", WEStyle.TEXT_DIM))
 		first = WEStyle.make_action_button("Simular la fecha", _simulate, true)
 		first.name = "Simulate"
 		left.add_child(first)
@@ -369,9 +387,12 @@ func _last_round() -> void:
 func _champion() -> void:
 	var left := _frame.left
 	var champ := comp.champion if comp.champion >= 0 else int(comp.standings()[0]["team"])
-	left.add_child(WEStyle.make_caption_label("Campeón", WEStyle.ACCENT))
+	left.add_child(WEStyle.make_caption_label("Ganador del playoff" if comp.ko == "futsal" and comp.fmt != "futA" else "Campeón", WEStyle.ACCENT))
 	left.add_child(WEStyle.make_title_label(_name(champ).to_upper(), WEStyle.TITLE_L))
 	left.add_child(_crest(champ, WEStyle.px(160)))
+	# Futsal: campeones, ascensos y descensos de la temporada.
+	for line in comp.notes:
+		left.add_child(_wrap(String(line), WEStyle.TEXT_DIM))
 	if champ == comp.user_team:
 		var won: String = "el Mundial" if comp.kind == Competition.Kind.WORLD_CUP else "la " + String(Competition.KIND_NAMES[comp.kind]).to_lower()
 		left.add_child(WEStyle.make_title_label("¡Ganaste %s!" % won, WEStyle.TITLE_M, WEStyle.ACCENT_GREEN))
@@ -435,6 +456,8 @@ func user_status() -> String:
 				var t := comp.group_table(gi)
 				for k in t.size():
 					if t[k]["team"] == comp.user_team:
+						if comp.ko == "futsal":
+							return ("Zona %d · %dº" % [gi + 1, k + 1]) if comp.groups.size() > 1 else "%dº de %d" % [k + 1, t.size()]
 						return "Grupo %s · %dº" % [Competition.WC_GROUP_LETTERS[gi], k + 1]
 	if comp.champion == comp.user_team:
 		return "Campeón"
