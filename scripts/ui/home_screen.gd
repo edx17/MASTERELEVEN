@@ -21,9 +21,9 @@ extends Control
 ## hay más, "Otras partidas" abre la lista. Sin partidas, lo dice y el botón
 ## principal empieza una Liga Virtual.
 
-## En futsal no están (todavía) la Liga Virtual (F6), el Mundial, el Sub-20
-## ni el entrenamiento en el Club House (es de fútbol 11).
-const NOT_IN_FUTSAL := ["master", "world", "youth", "training"]
+## En futsal no están el Mundial, el Sub-20 ni el entrenamiento en el Club
+## House (es de fútbol 11). La Liga Virtual sí (F6).
+const NOT_IN_FUTSAL := ["world", "youth", "training"]
 
 ## Ítems del menú lateral: [clave de la acción, texto].
 const MENU := [["friendly", "Partido amistoso"], ["master", "Liga Virtual"], ["cup", "Copa"],
@@ -309,13 +309,13 @@ func refresh(_has_saves: bool = true) -> void:
 	_fill_match()
 	_fill_club()
 	continue_button.text = "Continuar  ›" if not featured.is_empty() \
-		else ("Empezar una Liga  ›" if _futsal else "Empezar Liga Virtual  ›")
+		else "Empezar Liga Virtual  ›"
 	others_button.visible = int(featured.get("saves", 0)) > 1
 
 
 func _on_continue() -> void:
 	if featured.is_empty():
-		_run("league" if _futsal else "new_master")
+		_run("new_master")
 		return
 	var cb: Callable = actions.get("resume", Callable())
 	if cb.is_valid():

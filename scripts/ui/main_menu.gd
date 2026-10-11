@@ -983,7 +983,7 @@ func _on_teams_chosen(home: String, away: String) -> void:
 		# Al Club House directo (sin configuración del partido ni presentación).
 		GameSettings.save_settings()
 		GameSettings.play_intro = false
-		get_tree().change_scene_to_file(MATCH_SCENE)
+		LoadingScreen.goto(MATCH_SCENE)
 		return
 	show_page("setup")
 
@@ -1007,9 +1007,8 @@ func _build_master_list() -> void:
 		c.queue_free()
 	for co in MasterCareer.eligible_countries():
 		var id := String(co["id"])
-		var start: Dictionary = co["divisions"][MasterCareer.start_division(id)]
 		_item(_master_col, String(co["name"]).to_upper(),
-			"Empezás en %s. Podés elegir cualquier club del país: si juega más arriba, baja a esa división." % start["name"],
+			"Empezás en %s. Podés elegir cualquier club del país: si juega más arriba, baja a esa división." % MasterCareer.start_division_name(id),
 			_master_pick_country.bind(id), true, 520.0)
 	_item(_master_col, "Volver", "Volver al menú principal.", go_back, true, 520.0)
 	_first_focus(_master_col)
@@ -1030,12 +1029,14 @@ func _build_master_squad() -> void:
 		_master_squad_col.remove_child(c)
 		c.queue_free()
 	var co := TeamDB.country(_master_country)
-	var start := MasterCareer.start_division(_master_country)
-	var start_name := String(co["divisions"][start]["name"])
+	var start := MasterCareer.start_division(_master_country, _master_club)
+	var start_name := MasterCareer.start_division_name(_master_country, _master_club)
 	var from := MasterCareer.division_of(_master_country, _master_club)
 	var club := TeamDB.load_team(TeamDB.club_path(_master_country, _master_club)).team_name
 	var info := "%s  ·  %s\nEmpezás en %s." % [club, co["name"], start_name]
-	if from >= 0 and from != start:
+	if Discipline.is_futsal():
+		info += "\nLiga con playoff, ascensos y descensos, Supercopa y Copa Argentina."
+	if from >= 0 and from != start and not (Discipline.is_futsal() and int(co["divisions"][from].get("level", 0)) == int(co["divisions"][start].get("level", -1))):
 		info += " %s juega en %s: baja a %s y, para que las ligas no cambien de tamaño, sube un club de cada división de por medio." % [club,
 			co["divisions"][from]["name"], start_name]
 	var forced := MasterCareer.we_forced(_master_country, _master_club)
@@ -1091,7 +1092,7 @@ func _choose_training(kind: int) -> void:
 func _start() -> void:
 	GameSettings.save_settings()
 	GameSettings.play_intro = true
-	get_tree().change_scene_to_file(MATCH_SCENE)
+	LoadingScreen.goto(MATCH_SCENE)
 
 
 # --- Opciones -------------------------------------------------------------------

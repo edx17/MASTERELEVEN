@@ -56,6 +56,9 @@ func _ready() -> void:
 	_futsal_rows.append(_add(list, "Piso", func() -> String: return String(Discipline.surface(GameSettings.court_surface)[0]).to_lower(),
 		func(d: int) -> void: GameSettings.court_surface = posmod(GameSettings.court_surface + d, Discipline.SURFACES.size()),
 		"Parquet (madera) o pista sintética azul o negra. El piso del gimnasio es parejo: la pelota corre igual en toda la cancha."))
+	_futsal_rows.append(_add(list, "Estadio", func() -> String: return GymBuilder.style_name(GameSettings.gym_style).to_lower(),
+		func(d: int) -> void: GameSettings.gym_style = posmod(GameSettings.gym_style + d, GymBuilder.NAMES.size()),
+		"Microestadio del club (Argentina), pabellón con butacas y videomarcador (España) o ginásio con la torcida (Brasil)."))
 	_add(list, "Duración", func() -> String: return "%d min" % GameSettings.match_minutes, _step_duration,
 		"Minutos reales que dura el partido (los 90 del reloj pasan en ese tiempo).")
 	_add(list, "Nivel CPU", func() -> String: return Difficulty.NAMES[GameSettings.difficulty], _step_difficulty,
