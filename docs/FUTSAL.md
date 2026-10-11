@@ -14,21 +14,20 @@ menús); cambian la cancha, el reglamento, la base y las competencias.
 | F3 | IA de futsal (1-2-1, 2-2, 1-3, 3-1, 4-0) y cambios volantes (L2 rápido; cuartetos y rotación por tiempo en Dirección de Equipo) | ✅ |
 | F4 | Arquero jugador: orden por ataque; entra un jugador con camiseta de arquero para el 5 contra 4 y, al perder la pelota, corre al banco y vuelve el arquero | ✅ |
 | F5 | Amistosos, torneos amistosos y Liga con playoffs, ascensos/descensos y Supercopa | ✅ |
-| F6 | Liga Virtual de futsal (carrera) y estadios tipo España y Brasil | |
+| F6 | Liga Virtual de futsal (carrera), estadios tipo España y Brasil y pantalla de carga | ✅ |
 
 ## Cómo se elige
 
 Después del título: **¿Qué jugás? Fútbol / Futsal**. Fútbol pregunta la base
 (Ficticia o Temporada 2026); futsal tiene una sola (AFA Futsal) y va directo
-al menú. El menú de futsal muestra Partido amistoso, Copa, Liga, Editar y
-Opciones (la Liga Virtual de futsal llega en F6; el Mundial, el Sub-20 y el
-entrenamiento son de fútbol). Las partidas quedan atadas a su base, como
-siempre.
+al menú. El menú de futsal muestra Partido amistoso, Liga Virtual, Copa,
+Liga, Editar y Opciones (el Mundial, el Sub-20 y el entrenamiento son de
+fútbol). Las partidas quedan atadas a su base, como siempre.
 
 En la configuración del partido, en lugar de Horario, Clima, Viento, Césped,
-Estado, Offside y Estadio, aparece **Piso** (parquet, pista azul o pista
-negra). El partido se juega de tarde, sin viento ni lluvia, en el
-microestadio del local.
+Estado, Offside y Estadio, aparecen **Piso** (parquet, pista azul o pista
+negra) y **Estadio** (microestadio, pabellón o ginásio; ver F6). El partido
+se juega de tarde, sin viento ni lluvia.
 
 ## Cancha y pelota (F1)
 
@@ -118,7 +117,7 @@ Copa Argentina, torneo amistoso de 8 y cuadrangular).
   B; después, llaves a partido único hasta la final (penales). Como la
   cuenta no cierra justa, los mejor ubicados quedan exentos donde hace falta
   (1 en la Fase 2 y 9 en 32avos, para que 16avos sea de 32). En la Liga
-  Virtual de futsal (F6) va a ser parte de la temporada.
+  Virtual de futsal es parte de la temporada.
 - **Torneos amistosos:** copa de 8 (eliminación directa) y cuadrangular
   (todos contra todos), con tu club y otros de su división.
 
@@ -185,3 +184,51 @@ mínimo y máximo del plantel, perfil):
   penales. La revancha, en cancha del mejor ubicado.
 - **Supercopa** (a principio del año siguiente): los dos campeones de la D se
   cruzan antes y el ganador es el cuarto equipo; semifinales A - D y B - C.
+
+## Liga Virtual de futsal (F6)
+
+La carrera de siempre (plantel, mercado con puntos WE, lesiones, juveniles,
+noticias, historial) con el calendario del futsal:
+
+- **Inicio:** en la Primera D. Un club de la D se queda en su zona; uno de
+  más arriba baja a la Zona 2 y sube un club por categoría para que no
+  cambien los tamaños. Con un club de la A, sólo el Equipo WE.
+- **Temporada:** las cuatro ligas con el formato de F5 (la D, con sus dos
+  zonas, es una sola liga). En el centro de la carrera, la tabla de cada
+  zona con los colores del formato y, durante el playoff, los cruces.
+- **Fin de temporada:**
+  - A: campeón el del playoff; descienden 2.
+  - B y C: ascienden el campeón y el del playoff; descienden 2 (B) y 3 (C).
+  - D: ascienden los dos campeones de zona y el del playoff. Los que bajan
+    de la C van a la zona con menos clubes (19 y 19).
+- **Copas:** Supercopa al empezar (repechaje de la D y semis A-D y B-C, con
+  los campeones de la temporada anterior; en la primera, los de la base) y
+  Copa Argentina repartida en la temporada (Fase 1, Fase 2, 32avos... final).
+  No hay copas internacionales, Mundial ni Sub-20.
+- **Planteles de 14** (2 arqueros): los juveniles reponen hasta 14, se puede
+  vender con 10 o más y las formaciones del Plantel son las de futsal.
+
+## Estadios (F6)
+
+Fila **Estadio** en la configuración del partido (`GameSettings.gym_style`,
+`GymBuilder.Style`):
+
+| Estadio | Cómo es |
+|---|---|
+| Microestadio (Argentina) | Gimnasio de ladrillo con zócalo del color del club, tribuna de cemento enfrente, trapos de la hinchada en la baranda ("La banda de...", "Aguante..."), ventanitas altas, marcador de pared y techo de chapa sobre cerchas |
+| Pabellón (España) | Arena oscura: butacas de plástico del color del club en tres lados (con el nombre escrito en las butacas vacías de la principal y de una cabecera), visitantes en la otra cabecera, foso con cintas LED, pantallas con el marcador en las cabeceras, techo negro con parrilla y anillo de luz con el color del club |
+| Ginásio (Brasil) | Olla de cemento empinada, gradas pintadas a franjas con los colores del club y repletas, alambrado, bandeirões ("Torcida...", "Força..."), la torcida con banderas en mástil detrás de un arco, ventanales basculantes en las cabeceras y techo en bóveda con lucernarios |
+
+Todos tienen **marcador vivo** (siglas, goles, reloj y faltas acumuladas),
+los bancos y la mesa del lado de la cámara y el techo que no se dibuja con
+las cámaras altas. Sin luces de verdad (paneles que brillan): livianos en el
+celular.
+
+## Pantalla de carga (F6)
+
+Entre el menú y el partido (y al volver) aparece la pantalla de carga: los
+escudos y los nombres de los equipos, el estadio, un **consejo de los
+controles** (de fútbol o de futsal, con los íconos de los botones; cambia
+cada 5 s si tarda) y la barra de carga. El partido se carga en otro hilo y
+el sonido se apaga mientras tanto: ya no queda la pantalla quieta con el
+ruido de la cancha.

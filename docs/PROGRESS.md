@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **586 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **595 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -162,6 +162,38 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Futsal — F6: Liga Virtual de futsal, estadios y pantalla de carga
+
+- **Liga Virtual de futsal** (carrera): se arranca en la Primera D (un club
+  de la D se queda en su zona; uno de más arriba baja a la Zona 2 y sube un
+  club por categoría). Cada temporada: Liga con playoff por categoría (A, B,
+  C y la D con sus dos zonas), ascensos por campeonato y playoff (B y C: 2;
+  D: los 2 campeones de zona y el del playoff), descensos por tabla (A 2,
+  B 2, C 3; los que bajan a la D van a la zona con menos clubes), Supercopa
+  con los campeones de la temporada anterior y Copa Argentina repartida en
+  la temporada. Sin copas internacionales, Mundial ni Sub-20. Planteles de
+  14 (mínimo 10 para vender), formaciones de futsal en el Plantel, tablas
+  por zona con el playoff en el centro de la carrera.
+- **Estadios** (Configuración del partido, fila **Estadio**):
+  - Microestadio (Argentina): el gimnasio del club, ahora con trapos en la
+    baranda, ventanitas altas y marcador de pared.
+  - Pabellón (España): arena oscura con butacas de plástico del color del
+    club en tres lados (el nombre escrito con las butacas vacías), cintas
+    LED, pantallas en las cabeceras, techo negro con parrilla y anillo de
+    luz con el color del club.
+  - Ginásio (Brasil): olla de cemento empinada con gradas a franjas de los
+    colores del club, alambrado, bandeirões, la torcida con banderas detrás
+    de un arco, techo en bóveda con lucernarios y ventanales basculantes.
+  - Los tres con **marcador vivo** (goles, reloj y faltas acumuladas). Las
+    paredes llegan hasta el techo (no se ve el cielo por arriba).
+- **Pantalla de carga** (`LoadingScreen`, autoload) entre el menú y el
+  partido y al volver: escudos, equipos y estadio, un consejo de los
+  controles (de fútbol o futsal, con los íconos de los botones), barra de
+  carga; la escena se carga en otro hilo y el sonido se apaga mientras
+  tanto (antes quedaba la pantalla quieta con el ruido de la cancha).
+- Capturas: `--capture=<dir> --db=futsal_afa --gym=0|1|2`.
+- Tests: `test_futsal_career.gd` (9).
 
 ## Futsal — F5: Liga con playoff, Supercopa, Copa Argentina y amistosos
 

@@ -190,6 +190,10 @@ func _ready() -> void:
 			GameSettings.home_team_path = tv[0]
 			GameSettings.away_team_path = tv[1]
 			GameSettings.stadium_choice = -1
+	# `--gym=N`: estadio de futsal (GymBuilder.Style).
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--gym="):
+			GameSettings.gym_style = int(arg.trim_prefix("--gym="))
 	# `--stadium=N`: estadio (StadiumStyles).
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--stadium="):

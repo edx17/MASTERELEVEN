@@ -356,7 +356,7 @@ func _build_world() -> void:
 	var pitch := PitchBuilder.build(atmosphere.grass_params())
 	add_child(pitch)
 	if Discipline.is_futsal():
-		stadium = GymBuilder.build(GameSettings.home_team())
+		stadium = GymBuilder.build(GameSettings.home_team(), GameSettings.gym_style)
 	elif GameSettings.training:
 		stadium = ClubHouseBuilder.build(GameSettings.home_team())
 	else:
@@ -4320,4 +4320,4 @@ func exit_to_menu() -> void:
 		GameSettings.last_scorers = []
 		GameSettings.last_events = []
 	get_tree().paused = false
-	get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")
+	LoadingScreen.goto("res://scenes/ui/main_menu.tscn")

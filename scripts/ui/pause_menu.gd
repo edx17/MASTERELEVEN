@@ -322,7 +322,7 @@ func _exit() -> void:
 		m.exit_to_menu()
 	else:
 		get_tree().paused = false
-		get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")
+		LoadingScreen.goto("res://scenes/ui/main_menu.tscn")
 
 
 

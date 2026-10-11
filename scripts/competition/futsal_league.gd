@@ -65,7 +65,7 @@ static func create(fmt: String, zones: Array, user_path: String, seed: int = 0) 
 				games.append_array(rr[i])
 		c.rounds.append(games)
 	c.group_rounds = n
-	c.user_team = maxi(c.team_paths.find(user_path), 0)
+	c.user_team = c.team_paths.find(user_path)
 	return c
 
 
@@ -237,7 +237,7 @@ static func create_copa_argentina(user_path: String, seed: int = 0) -> Competiti
 				c.rank[str(i)] = int(level[div]) * 100 + k
 				ids.append(i)
 		c.entries.append(ids)
-	c.user_team = maxi(c.team_paths.find(user_path), 0)
+	c.user_team = c.team_paths.find(user_path)
 	copa_round(c, (c.entries[0] as Array).duplicate(), 0)
 	return c
 

@@ -152,7 +152,7 @@ func test_menu_asks_football_or_futsal_after_the_title() -> void:
 	var home: HomeScreen = menu.get("_home")
 	for i in HomeScreen.MENU.size():
 		if HomeScreen.MENU[i][0] == "master":
-			assert_false(home.menu_items[i].visible, "la Liga Virtual de futsal llega en F6")
+			assert_true(home.menu_items[i].visible, "Liga Virtual de futsal (F6)")
 	for i in HomeScreen.OTHER_MODES.size():
 		if HomeScreen.OTHER_MODES[i][0] == "league":
 			assert_true(home.mode_cards[i].visible, "Liga sí")

@@ -21,6 +21,7 @@ config/icon="res://icon.svg"
 GameSettings="*res://scripts/core/game_settings.gd"
 MenuNav="*res://scripts/ui/menu_nav.gd"
 TouchControls="*res://scripts/ui/touch_controls.gd"
+LoadingScreen="*res://scripts/ui/loading_screen.gd"
 
 [display]
 

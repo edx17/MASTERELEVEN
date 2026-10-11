@@ -239,6 +239,9 @@ func _season_progress() -> void:
 ## zona de ascenso con una marca verde y la de descenso roja; tu club resaltado.
 func _table(body: Control) -> void:
 	var comp: Competition = career.leagues[view_division]["comp"]
+	if comp.ko == "futsal":
+		_futsal_table(body, comp)
+		return
 	var up := TeamDB.relegation_count(career.country, view_division - 1) if view_division > 0 else 0
 	var down := TeamDB.relegation_count(career.country, view_division)
 	var n := comp.team_paths.size()
@@ -276,6 +279,52 @@ func _table(body: Control) -> void:
 		_scroll_to.call_deferred(scroll, my_row)
 
 
+## Futsal: la tabla de la fase de liga (en la D, una por zona) con los
+## colores del formato (campeón, playoff, descenso) y, si ya se juega, el
+## playoff.
+func _futsal_table(body: Control, comp: Competition) -> void:
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, WEStyle.px(WEStyle.ROW_H) * 10)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	WEStyle.pad_scroll(scroll)
+	body.add_child(scroll)
+	var rows := VBoxContainer.new()
+	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rows.add_theme_constant_override("separation", 0)
+	scroll.add_child(rows)
+	var my_row: Control = null
+	if comp.current >= comp.group_rounds and comp.group_rounds < comp.rounds.size():
+		rows.add_child(WEStyle.make_caption_label(comp.round_name(mini(comp.current, comp.rounds.size() - 1)).to_upper(), WEStyle.ACCENT))
+		for g in comp.rounds[mini(comp.current, comp.rounds.size() - 1)]:
+			var res: Array = g.get("result", [])
+			var score := "%d - %d" % [res[0], res[1]] if res.size() >= 2 else "vs"
+			var mine: bool = g["home"] == comp.user_team or g["away"] == comp.user_team
+			rows.add_child(WEStyle.make_table_row(["", "%s  %s  %s" % [comp.team(g["home"]).team_name, score, comp.team(g["away"]).team_name],
+				"", "", "", "", "", ""], false, mine, Color(0, 0, 0, 0)))
+		rows.add_child(WEStyle.make_separator())
+	for gi in comp.groups.size():
+		if comp.groups.size() > 1:
+			rows.add_child(WEStyle.make_caption_label("ZONA %d" % (gi + 1), WEStyle.ACCENT))
+		rows.add_child(WEStyle.make_table_row(["Pos.", "Equipo", "PJ", "G", "E", "P", "DG", "Pts"], true, false, Color(0, 0, 0, 0)))
+		var table := comp.group_table(gi)
+		for k in table.size():
+			var row: Dictionary = table[k]
+			var me: bool = comp.team_paths[row["team"]] == career.user_path()
+			var dg := int(row["dg"])
+			var r := WEStyle.make_table_row(["%02d" % (k + 1), comp.team(row["team"]).team_name, str(row["pj"]), str(row["g"]),
+				str(row["e"]), str(row["p"]), ("%+d" % dg) if dg != 0 else "0", str(row["pts"])], false, me,
+				FutsalLeague.zone_color(comp, k + 1, table.size()))
+			rows.add_child(r)
+			if me:
+				my_row = r
+	var legend := WEStyle.make_body_label(FutsalLeague.legend(comp), WEStyle.BODY_S, WEStyle.TEXT_DIM)
+	legend.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.add_child(legend)
+	if my_row != null:
+		_scroll_to.call_deferred(scroll, my_row)
+
+
 # --- Izquierda: el próximo partido ----------------------------------------------------
 
 func _next_match() -> void:
@@ -289,6 +338,8 @@ func _next_match() -> void:
 	var first: Button = null
 	if g.is_empty():
 		var note := "Fecha de copa: tu equipo no la juega." if cup_day else "Tu liga terminó: faltan fechas de otras divisiones."
+		if not cup_day and career.futsal() and not career.user_league().finished():
+			note = "Tu equipo no juega esta ronda del playoff: se juega sin vos."
 		var l := WEStyle.make_body_label(note, WEStyle.BODY_L, WEStyle.TEXT_DIM)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_left.add_child(l)
@@ -590,7 +641,8 @@ func _cups(body: Control) -> void:
 	var next_cwc := CareerCups.CLUB_WORLD_CUP_FIRST
 	while next_cwc < wc_y:
 		next_cwc += 4
-	box.add_child(_lbl("Mundial de Clubes: antes de la temporada %d. Mundial: al terminar la de %d." % [next_cwc, next_wc], 14, BLUE))
+	if not career.futsal():
+		box.add_child(_lbl("Mundial de Clubes: antes de la temporada %d. Mundial: al terminar la de %d." % [next_cwc, next_wc], 14, BLUE))
 
 
 ## "Boca  2 - 1  River  (global 3-3, pen. 4-2)".
