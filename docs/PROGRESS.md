@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **576 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **579 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -162,6 +162,17 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Futsal — F4: arquero jugador
+
+- L2 + cruceta abajo: en cada ataque sale el arquero y entra un jugador con
+  camiseta de arquero (5 contra 4); al perder la pelota vuelve el arquero.
+- Pelota parada del rival, saque de arco o del medio: vuelve de una.
+- El rival le tira al arco vacío desde lejos; la CPU lo usa si va perdiendo
+  por 1 o 2 sobre el final.
+- Simulación con la orden siempre prendida: 15 a 19 ataques de 5 contra 4
+  por partido, sin trabas.
+- Tests: 3 nuevos en `test_futsal_rules.gd`.
 
 ## Futsal — F3: IA a escala y cambios volantes
 

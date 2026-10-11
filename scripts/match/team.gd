@@ -43,6 +43,10 @@ var bench_energy := {}
 var rotation_minutes: float = 0.0
 ## Minuto de juego (total en segundos) de la última rotación.
 var last_rotation: float = 0.0
+## Futsal: orden de arquero jugador (L2 + cruceta abajo): en cada ataque
+## sale el arquero y entra un jugador de campo con camiseta de arquero (5
+## contra 4); al perder la pelota vuelve el arquero.
+var keeper_player := false
 ## Condición del día de cada jugador del plantel (PlayerData -> Condition).
 var conditions := {}
 ## Capitán y pateadores elegidos en la Dirección del equipo (null = automático).
