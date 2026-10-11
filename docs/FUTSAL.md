@@ -11,7 +11,7 @@ menús); cambian la cancha, el reglamento, la base y las competencias.
 | F0 | Disciplina (fútbol / futsal), base AFA Futsal, formaciones de 5 | ✅ |
 | F1 | Cancha 40 x 20 (parquet, pista azul o negra), arcos 3 x 2, pelota de bote bajo, gimnasio techado, cámaras a escala | ✅ |
 | F2 | Reglas propias: lateral con el pie, saque de arco con la mano, 4 segundos, pase atrás al arquero, faltas acumuladas y doble penal, reloj parado (2 x 20, 5 min reales por tiempo) | ✅ |
-| F3 | IA de futsal (1-2-1, 2-2, 1-3, 3-1, 4-0) y cambios volantes (L2 rápido; cuartetos y rotación por tiempo en Dirección de Equipo) | |
+| F3 | IA de futsal (1-2-1, 2-2, 1-3, 3-1, 4-0) y cambios volantes (L2 rápido; cuartetos y rotación por tiempo en Dirección de Equipo) | ✅ |
 | F4 | Arquero jugador: orden por ataque; entra un jugador con camiseta de arquero para el 5 contra 4 y, al perder la pelota, corre al banco y vuelve el arquero | |
 | F5 | Amistosos, torneos amistosos y Liga con playoffs, ascensos/descensos y Supercopa | |
 | F6 | Liga Virtual de futsal (carrera) y estadios tipo España y Brasil | |
@@ -79,6 +79,25 @@ fútbol sigue igual.
   miden con su forma real.
 - Atajada un poco más difícil que en el fútbol (arco de 3 m); el ajuste fino
   de remates y arqueros va con la IA de futsal (F3).
+
+## IA y cambios volantes (F3)
+
+- **IA a escala:** las distancias de la IA, los pases, los remates, los
+  despejes, las pelotas paradas y el arquero se achican con la cancha
+  (`Pitch.s` para la geometría, `Pitch.h` para las distancias de juego,
+  `Pitch.g` para la puntería al arco de 3 m). Antes la CPU remataba desde su
+  campo, apuntaba afuera del arco y despejaba de fondo a fondo.
+- **Cambios volantes** sin límite y sin parar el juego: el que sale va hasta
+  la zona de cambio de su equipo (banda de los bancos, en su campo) y recién
+  ahí entra el suplente. El que sale vuelve al banco, recupera energía y
+  puede volver a entrar.
+  - **L2 + cruceta arriba:** cambio rápido (sale el más cansado, entra el
+    suplente de campo con más energía, del mismo puesto si hay).
+  - **Cuartetos:** el segundo cuarteto son los primeros 4 de campo del banco
+    (el orden se arma en la Dirección del equipo). **Rotación** cada 3', 5'
+    o 7' de juego, o a mano (por defecto, cada 5').
+  - La CPU rota el cuarteto y además cambia a los que se cansan.
+- En una simulación CPU contra CPU: 3-2 y 5-8, con unos 28 cambios por equipo.
 
 ## Árbitros
 

@@ -51,6 +51,23 @@ static func configure(d: Dictionary) -> void:
 	SCALE = HALF_LENGTH / 52.5
 
 
+## Distancia de la cancha de fútbol llevada a esta cancha (proporcional al
+## largo): ubicaciones, zonas, cortes del campo.
+static func s(meters: float) -> float:
+	return meters * SCALE
+
+
+## Distancia "de juego" (pases, remates, despejes, presión): se achica con la
+## cancha pero no tanto (los jugadores y la pelota no se achican).
+static func h(meters: float) -> float:
+	return meters * maxf(SCALE, 0.5)
+
+
+## Medida lateral relativa al arco (puntería): 1 en fútbol, ~0,41 en futsal.
+static func g(meters: float) -> float:
+	return meters * GOAL_HALF_WIDTH / 3.66
+
+
 ## Está dentro del área grande del arco ubicado en el lado `side` (+1 / -1).
 static func in_penalty_area(pos: Vector3, side: int) -> bool:
 	var dx := side * HALF_LENGTH - pos.x

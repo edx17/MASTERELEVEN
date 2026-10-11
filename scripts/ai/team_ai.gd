@@ -20,6 +20,11 @@ const STATE_INTERVAL := 0.25
 const CARRIER_INTERVAL := 0.2
 const ARRIVE_RADIUS := 0.8
 const SHOOT_DISTANCE := 27.0
+
+
+## Distancia desde la que remata (más corta en futsal).
+static func shoot_distance() -> float:
+	return Pitch.h(SHOOT_DISTANCE)
 ## Desde acá (progreso 0..1) el que lleva la pelota encara hacia el área.
 const FINAL_THIRD := 0.68
 const RUNNER_HOLD := 2.0
@@ -307,7 +312,7 @@ func _field_players() -> Array[Footballer]:
 ## (offside) y nunca el que lleva la pelota.
 func _assign_box_runs(carrier: Footballer, ball: Ball) -> void:
 	var bp := ball.flat_pos()
-	if team.progress_of(bp) < CROSS_ZONE_PROGRESS or absf(bp.z) < CROSS_ZONE_WIDTH:
+	if team.progress_of(bp) < CROSS_ZONE_PROGRESS or absf(bp.z) < Pitch.s(CROSS_ZONE_WIDTH):
 		return
 	var free: Array[Footballer] = []
 	for p in _field_players():
@@ -356,10 +361,10 @@ func box_spots(ball_pos: Vector3) -> Array[Vector3]:
 	var s := float(team.attack_dir)
 	var near := signf(ball_pos.z)
 	return [
-		Vector3(gx - s * 11.0, 0.0, -near * 1.0), # punto penal
-		Vector3(gx - s * 5.5, 0.0, near * 3.0), # primer palo
-		Vector3(gx - s * 6.5, 0.0, -near * 4.5), # segundo palo
-		Vector3(gx - s * 18.5, 0.0, -near * 4.0), # puerta del área
+		Vector3(gx - s * Pitch.s(11.0), 0.0, -near * Pitch.g(1.0)), # punto penal
+		Vector3(gx - s * Pitch.s(5.5), 0.0, near * Pitch.s(3.0)), # primer palo
+		Vector3(gx - s * Pitch.s(6.5), 0.0, -near * Pitch.s(4.5)), # segundo palo
+		Vector3(gx - s * Pitch.s(18.5), 0.0, -near * Pitch.s(4.0)), # puerta del área
 	]
 
 
@@ -368,14 +373,14 @@ func _assign_support(carrier: Footballer) -> void:
 	var cp := carrier.flat_pos()
 	var fwd := Vector3(team.attack_dir, 0.0, 0.0)
 	var points: Array[Vector3] = [
-		cp + fwd.rotated(Vector3.UP, deg_to_rad(40.0)) * 13.0,
-		cp + fwd.rotated(Vector3.UP, deg_to_rad(-40.0)) * 13.0,
+		cp + fwd.rotated(Vector3.UP, deg_to_rad(40.0)) * Pitch.h(13.0),
+		cp + fwd.rotated(Vector3.UP, deg_to_rad(-40.0)) * Pitch.h(13.0),
 	]
 	if team.mentality > 0 and state in [S.ATTACKING, S.COUNTER_ATTACK]:
 		# Ofensiva: uno más pasa por afuera, al espacio.
-		points.append(cp + fwd.rotated(Vector3.UP, deg_to_rad(-signf(cp.z) * 25.0 if absf(cp.z) > 1.0 else 25.0)) * 20.0)
+		points.append(cp + fwd.rotated(Vector3.UP, deg_to_rad(-signf(cp.z) * 25.0 if absf(cp.z) > 1.0 else 25.0)) * Pitch.h(20.0))
 	elif state == S.BUILD_UP or state == S.ATTACKING:
-		points.append(cp - fwd * 9.0 + Vector3(0.0, 0.0, -signf(cp.z) * 5.0))
+		points.append(cp - fwd * Pitch.h(9.0) + Vector3(0.0, 0.0, -signf(cp.z) * Pitch.h(5.0)))
 	var free := _field_players()
 	free.erase(carrier)
 	for p in _box_runs:
@@ -383,7 +388,7 @@ func _assign_support(carrier: Footballer) -> void:
 	for pt in points:
 		var target := _away_from_opponents(Pitch.clamp_to_field(pt, 2.0))
 		var best: Footballer = null
-		var best_d := 25.0
+		var best_d := Pitch.h(25.0)
 		for p in free:
 			if p == _runner and _time < _runner_until:
 				continue
@@ -470,13 +475,13 @@ func _assign_defense(carrier: Footballer, ball: Ball) -> void:
 		if _pressers.size() >= n:
 			break
 		# Si el humano llega antes, la IA sólo acompaña la presión si está cerca.
-		if human_t < _time_to_ball(p, ball) and p.flat_pos().distance_to(carrier.flat_pos()) > 10.0:
+		if human_t < _time_to_ball(p, ball) and p.flat_pos().distance_to(carrier.flat_pos()) > Pitch.h(10.0):
 			continue
 		_pressers.append(p)
 	for p in candidates:
 		if p in _pressers:
 			continue
-		if p.flat_pos().distance_to(carrier.flat_pos()) < 20.0:
+		if p.flat_pos().distance_to(carrier.flat_pos()) < Pitch.h(20.0):
 			_cover = p
 		break
 	# Marcas: rivales en nuestra mitad, cada uno por el jugador libre más cercano
@@ -492,7 +497,7 @@ func _assign_defense(carrier: Footballer, ball: Ball) -> void:
 		if team.progress_of(o.flat_pos()) > 0.55:
 			continue
 		var best: Footballer = null
-		var best_d := 14.0
+		var best_d := Pitch.h(14.0)
 		for p in free:
 			var d := shape_target(p).distance_to(o.flat_pos())
 			if d < best_d:
@@ -579,7 +584,7 @@ const KEEPER_HOLD_GAP := 24.0
 
 func _retreat_from_keeper(p: Footballer, ball: Ball) -> void:
 	var target := shape_target(p)
-	var limit := team.attack_dir * (Pitch.HALF_LENGTH - KEEPER_HOLD_GAP)
+	var limit := team.attack_dir * (Pitch.HALF_LENGTH - Pitch.s(KEEPER_HOLD_GAP))
 	if team.attack_dir * target.x > team.attack_dir * limit:
 		target.x = limit
 	go_to(p, target, p.flat_pos().distance_to(target) > 15.0, true)
@@ -666,7 +671,7 @@ func _update_lane_cutter(ball: Ball) -> void:
 	for p in team.players:
 		if p.is_keeper() or p.is_human() or p == _chaser or p.state != Footballer.State.NORMAL:
 			continue
-		if p.flat_pos().distance_to(rec.flat_pos()) > 25.0:
+		if p.flat_pos().distance_to(rec.flat_pos()) > Pitch.h(25.0):
 			continue
 		var point := _match.loose_ball_intercept(p)
 		var t := p.flat_pos().distance_to(point) / spd
@@ -725,9 +730,9 @@ func _carrier(p: Footballer, ball: Ball) -> void:
 
 	# Conducción: hacia el arco esquivando al rival más cercano, sin irse por la raya.
 	var dir := to_goal.normalized()
-	if team.progress_of(p.flat_pos()) > FINAL_THIRD and absf(p.global_position.z) > Pitch.PENALTY_AREA_HALF_WIDTH - 4.0:
+	if team.progress_of(p.flat_pos()) > FINAL_THIRD and absf(p.global_position.z) > Pitch.PENALTY_AREA_HALF_WIDTH - Pitch.s(4.0):
 		# Por la banda en el último tercio: hacia adentro, a la puerta del área.
-		var edge := goal - Vector3(team.attack_dir * 14.0, 0.0, -signf(p.global_position.z) * 8.0)
+		var edge := goal - Vector3(team.attack_dir * Pitch.s(14.0), 0.0, -signf(p.global_position.z) * Pitch.s(8.0))
 		dir = (edge - p.flat_pos()).normalized()
 	if state == S.BUILD_UP:
 		# En la salida se progresa por afuera, sin apurarse.
@@ -750,11 +755,11 @@ func _carrier(p: Footballer, ball: Ball) -> void:
 	# Remate. Dentro del área casi siempre (antes se la pasaba a un costado y
 	# la pelota se iba al lateral); de afuera, según la distancia.
 	var in_box := Pitch.in_penalty_area(p.flat_pos(), int(signf(goal.x)))
-	if in_box or (dist_goal < SHOOT_DISTANCE and absf(p.global_position.z) < 20.0):
+	if in_box or (dist_goal < shoot_distance() and absf(p.global_position.z) < Pitch.s(20.0)):
 		var chance := shot_chance(p, dist_goal, in_box, _lane_clear(p.flat_pos(), goal, 1.6))
 		if randf() < chance:
 			# De lejos, a veces el cañonazo (remate potente).
-			var v := KickActions.Variant.POWER if dist_goal > 20.0 and randf() < 0.3 else KickActions.Variant.NORMAL
+			var v := KickActions.Variant.POWER if dist_goal > Pitch.h(20.0) and randf() < 0.3 else KickActions.Variant.NORMAL
 			var power := randf_range(0.5, 0.85) if not in_box else randf_range(0.4, 0.7)
 			_match.perform_kick(p, KickActions.Kind.SHOT, _shot_aim(p), power, null, v)
 			return
@@ -767,7 +772,7 @@ func _carrier(p: Footballer, ball: Ball) -> void:
 	# Cerca del arco no se devuelve la pelota hacia atrás ni al costado: sólo
 	# se pasa a un compañero mejor ubicado (más cerca del arco y con el arco
 	# libre); si no, sigue encarando y remata en el próximo intento.
-	if in_box or dist_goal < SHOOT_DISTANCE * 0.8:
+	if in_box or dist_goal < shoot_distance() * 0.8:
 		var mate: Footballer = best.get("mate")
 		if mate != null and not _better_finisher(mate, p, goal):
 			best = {}
@@ -798,7 +803,7 @@ func _carrier(p: Footballer, ball: Ball) -> void:
 
 ## Probabilidad de rematar en un intento (cada CARRIER_INTERVAL).
 func shot_chance(p: Footballer, dist_goal: float, in_box: bool, lane_clear: bool) -> float:
-	var chance := clampf(remap(dist_goal, SHOOT_DISTANCE, 10.0, 0.08, 0.9), 0.08, 0.9)
+	var chance := clampf(remap(dist_goal, shoot_distance(), Pitch.h(10.0), 0.08, 0.9), 0.08, 0.9)
 	if in_box:
 		chance = maxf(chance, 0.8)
 	if not lane_clear:
@@ -846,14 +851,14 @@ func _evaluate_passes(p: Footballer) -> Dictionary:
 			kind = KickActions.Kind.THROUGH_PASS
 			bonus = 0.5
 		var d := target.distance_to(p.flat_pos())
-		if d < 5.0 or d > 50.0:
+		if d < Pitch.h(5.0) or d > Pitch.h(50.0):
 			continue
 		var lane := _lane_min_distance(p.flat_pos(), target)
 		if lane < 1.4:
 			continue
-		if d > 30.0 and kind != KickActions.Kind.THROUGH_PASS:
+		if d > Pitch.h(30.0) and kind != KickActions.Kind.THROUGH_PASS:
 			kind = KickActions.Kind.LONG_PASS
-		var open := minf(_open_space(m.flat_pos()), 10.0) / 10.0
+		var open := minf(_open_space(m.flat_pos()), Pitch.h(10.0)) / Pitch.h(10.0)
 		# El avance pesa más que la comodidad: se juega para progresar. El pase
 		# hacia atrás sólo conviene si no hay otra cosa (o en la salida).
 		var gain := (team.progress_of(target) - my_x) * 5.0
@@ -935,7 +940,7 @@ func _restart_taker(p: Footballer) -> void:
 				_match.order_free_kick(p, KickActions.Kind.SHOT, randf_range(0.6, 0.85), null, Vector3.ZERO)
 				return
 			var goal := team.target_goal()
-			if p.flat_pos().distance_to(goal) < 28.0 and absf(p.flat_pos().z) < 18.0 and randf() < 0.6:
+			if p.flat_pos().distance_to(goal) < Pitch.h(28.0) and absf(p.flat_pos().z) < Pitch.s(18.0) and randf() < 0.6:
 				# Colocado por encima de la barrera o con comba (a la WE2002).
 				var stick := Vector3(0.0, 0.0, 1.0) if randf() < 0.5 else Vector3(signf(randf() - 0.5), 0.0, -0.4)
 				_match.order_free_kick(p, KickActions.Kind.SHOT, randf_range(0.55, 0.8), null, stick)
@@ -982,7 +987,7 @@ func _nearest_mate(p: Footballer) -> Footballer:
 
 func _open_space(pos: Vector3) -> float:
 	var o := _nearest_opponent(pos)
-	return 10.0 if o == null else o.flat_pos().distance_to(pos)
+	return Pitch.h(10.0) if o == null else o.flat_pos().distance_to(pos)
 
 
 func _lane_min_distance(from: Vector3, to: Vector3) -> float:

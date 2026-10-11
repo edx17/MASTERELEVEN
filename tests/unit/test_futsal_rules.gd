@@ -301,3 +301,62 @@ func test_arm_toward() -> void:
 	assert_eq(Referee.arm_toward(Vector3(-1, 0, 0), Vector3(0, 0, 1)), 1.0)
 	assert_eq(Referee.arm_toward(Vector3(1, 0, 0), Vector3(0, 0, -1)), 1.0)
 	assert_eq(Referee.arm_toward(Vector3(-1, 0, 0), Vector3(0, 0, -1)), -1.0)
+
+
+# --- F3: cambios volantes e IA a escala ---------------------------------------
+
+func test_flying_sub_goes_to_the_zone_and_returns_to_the_bench() -> void:
+	var t := m.teams[0]
+	assert_eq(t.subs_left(), 99, "sin límite de cambios")
+	var out := _outfield(t)
+	var in_data: PlayerData = t.next_quartet()[0]
+	out.stamina = 30.0
+	assert_true(m.request_flying_sub(out, in_data))
+	assert_true(m.is_heading_off(out))
+	var zone := m.flying_zone(t)
+	assert_gt(zone.z, Pitch.HALF_WIDTH, "del lado de los bancos")
+	assert_lt(zone.x * t.attack_dir, 0.0, "en su campo")
+	m.ball.place(Vector3(-t.attack_dir * 3.0, m.tuning.ball_radius, -6.0))
+	for i in 60 * 9:
+		m._physics_process(dt)
+		if not m.is_heading_off(out):
+			break
+	assert_false(t.players.has(out), "salió")
+	assert_true(t.bench.has(out.base_data), "vuelve al banco: puede volver a entrar")
+	assert_false(t.bench.has(in_data))
+	assert_eq(m.sub_scenes.size(), 0, "sin parar el juego")
+	var e: Dictionary = t.bench_energy[out.base_data]
+	assert_almost_eq(float(e["stamina"]), 30.0, 15.0)
+	t.rest_bench(5.0)
+	assert_gt(t.bench_stamina(out.base_data), float(e["stamina"]) - 0.01, "descansa en el banco")
+
+
+func test_quick_flying_sub_takes_off_the_most_tired() -> void:
+	var t := m.teams[1]
+	var tired := _outfield(t)
+	for p in t.players:
+		p.stamina = 90.0
+	tired.stamina = 20.0
+	assert_true(m.quick_flying_sub(t))
+	assert_eq(m.flying[0]["out"], tired)
+
+
+func test_quartet_rotation() -> void:
+	var t := m.teams[0]
+	t.rotation_minutes = 5.0
+	t.last_rotation = 0.0
+	m.clock.game_seconds = 5.0 * 60.0 + 1.0
+	m._flying_auto(dt)
+	var outs := m.flying.filter(func(f: Dictionary) -> bool: return f["out"].team == t)
+	assert_eq(outs.size(), 4, "sale el cuarteto entero (de a dos)")
+
+
+func test_ai_distances_scale_with_the_court() -> void:
+	assert_lt(TeamAI.shoot_distance(), Pitch.HALF_LENGTH, "no remata desde su campo")
+	assert_almost_eq(Pitch.g(3.66), Pitch.GOAL_HALF_WIDTH, 0.001, "puntería al arco de 3 m")
+	assert_lt(m.tuning.short_pass_max_distance, 35.0, "pases más cortos")
+	Discipline.use(Discipline.FOOTBALL)
+	assert_eq(Pitch.s(10.0), 10.0)
+	assert_eq(Pitch.h(10.0), 10.0)
+	assert_eq(TeamAI.shoot_distance(), TeamAI.SHOOT_DISTANCE, "el fútbol no cambia")
+	Discipline.use(Discipline.FUTSAL)

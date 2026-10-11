@@ -49,6 +49,8 @@ const DATA := {
 		#    tiempo, tiro libre directo sin barrera (desde el doble penal).
 		"rules": {"kick_in": true, "hand_clearance": true, "restart_limit": 4.0, "keeper_limit": 4.0,
 			"keeper_second_touch": true, "foul_limit": 5,
+			# Cambios volantes: ilimitados, sin parar el juego, por la zona.
+			"flying_subs": true,
 			# Atajada (SaveModel): base y tope de la probabilidad.
 			"save_base": 0.25, "save_cap": 0.75},
 		# Pelota de bote bajo (tamaño 4): pica la mitad, rueda pegada al piso
@@ -131,6 +133,10 @@ static func apply_to(t: Tuning) -> void:
 		t.rolling_decel *= float(b["rolling_decel"])
 	if b.has("bounce_min_speed"):
 		t.bounce_min_speed = float(b["bounce_min_speed"])
+	# Cancha más chica: pases y pelotas al hueco más cortos (Pitch.h).
+	if is_futsal():
+		for k in ["short_pass_max_distance", "through_lead_min", "through_lead_max", "long_pass_free_min", "long_pass_free_max"]:
+			t.set(k, float(t.get(k)) * Pitch.h(1.0))
 
 
 ## Piso elegido del futsal: [nombre, color de la cancha, color de afuera].
