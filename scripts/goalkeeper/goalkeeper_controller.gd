@@ -198,6 +198,9 @@ func _distribute(p: Footballer, ai: TeamAI, dt: float) -> void:
 		wait = WASTE_HOLD_TIME
 	if not _match.ball.in_hands:
 		wait = minf(wait, 0.5) # con los pies (pase atrás) no se la puede dormir
+	# Futsal: antes de que se cumplan los 4 s (si no, indirecto para el rival).
+	if Discipline.is_futsal():
+		wait = minf(wait, MatchController.keeper_limit() - 1.2)
 	if _hold < wait:
 		return
 	_hold = 0.0

@@ -252,6 +252,10 @@ func _process(_dt: float) -> void:
 			if c is CanvasItem:
 				(c as CanvasItem).visible = true
 	_clock.text = "%s  %s" % ["1T" if _match.clock.half == 1 else "2T", _match.clock.display()]
+	if Discipline.rule("foul_limit") != null:
+		# Futsal: faltas acumuladas del tiempo (local - visitante).
+		var acc: Array = _match.stats["acc_fouls"]
+		_clock.text += "   ·   FALTAS %d-%d" % [acc[0], acc[1]]
 	# Pausa > Pantalla: radar y marcador se pueden apagar.
 	_radar.visible = GameSettings.show_radar
 	_top.visible = GameSettings.show_score
