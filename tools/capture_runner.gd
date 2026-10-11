@@ -112,6 +112,14 @@ func _ready() -> void:
 		GameSettings.play_intro = true
 		_script = [[5, "freeze"], [10, "intro:2"], [11, "simulate:2.5"], [20, "shot:intro_tunnel_mouth.png"],
 			[25, "intro:8"], [40, "shot:capture_tv.png"], [45, "quit"]]
+	# `--referees` (futsal): las señas de los árbitros de cerca (lateral,
+	# barrera, cuenta de los 4 s).
+	if "--referees" in OS.get_cmdline_user_args():
+		_script = [[20, "freeze"], [25, "ref_kick_in"], [26, "simulate:1.4"], [27, "ref_cam:1"],
+			[40, "shot:ref_kick_in.png"], [45, "simulate:1.6"], [46, "ref_cam:1"], [60, "shot:ref_count.png"],
+			[65, "ref_wall"], [66, "simulate:4.6"], [67, "ref_cam:near"], [80, "shot:ref_wall.png"],
+			[85, "ref_foul"], [86, "simulate:2.2"], [87, "ref_cam:near"], [100, "shot:ref_foul.png"],
+			[105, "end_cinematic"], [106, "simulate:0.3"], [120, "shot:ref_tv.png"], [125, "quit"]]
 	# `--late`: con el reloj en el segundo tiempo (minuto ~72).
 	if "--late" in OS.get_cmdline_user_args():
 		_script.insert(1, [21, "late"])
@@ -267,6 +275,30 @@ func _run(action: String) -> void:
 		var fov := float(v[6]) if v.size() > 6 else 45.0
 		_camera.set_shot(Vector3(float(v[0]), float(v[1]), float(v[2])),
 			Vector3(float(v[3]), float(v[4]), float(v[5])), fov)
+	elif action == "ref_kick_in":
+		_match._setup_restart(MatchRules.Outcome.new(MatchRules.Restart.THROW_IN, 0,
+			Vector3(3.0, _match.tuning.ball_radius, Pitch.HALF_WIDTH)))
+	elif action == "ref_wall":
+		var t0 := _match.teams[0]
+		var spot := t0.target_goal() - Vector3(t0.attack_dir * 9.0, 0, 2.0)
+		_match._setup_restart(MatchRules.Outcome.new(MatchRules.Restart.FREE_KICK, 0, spot + Vector3.UP * _match.tuning.ball_radius))
+	elif action == "ref_foul":
+		_match.phase = MatchController.Phase.PLAYING
+		_match.restart_taker = null
+		var victim := _pick(_match.teams[0], 2)
+		var offender := _pick(_match.teams[1], 2)
+		victim.teleport(Vector3(-2.0, 0, 5.0), Vector3.RIGHT)
+		offender.teleport(Vector3(-2.8, 0, 5.0), Vector3.RIGHT)
+		seed(5)
+		_match.call_foul(offender, victim, false)
+	elif action.begins_with("ref_cam:"):
+		# Toma de cerca del árbitro (1 = el de la banda de los bancos;
+		# near = el más cerca de la pelota).
+		var which := action.trim_prefix("ref_cam:")
+		var r: Referee = _match.referee2 if which == "1" else _match.nearest_line_ref(_match.ball.flat_pos())
+		var rp := r.global_position
+		var from := rp + Vector3(0.0, 1.7, -signf(rp.z) * 6.5) if absf(rp.z) > Pitch.HALF_WIDTH - 1.0 else rp + Vector3(0.0, 1.7, 6.5)
+		_camera.set_shot(from, rp + Vector3(0, 1.2, 0), 40.0)
 	elif action == "throw_in":
 		_place(Vector3(-8, 0, Pitch.HALF_WIDTH - 0.3), Vector3(-8.5, 0.11, Pitch.HALF_WIDTH - 0.6))
 	elif action == "attack":

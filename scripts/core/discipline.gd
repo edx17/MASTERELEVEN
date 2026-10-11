@@ -32,7 +32,8 @@ const DATA := {
 		"pitch": {"half_length": 20.0, "half_width": 10.0, "goal_half_width": 1.5, "goal_height": 2.0,
 			"goal_depth": 0.9, "post_radius": 0.04, "penalty_area_depth": 6.0, "penalty_area_half_width": 7.58,
 			"goal_area_depth": 0.0, "goal_area_half_width": 0.0, "center_circle_radius": 3.0, "penalty_spot": 6.0,
-			"line_width": 0.08, "second_penalty_spot": 10.0, "rounded_area": true},
+			"line_width": 0.08, "second_penalty_spot": 10.0, "rounded_area": true,
+			"restart_distance": 5.0},
 		"offside": false,
 		# 2 tiempos de 20' con reloj parado (corre sólo con la pelota en juego).
 		"half_minutes": 20,

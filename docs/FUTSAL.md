@@ -80,6 +80,25 @@ fútbol sigue igual.
 - Atajada un poco más difícil que en el fútbol (arco de 3 m); el ajuste fino
   de remates y arqueros va con la IA de futsal (F3).
 
+## Árbitros
+
+- **Dos árbitros, uno por cada banda,** en diagonal: siempre afuera de la
+  línea, cinco metros hacia un arco y hacia el otro respecto de la pelota.
+  Según el ataque, uno queda cerca del inicio de la jugada y el otro cerca
+  del arco atacado. Se desplazan de costado, mirando la jugada.
+- **Cuarto árbitro:** camina entre los bancos (y muestra el cartel en los
+  cambios).
+- **Señas** (en cola, el saque espera a que termine la seña):
+  - falta: el más cercano entra unos metros a la cancha, señala con el brazo
+    para quién es y avisa a la mesa (falta acumulada);
+  - tarjeta: va hasta el infractor, la muestra y después avisa a la mesa;
+  - barrera: camina desde la pelota contando los 5 m y marca el límite con
+    el brazo estirado a la altura de la barrera;
+  - lateral: el de esa banda señala para quién es;
+  - 4 segundos: en cada pelota parada (y con el arquero con la pelota) el
+    brazo se estira y se repliega una vez por segundo.
+- La barrera y los rivales van a **5 m** (antes quedaban a 3).
+
 ## Base AFA Futsal (F0)
 
 `godot --headless -- --build-futsal-db` arma `data/futsal_afa/` desde

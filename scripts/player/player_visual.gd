@@ -15,7 +15,8 @@ enum Event { KICK, PASS, HEADER, THROW, DIVE_LEFT, DIVE_RIGHT, CATCH, TACKLE,
 		RECEIVE, CHEST, CATCH_HIGH, CATCH_LOW, BLOCK, CELEBRATE, DEJECTED, ROLL,
 		FEINT, ROULETTE, STEPOVER, HIGH_FIVE, HANDSHAKE, CHEER,
 		SPRINT_START, SPRINT_TURN, CHILENA, SMOTHER, CARD, TOUCH,
-		APPLAUD, HEAD_HOLD, HANDS_HIPS, PROTEST }
+		APPLAUD, HEAD_HOLD, HANDS_HIPS, PROTEST,
+		REF_POINT, REF_TABLE, REF_WALL, REF_COUNT }
 ## Cada gesto pedido (lo escucha la repetición para volver a mostrarlo).
 ## En HEADER y en las atajadas `side` lleva la altura de la pelota; en
 ## CELEBRATE, el festejo (Celebrations); en SPRINT_TURN, hacia dónde gira
@@ -198,6 +199,11 @@ func play(event: int, side: float = 1.0) -> void:
 		Event.HANDSHAKE: _event_len = 0.75
 		# Reacciones del final (y del entretiempo): duran lo que dura la toma.
 		Event.APPLAUD, Event.HEAD_HOLD, Event.HANDS_HIPS, Event.PROTEST: _event_len = maxf(side, 1.5)
+		# Señas del árbitro (futsal): `side` dice con qué brazo (+1 derecho).
+		Event.REF_POINT: _event_len = 1.1
+		Event.REF_TABLE: _event_len = 1.4
+		Event.REF_WALL: _event_len = 1.8
+		Event.REF_COUNT: _event_len = 4.0
 		_: _event_len = 1.1
 
 

@@ -426,6 +426,8 @@ func _build_world() -> void:
 	referee = Referee.new()
 	add_child(referee)
 	referee.teleport(Vector3(0.0, 0.0, -Referee.TRAIL_Z))
+	if Discipline.is_futsal():
+		_setup_futsal_officials()
 
 	replay = Replay.new()
 	add_child(replay)
@@ -524,6 +526,7 @@ func _physics_process(dt: float) -> void:
 	ball.tick(dt)
 	if referee != null:
 		referee.tick(dt, ball.global_position, phase == Phase.PLAYING)
+	_tick_futsal_officials(dt)
 	_update_set_piece_camera(dt)
 	for t in teams:
 		var gk := t.keeper()
@@ -598,6 +601,10 @@ func _update_phase(dt: float) -> void:
 			save_plan = {}
 	match phase:
 		Phase.RESTART:
+			# Futsal: los 4 s (y el saque) recién después de las señas del
+			# árbitro (contar la barrera, marcar el lateral).
+			if not _officials_ready():
+				_restart_elapsed = 0.0
 			_restart_elapsed += dt
 			if _restart_elapsed > 0.8:
 				banner_text = ""
@@ -722,6 +729,8 @@ func perform_kick(player: Footballer, kind: int, dir: Vector3, power: float, rec
 		kicks.throw_in_mode = restart_type == MatchRules.Restart.THROW_IN and not Discipline.rule("kick_in", false)
 		kicks.hands_only = clearance
 		free_kick_no_wall = false
+		for r in _line_refs():
+			r.cancel_count()
 		restart_taker = null
 		banner_text = ""
 		_set_phase(Phase.PLAYING)
@@ -1313,9 +1322,13 @@ func call_foul(offender: Footballer, victim: Footballer, slide: bool) -> void:
 	# El árbitro va hasta el infractor y le muestra la tarjeta (antes de la
 	# repetición).
 	var carded := text.contains("AMARILLA") or text.contains("ROJA")
+	# Futsal: el árbitro más cercano entra a marcarla y avisa a la mesa.
+	var foul_ref: Referee = _ref_foul(spot, victim.team, carded) if Discipline.is_futsal() else null
 	if carded and referee != null:
 		card_scene = {"offender": offender, "red": text.contains("ROJA"), "pos": offender_pos,
 			"facing": offender_facing, "stage": 0, "t": 0.0}
+		if foul_ref != null:
+			card_scene["ref"] = foul_ref
 	# Repetición de la falta (siempre: hubo un jugador derribado).
 	# Cartel: número y nombre del infractor (con la tarjeta, si hubo).
 	var caption := Replay.player_line(offender)
@@ -1632,9 +1645,10 @@ func _start_sub_scene(out: Footballer, p: Footballer) -> void:
 
 
 func _show_fourth_official(spot: Vector3) -> void:
-	if fourth_official == null:
-		fourth_official = Referee.new()
-		add_child(fourth_official)
+	if fourth_official == null or _sub_board == null:
+		if fourth_official == null:
+			fourth_official = Referee.new()
+			add_child(fourth_official)
 		# Cartel luminoso de los cambios, en alto.
 		_sub_board = MeshInstance3D.new()
 		var box := BoxMesh.new()
@@ -1657,7 +1671,7 @@ func _show_fourth_official(spot: Vector3) -> void:
 
 
 func _drive_sub_scenes(dt: float) -> void:
-	if fourth_official != null and fourth_official.visible:
+	if fourth_official != null and fourth_official.visible and not fourth_official.bench_walker:
 		fourth_official.tick(dt, ball.global_position, false)
 	for sc in sub_scenes.duplicate():
 		sc["t"] += dt
@@ -1756,7 +1770,11 @@ func _finish_sub_scene(sc: Dictionary) -> void:
 	if sub_scenes.is_empty():
 		if fourth_official != null:
 			fourth_official.target = Vector3.INF
-			fourth_official.visible = false
+			fourth_official.look = Vector3.INF
+			# En futsal sigue caminando entre los bancos.
+			fourth_official.visible = fourth_official.bench_walker
+			if _sub_board != null:
+				_sub_board.visible = false
 		if _sub_cam and _camera != null and phase != Phase.REPLAY and not set_piece_cam:
 			_camera.end_cinematic()
 		_sub_cam = false
@@ -3083,6 +3101,7 @@ func _on_replay_finished() -> void:
 ## donde cometió la falta, aunque lo hayan echado) y, ya enfrente, levanta la
 ## tarjeta con la cámara cerca. Después sigue la repetición.
 func _drive_card_scene(dt: float) -> void:
+	var ref: Referee = card_scene.get("ref", referee)
 	var off: Footballer = card_scene["offender"]
 	var pos: Vector3 = card_scene["pos"]
 	card_scene["t"] += dt
@@ -3092,16 +3111,16 @@ func _drive_card_scene(dt: float) -> void:
 			off.global_position = pos
 			off.velocity = Vector3.ZERO
 			off.facing = card_scene["facing"]
-			referee.approach(pos, referee.global_position)
-		off.look_at_point(referee.global_position)
-		if referee.arrived() or card_scene["t"] > CARD_APPROACH_MAX:
-			if not referee.arrived():
-				referee.teleport(referee.target)
-			referee.show_card(card_scene["red"])
-			off.look_at_point(referee.global_position)
+			ref.approach(pos, ref.global_position)
+		off.look_at_point(ref.global_position)
+		if ref.arrived() or card_scene["t"] > CARD_APPROACH_MAX:
+			if not ref.arrived():
+				ref.teleport(ref.target)
+			ref.show_card(card_scene["red"])
+			off.look_at_point(ref.global_position)
 			# Toma de costado: el árbitro con la tarjeta y el amonestado.
-			var mid := (referee.global_position + pos) * 0.5
-			var across := (pos - referee.global_position).cross(Vector3.UP).normalized()
+			var mid := (ref.global_position + pos) * 0.5
+			var across := (pos - ref.global_position).cross(Vector3.UP).normalized()
 			if across.z < 0.0:
 				across = -across # del lado de la cámara del partido
 			_camera.set_shot(mid + across * 5.5 + Vector3(0, 1.7, 0), mid + Vector3(0, 1.45, 0), 34.0)
@@ -3110,7 +3129,9 @@ func _drive_card_scene(dt: float) -> void:
 	elif card_scene["t"] >= Referee.CARD_TIME + 0.2:
 		if off.sent_off:
 			off.visible = false
-		referee.release()
+		ref.release()
+		if Discipline.is_futsal():
+			_signal_table(ref)
 		_camera.end_cinematic()
 		card_scene = {}
 		_phase_timer = minf(_phase_timer, 0.0)
@@ -3121,10 +3142,11 @@ func _drive_card_scene(dt: float) -> void:
 func _hold_card_offender(dt: float) -> void:
 	if card_scene.is_empty():
 		return
+	var ref: Referee = card_scene.get("ref", referee)
 	var off: Footballer = card_scene["offender"]
 	off.desired_move = Vector3.ZERO
 	off.wants_sprint = false
-	off.look_at_point(referee.global_position)
+	off.look_at_point(ref.global_position)
 	if off.sent_off and off.visible:
 		off.tick(dt, false)
 
@@ -3453,6 +3475,8 @@ func hide_players_for_break() -> void:
 		p.velocity = Vector3.ZERO
 	if referee != null:
 		referee.visible = false
+	for r in _futsal_officials():
+		r.visible = false
 	ball.visible = false
 
 
@@ -3462,6 +3486,8 @@ func _show_players_after_break() -> void:
 			p.visible = true
 	if referee != null:
 		referee.visible = training == null
+	for r in _futsal_officials():
+		r.visible = training == null
 	ball.visible = true
 
 
@@ -3550,6 +3576,157 @@ static func no_wall_spot(pos: Vector3, ball_spot: Vector3, own_side: int) -> Vec
 	return Pitch.clamp_to_field(out, 0.5)
 
 
+# --- Árbitros del futsal ----------------------------------------------------
+
+## Mesa de control (frente a los bancos): ahí se anotan faltas y tarjetas.
+static func table_spot() -> Vector3:
+	return Vector3(0.0, 0.0, Pitch.HALF_WIDTH + 2.2)
+
+
+## Segundo árbitro (por la otra banda) y cuarto árbitro (entre los bancos).
+var referee2: Referee
+var _keeper_counting := false
+
+
+## Árbitro por la banda de enfrente (del lado del arco +X) y segundo árbitro
+## por la de los bancos (del lado del arco -X): siempre en diagonal.
+func _setup_futsal_officials() -> void:
+	referee.line_side = -1
+	referee.line_lead = 1
+	referee.teleport(Referee.line_point(Vector3.ZERO, -1, 1))
+	referee2 = Referee.new()
+	referee2.name = "Referee2"
+	add_child(referee2)
+	referee2.line_side = 1
+	referee2.line_lead = -1
+	referee2.teleport(Referee.line_point(Vector3.ZERO, 1, -1))
+	fourth_official = Referee.new()
+	fourth_official.name = "FourthOfficial"
+	add_child(fourth_official)
+	fourth_official.bench_walker = true
+	fourth_official.line_side = 1
+	fourth_official.teleport(Referee.bench_point(0.0, 1))
+
+
+## Los dos árbitros de banda (vacío en fútbol).
+func _line_refs() -> Array[Referee]:
+	var out: Array[Referee] = []
+	if referee2 != null:
+		out.append(referee)
+		out.append(referee2)
+	return out
+
+
+## Los árbitros de más del futsal (se ocultan en el entretiempo).
+func _futsal_officials() -> Array[Referee]:
+	var out: Array[Referee] = []
+	if referee2 != null:
+		out.append(referee2)
+		if fourth_official != null:
+			out.append(fourth_official)
+	return out
+
+
+func _tick_futsal_officials(dt: float) -> void:
+	if referee2 == null:
+		return
+	referee2.tick(dt, ball.global_position, phase == Phase.PLAYING)
+	if fourth_official != null and fourth_official.visible and sub_scenes.is_empty():
+		fourth_official.tick(dt, ball.global_position, false)
+	# Cuenta de los 4 s del arquero con la pelota en su campo.
+	var counting := phase == Phase.PLAYING and hands_time > 0.0
+	if counting and not _keeper_counting:
+		var r := nearest_line_ref(ball.flat_pos())
+		if r != null and not r.busy():
+			r.queue(Vector3.INF, PlayerVisual.Event.REF_COUNT, ball.flat_pos(), keeper_limit())
+	elif not counting and _keeper_counting:
+		for r in _line_refs():
+			r.cancel_count()
+	_keeper_counting = counting
+
+
+func nearest_line_ref(pos: Vector3) -> Referee:
+	var best: Referee = null
+	var best_d := INF
+	for r in _line_refs():
+		var d := Vector3(r.global_position.x, 0.0, r.global_position.z).distance_to(Vector3(pos.x, 0.0, pos.z))
+		if d < best_d:
+			best_d = d
+			best = r
+	return best
+
+
+## Los árbitros terminaron las señas previas al saque (la cuenta no cuenta).
+func _officials_ready() -> bool:
+	for r in _line_refs():
+		for st in r._steps:
+			if int(st["event"]) != PlayerVisual.Event.REF_COUNT:
+				return false
+	return true
+
+
+## Seña a la mesa (anotar la falta acumulada o la tarjeta).
+func _signal_table(r: Referee) -> void:
+	r.queue(Vector3.INF, PlayerVisual.Event.REF_TABLE, table_spot(), 1.4)
+
+
+## Falta: el árbitro más cercano entra unos metros a la cancha, señala para
+## quién es y (si no hay tarjeta, que viene después) avisa a la mesa.
+func _ref_foul(spot: Vector3, awarded: Team, carded: bool) -> Referee:
+	var r := nearest_line_ref(spot)
+	if r == null:
+		return null
+	r.clear_steps()
+	var from := Referee.line_point(spot, r.line_side, 0)
+	from.x = clampf(spot.x, -Pitch.HALF_LENGTH + 1.0, Pitch.HALF_LENGTH - 1.0)
+	var into := Vector3(spot.x, 0.0, spot.z) - from
+	var entry := from + into.normalized() * clampf(into.length() - 1.5, 0.0, 3.5) if into.length() > 0.1 else from
+	var face := Vector3(0.0, 0.0, -r.line_side)
+	var side := Referee.arm_toward(Vector3(awarded.attack_dir, 0.0, 0.0), face)
+	r.queue(entry, PlayerVisual.Event.REF_POINT, entry + face * 5.0, 1.1, side)
+	if not carded:
+		_signal_table(r)
+	return r
+
+
+## Pelota parada: lateral (señala para quién es), barrera (cuenta los 5 m
+## caminando y marca el límite con el brazo) y la cuenta de los 4 s.
+func _ref_restart(outcome: MatchRules.Outcome, team: Team) -> void:
+	var spot := Vector3(outcome.spot.x, 0.0, outcome.spot.z)
+	match outcome.type:
+		MatchRules.Restart.THROW_IN:
+			var side_z := int(signf(spot.z)) if spot.z != 0.0 else 1
+			var r: Referee = referee if referee.line_side == side_z else referee2
+			r.cancel_count()
+			var stand := Referee.line_point(spot, r.line_side, 0)
+			stand.x = clampf(spot.x - team.attack_dir * 2.0, -Pitch.HALF_LENGTH + 1.0, Pitch.HALF_LENGTH - 1.0)
+			var face := Vector3(0.0, 0.0, -r.line_side)
+			r.queue(stand, PlayerVisual.Event.REF_POINT, stand + face * 5.0, 1.0,
+				Referee.arm_toward(Vector3(team.attack_dir, 0.0, 0.0), face))
+			r.queue(Vector3.INF, PlayerVisual.Event.REF_COUNT, spot, restart_limit())
+		MatchRules.Restart.FREE_KICK:
+			var r := nearest_line_ref(spot)
+			r.cancel_count()
+			if not wall_targets.is_empty():
+				var goal := opponents_of(team).own_goal()
+				var dir := Vector3(goal.x - spot.x, 0.0, goal.z - spot.z).normalized()
+				var perp := Vector3(-dir.z, 0.0, dir.x)
+				# Del lado de su banda.
+				if perp.z * r.line_side < 0.0:
+					perp = -perp
+				var start := spot + perp * 1.0
+				var wall_half := wall_targets.size() * 0.33 + 0.8
+				var end := spot + dir * Pitch.RESTART_DISTANCE + perp * wall_half
+				r.queue(start, -1, spot, 0.2)
+				r.queue(end, PlayerVisual.Event.REF_WALL, spot, 1.8,
+					Referee.arm_toward(-perp, (spot - end).normalized()), true)
+			r.queue(Vector3.INF, PlayerVisual.Event.REF_COUNT, spot, restart_limit())
+		MatchRules.Restart.CORNER, MatchRules.Restart.GOAL_KICK:
+			var r := nearest_line_ref(spot)
+			r.cancel_count()
+			r.queue(Vector3.INF, PlayerVisual.Event.REF_COUNT, spot, restart_limit())
+
+
 func _setup_kickoff(kicking_team: int) -> void:
 	# En el saque del medio todos se reubican: el cambio es directo.
 	_instant_subs = true
@@ -3571,6 +3748,12 @@ func _setup_kickoff(kicking_team: int) -> void:
 		referee.release()
 		referee.teleport(Referee.kickoff_spot(kt.attack_dir))
 		referee.facing = (-referee.global_position).normalized()
+	# Futsal: cada árbitro en su banda, a la altura de la mitad.
+	for r in _line_refs():
+		r.clear_steps()
+		r.release()
+		r.teleport(Referee.line_point(Vector3.ZERO, r.line_side, r.line_lead))
+		r.facing = Vector3(0.0, 0.0, -r.line_side)
 	banner_text = "SAQUE DEL MEDIO" if clock.half == 1 and teams[0].score + teams[1].score == 0 else ""
 	_begin_restart(MatchRules.Restart.KICKOFF, taker)
 
@@ -3664,6 +3847,8 @@ func _setup_restart(outcome: MatchRules.Outcome) -> void:
 				if p != taker and not wall_targets.has(p):
 					p.teleport(targets[p], (spot - targets[p]).normalized())
 	_begin_restart(outcome.type, taker)
+	if Discipline.is_futsal():
+		_ref_restart(outcome, team)
 
 
 ## Dónde arranca la carrera del saque de arco: atrás de la pelota y un poco
@@ -3726,13 +3911,17 @@ func _drive_goal_kick() -> void:
 ## pelota, en la línea hacia el centro del arco.
 func _build_wall(defenders: Team, spot: Vector3) -> void:
 	var goal := defenders.own_goal()
-	var dist := spot.distance_to(goal)
+	# En una cancha más chica (futsal) las distancias se achican.
+	var k := maxf(Pitch.SCALE, 0.5)
+	var dist := spot.distance_to(goal) / k
 	if dist > 32.0:
 		return
 	var count := 4 if dist < 22.0 else (3 if dist < 27.0 else 2)
+	# Futsal: con 4 jugadores de campo, barrera de 2 como mucho.
+	count = mini(count, maxi(Discipline.players() - 3, 2))
 	var dir := (goal - spot).normalized()
 	var side := Vector3(-dir.z, 0.0, dir.x)
-	var center := spot + dir * Pitch.CENTER_CIRCLE_RADIUS
+	var center := spot + dir * Pitch.RESTART_DISTANCE
 	var used: Array[Footballer] = []
 	for i in count:
 		var pos := center + side * (i - (count - 1) * 0.5) * 0.65
@@ -3783,7 +3972,7 @@ func _nearest_outfield(team: Team, pos: Vector3) -> Footballer:
 func _keep_distance_from_restart() -> void:
 	if restart_taker == null:
 		return
-	var min_d := Pitch.CENTER_CIRCLE_RADIUS
+	var min_d := Pitch.RESTART_DISTANCE
 	var bp := ball.flat_pos()
 	for p in opponents_of(restart_taker.team).players:
 		var d := p.flat_pos() - bp

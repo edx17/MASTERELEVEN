@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **567 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **572 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -162,6 +162,17 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Futsal — árbitros por las bandas y señas
+
+- Dos árbitros por las bandas en diagonal (uno cerca del inicio del ataque y
+  otro cerca del arco) y un cuarto árbitro entre los bancos.
+- Señas: entrar a marcar la falta, avisar a la mesa, contar los 5 m de la
+  barrera caminando y marcar el límite, para quién es el lateral y la cuenta
+  de los 4 s con el brazo.
+- Corrección: barrera y rivales a 5 m en futsal (estaban a 3).
+- Captura de las señas: `--capture=<dir> --db=futsal_afa --referees`.
+- Tests: 5 nuevos en `test_futsal_rules.gd`.
 
 ## Futsal — F2: reglamento
 

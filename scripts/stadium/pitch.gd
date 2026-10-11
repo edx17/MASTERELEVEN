@@ -26,6 +26,8 @@ static var SCALE := 1.0
 ## Área redondeada del futsal: dos cuartos de círculo (radio = profundidad)
 ## centrados al costado de los postes, unidos por una recta.
 static var ROUNDED_AREA := false
+## Distancia de los rivales en una pelota parada (9,15 m; 5 m en futsal).
+static var RESTART_DISTANCE := 9.15
 
 
 ## Pone las medidas de una disciplina ({half_length, half_width, ...}).
@@ -45,6 +47,7 @@ static func configure(d: Dictionary) -> void:
 	LINE_WIDTH = float(d.get("line_width", 0.12))
 	SECOND_PENALTY_DISTANCE = float(d.get("second_penalty_spot", 0.0))
 	ROUNDED_AREA = bool(d.get("rounded_area", false))
+	RESTART_DISTANCE = float(d.get("restart_distance", 9.15))
 	SCALE = HALF_LENGTH / 52.5
 
 
