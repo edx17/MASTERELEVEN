@@ -226,3 +226,78 @@ func test_football_rules_unchanged() -> void:
 	assert_false(MatchController.hand_clearance_for(MatchRules.Restart.GOAL_KICK))
 	var c := MatchClock.new(10.0)
 	assert_eq(c.half_seconds, 45.0 * 60.0)
+
+
+# --- Árbitros ---------------------------------------------------------------
+
+func test_two_referees_on_the_touchlines_and_a_fourth_by_the_benches() -> void:
+	assert_not_null(m.referee2)
+	assert_eq(m.referee.line_side, -1)
+	assert_eq(m.referee2.line_side, 1)
+	m.ball.place(Vector3(4.0, m.tuning.ball_radius, 2.0))
+	for i in 240:
+		m.referee.tick(dt, m.ball.global_position, true)
+		m.referee2.tick(dt, m.ball.global_position, true)
+	for r in [m.referee, m.referee2]:
+		assert_gt(absf(r.global_position.z), Pitch.HALF_WIDTH, "por afuera de la banda")
+	# En diagonal: uno hacia cada arco respecto de la pelota.
+	assert_gt(m.referee.global_position.x, 4.0)
+	assert_lt(m.referee2.global_position.x, 4.0)
+	assert_true(m.fourth_official.bench_walker)
+	for i in 600:
+		m.fourth_official.tick(dt, m.ball.global_position, false)
+		assert_between(m.fourth_official.global_position.z, Pitch.HALF_WIDTH + 0.5, Pitch.HALF_WIDTH + 2.5, "entre la banda y los bancos")
+
+
+func test_kick_in_referee_points_and_counts() -> void:
+	var out := MatchRules.Outcome.new(MatchRules.Restart.THROW_IN, 0, Vector3(3.0, m.tuning.ball_radius, Pitch.HALF_WIDTH))
+	m._setup_restart(out)
+	var r := m.referee2
+	assert_eq(r.line_side, 1, "el de esa banda")
+	var events: Array = r._steps.map(func(st: Dictionary) -> int: return int(st["event"]))
+	assert_eq(events, [PlayerVisual.Event.REF_POINT, PlayerVisual.Event.REF_COUNT])
+	assert_false(m._officials_ready(), "primero señala")
+	for i in 400:
+		m._physics_process(dt)
+		if m._officials_ready():
+			break
+	assert_true(m._officials_ready())
+	assert_lt(m._restart_elapsed, 0.5, "los 4 s arrancan después de la seña")
+
+
+func test_wall_at_five_meters_and_referee_paces_it() -> void:
+	assert_eq(Pitch.RESTART_DISTANCE, 5.0)
+	var t0 := m.teams[0]
+	var spot := t0.target_goal() - Vector3(t0.attack_dir * 9.0, 0, -2.0)
+	m._setup_restart(MatchRules.Outcome.new(MatchRules.Restart.FREE_KICK, 0, spot + Vector3.UP * m.tuning.ball_radius))
+	assert_between(m.wall_targets.size(), 1, 2, "barrera de 2 como mucho")
+	for p: Footballer in m.wall_targets:
+		assert_almost_eq(p.flat_pos().distance_to(Vector3(spot.x, 0, spot.z)), 5.0, 0.8, "a 5 m")
+	var r := m.nearest_line_ref(spot)
+	var events: Array = r._steps.map(func(st: Dictionary) -> int: return int(st["event"]))
+	assert_true(events.has(PlayerVisual.Event.REF_WALL), "marca la barrera")
+	assert_true(r._steps.any(func(st: Dictionary) -> bool: return st["walk"]), "caminando")
+
+
+func test_foul_referee_enters_and_signals_the_table() -> void:
+	var victim := _outfield(m.teams[0])
+	var offender := _outfield(m.teams[1])
+	var spot := Vector3(-m.teams[0].attack_dir * 5.0, 0, 2.0)
+	victim.teleport(spot, Vector3.RIGHT)
+	offender.teleport(spot - Vector3(0.8, 0, 0), Vector3.RIGHT)
+	var r := m.nearest_line_ref(spot)
+	seed(3)
+	m.call_foul(offender, victim, false)
+	var events: Array = r._steps.map(func(st: Dictionary) -> int: return int(st["event"]))
+	if m.card_scene.is_empty():
+		assert_eq(events, [PlayerVisual.Event.REF_POINT, PlayerVisual.Event.REF_TABLE])
+	var entry: Vector3 = r._steps[0]["to"]
+	assert_lt(absf(entry.z), Pitch.HALF_WIDTH, "entra a la cancha")
+
+
+func test_arm_toward() -> void:
+	# El modelo mira hacia +Z con la derecha hacia -X; mirando hacia -Z, la
+	# derecha queda hacia +X.
+	assert_eq(Referee.arm_toward(Vector3(-1, 0, 0), Vector3(0, 0, 1)), 1.0)
+	assert_eq(Referee.arm_toward(Vector3(1, 0, 0), Vector3(0, 0, -1)), 1.0)
+	assert_eq(Referee.arm_toward(Vector3(-1, 0, 0), Vector3(0, 0, -1)), -1.0)
