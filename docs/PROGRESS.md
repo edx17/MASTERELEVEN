@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **595 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **597 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -162,6 +162,19 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Futsal — correcciones de tu prueba de la Liga Virtual
+
+- **Cambio volante:** el que salía volvía a aparecer después de una
+  repetición (por ejemplo, la de un gol) y quedaba parado en la cancha (se
+  veían 6 o 7 de un equipo). Ahora, al terminar cada repetición, se esconde
+  a todos los que no están en la cancha.
+- **Dirección del equipo:** en futsal la lista separa 5 titulares y 9
+  suplentes (antes el corte estaba fijo en 11). Los que sobran del plantel
+  no entran a la lista: se eligen en el Plantel de la Liga Virtual.
+- **Minicancha y radar** con el piso elegido (parquet, pista azul o negra)
+  en lugar del césped.
+- Tests: 2 nuevos en `test_futsal_rules.gd`.
 
 ## Futsal — F6: Liga Virtual de futsal, estadios y pantalla de carga
 

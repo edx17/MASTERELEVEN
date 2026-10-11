@@ -69,6 +69,16 @@ static var _fonts := {}
 
 
 ## Una medida de 1080p en la base del juego (1280×720).
+## Colores de las franjas de las minicanchas: el césped en fútbol; en
+## futsal, el piso elegido (parquet, pista azul o negra), con tablas apenas
+## más oscuras para que no quede plano.
+static func pitch_stripes() -> Array[Color]:
+	if Discipline.is_futsal():
+		var c: Color = Discipline.surface(GameSettings.court_surface)[1]
+		return [c.darkened(0.08), c]
+	return [PITCH_DARK, PITCH_LIGHT]
+
+
 static func px(v: float) -> float:
 	return v * UI_SCALE
 
@@ -340,9 +350,9 @@ class FormationBoard:
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
 		var stripes := 8
+		var cols := WEStyle.pitch_stripes()
 		for i in stripes:
-			draw_rect(Rect2(r.size.x * i / stripes, 0, r.size.x / stripes + 1, r.size.y),
-				WEStyle.PITCH_DARK if i % 2 == 0 else WEStyle.PITCH_LIGHT)
+			draw_rect(Rect2(r.size.x * i / stripes, 0, r.size.x / stripes + 1, r.size.y), cols[i % 2])
 		var m := Vector2(r.size.x * 0.05, r.size.y * 0.1)
 		var f := Rect2(m, r.size - m * 2.0)
 		var lc := Color(WEStyle.TEXT_MAIN, 0.55)

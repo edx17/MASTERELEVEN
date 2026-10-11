@@ -479,7 +479,7 @@ class Radar:
 		if _match == null:
 			return
 		var line := Color(WEStyle.TEXT_MAIN, 0.55)
-		draw_rect(Rect2(Vector2.ZERO, SIZE), Color(WEStyle.PITCH_DARK, 0.6))
+		draw_rect(Rect2(Vector2.ZERO, SIZE), Color(WEStyle.pitch_stripes()[0], 0.6))
 		draw_rect(Rect2(Vector2.ZERO, SIZE), WEStyle.LINE.lightened(0.2), false, 1.0)
 		PitchMarkings.draw_2d(self, Rect2(Vector2.ZERO, SIZE), line, 1.0, Pitch.HALF_LENGTH, Pitch.HALF_WIDTH, false)
 		for t in _match.teams:

@@ -1,8 +1,8 @@
 class_name TeamSheet
 extends Control
 ## Dirección del equipo, al estilo de la pantalla del WE: a la izquierda la
-## minicancha con la formación y la lista de los 23 (11 titulares y el banco);
-## a la derecha el menú y la ficha del jugador elegido.
+## minicancha con la formación y la lista (11 titulares y el banco; en
+## futsal, 5 y 9); a la derecha el menú y la ficha del jugador elegido.
 ##   - L1 / R1 (o Q / E): la columna de la lista pasa por Puesto, Energía y
 ##     Condición (flechas).
 ##   - Sustituir (o X sobre la lista): se marca uno y después otro y se
@@ -240,7 +240,7 @@ func _rebuild() -> void:
 		pending[s["in"]] = "entra"
 	for i in _entries.size():
 		var e := _entries[i]
-		if i == 0 or i == 11:
+		if i == 0 or i == team.roster.size():
 			var cap := WEStyle.make_caption_label("Titulares" if i == 0 else "Suplentes")
 			cap.custom_minimum_size.y = WEStyle.px(WEStyle.HEADER_ROW_H)
 			cap.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
@@ -805,9 +805,9 @@ class MiniPitch:
 
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
+		var cols := WEStyle.pitch_stripes()
 		for i in 10:
-			draw_rect(Rect2(r.size.x * i / 10.0, 0, r.size.x / 10.0 + 1.0, r.size.y),
-				WEStyle.PITCH_DARK if i % 2 == 0 else WEStyle.PITCH_LIGHT)
+			draw_rect(Rect2(r.size.x * i / 10.0, 0, r.size.x / 10.0 + 1.0, r.size.y), cols[i % 2])
 		PitchMarkings.draw_2d(self, r.grow(-WEStyle.px(12)), Color(WEStyle.TEXT_MAIN, 0.55), 1.0)
 		if team == null:
 			return

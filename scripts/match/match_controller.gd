@@ -3374,9 +3374,7 @@ func _on_replay_finished() -> void:
 	if _camera != null:
 		_camera.end_cinematic()
 	# Los expulsados y reemplazados aparecieron en la repetición: se van otra vez.
-	for t in teams:
-		for p in t.sent_off + t.subbed_off:
-			p.visible = false
+	_hide_off_pitch()
 	if phase != Phase.REPLAY:
 		return
 	if _pending.type == MatchRules.Restart.GOAL:
@@ -3389,6 +3387,16 @@ func _on_replay_finished() -> void:
 		_setup_kickoff(1 - _pending.team)
 	else:
 		_setup_restart(_pending)
+
+
+## Esconde a todos los que ya no están en la cancha: expulsados, cambiados y
+## los que salieron en un cambio volante (futsal; vuelven al banco y no
+## quedan en `subbed_off`). La repetición los vuelve a mostrar.
+func _hide_off_pitch() -> void:
+	for c in get_children():
+		var p := c as Footballer
+		if p != null and p.visible and not teams.any(func(t: Team) -> bool: return t.players.has(p)):
+			p.visible = false
 
 
 ## Pide la repetición de una jugada peligrosa (se ve antes del saque).
