@@ -756,7 +756,7 @@ func _show_team(path: String) -> void:
 	cap.step = 500
 	_row(grid, "Capacidad", cap)
 	var form := OptionButton.new()
-	var fnames: Array = FormationLibrary.DEFINITIONS.keys()
+	var fnames: Array = FormationLibrary.definitions().keys()
 	for f in fnames:
 		form.add_item(f)
 	form.select(maxi(fnames.find(String(e.get("formation", "4-4-2"))), 0))
@@ -944,7 +944,7 @@ func _show_nation(path: String) -> void:
 	var level := _spin(40, 95, int(e.get("level", 70)))
 	_row(grid, "Nivel (planteles generados)", level)
 	var form := OptionButton.new()
-	var fnames: Array = FormationLibrary.DEFINITIONS.keys()
+	var fnames: Array = FormationLibrary.definitions().keys()
 	for f in fnames:
 		form.add_item(f)
 	form.select(maxi(fnames.find(String(e.get("formation", "4-4-2"))), 0))

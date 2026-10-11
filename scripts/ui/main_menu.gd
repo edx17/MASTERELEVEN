@@ -48,6 +48,9 @@ var _focus_memory := {}
 static var title_seen := false
 var _swallow_clicks_until := 0
 var _db_col: VBoxContainer
+var _disc_col: VBoxContainer
+## Disciplina elegida después del título (fútbol o futsal): qué bases se ofrecen.
+var _discipline: String = Discipline.FOOTBALL
 
 
 func _ready() -> void:
@@ -70,6 +73,7 @@ func _ready() -> void:
 	add_child(_help_box)
 	_help_box.visible = false
 	_build_title()
+	_build_discipline()
 	_build_database()
 	_build_home()
 	_build_continue()
@@ -160,6 +164,7 @@ func show_page(page: String, remember := true) -> void:
 		WEStyle.fade_in(_pages[page])
 		_scroll_to_focus.call_deferred(_pages[page])
 	if page == "home" and _home != null:
+		_home.set_discipline(Discipline.is_futsal())
 		_home.refresh(not (Competition.list_saves().is_empty() and not MasterCareer.has_saves()))
 		WEStyle.fade_in(_home)
 	if page == "title":
@@ -173,6 +178,8 @@ func show_page(page: String, remember := true) -> void:
 			_hub.open(Competition.load_saved(GameSettings.active_save))
 		"continue":
 			_build_continue_list()
+		"discipline":
+			_build_discipline_list()
 		"database":
 			_build_database_list()
 		"cups":
@@ -240,9 +247,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			leave_title()
 			get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed(&"ui_cancel") and _current() == "database":
+	if event.is_action_pressed(&"ui_cancel") and _current() in ["discipline", "database"]:
 		_history.clear()
-		show_page("title", false)
+		show_page("title" if _current() == "discipline" else "discipline", false)
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed(&"ui_cancel") and _current() in ["modes", "options", "graphics", "aids", "controls", "worldcup", "continue", "data", "cups"]:
@@ -377,12 +384,57 @@ func _build_title() -> void:
 	p.add_child(t)
 
 
-## Del título se pasa a elegir la base del juego (y de ahí al menú).
+## Del título se pasa a elegir qué se juega (fútbol o futsal), después la
+## base de esa disciplina (si hay una sola, directo) y de ahí al menú.
 func leave_title() -> void:
 	title_seen = true
 	_ui_sound("menu_select")
 	_history.clear()
-	show_page("database", false)
+	show_page("discipline", false)
+
+
+# --- Disciplina -------------------------------------------------------------------
+
+const DISCIPLINE_HELP := {
+	"football": "Fútbol 11 en cancha de césped: amistosos, Liga Virtual, ligas, copas, Mundial y entrenamiento.",
+	"futsal": "Futsal 5 contra 5 en gimnasio (40 x 20 m, arcos de 3 x 2, pelota de bote bajo): clubes de la AFA, amistosos, Liga y Copa.",
+}
+
+
+func _build_discipline() -> void:
+	var p := _page("discipline", "DISCIPLINA", "INICIO  /  DISCIPLINA", "¿Qué jugás?")
+	_disc_col = _column(p)
+
+
+## Fútbol o futsal (la de la base que usaste la última vez, con el foco).
+func _build_discipline_list() -> void:
+	WEStyle.clear_children(_disc_col)
+	var last := TeamDB.discipline_of_db(GameSettings.database)
+	var focus: Button = null
+	for d: String in [Discipline.FOOTBALL, Discipline.FUTSAL]:
+		if TeamDB.dbs_of(d).is_empty():
+			continue
+		var b := _item(_disc_col, String(Discipline.DATA[d]["name"]).to_upper(), DISCIPLINE_HELP[d], _choose_discipline.bind(d), true, 520.0)
+		b.set_meta("discipline", d)
+		if d == last:
+			focus = b
+	_item(_disc_col, "Volver al título", "Volver a la pantalla de título.", func() -> void:
+		_history.clear()
+		show_page("title", false), true, 520.0)
+	if focus == null:
+		focus = _disc_col.get_child(0) as Button
+	focus.grab_focus()
+	_help.text = DISCIPLINE_HELP.get(String(focus.get_meta("discipline", last)), "")
+
+
+func _choose_discipline(d: String) -> void:
+	_discipline = d
+	var dbs := TeamDB.dbs_of(d)
+	_history.clear()
+	if dbs.size() == 1:
+		_choose_database(dbs[0])
+	else:
+		show_page("database", false)
 
 
 # --- Base de datos ----------------------------------------------------------------
@@ -396,15 +448,15 @@ func _build_database() -> void:
 func _build_database_list() -> void:
 	WEStyle.clear_children(_db_col)
 	var focus: Button = null
-	for id in TeamDB.available_dbs():
+	for id in TeamDB.dbs_of(_discipline):
 		var b := _item(_db_col, TeamDB.db_name(id), database_help(id), _choose_database.bind(id), true, 520.0)
 		b.set_meta("db", id)
 		if id == GameSettings.database:
 			b.text += "   ·   la última que usaste"
 			focus = b
-	_item(_db_col, "Volver al título", "Volver a la pantalla de título.", func() -> void:
+	_item(_db_col, "Volver", "Volver a elegir fútbol o futsal.", func() -> void:
 		_history.clear()
-		show_page("title", false), true, 520.0)
+		show_page("discipline", false), true, 520.0)
 	if focus == null:
 		focus = _db_col.get_child(0) as Button
 	focus.grab_focus()
@@ -440,7 +492,7 @@ func _choose_database(id: String) -> void:
 	GameSettings.use_database(id)
 	GameSettings.save_settings()
 	if changed:
-		_teams.groups = TeamSelect.build_groups()
+		_teams.rebuild_groups()
 		# El repechaje del Mundial sale de las selecciones de la base.
 		(_pages["worldcup"] as Control).queue_free()
 		_pages.erase("worldcup")
@@ -476,6 +528,7 @@ func _build_home() -> void:
 	})
 	p.add_child(_home)
 	_continue_btn = _home.continue_button
+	_home.set_discipline(Discipline.is_futsal())
 
 
 # --- Modo -----------------------------------------------------------------------
@@ -1118,8 +1171,8 @@ func _build_data() -> void:
 		func() -> void: UserData.open_folder(UserData.optionfiles_dir()), true, 760.0)
 	_item(col, "Abrir la carpeta del juego", "Documentos/VirtualEleven: configuración, Option Files, partidas guardadas e importar.",
 		func() -> void: UserData.open_folder(UserData.root()), true, 760.0)
-	_item(col, "Cambiar la base de datos", "Ficticia o Temporada 2026. Cada partida y cada Option File es de una base: sólo aparecen los de la que elijas.",
-		func() -> void: show_page("database"), true, 760.0)
+	_item(col, "Cambiar la base de datos", "Fútbol (Ficticia o Temporada 2026) o Futsal (AFA). Cada partida y cada Option File es de una base: sólo aparecen los de la que elijas.",
+		func() -> void: show_page("discipline"), true, 760.0)
 	_item(col, "Volver a la base", "Deja de usar el Option File (no lo borra: lo podés volver a elegir).",
 		func() -> void: _set_option_file(""), true, 760.0)
 	_item(col, "Volver", "Volver a Opciones.", go_back, true, 760.0)
@@ -1133,7 +1186,7 @@ func _set_option_file(name: String) -> void:
 	GameSettings.active_optionfile = name
 	GameSettings.apply_option_file()
 	GameSettings.save_settings()
-	_teams.groups = TeamSelect.build_groups()
+	_teams.rebuild_groups()
 	for r in _data_rows:
 		r.refresh()
 	_data_status.text = "Usando: %s" % (name if name != "" else "la base del juego")

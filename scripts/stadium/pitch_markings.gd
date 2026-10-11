@@ -14,8 +14,23 @@ const CORNER_ARC_RADIUS := 1.0
 const SPOT_RADIUS := 0.15
 
 
+## Futsal (FIFA): área de 6 m (dos cuartos de círculo desde los postes unidos
+## por una recta), penal a 6 m, doble penal a 10 m, círculo de 3 m, córner de
+## 25 cm y las zonas de cambio (marcas a 5 y 10 m de la línea media).
+const FUTSAL_CORNER_RADIUS := 0.25
+const SUB_ZONE_NEAR := 5.0
+const SUB_ZONE_FAR := 10.0
+const SUB_MARK := 0.8
+
+
+static func _futsal(hl: float) -> bool:
+	return Discipline.is_futsal() and is_equal_approx(hl, Pitch.HALF_LENGTH)
+
+
 ## Segmentos [a, b] (Vector2, en metros).
 static func lines(hl: float = Pitch.HALF_LENGTH, hw: float = Pitch.HALF_WIDTH) -> Array:
+	if _futsal(hl):
+		return _futsal_lines(hl, hw)
 	var out: Array = [
 		[Vector2(-hl, -hw), Vector2(hl, -hw)],
 		[Vector2(-hl, hw), Vector2(hl, hw)],
@@ -40,8 +55,34 @@ static func lines(hl: float = Pitch.HALF_LENGTH, hw: float = Pitch.HALF_WIDTH) -
 	return out
 
 
+static func _futsal_lines(hl: float, hw: float) -> Array:
+	var out: Array = [
+		[Vector2(-hl, -hw), Vector2(hl, -hw)],
+		[Vector2(-hl, hw), Vector2(hl, hw)],
+		[Vector2(-hl, -hw), Vector2(-hl, hw)],
+		[Vector2(hl, -hw), Vector2(hl, hw)],
+		[Vector2(0.0, -hw), Vector2(0.0, hw)],
+	]
+	var d := Pitch.PENALTY_AREA_DEPTH
+	var gw := Pitch.GOAL_HALF_WIDTH
+	for side: int in [-1, 1]:
+		var x: float = side * (hl - d)
+		# Recta del área entre los dos cuartos de círculo.
+		out.append([Vector2(x, -gw), Vector2(x, gw)])
+	# Zonas de cambio: del lado de los bancos (z negativo, frente a la cámara
+	# de TV), a 5 y 10 m de la línea media, hacia afuera de la cancha.
+	for xs: int in [-1, 1]:
+		for dist in [SUB_ZONE_NEAR, SUB_ZONE_FAR]:
+			var x: float = xs * dist
+			out.append([Vector2(x, hw), Vector2(x, hw + SUB_MARK * 0.5)])
+			out.append([Vector2(x, hw), Vector2(x, hw - SUB_MARK * 0.5)])
+	return out
+
+
 ## Arcos [centro, radio, ángulo desde, ángulo hasta, relleno (punto)].
 static func arcs(hl: float = Pitch.HALF_LENGTH, hw: float = Pitch.HALF_WIDTH) -> Array:
+	if _futsal(hl):
+		return _futsal_arcs(hl, hw)
 	var cc := minf(Pitch.CENTER_CIRCLE_RADIUS, hw * 0.3)
 	var out: Array = [
 		[Vector2.ZERO, cc, 0.0, TAU, false],
@@ -61,6 +102,32 @@ static func arcs(hl: float = Pitch.HALF_LENGTH, hw: float = Pitch.HALF_WIDTH) ->
 		for zs: int in [-1, 1]:
 			var start := atan2(-zs, -side)
 			out.append([Vector2(gx, zs * hw), CORNER_ARC_RADIUS, start - PI / 4.0, start + PI / 4.0, false])
+	return out
+
+
+static func _futsal_arcs(hl: float, hw: float) -> Array:
+	var out: Array = [
+		[Vector2.ZERO, Pitch.CENTER_CIRCLE_RADIUS, 0.0, TAU, false],
+		[Vector2.ZERO, SPOT_RADIUS, 0.0, TAU, true],
+	]
+	var d := Pitch.PENALTY_AREA_DEPTH
+	var gw := Pitch.GOAL_HALF_WIDTH
+	for side: int in [-1, 1]:
+		var gx: float = side * hl
+		out.append([Vector2(gx - side * Pitch.PENALTY_SPOT_DISTANCE, 0.0), SPOT_RADIUS, 0.0, TAU, true])
+		out.append([Vector2(gx - side * Pitch.SECOND_PENALTY_DISTANCE, 0.0), SPOT_RADIUS, 0.0, TAU, true])
+		# Cuartos de círculo de 6 m con centro en cada poste.
+		for zs: int in [-1, 1]:
+			# Entre la dirección hacia la cancha (-side en x) y la de afuera (zs en z).
+			var a0: float
+			if side > 0:
+				a0 = PI * 0.5 if zs > 0 else PI
+			else:
+				a0 = 0.0 if zs > 0 else -PI * 0.5
+			var a1 := a0 + PI * 0.5
+			out.append([Vector2(gx, zs * gw), d, a0, a1, false])
+			out.append([Vector2(gx, zs * hw), FUTSAL_CORNER_RADIUS, atan2(-zs, -side) - PI / 4.0,
+				atan2(-zs, -side) + PI / 4.0, false])
 	return out
 
 

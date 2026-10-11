@@ -32,7 +32,10 @@ const WALL_Z_FAR := 82.0
 const WALL_Z_NEAR := 62.0
 const WALL_H := 4.0
 ## Mini tribuna (lado lejano, frente a la cámara).
-const STAND_Z := Pitch.HALF_WIDTH + FENCE + 2.5
+
+
+static func _stand_z() -> float:
+	return Pitch.HALF_WIDTH + FENCE + 2.5
 
 
 static func build(home: TeamData = null) -> Node3D:
@@ -255,7 +258,7 @@ static func _side_pitch(root: Node3D, sx: int) -> void:
 static func _mini_stand(root: Node3D) -> void:
 	var node := Node3D.new()
 	node.name = "MiniStand"
-	node.position = Vector3(0.0, 0.0, -STAND_Z)
+	node.position = Vector3(0.0, 0.0, -_stand_z())
 	root.add_child(node)
 	var concrete := _mat(Color(0.62, 0.62, 0.6))
 	var seat := _mat(Color(0.55, 0.57, 0.6), 0.6)

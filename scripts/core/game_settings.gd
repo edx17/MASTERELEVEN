@@ -91,6 +91,15 @@ func _on_node_added(n: Node) -> void:
 var force_mobile := false
 
 
+## Futsal: piso de la cancha (Discipline.SURFACES: parquet, pista azul o negra).
+var court_surface: int = 0
+
+
+## ¿Se cobra el offside? (el futsal no tiene).
+func offside_on() -> bool:
+	return offside and Discipline.offside()
+
+
 func mobile() -> bool:
 	return force_mobile or OS.has_feature("mobile") or OS.get_cmdline_user_args().has("--mobile")
 
@@ -152,7 +161,7 @@ const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", 
 	"pitch_choice", "pitch_wear", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
 	"stick_directions", "camera_preset", "show_pass_target", "offside", "home_team_path", "away_team_path",
 	"home_kit", "away_kit", "show_replays", "replay_chances", "player_style", "sfx_volume", "crowd_volume", "music_volume",
-	"show_radar", "show_score", "wc_playoff", "active_optionfile", "database", "show_offside_line", "show_ball_landing",
+	"show_radar", "show_score", "wc_playoff", "active_optionfile", "database", "court_surface", "show_offside_line", "show_ball_landing",
 	"window_mode", "resolution", "vsync", "antialias", "render_scale", "shadow_quality", "crowd_level", "fps_limit",
 	"input_source"]
 ## Falso en los tests y las herramientas: no leen ni pisan la configuración
@@ -263,7 +272,7 @@ func _is_tool_run() -> bool:
 		if a.contains("gut_cmdln"):
 			return true
 	for a in OS.get_cmdline_user_args():
-		if a.begins_with("--capture=") or a.begins_with("--poses=") or a.begins_with("--stadium-thumbs=") or a.begins_with("--menu-shot=") or a.begins_with("--import-players=") or a.begins_with("--editor-shot=") or a == "--benchmark" or a == "--build-db":
+		if a.begins_with("--capture=") or a.begins_with("--poses=") or a.begins_with("--stadium-thumbs=") or a.begins_with("--menu-shot=") or a.begins_with("--import-players=") or a.begins_with("--editor-shot=") or a == "--benchmark" or a == "--build-db" or a == "--build-futsal-db":
 			return true
 	return false
 
@@ -287,10 +296,33 @@ func use_database(id: String) -> void:
 	database = id if TeamDB.available_dbs().has(id) else TeamDB.DEFAULT_DB
 	TeamDB.use_db(database)
 	apply_option_file()
-	if not TeamDB.exists(home_team_path):
-		home_team_path = DEFAULT_HOME
-	if not TeamDB.exists(away_team_path):
-		away_team_path = DEFAULT_AWAY
+	fix_team_paths()
+
+
+## Local y visitante válidos para la base activa: en futsal, clubes de la base
+## (los Equipos WE son de 11); si no, los de siempre.
+func fix_team_paths() -> void:
+	if not team_ok(home_team_path):
+		home_team_path = default_team(0)
+	if not team_ok(away_team_path):
+		away_team_path = default_team(1)
+
+
+func team_ok(path: String) -> bool:
+	if Discipline.is_futsal() and not path.begins_with("db:"):
+		return false
+	return TeamDB.exists(path)
+
+
+## Equipo por defecto (0 local, 1 visitante).
+func default_team(i: int) -> String:
+	if Discipline.is_futsal():
+		for c in TeamDB.countries():
+			for d in c["divisions"]:
+				var ps := TeamDB.division_paths(c["id"], d["id"])
+				if ps.size() > i:
+					return ps[i]
+	return DEFAULT_HOME if i == 0 else DEFAULT_AWAY
 
 
 ## Activa el Option File elegido (si existe; si no, la base).
@@ -335,10 +367,7 @@ func load_settings(path: String = SETTINGS_PATH) -> void:
 		database = TeamDB.DEFAULT_DB
 	TeamDB.use_db(database)
 	apply_option_file()
-	if not TeamDB.exists(home_team_path):
-		home_team_path = DEFAULT_HOME
-	if not TeamDB.exists(away_team_path):
-		away_team_path = DEFAULT_AWAY
+	fix_team_paths()
 	sfx_volume = clampi(sfx_volume, 0, 10)
 	crowd_volume = clampi(crowd_volume, 0, 10)
 	music_volume = clampi(music_volume, 0, 10)
@@ -357,8 +386,12 @@ func _check_capture_mode() -> void:
 			var imp: Node = load("res://tools/import_players.gd").new()
 			imp.set("files", arg.trim_prefix("--import-players=").split(",", false))
 			get_tree().root.add_child.call_deferred(imp)
+		if arg.begins_with("--db="):
+			use_database(arg.trim_prefix("--db="))
 		if arg == "--build-db":
 			get_tree().root.add_child.call_deferred(load("res://tools/build_db.gd").new())
+		if arg == "--build-futsal-db":
+			get_tree().root.add_child.call_deferred(load("res://tools/build_futsal_db.gd").new())
 		if arg.begins_with("--editor-shot="):
 			var es: Node = load("res://tools/editor_shot.gd").new()
 			es.set("out", arg.trim_prefix("--editor-shot="))
@@ -386,6 +419,12 @@ func make_conditions() -> MatchConditions:
 	var c := MatchConditions.random(rng)
 	if time_choice >= 0:
 		c.time_of_day = time_choice as MatchConditions.TimeOfDay
+	# Futsal: bajo techo, sin lluvia, viento ni césped mojado.
+	if Discipline.is_futsal():
+		c.weather = MatchConditions.Weather.CLEAR
+		c.wind_speed = 0.0
+		c.wetness = 0.0
+		c.time_of_day = MatchConditions.TimeOfDay.AFTERNOON
 	# En el celular, siempre de día: sin reflectores ni luces nocturnas.
 	if mobile() and c.time_of_day > MatchConditions.TimeOfDay.AFTERNOON:
 		c.time_of_day = MatchConditions.TimeOfDay.AFTERNOON

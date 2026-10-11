@@ -79,6 +79,7 @@ func ratings() -> Array[float]:
 
 func starters() -> Array[PlayerData]:
 	var out: Array[PlayerData] = []
-	for i in mini(11, players.size()):
+	var n := formation.slots.size() if formation != null else Discipline.players()
+	for i in mini(n, players.size()):
 		out.append(players[i])
 	return out

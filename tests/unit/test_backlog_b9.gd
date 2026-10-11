@@ -36,10 +36,10 @@ func test_oval_stadium_has_four_sectors_tiers_and_roof() -> void:
 		assert_false(absf(v.x) < Pitch.HALF_LENGTH + 5.0 and absf(v.z) < Pitch.HALF_WIDTH + 5.0, "sin piso sobre la cancha")
 		if absf(v.x) < Pitch.HALF_LENGTH + 5.0 and absf(v.z) < Pitch.HALF_WIDTH + 5.0:
 			break
-	assert_almost_eq(StadiumBuilder.tunnel_z, OvalStadiumBuilder.B0 - 0.2, 0.01, "túnel único central")
+	assert_almost_eq(StadiumBuilder.tunnel_z, OvalStadiumBuilder.b0() - 0.2, 0.01, "túnel único central")
 	# Las esquinas de la cancha (con lugar para el córner) quedan adentro del muro.
 	var corner := Vector2(Pitch.HALF_LENGTH + 2.5, Pitch.HALF_WIDTH + 2.5)
-	var inside := pow(corner.x / OvalStadiumBuilder.A0, OvalStadiumBuilder.SHAPE) + pow(corner.y / OvalStadiumBuilder.B0, OvalStadiumBuilder.SHAPE)
+	var inside := pow(corner.x / OvalStadiumBuilder.a0(), OvalStadiumBuilder.SHAPE) + pow(corner.y / OvalStadiumBuilder.b0(), OvalStadiumBuilder.SHAPE)
 	assert_lt(inside, 1.0, "el muro no se mete en las esquinas")
 
 

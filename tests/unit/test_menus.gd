@@ -33,7 +33,9 @@ func test_main_menu_pages_and_back() -> void:
 	# Al abrir el juego, primero el título (Press START).
 	if menu.call("_current") == "title":
 		menu.call("leave_title")
-		# Después del título se elige la base del juego.
+		# Después del título se elige qué se juega y después la base.
+		assert_eq(menu.call("_current"), "discipline")
+		menu.call("_choose_discipline", Discipline.FOOTBALL)
 		assert_eq(menu.call("_current"), "database")
 		menu.call("_choose_database", TeamDB.DEFAULT_DB)
 	assert_eq(menu.call("_current"), "home")
@@ -55,13 +57,13 @@ func test_tapping_the_title_screen_is_start() -> void:
 	t.pressed = true
 	t.position = Vector2(500, 500)
 	menu._input(t)
-	assert_eq(menu.call("_current"), "database", "tocar la pantalla de título avanza (celular)")
+	assert_eq(menu.call("_current"), "discipline", "tocar la pantalla de título avanza (celular)")
 	# El clic que genera ese mismo toque no aprieta nada en la pantalla siguiente.
 	var click := InputEventMouseButton.new()
 	click.pressed = true
 	click.button_index = MOUSE_BUTTON_LEFT
 	menu._input(click)
-	assert_eq(menu.call("_current"), "database")
+	assert_eq(menu.call("_current"), "discipline")
 
 
 func test_database_page_after_title() -> void:
@@ -69,11 +71,13 @@ func test_database_page_after_title() -> void:
 	add_child_autofree(menu)
 	await get_tree().process_frame
 	menu.call("leave_title")
+	assert_eq(menu.call("_current"), "discipline")
+	menu.call("_choose_discipline", Discipline.FOOTBALL)
 	assert_eq(menu.call("_current"), "database")
 	var col: VBoxContainer = menu.get("_db_col")
 	var dbs: Array = col.get_children().filter(func(b: Node) -> bool: return b.has_meta("db")) \
 		.map(func(b: Node) -> String: return String(b.get_meta("db")))
-	assert_eq(dbs, ["ficticia", "t2026"], "una opción por base")
+	assert_eq(dbs, ["ficticia", "t2026"], "una opción por base de fútbol")
 	var focus := get_viewport().gui_get_focus_owner()
 	assert_eq(String(focus.get_meta("db", "")), GameSettings.database, "foco en la última que usaste")
 	assert_string_contains(menu.call("database_help", "t2026"), "jugadores")

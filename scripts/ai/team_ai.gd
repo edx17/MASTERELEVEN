@@ -243,7 +243,7 @@ func _own_players_ahead(bx: float) -> int:
 
 
 func _update_shape() -> void:
-	var f := team.formation if team.formation != null else FormationLibrary.build("4-4-2")
+	var f := team.formation if team.formation != null else FormationLibrary.build(Discipline.default_formation())
 	var bp := _match.ball.flat_pos() if _match.ball != null else Vector3.ZERO
 	shape = TeamShape.compute(f, state, Vector2(team.progress_of(bp), team.lateral_of(bp)), team.strategy, team.mentality)
 
@@ -444,7 +444,7 @@ func _runner_spot(p: Footballer, bx: float) -> Vector3:
 ## defensor), pero nunca antes de la mitad de la cancha ni de la pelota (ahí
 ## no hay offside). Sin offside (opción apagada o entrenamiento) no limita.
 func _opponent_last_line() -> float:
-	if not GameSettings.offside or _match.training != null:
+	if not GameSettings.offside_on() or _match.training != null:
 		return 1.0
 	var prog: Array[float] = []
 	for o in _match.opponents_of(team).players:

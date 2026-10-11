@@ -18,8 +18,6 @@ extends RefCounted
 ## rectangular).
 ## Con esta forma las esquinas de la cancha quedan adentro con ~2,5 m de
 ## margen (lugar para patear el córner).
-const A0 := Pitch.HALF_LENGTH + 12.0
-const B0 := Pitch.HALF_WIDTH + 11.0
 const SHAPE := 4.5
 ## Bandejas: [filas, subida por fila].
 const TIERS := [[12, 0.42], [10, 0.5], [12, 0.56], [10, 0.64]]
@@ -42,17 +40,26 @@ const SECTORS := ["North", "South", "West", "East"]
 
 
 ## Punto del óvalo a `offset` m hacia afuera del borde interno, en el ángulo `t`.
+## Semiejes del cuenco (dependen de la cancha: Pitch se configura por disciplina).
+static func a0() -> float:
+	return Pitch.HALF_LENGTH + 12.0
+
+
+static func b0() -> float:
+	return Pitch.HALF_WIDTH + 11.0
+
+
 static func ring_point(t: float, offset: float) -> Vector3:
 	var c := cos(t)
 	var s := sin(t)
 	var e := 2.0 / SHAPE
-	return Vector3(signf(c) * pow(absf(c), e) * (A0 + offset), 0.0, signf(s) * pow(absf(s), e) * (B0 + offset))
+	return Vector3(signf(c) * pow(absf(c), e) * (a0() + offset), 0.0, signf(s) * pow(absf(s), e) * (b0() + offset))
 
 
 ## Sector (StandNorth...) de un punto del cuenco.
 static func sector_of(p: Vector3) -> int:
-	var nx := p.x / A0
-	var nz := p.z / B0
+	var nx := p.x / a0()
+	var nz := p.z / b0()
 	if absf(nz) >= absf(nx):
 		return 0 if nz < 0.0 else 1
 	return 2 if nx < 0.0 else 3
@@ -175,7 +182,7 @@ static func _bowl(sectors: Array[Node3D], fans: Dictionary) -> Dictionary:
 					(seats[sec] as Array).append([Transform3D(basis, pos), grey])
 					if rng.randf() < CROWD_DENSITY * GameSettings.crowd_factor():
 						var sc := rng.randf_range(0.92, 1.08)
-						var away_end := p.x > A0 * 0.6
+						var away_end := p.x > a0() * 0.6
 						(people[sec] as Array).append([Transform3D(basis.rotated(Vector3.UP, rng.randf_range(-0.3, 0.3)).scaled(Vector3.ONE * sc), pos),
 							StadiumBuilder._fan_color(rng, fans, away_end)])
 				acc -= seg
@@ -207,7 +214,7 @@ static func _bowl(sectors: Array[Node3D], fans: Dictionary) -> Dictionary:
 			crowd.set_instance_shader_parameter("vom_z", Vector4(vom_o[0], vom_o[1], vom_o[2], vom_o[3]))
 			crowd.set_instance_shader_parameter("vom_y", Vector4(vom_y[0], vom_y[1], vom_y[2], vom_y[3]))
 			crowd.set_instance_shader_parameter("vom_step", TAU / STAIRS)
-			crowd.set_instance_shader_parameter("oval", Vector3(A0, B0, SHAPE))
+			crowd.set_instance_shader_parameter("oval", Vector3(a0(), b0(), SHAPE))
 	# Fachada: del borde de atrás hasta la calle y más arriba (cierra el cuenco).
 	var back := MeshInstance3D.new()
 	back.name = "Facade"
@@ -235,8 +242,8 @@ static func _row_points(offset: float) -> PackedVector3Array:
 
 ## Normal hacia afuera del óvalo cerca de `p` (por diferencias del contorno).
 static func _normal_at(offset: float, p: Vector3) -> Vector3:
-	var t := atan2(signf(p.z) * pow(absf(p.z) / (B0 + offset), SHAPE * 0.5),
-		signf(p.x) * pow(absf(p.x) / (A0 + offset), SHAPE * 0.5))
+	var t := atan2(signf(p.z) * pow(absf(p.z) / (b0() + offset), SHAPE * 0.5),
+		signf(p.x) * pow(absf(p.x) / (a0() + offset), SHAPE * 0.5))
 	var a := ring_point(t - 0.002, offset)
 	var b := ring_point(t + 0.002, offset)
 	var tangent := (b - a).normalized()
@@ -340,8 +347,8 @@ const STAIRS := 48
 ## la cancha). Las escaleras van a ángulos polares fijos: así quedan parejas
 ## alrededor del óvalo (el parámetro de ring_point amontona en las esquinas).
 static func polar_point(phi: float, offset: float) -> Vector3:
-	var a := A0 + offset
-	var b := B0 + offset
+	var a := a0() + offset
+	var b := b0() + offset
 	var c := cos(phi)
 	var s := sin(phi)
 	# tan(t) = (tan(phi)·a/b)^(S/2), con el cuadrante de phi.
@@ -470,7 +477,7 @@ static func _fascias(root: Node3D, sectors: Array[Node3D], home: TeamData) -> vo
 	var booth_mat := StadiumBuilder._mat(Color(0.22, 0.24, 0.28), 0.5)
 	for k in 7:
 		var x := -9.0 + k * 3.0
-		var p := ring_point(-PI * 0.5 + x / (B0 * 2.0), f2.x - 0.4)
+		var p := ring_point(-PI * 0.5 + x / (b0() * 2.0), f2.x - 0.4)
 		var box := MeshInstance3D.new()
 		var bm := BoxMesh.new()
 		bm.size = Vector3(2.6, 1.8, 2.0)
@@ -646,7 +653,7 @@ static func _tunnel(_root: Node3D, south: Node3D) -> void:
 	var t := Node3D.new()
 	t.name = "Tunnel"
 	t.basis = Basis.looking_at(Vector3(0, 0, -1), Vector3.UP)
-	t.position = Vector3(0.0, 0.0, B0)
+	t.position = Vector3(0.0, 0.0, b0())
 	south.add_child(t)
 	StadiumBuilder._tunnel(t)
 
@@ -682,7 +689,7 @@ static func _surroundings(root: Node3D, top: Dictionary) -> void:
 	var concrete := StadiumBuilder._mat(Color(0.6, 0.6, 0.58), 0.9)
 	var deck := StadiumBuilder._mat(Color(0.35, 0.36, 0.38), 0.9)
 	# Estacionamiento de 5 pisos (losas y columnas) con dos puentes.
-	var park := Vector3(-A0 - outer - 70.0, GROUND_Y, -60.0)
+	var park := Vector3(-a0() - outer - 70.0, GROUND_Y, -60.0)
 	for lvl in 5:
 		_box(node, park + Vector3(0, lvl * 3.4 + 0.2, 0), Vector3(70, 0.4, 46), deck)
 		_box(node, park + Vector3(0, lvl * 3.4 + 1.0, 23.0), Vector3(70, 1.0, 0.3), concrete)
@@ -697,7 +704,7 @@ static func _surroundings(root: Node3D, top: Dictionary) -> void:
 		var bridge := _box(node, mid, Vector3(len, 0.5, 4.0), concrete)
 		bridge.rotation.y = -atan2(end.z - start.z, end.x - start.x)
 	# Museo: cilindro vidriado sobre un basamento, detrás de la tribuna principal.
-	var museum := Vector3(40.0, GROUND_Y, -B0 - outer - 60.0)
+	var museum := Vector3(40.0, GROUND_Y, -b0() - outer - 60.0)
 	_box(node, museum + Vector3(0, 2.0, 0), Vector3(46, 4, 30), concrete)
 	var cyl := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
@@ -711,7 +718,7 @@ static func _surroundings(root: Node3D, top: Dictionary) -> void:
 	cyl.position = museum + Vector3(-8, 11.0, 0)
 	node.add_child(cyl)
 	# Instalaciones del club: edificios bajos y una cancha auxiliar.
-	var club := Vector3(A0 + outer + 60.0, GROUND_Y, 40.0)
+	var club := Vector3(a0() + outer + 60.0, GROUND_Y, 40.0)
 	_box(node, club + Vector3(0, 4, -30), Vector3(40, 8, 16), StadiumBuilder._mat(Color(0.82, 0.8, 0.75)))
 	_box(node, club + Vector3(30, 3, -30), Vector3(18, 6, 16), StadiumBuilder._mat(Color(0.75, 0.73, 0.7)))
 	var aux := MeshInstance3D.new()

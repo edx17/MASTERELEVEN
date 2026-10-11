@@ -381,7 +381,7 @@ func fill_extended(tags: bool = true) -> void:
 static func pick_captain(players: Array) -> PlayerData:
 	var best: PlayerData = null
 	var best_score := -INF
-	for i in mini(11, players.size()):
+	for i in mini(Discipline.players(), players.size()):
 		var p: PlayerData = players[i]
 		if p.abilities.has("capitan"):
 			return p

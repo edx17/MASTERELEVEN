@@ -39,12 +39,13 @@ var only_paths: Array[String] = []
 ## Sólo las divisiones de este país (Liga Virtual); "" = todas.
 var only_country := ""
 var _all_groups: Array[Dictionary] = []
+## Base con la que se armaron los grupos (si cambia, se rearman al abrir).
+var _groups_db := ""
 
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_all_groups = build_groups()
-	groups = _all_groups
+	rebuild_groups()
 	picked = [GameSettings.home_team_path, GameSettings.away_team_path]
 	_frame = WEStyle.ScreenFrame.new("Elección de equipos", HINTS)
 	add_child(_frame)
@@ -135,19 +136,29 @@ func _card_style(active: bool) -> StyleBoxFlat:
 	return sb
 
 
+## Rearma los grupos con la base activa (al cambiar de base o de Option File).
+func rebuild_groups() -> void:
+	_all_groups = build_groups()
+	groups = _all_groups
+	_groups_db = TeamDB.db_id
+
+
 ## Selecciones, cada división de cada país y los Equipos WE.
 static func build_groups() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
-	out.append({"name": "SELECCIONES", "sub": "%d selecciones" % TeamDB.nations().size(), "paths": TeamDB.nation_paths(),
-		"kind": "nations"})
+	if not TeamDB.nations().is_empty():
+		out.append({"name": "SELECCIONES", "sub": "%d selecciones" % TeamDB.nations().size(), "paths": TeamDB.nation_paths(),
+			"kind": "nations"})
 	for c in TeamDB.countries():
 		for d in c["divisions"]:
 			var ps := TeamDB.division_paths(c["id"], d["id"])
 			out.append({"name": "%s · %s" % [String(c["name"]).to_upper(), d["name"]],
 				"sub": "%d equipos · temporada %s" % [ps.size(), d.get("season", "")], "paths": ps,
 				"kind": "division", "country": c["id"], "division": d["id"]})
-	out.append({"name": "EQUIPOS WE", "sub": "Equipos ficticios de Virtual Eleven", "paths": GameSettings.team_paths(),
-		"kind": "we"})
+	# Los Equipos WE son de fútbol (11 contra 11).
+	if not Discipline.is_futsal():
+		out.append({"name": "EQUIPOS WE", "sub": "Equipos ficticios de Virtual Eleven", "paths": GameSettings.team_paths(),
+			"kind": "we"})
 	return out
 
 
@@ -175,6 +186,8 @@ func open() -> void:
 	_side_panels[1].visible = not single
 	_bars.get_parent().visible = not single
 	picked = [GameSettings.home_team_path, GameSettings.away_team_path]
+	if _groups_db != TeamDB.db_id:
+		rebuild_groups()
 	if only_country != "":
 		groups = build_groups().filter(func(gr: Dictionary) -> bool:
 			return gr["kind"] == "division" and gr["country"] == only_country)
@@ -189,8 +202,8 @@ func open() -> void:
 		if not only_paths.has(picked[0]):
 			picked[0] = only_paths[0]
 	for i in 2:
-		if not TeamDB.exists(picked[i]):
-			picked[i] = GameSettings.DEFAULT_HOME if i == 0 else GameSettings.DEFAULT_AWAY
+		if not GameSettings.team_ok(picked[i]):
+			picked[i] = GameSettings.default_team(i)
 	var g := group_of(picked[0])
 	show_group(g if g >= 0 else groups.size() - 1)
 	WEStyle.fade_in(_frame)

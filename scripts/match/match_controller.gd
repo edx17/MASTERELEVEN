@@ -217,6 +217,7 @@ func _ready() -> void:
 	MatchConditions.current = conditions
 	tuning = GameSettings.tuning.duplicate()
 	conditions.apply_to(tuning)
+	Discipline.apply_to(tuning)
 	randomize()
 	Engine.time_scale = GameSettings.game_time_scale()
 	_build_world()
@@ -327,7 +328,9 @@ func _build_world() -> void:
 	atmosphere.setup(conditions)
 	var pitch := PitchBuilder.build(atmosphere.grass_params())
 	add_child(pitch)
-	if GameSettings.training:
+	if Discipline.is_futsal():
+		stadium = GymBuilder.build(GameSettings.home_team())
+	elif GameSettings.training:
 		stadium = ClubHouseBuilder.build(GameSettings.home_team())
 	else:
 		stadium = StadiumBuilder.build(GameSettings.home_team(), GameSettings.away_team())
@@ -382,7 +385,7 @@ func _build_world() -> void:
 			team.roster.append(p)
 		# Suplentes: los que siguen en la lista, hasta completar 23 (los
 		# planteles de la Liga Virtual pueden tener hasta 30; se crean al entrar).
-		for n in range(starters.size(), mini(d.players.size(), 23)):
+		for n in range(starters.size(), mini(d.players.size(), starters.size() + Discipline.bench_size())):
 			team.bench.append(d.players[n])
 
 	_camera = MatchCamera.new()
@@ -1288,7 +1291,7 @@ var _offside := {}
 ## saques de arco ni córners.
 func _snapshot_offside(kicker: Footballer, from_restart: int) -> void:
 	_offside = {}
-	if not GameSettings.offside or training != null:
+	if not GameSettings.offside_on() or training != null:
 		return
 	if from_restart in [MatchRules.Restart.THROW_IN, MatchRules.Restart.GOAL_KICK, MatchRules.Restart.CORNER]:
 		return

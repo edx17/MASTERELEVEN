@@ -15,12 +15,78 @@ static var grass_material: ShaderMaterial
 static func build(grass: Dictionary = {}) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Pitch"
-	_build_grass(root, grass)
+	if Discipline.is_futsal():
+		_build_court(root, GameSettings.court_surface)
+	else:
+		_build_grass(root, grass)
 	_build_lines(root)
 	for side: int in [-1, 1]:
 		_build_goal(root, side)
-	_build_corner_flags(root)
+	if not Discipline.is_futsal():
+		_build_corner_flags(root)
 	return root
+
+
+## Futsal: la cancha (parquet o pista) y un borde de otro color alrededor,
+## con algo de brillo (piso de gimnasio).
+static func _build_court(root: Node3D, surface: int) -> void:
+	var s := Discipline.surface(surface)
+	var outer := MeshInstance3D.new()
+	var op := PlaneMesh.new()
+	op.size = Vector2(Pitch.HALF_LENGTH * 2.0 + 14.0, Pitch.HALF_WIDTH * 2.0 + 12.0)
+	outer.mesh = op
+	outer.position.y = -0.005
+	outer.material_override = _floor_material(s[2], surface == 0, 0.7)
+	root.add_child(outer)
+	var court := MeshInstance3D.new()
+	var cp := PlaneMesh.new()
+	cp.size = Vector2(Pitch.HALF_LENGTH * 2.0, Pitch.HALF_WIDTH * 2.0)
+	court.mesh = cp
+	court.material_override = _floor_material(s[1], surface == 0, 1.0)
+	root.add_child(court)
+	grass_material = null
+
+
+## Piso: parquet (tablas, textura generada) o pista lisa; semi brillante.
+static func _floor_material(color: Color, wood: bool, scale: float) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = color if not wood else Color.WHITE
+	m.roughness = 0.38
+	m.metallic_specular = 0.6
+	if wood:
+		m.albedo_texture = _parquet_texture(color)
+		m.uv1_scale = Vector3(Pitch.HALF_LENGTH * 0.5 * scale, Pitch.HALF_WIDTH * 0.5 * scale, 1.0)
+		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	return m
+
+
+## Tablas de parquet (1 textura = 4 x 4 m de piso): vetas y juntas.
+static var _parquet: Dictionary = {}
+static func _parquet_texture(base: Color) -> Texture2D:
+	var key := base.to_html()
+	if _parquet.has(key):
+		return _parquet[key]
+	var size := 256
+	var img := Image.create(size, size, false, Image.FORMAT_RGB8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var boards := 16
+	var bw := size / boards
+	for b in boards:
+		var tone := rng.randf_range(-0.08, 0.08)
+		var offset := rng.randi_range(0, size)
+		for x in range(b * bw, (b + 1) * bw):
+			for y in size:
+				var grain := sin(float(y + offset) * 0.21 + float(x) * 0.6) * 0.025
+				var c := base.lightened(tone + grain) if tone + grain > 0.0 else base.darkened(-(tone + grain))
+				# Juntas entre tablas y cabezas de tabla.
+				if x == b * bw or (y + offset) % 128 == 0:
+					c = c.darkened(0.3)
+				img.set_pixel(y, x, c)
+	img.generate_mipmaps()
+	var tex := ImageTexture.create_from_image(img)
+	_parquet[key] = tex
+	return tex
 
 
 static func _flat_material(color: Color, unshaded: bool = false) -> StandardMaterial3D:

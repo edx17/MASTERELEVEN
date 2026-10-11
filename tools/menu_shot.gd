@@ -24,7 +24,8 @@ func _run() -> void:
 	for a in OS.get_cmdline_user_args():
 		# `--menu-db=t2026`: con la base Temporada 2026.
 		if a.begins_with("--menu-db="):
-			GameSettings.use_database(a.trim_prefix("--menu-db="))
+			# Como elegirla en el menú (rearma los grupos de equipos).
+			get_tree().current_scene.call("_choose_database", a.trim_prefix("--menu-db="))
 	for a in OS.get_cmdline_user_args():
 		# `--menu-home=db:nat:arg`: local elegido (la elección abre en su grupo).
 		if a.begins_with("--menu-home="):
@@ -33,7 +34,7 @@ func _run() -> void:
 		if a.begins_with("--menu-page="):
 			var menu := get_tree().current_scene
 			var page := a.trim_prefix("--menu-page=")
-			if page == "setup":
+			if page == "setup" and not Discipline.is_futsal():
 				GameSettings.home_team_path = "res://data/teams/bahia.tres"
 				GameSettings.away_team_path = "res://data/teams/pampa.tres"
 			# Liga / Copa de ejemplo con algunas fechas jugadas.

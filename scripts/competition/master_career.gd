@@ -187,8 +187,8 @@ func _make_we_squad(level_index: int, division_id: String, seed: int) -> void:
 	var co := TeamDB.country(country)
 	var t := TeamData.new()
 	var fname := String(e.get("formation", "4-4-2"))
-	var fpath := "res://data/formations/f_%s.tres" % fname
-	t.formation = load(fpath) if ResourceLoader.exists(fpath) else load("res://data/formations/f_4-4-2.tres")
+	var fpath := Discipline.formation_path(fname)
+	t.formation = load(fpath) if ResourceLoader.exists(fpath) else load(Discipline.formation_path(Discipline.default_formation()))
 	t.id = "%s_%s_we" % [country, user_club]
 	var level := int(TeamDB.DIVISION_LEVEL.get(level_index, 56)) + int(TeamDB.LEAGUE_BONUS.get(division_id, 0)) - WE_LEVEL_PENALTY
 	TeamDB.generate_roster(t, level, String(co.get("names", "en")), co.get("skin", [40, 30, 18, 12]),
