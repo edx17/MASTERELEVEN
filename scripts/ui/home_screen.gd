@@ -21,6 +21,10 @@ extends Control
 ## hay más, "Otras partidas" abre la lista. Sin partidas, lo dice y el botón
 ## principal empieza una Liga Virtual.
 
+## En futsal no están (todavía) la Liga Virtual (F6), el Mundial, el Sub-20
+## ni el entrenamiento en el Club House (es de fútbol 11).
+const NOT_IN_FUTSAL := ["master", "world", "youth", "training"]
+
 ## Ítems del menú lateral: [clave de la acción, texto].
 const MENU := [["friendly", "Partido amistoso"], ["master", "Liga Virtual"], ["cup", "Copa"],
 	["editor", "Editar"], ["options", "Opciones"], ["quit", "Salir"]]
@@ -38,6 +42,9 @@ var _last_item: Button
 var featured: Dictionary = {}
 var _match_box: VBoxContainer
 var _club_box: VBoxContainer
+var _tagline: Label
+## Menú de futsal (ver set_discipline).
+var _futsal := false
 
 
 func _init(p_actions: Dictionary = {}) -> void:
@@ -176,7 +183,8 @@ func _side_menu() -> Control:
 	var fill := Control.new()
 	fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(fill)
-	v.add_child(WEStyle.make_body_label("Fútbol de los de antes", WEStyle.BODY_M, WEStyle.TEXT_DIM, true))
+	_tagline = WEStyle.make_body_label("Fútbol de los de antes", WEStyle.BODY_M, WEStyle.TEXT_DIM, true)
+	v.add_child(_tagline)
 	_last_item = menu_items[0]
 	return v
 
@@ -245,6 +253,17 @@ func _content() -> Control:
 	return v
 
 
+## Muestra sólo los modos de la disciplina (fútbol o futsal).
+func set_discipline(futsal: bool) -> void:
+	_futsal = futsal
+	for i in MENU.size():
+		menu_items[i].visible = not (futsal and String(MENU[i][0]) in NOT_IN_FUTSAL)
+	for i in OTHER_MODES.size():
+		mode_cards[i].visible = not (futsal and String(OTHER_MODES[i][0]) in NOT_IN_FUTSAL)
+	if _tagline != null:
+		_tagline.text = "Futsal 5 contra 5" if futsal else "Fútbol de los de antes"
+
+
 func _team_block(t: TeamData) -> Control:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", int(WEStyle.px(12)))
@@ -283,13 +302,14 @@ func refresh(_has_saves: bool = true) -> void:
 	featured = featured_match()
 	_fill_match()
 	_fill_club()
-	continue_button.text = "Continuar  ›" if not featured.is_empty() else "Empezar Liga Virtual  ›"
+	continue_button.text = "Continuar  ›" if not featured.is_empty() \
+		else ("Empezar una Liga  ›" if _futsal else "Empezar Liga Virtual  ›")
 	others_button.visible = int(featured.get("saves", 0)) > 1
 
 
 func _on_continue() -> void:
 	if featured.is_empty():
-		_run("new_master")
+		_run("league" if _futsal else "new_master")
 		return
 	var cb: Callable = actions.get("resume", Callable())
 	if cb.is_valid():
@@ -303,7 +323,8 @@ func _fill_match() -> void:
 	_match_box.add_child(WEStyle.make_caption_label("Tu próximo partido"))
 	if featured.is_empty():
 		_match_box.add_child(WEStyle.make_title_label("SIN PARTIDAS GUARDADAS", WEStyle.TITLE_XL))
-		var l := WEStyle.make_body_label("Empezá una Liga Virtual, o una liga, copa o Mundial desde Otros modos.",
+		var l := WEStyle.make_body_label("Empezá una liga o una copa de futsal, o jugá un amistoso." if _futsal
+			else "Empezá una Liga Virtual, o una liga, copa o Mundial desde Otros modos.",
 			WEStyle.BODY_L, WEStyle.TEXT_DIM)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_match_box.add_child(l)

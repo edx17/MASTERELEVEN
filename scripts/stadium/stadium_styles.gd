@@ -80,7 +80,7 @@ const STYLES := [
 		"name": "Coloso del Sur",
 		"oval": true,
 		# gap: de la línea lateral a la boca del túnel (el muro de la cancha
-		# hundida, OvalStadiumBuilder.B0 - 0,2).
+		# hundida, OvalStadiumBuilder.b0() - 0,2).
 		"gap": 10.8, "wall": 5.0,
 		# Bancos embutidos en el muro de la cancha hundida (al lado del túnel).
 		"bench": 10.6,

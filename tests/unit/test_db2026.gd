@@ -44,7 +44,8 @@ func _shared_player(nat: String) -> Array:
 
 
 func test_both_databases_are_available() -> void:
-	assert_eq(TeamDB.available_dbs(), ["ficticia", "t2026"])
+	assert_eq(TeamDB.available_dbs(), ["ficticia", "t2026", "futsal_afa"])
+	assert_eq(TeamDB.dbs_of(Discipline.FOOTBALL), ["ficticia", "t2026"])
 	assert_eq(TeamDB.db_name("t2026"), "Temporada 2026")
 
 

@@ -1,0 +1,45 @@
+{
+ "season": "2026",
+ "competitions": [
+  {
+   "id": "futA",
+   "name": "Primera A",
+   "kind": "league",
+   "country": "arg",
+   "level": 1
+  },
+  {
+   "id": "futB",
+   "name": "Primera B",
+   "kind": "league",
+   "country": "arg",
+   "level": 2
+  },
+  {
+   "id": "futC",
+   "name": "Primera C",
+   "kind": "league",
+   "country": "arg",
+   "level": 3
+  },
+  {
+   "id": "futD1",
+   "name": "Primera D · Zona 1",
+   "kind": "league",
+   "country": "arg",
+   "level": 4
+  },
+  {
+   "id": "futD2",
+   "name": "Primera D · Zona 2",
+   "kind": "league",
+   "country": "arg",
+   "level": 4
+  },
+  {
+   "id": "fut_super",
+   "name": "Supercopa",
+   "kind": "supercup"
+  }
+ ]
+}

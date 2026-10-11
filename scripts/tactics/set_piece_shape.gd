@@ -70,7 +70,7 @@ static func _ball_ts(team: Team, spot: Vector3) -> Vector2:
 
 ## Forma del estado dado con la pelota en `spot`, para una lista de jugadores.
 static func _shape_targets(team: Team, state: int, spot: Vector3, field: Array[Footballer]) -> Dictionary:
-	var shape := TeamShape.compute(team.formation if team.formation else FormationLibrary.build("4-4-2"),
+	var shape := TeamShape.compute(team.formation if team.formation else FormationLibrary.build(Discipline.default_formation()),
 		state, _ball_ts(team, spot))
 	var out := {}
 	for p in field:

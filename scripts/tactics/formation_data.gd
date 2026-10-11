@@ -1,6 +1,6 @@
 class_name FormationData
 extends Resource
-## Formación: 11 puestos en espacio de equipo (x 0..1 desde el arco propio hacia
+## Formación: 11 puestos (fútbol) o 5 (futsal) en espacio de equipo (x 0..1 desde el arco propio hacia
 ## el rival; y -1..1, negativo = lado derecho mirando al ataque), la posición
 ## general de cada puesto y su rol táctico. El puesto 0 es siempre el arquero.
 
@@ -13,7 +13,8 @@ extends Resource
 
 
 func is_valid() -> bool:
-	return slots.size() == 11 and roles.size() == 11 and slot_roles.size() == 11 \
+	var n := slots.size()
+	return (n == 11 or n == 5) and roles.size() == n and slot_roles.size() == n \
 		and roles[0] == PlayerData.Position.GK and slot_roles[0] == TacticalRole.Kind.GK
 
 

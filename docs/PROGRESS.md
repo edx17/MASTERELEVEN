@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **543 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **554 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -162,6 +162,32 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Futsal 5 contra 5 — F0 y F1
+
+Especificación completa y fases en `docs/FUTSAL.md`.
+
+- **Disciplina:** después del título, ¿Fútbol o Futsal? Futsal va directo
+  al menú con la base **AFA Futsal**; el menú muestra amistoso, Copa y Liga
+  (la Liga Virtual de futsal es la F6).
+- **Base AFA Futsal** (`tools/build_futsal_db.gd`, desde tu CSV): Primera A,
+  B, C y D (Zona 1 y Zona 2), 92 clubes y 1.288 jugadores con pid único,
+  planteles de 14 alrededor del overall de cada club; camisetas del club de
+  fútbol cuando existe (Boca, River, Racing, Vélez...).
+- **Cancha:** 40 x 20 con todas las marcas FIFA (área de 6 m, doble penal,
+  zonas de cambio), arcos de 3 x 2, piso de parquet, pista azul o pista
+  negra (fila **Piso** en la configuración del partido), sin offside y
+  pelota de bote bajo.
+- **Formaciones de 5:** 1-2-1, 2-2, 1-3, 3-1 y 4-0; 5 titulares y 9 suplentes.
+- **Gimnasio techado:** tribuna con público, carteles del local, bancos, techo
+  de chapa con cerchas y paneles de luz; cámaras a escala de la cancha.
+- **Por dentro:** las medidas de la cancha pasaron de constantes a
+  `Pitch.configure()`, así todo (IA, marcas, cámaras, estadios) se adapta.
+- La selección de equipos se rearma al cambiar de base (antes podía quedar
+  con los grupos de la base anterior).
+- Próximo PR: **F2**, las reglas propias (lateral con el pie, saque con la
+  mano, 4 segundos, pase atrás, faltas acumuladas, reloj parado).
+- Tests: `test_futsal.gd` (11) y la pantalla de disciplina en `test_menus`.
 
 ## Base Temporada 2026 y elección de base
 

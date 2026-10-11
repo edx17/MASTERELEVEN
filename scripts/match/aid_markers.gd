@@ -44,7 +44,7 @@ func _process(_dt: float) -> void:
 	var playing := match.phase == MatchController.Phase.PLAYING
 	# Línea del offside: sólo cuando el equipo del humano tiene la pelota.
 	var show_line := false
-	if playing and GameSettings.show_offside_line and GameSettings.offside and not match.humans.is_empty():
+	if playing and GameSettings.show_offside_line and GameSettings.offside_on() and not match.humans.is_empty():
 		var team := match.humans[0].team
 		var owner: Footballer = match.ball.owner_player
 		if team != null and owner != null and owner.team == team:

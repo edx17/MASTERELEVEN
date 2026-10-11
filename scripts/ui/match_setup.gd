@@ -17,6 +17,10 @@ var _stadium: Label
 var _frame: WEStyle.ScreenFrame
 var _home: TeamData
 var _away: TeamData
+var _stadium_row: WEStyle.OptionRow
+## Filas que sólo van en fútbol (césped, clima...) y las de futsal (piso).
+var _football_rows: Array[WEStyle.OptionRow] = []
+var _futsal_rows: Array[WEStyle.OptionRow] = []
 
 
 func _ready() -> void:
@@ -38,29 +42,33 @@ func _ready() -> void:
 	var times := 2 if GameSettings.mobile() else MatchConditions.TIME_NAMES.size()
 	if GameSettings.mobile() and GameSettings.time_choice >= times:
 		GameSettings.time_choice = MatchConditions.TimeOfDay.AFTERNOON
-	_add(list, "Horario", func() -> String: return _choice(GameSettings.time_choice, MatchConditions.TIME_NAMES),
+	_football_rows.append(_add(list, "Horario", func() -> String: return _choice(GameSettings.time_choice, MatchConditions.TIME_NAMES),
 		_cycle.bind("time_choice", times), "En el celular se juega siempre de día (mañana o tarde)." if GameSettings.mobile()
-		else "Tarde, atardecer o noche (con las luces del estadio).")
-	_add(list, "Clima", func() -> String: return _choice(GameSettings.weather_choice, MatchConditions.WEATHER_NAMES),
-		_cycle.bind("weather_choice", MatchConditions.WEATHER_NAMES.size()), "Con lluvia la pelota pica menos y corre más; con nieve se frena.")
-	_add(list, "Viento", func() -> String: return _choice(GameSettings.wind_choice, GameSettings.WIND_NAMES),
-		_cycle.bind("wind_choice", GameSettings.WIND_NAMES.size()), "El viento desvía la pelota en el aire.")
-	_add(list, "Césped", func() -> String: return "según el clima" if GameSettings.pitch_choice < 0 else GameSettings.PITCH_NAMES[GameSettings.pitch_choice],
-		_cycle.bind("pitch_choice", GameSettings.PITCH_NAMES.size()), "Mojado: la pelota corre más y los jugadores pueden resbalar.")
-	_add(list, "Estado", func() -> String: return GameSettings.PITCH_WEAR_NAMES[GameSettings.pitch_wear],
-		_cycle.bind("pitch_wear", GameSettings.PITCH_WEAR_NAMES.size()), "Gastado: césped con calvas y tierra (textura de cancha de barrio).")
+		else "Tarde, atardecer o noche (con las luces del estadio)."))
+	_football_rows.append(_add(list, "Clima", func() -> String: return _choice(GameSettings.weather_choice, MatchConditions.WEATHER_NAMES),
+		_cycle.bind("weather_choice", MatchConditions.WEATHER_NAMES.size()), "Con lluvia la pelota pica menos y corre más; con nieve se frena."))
+	_football_rows.append(_add(list, "Viento", func() -> String: return _choice(GameSettings.wind_choice, GameSettings.WIND_NAMES),
+		_cycle.bind("wind_choice", GameSettings.WIND_NAMES.size()), "El viento desvía la pelota en el aire."))
+	_football_rows.append(_add(list, "Césped", func() -> String: return "según el clima" if GameSettings.pitch_choice < 0 else GameSettings.PITCH_NAMES[GameSettings.pitch_choice],
+		_cycle.bind("pitch_choice", GameSettings.PITCH_NAMES.size()), "Mojado: la pelota corre más y los jugadores pueden resbalar."))
+	_football_rows.append(_add(list, "Estado", func() -> String: return GameSettings.PITCH_WEAR_NAMES[GameSettings.pitch_wear],
+		_cycle.bind("pitch_wear", GameSettings.PITCH_WEAR_NAMES.size()), "Gastado: césped con calvas y tierra (textura de cancha de barrio)."))
+	_futsal_rows.append(_add(list, "Piso", func() -> String: return String(Discipline.surface(GameSettings.court_surface)[0]).to_lower(),
+		func(d: int) -> void: GameSettings.court_surface = posmod(GameSettings.court_surface + d, Discipline.SURFACES.size()),
+		"Parquet (madera) o pista sintética azul o negra. El piso del gimnasio es parejo: la pelota corre igual en toda la cancha."))
 	_add(list, "Duración", func() -> String: return "%d min" % GameSettings.match_minutes, _step_duration,
 		"Minutos reales que dura el partido (los 90 del reloj pasan en ese tiempo).")
 	_add(list, "Nivel CPU", func() -> String: return Difficulty.NAMES[GameSettings.difficulty], _step_difficulty,
 		"Qué tan bien juega la computadora.")
-	_add(list, "Offside", func() -> String: return "sí" if GameSettings.offside else "no",
-		func(_d: int) -> void: GameSettings.offside = not GameSettings.offside, "Cobrar o no la posición adelantada.")
-	_add(list, "Estadio", func() -> String:
+	_football_rows.append(_add(list, "Offside", func() -> String: return "sí" if GameSettings.offside else "no",
+		func(_d: int) -> void: GameSettings.offside = not GameSettings.offside, "Cobrar o no la posición adelantada."))
+	_stadium_row = _add(list, "Estadio", func() -> String:
 			if GameSettings.stadium_choice < 0 and _home != null and _home.stadium != "":
 				return "del local (%s)" % _home.stadium
 			return _choice(GameSettings.stadium_choice, StadiumStyles.names()),
 		_cycle.bind("stadium_choice", StadiumStyles.STYLES.size()),
 		"Dónde se juega. \"Al azar\" con un club real de local: su estadio (nombre real, forma según la capacidad).")
+	_football_rows.append(_stadium_row)
 	_add(list, "Uniforme local", func() -> String: return "titular" if GameSettings.home_kit == 0 else "alternativo",
 		func(_d: int) -> void: GameSettings.home_kit = 1 - GameSettings.home_kit, "Camiseta del local.")
 	_add(list, "Uniforme visitante", func() -> String: return "titular" if GameSettings.away_kit == 0 else "alternativo",
@@ -150,12 +158,22 @@ func open() -> void:
 	_home = GameSettings.home_team()
 	_away = GameSettings.away_team()
 	_frame.title_info.text = "%s  vs  %s" % [_home.team_name, _away.team_name] if _home != null and _away != null else ""
+	# En futsal no hay clima, césped, offside ni estadio para elegir (gimnasio
+	# techado de tarde); se elige el piso.
+	var futsal := Discipline.is_futsal()
+	for r in _football_rows:
+		r.visible = not futsal
+	for r in _futsal_rows:
+		r.visible = futsal
 	_refresh()
-	_rows[0].grab_focus()
+	for r in _rows:
+		if r.visible:
+			r.grab_focus()
+			break
 	WEStyle.fade_in(_frame)
 
 
-func _add(list: VBoxContainer, caption: String, getter: Callable, stepper: Callable, help: String) -> void:
+func _add(list: VBoxContainer, caption: String, getter: Callable, stepper: Callable, help: String) -> WEStyle.OptionRow:
 	var row := WEStyle.OptionRow.new(caption, getter, func(d: int) -> void:
 		stepper.call(d)
 		_refresh(), help, WEStyle.px(900))
@@ -163,14 +181,21 @@ func _add(list: VBoxContainer, caption: String, getter: Callable, stepper: Calla
 	row.focus_entered.connect(func() -> void: _help.text = help)
 	list.add_child(row)
 	_rows.append(row)
+	return row
 
 
 func _refresh() -> void:
 	GameSettings.save_settings()
 	for r in _rows:
 		r.queue_redraw()
-	_thumb.texture = load("res://scripts/ui/main_menu.gd").stadium_thumbnail(GameSettings.stadium_choice)
-	_stadium.text = String(_rows[8].get_value.call()).to_upper() if _rows.size() > 8 else ""
+	if Discipline.is_futsal():
+		_thumb.texture = court_thumbnail(GameSettings.court_surface)
+	else:
+		_thumb.texture = load("res://scripts/ui/main_menu.gd").stadium_thumbnail(GameSettings.stadium_choice)
+	if Discipline.is_futsal():
+		_stadium.text = _home.stadium.to_upper() if _home != null and _home.stadium != "" else "GIMNASIO"
+	else:
+		_stadium.text = String(_stadium_row.get_value.call()).to_upper() if _stadium_row != null else ""
 	if _home == null:
 		return
 	var hk := _home.kit(GameSettings.home_kit)
@@ -182,6 +207,31 @@ func _refresh() -> void:
 	_kits[1].set_kit(_away, ak_i)
 	for i in 2:
 		_kit_labels[i].text = "%s · %s" % [names[i], "titular" if (GameSettings.home_kit if i == 0 else ak_i) == 0 else "alternativo"]
+
+
+## Miniatura de la cancha de futsal con el piso elegido (vista de arriba).
+static func court_thumbnail(surface: int) -> Texture2D:
+	var w := 400
+	var h := 240
+	var sf := Discipline.surface(surface)
+	var img := Image.create(w, h, false, Image.FORMAT_RGB8)
+	img.fill(sf[2])
+	var m := 20
+	img.fill_rect(Rect2i(m, m, w - m * 2, h - m * 2), sf[1])
+	var line := Color(0.95, 0.95, 0.92)
+	# Perímetro, mitad, círculo central y áreas (semicírculos de 6 m en 40 x 20).
+	var ppm := float(w - m * 2) / 40.0
+	for r in [Rect2i(m, m, w - m * 2, 2), Rect2i(m, h - m - 2, w - m * 2, 2), Rect2i(m, m, 2, h - m * 2),
+			Rect2i(w - m - 2, m, 2, h - m * 2), Rect2i(w / 2 - 1, m, 2, h - m * 2)]:
+		img.fill_rect(r, line)
+	for i in 180:
+		var a := TAU * i / 180.0
+		img.set_pixel(int(w / 2 + cos(a) * 3.0 * ppm), int(h / 2 + sin(a) * 3.0 * ppm), line)
+		if absf(cos(a)) > 0.0:
+			for side: int in [-1, 1]:
+				var x := int(w / 2 + side * (w / 2 - m) - side * absf(cos(a)) * 6.0 * ppm)
+				img.set_pixel(clampi(x, 0, w - 1), clampi(int(h / 2 + sin(a) * 6.0 * ppm), 0, h - 1), line)
+	return ImageTexture.create_from_image(img)
 
 
 static func _choice(i: int, names: Array) -> String:

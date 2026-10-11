@@ -38,7 +38,7 @@ func setup(p_match: MatchController) -> void:
 	for path in PRESETS:
 		var c := load(path) as CameraConfig
 		if c != null:
-			presets.append(c)
+			presets.append(scaled(c) if Discipline.is_futsal() else c)
 	if presets.is_empty():
 		presets.append(CameraConfig.new())
 	near = 0.5
@@ -46,6 +46,23 @@ func setup(p_match: MatchController) -> void:
 	set_preset(GameSettings.camera_preset, false)
 	_focus = target_focus()
 	_apply()
+
+
+## La cámara para una cancha más chica (futsal): más baja y más cerca, en
+## proporción a la cancha pero no del todo (si no, los jugadores se ven
+## enormes y la jugada queda fuera de cuadro).
+const SMALL_PITCH_CAMERA := 0.55
+
+
+static func scaled(c: CameraConfig) -> CameraConfig:
+	var k := maxf(Pitch.SCALE, SMALL_PITCH_CAMERA)
+	var out := c.duplicate() as CameraConfig
+	out.camera_height *= k
+	out.camera_distance *= k
+	out.vertical_offset *= k
+	out.horizontal_offset *= k
+	out.focus_limit_x = Pitch.HALF_LENGTH - 4.0
+	return out
 
 
 func set_preset(index: int, announce: bool = true) -> void:
@@ -162,6 +179,8 @@ func _apply() -> void:
 			global_position = _focus + Vector3(0.0, config.camera_height, 0.01)
 			# "Arriba" en pantalla = -Z, como en la vista de TV.
 			look_at(_focus, Vector3.FORWARD)
+	if Discipline.is_futsal() and _match != null and _match.stadium != null:
+		GymBuilder.set_camera_height(_match.stadium, global_position.y)
 
 
 ## Convierte la dirección del stick (x = derecha, z = abajo en pantalla) a la

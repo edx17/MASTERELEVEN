@@ -297,7 +297,7 @@ func _run(action: String) -> void:
 		_match.set_physics_process(true)
 	elif action == "attack_live":
 		var t0 := _match.teams[0]
-		var carrier: Footballer = t0.players[6]
+		var carrier: Footballer = _pick(t0, 6)
 		_place(t0.to_world(Vector2(0.55, 0.1)), t0.to_world(Vector2(0.56, 0.1)) + Vector3(0, 0.11, 0), carrier)
 	elif action == "corner":
 		var t0 := _match.teams[0]
@@ -312,7 +312,7 @@ func _run(action: String) -> void:
 	elif action == "shoot_scene":
 		# Remate cruzado desde la puerta del área contra el arquero rival.
 		var t1 := _match.teams[1]
-		var shooter: Footballer = _match.teams[0].players[9]
+		var shooter: Footballer = _pick(_match.teams[0], 9)
 		var goal := t1.own_goal()
 		_place(goal + Vector3(-t1.own_side() * 16.0, 0, 3.0), goal + Vector3(-t1.own_side() * 15.5, 0.11, 3.0), shooter)
 		shooter.facing = Vector3(t1.own_side(), 0, 0)
@@ -321,28 +321,28 @@ func _run(action: String) -> void:
 		_camera._focus = shooter.flat_pos()
 		_match.perform_kick(shooter, KickActions.Kind.SHOT, Vector3(0, 0, -1), 0.8)
 	elif action == "pass_scene":
-		var p: Footballer = _match.teams[0].players[6]
+		var p: Footballer = _pick(_match.teams[0], 6)
 		_place(Vector3(-5, 0, 2), Vector3(-4.5, 0.11, 2), p)
 		_camera._focus = p.flat_pos()
 		_match.perform_kick(p, KickActions.Kind.SHORT_PASS, Vector3(1, 0, 0), 0.5)
 	elif action == "slide_scene":
-		var carrier: Footballer = _match.teams[0].players[6]
+		var carrier: Footballer = _pick(_match.teams[0], 6)
 		_place(Vector3(-5, 0, 2), Vector3(-4.6, 0.11, 2), carrier)
-		var slider: Footballer = _match.teams[1].players[6]
+		var slider: Footballer = _pick(_match.teams[1], 6)
 		slider.teleport(Vector3(-2.6, 0, 2), Vector3.LEFT)
 		slider.start_slide(Vector3.LEFT)
 		_match.tuning.slide_trip_chance = 1.0
 		_camera._focus = carrier.flat_pos()
 	elif action == "tackle_scene":
 		_match.tuning.slide_trip_chance = 0.5
-		var c2: Footballer = _match.teams[0].players[6]
+		var c2: Footballer = _pick(_match.teams[0], 6)
 		_place(Vector3(-5, 0, 2), Vector3(-4.6, 0.11, 2), c2)
-		var d2: Footballer = _match.teams[1].players[6]
+		var d2: Footballer = _pick(_match.teams[1], 6)
 		d2.teleport(Vector3(-3.8, 0, 2), Vector3.LEFT)
 		d2.visual.play(PlayerVisual.Event.TACKLE)
 		_camera._focus = c2.flat_pos()
 	elif action == "goal_scene":
-		var scorer: Footballer = _match.teams[0].players[9]
+		var scorer: Footballer = _pick(_match.teams[0], 9)
 		_place(Vector3(30, 0, 4), Vector3(30.5, 0.11, 4), scorer)
 		_match.ball.owner_player = null
 		_match.ball.last_toucher = scorer
@@ -359,8 +359,8 @@ func _run(action: String) -> void:
 		var t0 := _match.teams[0]
 		var spot := t0.target_goal() - Vector3(t0.attack_dir * 22.0, 0, -2.0)
 		for i in 40:
-			var victim: Footballer = t0.players[9]
-			var offender: Footballer = _match.teams[1].players[5]
+			var victim: Footballer = _pick(t0, 9)
+			var offender: Footballer = _pick(_match.teams[1], 5)
 			_match.phase = MatchController.Phase.PLAYING
 			_match.card_scene = {}
 			_match.replay_request = {}
@@ -424,7 +424,7 @@ func _run(action: String) -> void:
 			_match._physics_process(1.0 / 60.0)
 	elif action == "replay_goal":
 		var t0 := _match.teams[0]
-		var shooter: Footballer = t0.players[9]
+		var shooter: Footballer = _pick(t0, 9)
 		var goal := t0.target_goal()
 		_match.teams[1].keeper().teleport(goal - Vector3(t0.attack_dir * 12.0, 0, 18.0))
 		_place(goal - Vector3(t0.attack_dir * 20.0, 0, 6.0), goal - Vector3(t0.attack_dir * 19.5, -0.11, 6.0), shooter)
@@ -465,7 +465,7 @@ func _run(action: String) -> void:
 	elif action == "subs_menu":
 		var sh := _pause_menu()._sheet
 		var t0 := _match.teams[0]
-		t0.players[9].wear = 31.0
+		_pick(t0, 9).wear = 31.0
 		sh.open(_match, t0, false)
 		sh.press_entry(sh.entries()[9])
 		sh._rows[14].grab_focus()
@@ -493,7 +493,7 @@ func _run(action: String) -> void:
 		_match.ball.give_to(gk, false, true)
 		_camera._focus = gk.flat_pos()
 	elif action.begins_with("skill:"):
-		var sp: Footballer = _match.teams[0].players[9]
+		var sp: Footballer = _pick(_match.teams[0], 9)
 		_place(Vector3(10, 0, 4), Vector3(10.5, 0.11, 4), sp)
 		sp.celebrate_timer = 0.0
 		sp.skill = Footballer.Skill.NONE
@@ -530,7 +530,7 @@ func _pause_menu() -> PauseMenu:
 
 
 func _place(player_pos: Vector3, ball_pos: Vector3, who: Footballer = null) -> void:
-	var p: Footballer = who if who != null else _match.teams[0].players[9]
+	var p: Footballer = who if who != null else _pick(_match.teams[0], 9)
 	_match.phase = MatchController.Phase.PLAYING
 	_match.restart_taker = null
 	_match.ball.frozen = false
@@ -545,3 +545,8 @@ func _save(file: String) -> void:
 	var img := get_viewport().get_texture().get_image()
 	var path := out_dir.trim_suffix("/") + "/" + file
 	print("captura: %s (%s)" % [path, error_string(img.save_png(path))])
+
+
+## Jugador n.º i del equipo (en futsal hay 5: se usa el último).
+func _pick(t: Variant, i: int) -> Footballer:
+	return t.players[mini(i, t.players.size() - 1)]

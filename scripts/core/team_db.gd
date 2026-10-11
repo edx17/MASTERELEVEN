@@ -25,6 +25,8 @@ const DBS := {
 		"info": "Clubes y selecciones reales con planteles generados (los de siempre)."},
 	"t2026": {"name": "Temporada 2026", "root": "res://data/db2026/",
 		"info": "Planteles reales: cada jugador una sola vez, en su club y en su selección."},
+	"futsal_afa": {"name": "AFA Futsal", "root": "res://data/futsal_afa/", "discipline": "futsal",
+		"info": "Primera A, B, C y D (zonas 1 y 2) del futsal de AFA, con planteles según el nivel de cada club."},
 }
 const DEFAULT_DB := "ficticia"
 ## Nombres generados (compartidos por todas las bases).
@@ -52,6 +54,10 @@ const LEAGUE_BONUS := {"eng1": 6, "esp1": 5, "ita1": 4, "ger1": 4, "por1": 0, "n
 	"arg1": -1, "bra1": 1, "eng2": 2, "esp2": 0, "ita2": 0, "ger2": 1,
 	"uru1": -5, "col1": -5, "ecu1": -6, "par1": -6, "chi1": -6, "per1": -8, "bol1": -10, "ven1": -10}
 
+## Banco del futsal (9): arquero suplente y 8 de campo.
+const FUTSAL_BENCH_ROLES := [PlayerData.Position.GK, PlayerData.Position.DF, PlayerData.Position.MF,
+	PlayerData.Position.FW, PlayerData.Position.MF, PlayerData.Position.DF, PlayerData.Position.MF,
+	PlayerData.Position.FW, PlayerData.Position.MF]
 const BENCH_ROLES := [PlayerData.Position.GK, PlayerData.Position.DF, PlayerData.Position.MF,
 	PlayerData.Position.MF, PlayerData.Position.FW,
 	PlayerData.Position.DF, PlayerData.Position.DF, PlayerData.Position.MF, PlayerData.Position.MF,
@@ -89,8 +95,23 @@ static func leagues_dir() -> String:
 ## Cambia la base activa (sin Option File) y olvida lo leído.
 static func use_db(id: String) -> void:
 	db_id = id if DBS.has(id) else DEFAULT_DB
+	Discipline.use(discipline_of_db(db_id))
 	option_file = null
 	reload()
+
+
+## Disciplina de una base (fútbol si no dice).
+static func discipline_of_db(id: String) -> String:
+	return String(DBS.get(id, {}).get("discipline", Discipline.FOOTBALL))
+
+
+## Bases de una disciplina que están en el juego.
+static func dbs_of(discipline: String) -> Array[String]:
+	var out: Array[String] = []
+	for id in available_dbs():
+		if discipline_of_db(id) == discipline:
+			out.append(id)
+	return out
 
 
 static func db_name(id: String = "") -> String:
@@ -530,9 +551,9 @@ static func _base_team(e: Dictionary) -> TeamData:
 			var f := String(e.get(["home_tex", "away_tex"][i], ""))
 			if f != "":
 				t.kit_textures[i] = KitTemplate.load_texture(option_file.kits_dir().path_join(f))
-	var fname := String(e.get("formation", "4-4-2"))
-	var path := "res://data/formations/f_%s.tres" % fname
-	t.formation = load(path) if ResourceLoader.exists(path) else load("res://data/formations/f_4-4-2.tres")
+	var fname := String(e.get("formation", Discipline.default_formation()))
+	var path := Discipline.formation_path(fname)
+	t.formation = load(path) if ResourceLoader.exists(path) else load(Discipline.formation_path(Discipline.default_formation()))
 	return t
 
 
@@ -718,10 +739,11 @@ static func generate_roster(t: TeamData, level: int, names_group: String, skin: 
 	if t.formation != null:
 		roles.append_array(t.formation.roles)
 	else:
-		roles.append_array([0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3])
-	roles.append_array(BENCH_ROLES)
+		roles.append_array([0, 1, 2, 2, 3] if Discipline.is_futsal() else [0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3])
+	var starters := roles.size()
+	roles.append_array(FUTSAL_BENCH_ROLES if Discipline.is_futsal() else BENCH_ROLES)
 	var used := {}
-	var numbers := _numbers_for(roles)
+	var numbers := _numbers_for(roles, starters)
 	for i in roles.size():
 		var p := PlayerData.new()
 		var last: String = lasts[i % lasts.size()]
@@ -739,22 +761,22 @@ static func generate_roster(t: TeamData, level: int, names_group: String, skin: 
 		p.foot = PlayerData.Foot.LEFT if rng.randf() < 0.24 else (PlayerData.Foot.BOTH if rng.randf() < 0.03 else PlayerData.Foot.RIGHT)
 		p.skin = PlayerData._pick(rng.randf(), skin)
 		# Titulares un poco mejores que los suplentes.
-		var lv := level + (2 if i < 11 else -3) + rng.randi_range(-3, 3)
+		var lv := level + (2 if i < starters else -3) + rng.randi_range(-3, 3)
 		_random_attributes(p, lv, rng)
 		p.abilities = p.suggested_abilities()
 		p.fill_extended()
 		t.players.append(p)
 
 
-## Dorsales: 1 al arquero titular, 2-11 a los titulares por puesto y del 12
-## en adelante a los suplentes.
-static func _numbers_for(roles: Array) -> Array[int]:
+## Dorsales: 1 al arquero titular, 2-11 (2-5 en futsal) a los titulares por
+## puesto y los que siguen a los suplentes.
+static func _numbers_for(roles: Array, starters: int = 11) -> Array[int]:
 	var out: Array[int] = []
 	var next := 2
 	for i in roles.size():
 		if i == 0:
 			out.append(1)
-		elif i < 11:
+		elif i < starters:
 			out.append(next)
 			next += 1
 		else:

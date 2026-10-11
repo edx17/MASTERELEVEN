@@ -353,7 +353,8 @@ class FormationBoard:
 		var bh := f.size.y * 0.56
 		draw_rect(Rect2(f.position.x, f.get_center().y - bh * 0.5, bw, bh), lc, false, 1.0)
 		draw_rect(Rect2(f.end.x - bw, f.get_center().y - bh * 0.5, bw, bh), lc, false, 1.0)
-		var spots: Array = FormationLibrary.DEFINITIONS.get(formation, FormationLibrary.DEFINITIONS["4-4-2"])
+		var defs := FormationLibrary.definitions()
+		var spots: Array = defs.get(formation, defs[Discipline.default_formation()])
 		var min_x := INF
 		var max_x := -INF
 		for k in range(1, spots.size()):
