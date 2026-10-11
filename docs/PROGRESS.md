@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **579 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **586 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -162,6 +162,17 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Futsal — F5: Liga con playoff, Supercopa, Copa Argentina y amistosos
+
+- Liga por división: ida y vuelta (la D en dos zonas) y playoff con el
+  formato acordado (A: playoff = campeón; B/C: campeón + playoff del 2.º al
+  9.º; D: campeón de cada zona + playoff cruzado). Ventaja del mejor ubicado
+  en cuartos, penales desde semis; la vuelta en cancha del mejor ubicado.
+- Supercopa (repechaje de la D; A-D y B-C) y Copa Argentina (Fase 1 la D,
+  Fase 2 + la C, 32avos + A y B, llaves hasta la final).
+- Torneo amistoso de 8 y cuadrangular.
+- Tests: `test_futsal_competitions.gd` (7).
 
 ## Futsal — F4: arquero jugador
 
