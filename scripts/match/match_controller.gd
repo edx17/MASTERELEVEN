@@ -502,6 +502,7 @@ func _physics_process(dt: float) -> void:
 	for a in ais:
 		a.tick(dt)
 	_drive_flying_subs(dt)
+	_drive_keeper_player()
 	if training != null:
 		training.after_ai(dt)
 	if phase == Phase.GOAL:
@@ -1566,15 +1567,19 @@ func _make_pending_subs() -> void:
 
 ## Cambio: `in_data` (del banco) entra en el puesto de `out`, en su lugar de
 ## la cancha. Devuelve el que entró (o null si no se pudo).
-func substitute(out: Footballer, in_data: PlayerData, as_keeper := false) -> Footballer:
+## `opts` (arquero jugador del futsal): role, spot (Vector2 de la
+## formación), tactical, shirt (camiseta de arquero).
+func substitute(out: Footballer, in_data: PlayerData, as_keeper := false, opts := {}) -> Footballer:
 	var t := out.team
 	if (t.subs_used >= Team.MAX_SUBS and not Team.flying_subs()) or not t.players.has(out) or not t.bench.has(in_data):
 		return null
 	var p := Footballer.new()
 	add_child(p)
 	var role: int = Footballer.Role.GK if as_keeper else out.role
-	p.setup(t, in_data, role, out.base_spot, tuning)
-	p.tactical_role = out.tactical_role
+	role = int(opts.get("role", role))
+	p.keeper_shirt = bool(opts.get("shirt", false))
+	p.setup(t, in_data, role, opts.get("spot", out.base_spot), tuning)
+	p.tactical_role = int(opts.get("tactical", out.tactical_role))
 	p.teleport(out.flat_pos(), out.facing)
 	t.players[t.players.find(out)] = p
 	var slot := t.slot_of(out)
@@ -1624,15 +1629,16 @@ func is_heading_off(p: Footballer) -> bool:
 	return false
 
 
-## Pide un cambio volante (futsal). false si no se puede.
-func request_flying_sub(out: Footballer, in_data: PlayerData) -> bool:
+## Pide un cambio volante (futsal). false si no se puede. Con `opts` (ver
+## substitute) también sale el arquero (arquero jugador).
+func request_flying_sub(out: Footballer, in_data: PlayerData, opts := {}) -> bool:
 	var t := out.team
-	if not Team.flying_subs() or not t.players.has(out) or not t.bench.has(in_data) or out.is_keeper():
+	if not Team.flying_subs() or not t.players.has(out) or not t.bench.has(in_data) or (out.is_keeper() and opts.is_empty()):
 		return false
 	for f in flying:
 		if f["out"] == out or f["in"] == in_data:
 			return false
-	flying.append({"out": out, "in": in_data, "t": 0.0})
+	flying.append({"out": out, "in": in_data, "t": 0.0, "opts": opts})
 	return true
 
 
@@ -1641,7 +1647,7 @@ func request_flying_sub(out: Footballer, in_data: PlayerData) -> bool:
 func quick_flying_sub(t: Team) -> bool:
 	var out: Footballer = null
 	for p in t.players:
-		if p.is_keeper() or is_heading_off(p) or p == ball.owner_player:
+		if p.is_keeper() or p.keeper_shirt or is_heading_off(p) or p == ball.owner_player:
 			continue
 		if out == null or p.stamina < out.stamina:
 			out = p
@@ -1667,8 +1673,10 @@ func quick_flying_sub(t: Team) -> bool:
 func rotate_quartet(t: Team) -> void:
 	var next := t.next_quartet()
 	var outs: Array[Footballer] = []
+	if keeper_player_state(t) != KeeperPlayer.OFF:
+		return # con el arquero jugador, después
 	for p in t.players:
-		if not p.is_keeper() and not is_heading_off(p):
+		if not p.is_keeper() and not p.keeper_shirt and not is_heading_off(p):
 			outs.append(p)
 	for i in mini(next.size(), outs.size()):
 		request_flying_sub(outs[i], next[i])
@@ -1699,7 +1707,7 @@ func _drive_flying_subs(dt: float) -> void:
 		to.y = 0.0
 		if to.length() < 1.2 or f["t"] > FLYING_MAX_TIME:
 			flying.erase(f)
-			_complete_flying_sub(out, f["in"])
+			_complete_flying_sub(out, f["in"], f.get("opts", {}))
 			continue
 		# Con la pelota la sigue jugando (la IA); si no, va a la zona.
 		if ball.owner_player != out and not out.is_human():
@@ -1707,7 +1715,7 @@ func _drive_flying_subs(dt: float) -> void:
 			out.wants_sprint = to.length() > 6.0
 
 
-func _complete_flying_sub(out: Footballer, in_data: PlayerData) -> void:
+func _complete_flying_sub(out: Footballer, in_data: PlayerData, opts := {}) -> void:
 	var t := out.team
 	if not t.bench.has(in_data):
 		return
@@ -1716,7 +1724,7 @@ func _complete_flying_sub(out: Footballer, in_data: PlayerData) -> void:
 	# Sin la escena del cambio de fútbol (no se para el juego).
 	var was_instant := _instant_subs
 	_instant_subs = true
-	var p := substitute(out, in_data)
+	var p := substitute(out, in_data, false, opts)
 	_instant_subs = was_instant
 	if p == null:
 		return
@@ -1733,6 +1741,120 @@ func _complete_flying_sub(out: Footballer, in_data: PlayerData) -> void:
 	t.bench_energy[out_data] = energy
 
 
+# --- Arquero jugador (futsal) -------------------------------------------------
+# Orden (L2 + cruceta abajo; la CPU, si va perdiendo por 1 o 2 sobre el
+# final): en cada ataque el arquero sale por la zona de cambio y entra un
+# jugador de campo con la camiseta de arquero para jugar 5 contra 4; al
+# perder la pelota ese jugador sale y vuelve el arquero a su arco.
+
+enum KeeperPlayer { OFF, GOING_OUT, IN, GOING_BACK }
+## Por equipo: {state, gk (PlayerData), gk_spot, gk_role, player (Footballer)}.
+var _kp: Array[Dictionary] = [{"state": KeeperPlayer.OFF}, {"state": KeeperPlayer.OFF}]
+
+
+func keeper_player_state(t: Team) -> int:
+	return int(_kp[t.index]["state"])
+
+
+## Prende o apaga la orden (humano: L2 + cruceta abajo).
+func toggle_keeper_player(t: Team) -> void:
+	if not Team.flying_subs():
+		return
+	t.keeper_player = not t.keeper_player
+	show_toast("%s: arquero jugador %s" % [t.short_name, "SÍ (5 contra 4 en cada ataque)" if t.keeper_player else "NO"], 2.0)
+
+
+## El que entra de arquero jugador: el de campo del banco con más energía y
+## mejor pie (pase).
+func _keeper_player_pick(t: Team) -> PlayerData:
+	var best: PlayerData = null
+	var best_score := -INF
+	for d in t.bench:
+		if d.position == PlayerData.Position.GK:
+			continue
+		var score := t.bench_stamina(d) + float(d.passing)
+		if score > best_score:
+			best_score = score
+			best = d
+	return best
+
+
+func _drive_keeper_player() -> void:
+	if not Team.flying_subs() or training != null:
+		return
+	for t in teams:
+		var kp := _kp[t.index]
+		var owner := ball.owner_player
+		var ours := owner != null and owner.team == t
+		var lost := (owner != null and owner.team != t) or (owner == null and ball.last_touch_team != t.index and ball.kick_age > 0.6)
+		match int(kp["state"]):
+			KeeperPlayer.OFF:
+				if t.keeper_player and phase == Phase.PLAYING and ours and not owner.is_keeper() \
+						and t.progress_of(ball.flat_pos()) > 0.45:
+					var gk := t.keeper()
+					var in_data := _keeper_player_pick(t)
+					if gk != null and in_data != null and not is_heading_off(gk):
+						# Juega arriba (como el pívot), con la camiseta de arquero.
+						var opts := {"role": Footballer.Role.FW, "spot": Vector2(0.62, 0.0),
+							"tactical": TacticalRole.Kind.ST, "shirt": true}
+						if request_flying_sub(gk, in_data, opts):
+							kp["state"] = KeeperPlayer.GOING_OUT
+							kp["gk"] = gk.base_data
+							kp["gk_spot"] = gk.base_spot
+							kp["gk_tactical"] = gk.tactical_role
+							kp["fly"] = in_data
+			KeeperPlayer.GOING_OUT:
+				var gk_on := t.on_pitch(kp["gk"])
+				if gk_on == null:
+					# Ya cambió: adentro el arquero jugador.
+					kp["state"] = KeeperPlayer.IN
+					kp["player"] = t.on_pitch(kp["fly"])
+					show_toast("%s: 5 CONTRA 4" % t.short_name, 1.5)
+				elif lost or not t.keeper_player:
+					# Perdió la pelota antes de salir: se queda en el arco.
+					flying = flying.filter(func(f: Dictionary) -> bool: return f["out"] != gk_on)
+					kp["state"] = KeeperPlayer.OFF
+			KeeperPlayer.IN:
+				var fp: Footballer = kp.get("player")
+				if fp == null or not t.players.has(fp):
+					kp["state"] = KeeperPlayer.OFF
+				elif (lost or not t.keeper_player) and phase == Phase.PLAYING:
+					if request_flying_sub(fp, kp["gk"], _keeper_back_opts(kp)):
+						kp["state"] = KeeperPlayer.GOING_BACK
+			KeeperPlayer.GOING_BACK:
+				if t.keeper() != null:
+					kp["state"] = KeeperPlayer.OFF
+
+
+func _keeper_back_opts(kp: Dictionary) -> Dictionary:
+	return {"role": Footballer.Role.GK, "spot": kp["gk_spot"], "tactical": kp["gk_tactical"]}
+
+
+## Pelota parada: vuelve el arquero de una (con el arquero jugador adentro o
+## saliendo). `keep` = el equipo que saca sigue con 5 contra 4.
+func restore_keepers(keep: int = -1) -> void:
+	if not Team.flying_subs():
+		return
+	for t in teams:
+		var kp := _kp[t.index]
+		var st := int(kp["state"])
+		if st == KeeperPlayer.OFF or t.index == keep:
+			continue
+		if st == KeeperPlayer.GOING_OUT:
+			var gk_on := t.on_pitch(kp["gk"])
+			flying = flying.filter(func(f: Dictionary) -> bool: return f["out"] != gk_on)
+			kp["state"] = KeeperPlayer.OFF
+			continue
+		var fp: Footballer = kp.get("player")
+		flying = flying.filter(func(f: Dictionary) -> bool: return f["out"] != fp)
+		if fp != null and t.players.has(fp) and t.bench.has(kp["gk"]):
+			_complete_flying_sub(fp, kp["gk"], _keeper_back_opts(kp))
+			var gk := t.keeper()
+			if gk != null:
+				gk.teleport(t.own_goal() + Vector3(-t.own_side() * 1.0, 0.0, 0.0), Vector3(t.attack_dir, 0.0, 0.0))
+		kp["state"] = KeeperPlayer.OFF
+
+
 ## Rotación por tiempo (Dirección del equipo) y la CPU por cansancio.
 func _flying_auto(dt: float) -> void:
 	_flying_cpu_t += dt
@@ -1740,6 +1862,10 @@ func _flying_auto(dt: float) -> void:
 	if check:
 		_flying_cpu_t = 0.0
 	for t in teams:
+		if check and not _has_human(t):
+			# CPU: arquero jugador si va perdiendo por 1 o 2 sobre el final.
+			var diff := t.score - opponents_of(t).score
+			t.keeper_player = clock.football_minute() >= 78.0 and diff < 0 and diff >= -2
 		if t.rotation_minutes > 0.0 and clock.total_game_seconds() - t.last_rotation >= t.rotation_minutes * 60.0:
 			rotate_quartet(t)
 		elif check and not _has_human(t) and flying.filter(func(f: Dictionary) -> bool: return f["out"].team == t).is_empty():
@@ -3897,6 +4023,7 @@ func _ref_restart(outcome: MatchRules.Outcome, team: Team) -> void:
 
 
 func _setup_kickoff(kicking_team: int) -> void:
+	restore_keepers()
 	# En el saque del medio todos se reubican: el cambio es directo.
 	_instant_subs = true
 	_make_pending_subs()
@@ -3928,6 +4055,9 @@ func _setup_kickoff(kicking_team: int) -> void:
 
 
 func _setup_restart(outcome: MatchRules.Outcome) -> void:
+	# Futsal: el que saca puede seguir con el arquero jugador; el otro, no.
+	restore_keepers(outcome.team if outcome.type in [MatchRules.Restart.THROW_IN, MatchRules.Restart.CORNER,
+		MatchRules.Restart.FREE_KICK] else -1)
 	_make_pending_subs()
 	if outcome.type == MatchRules.Restart.FREE_KICK:
 		stats["free_kicks"][outcome.team] += 1

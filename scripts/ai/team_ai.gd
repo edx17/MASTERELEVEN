@@ -755,6 +755,12 @@ func _carrier(p: Footballer, ball: Ball) -> void:
 	# Remate. Dentro del área casi siempre (antes se la pasaba a un costado y
 	# la pelota se iba al lateral); de afuera, según la distancia.
 	var in_box := Pitch.in_penalty_area(p.flat_pos(), int(signf(goal.x)))
+	# Futsal: arco vacío (el rival juega con arquero jugador): al arco desde
+	# lejos si no hay nadie en el camino.
+	if _match.opponents_of(team).keeper() == null and dist_goal < Pitch.HALF_LENGTH * 1.7 \
+			and _lane_clear(p.flat_pos(), goal, 1.2):
+		_match.perform_kick(p, KickActions.Kind.SHOT, goal - p.flat_pos(), clampf(dist_goal / (Pitch.HALF_LENGTH * 2.0), 0.35, 0.8))
+		return
 	if in_box or (dist_goal < shoot_distance() and absf(p.global_position.z) < Pitch.s(20.0)):
 		var chance := shot_chance(p, dist_goal, in_box, _lane_clear(p.flat_pos(), goal, 1.6))
 		if randf() < chance:

@@ -12,7 +12,7 @@ menús); cambian la cancha, el reglamento, la base y las competencias.
 | F1 | Cancha 40 x 20 (parquet, pista azul o negra), arcos 3 x 2, pelota de bote bajo, gimnasio techado, cámaras a escala | ✅ |
 | F2 | Reglas propias: lateral con el pie, saque de arco con la mano, 4 segundos, pase atrás al arquero, faltas acumuladas y doble penal, reloj parado (2 x 20, 5 min reales por tiempo) | ✅ |
 | F3 | IA de futsal (1-2-1, 2-2, 1-3, 3-1, 4-0) y cambios volantes (L2 rápido; cuartetos y rotación por tiempo en Dirección de Equipo) | ✅ |
-| F4 | Arquero jugador: orden por ataque; entra un jugador con camiseta de arquero para el 5 contra 4 y, al perder la pelota, corre al banco y vuelve el arquero | |
+| F4 | Arquero jugador: orden por ataque; entra un jugador con camiseta de arquero para el 5 contra 4 y, al perder la pelota, corre al banco y vuelve el arquero | ✅ |
 | F5 | Amistosos, torneos amistosos y Liga con playoffs, ascensos/descensos y Supercopa | |
 | F6 | Liga Virtual de futsal (carrera) y estadios tipo España y Brasil | |
 
@@ -98,6 +98,23 @@ fútbol sigue igual.
     o 7' de juego, o a mano (por defecto, cada 5').
   - La CPU rota el cuarteto y además cambia a los que se cansan.
 - En una simulación CPU contra CPU: 3-2 y 5-8, con unos 28 cambios por equipo.
+
+## Arquero jugador (F4)
+
+- **Orden** (L2 + cruceta abajo, se prende y se apaga): en cada ataque, con
+  la pelota en campo rival, el arquero sale por la zona de cambio y entra un
+  jugador de campo **con la camiseta de arquero** (sin manos) que juega
+  arriba: 5 contra 4.
+- **Al perder la pelota** el arquero jugador corre al banco y vuelve el
+  arquero, que va a su arco. Si pierde la pelota antes de salir, el arquero
+  se queda.
+- **Pelota parada:** si saca el rival (o es saque de arco o del medio),
+  vuelve el arquero de una; si saca el equipo con el arquero jugador
+  (lateral, córner, tiro libre), sigue el 5 contra 4.
+- **Arco vacío:** el rival remata al arco desde lejos si tiene el camino
+  libre.
+- **CPU:** lo usa si va perdiendo por 1 o 2 en los últimos minutos.
+- Entra el suplente de campo con más energía y mejor pase.
 
 ## Árbitros
 

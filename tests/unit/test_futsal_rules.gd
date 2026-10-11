@@ -360,3 +360,77 @@ func test_ai_distances_scale_with_the_court() -> void:
 	assert_eq(Pitch.h(10.0), 10.0)
 	assert_eq(TeamAI.shoot_distance(), TeamAI.SHOOT_DISTANCE, "el fútbol no cambia")
 	Discipline.use(Discipline.FUTSAL)
+
+
+# --- F4: arquero jugador --------------------------------------------------------
+
+func _attack_with(t: Team) -> Footballer:
+	var carrier := _outfield(t)
+	var spot := Vector3(t.attack_dir * 6.0, 0.0, -3.0)
+	carrier.teleport(spot, Vector3(t.attack_dir, 0, 0))
+	m.ball.place(spot + Vector3(t.attack_dir * 0.4, m.tuning.ball_radius, 0))
+	m.ball.give_to(carrier)
+	return carrier
+
+
+func _run_until(cond: Callable, max_steps: int = 60 * 12) -> void:
+	for i in max_steps:
+		if cond.call():
+			return
+		m._drive_flying_subs(dt)
+		m._drive_keeper_player()
+		for p in m.all_players():
+			# Avanza al que va a la zona de cambio (sin la simulación completa).
+			if m.is_heading_off(p):
+				var to := m.flying_zone(p.team) - p.flat_pos()
+				p.teleport(p.flat_pos() + to.limit_length(0.3), p.facing)
+
+
+func test_keeper_player_cycle() -> void:
+	var t := m.teams[0]
+	var gk := t.keeper()
+	m.toggle_keeper_player(t)
+	assert_true(t.keeper_player)
+	_attack_with(t)
+	m._drive_keeper_player()
+	assert_eq(m.keeper_player_state(t), MatchController.KeeperPlayer.GOING_OUT)
+	assert_true(m.is_heading_off(gk), "el arquero va a la zona de cambio")
+	_run_until(func() -> bool: return m.keeper_player_state(t) == MatchController.KeeperPlayer.IN)
+	assert_null(t.keeper(), "arco vacío: 5 contra 4")
+	var fp: Footballer = m._kp[0]["player"]
+	assert_true(fp.keeper_shirt, "con camiseta de arquero")
+	assert_false(fp.is_keeper(), "juega de campo (sin manos)")
+	assert_eq(fp.kit_colors()["shirt"], t.keeper_color)
+	assert_eq(t.players.filter(func(p: Footballer) -> bool: return not p.is_keeper()).size(), 5)
+	# Pierde la pelota: sale el arquero jugador y vuelve el arquero.
+	m.ball.give_to(_outfield(m.teams[1]))
+	m._drive_keeper_player()
+	assert_eq(m.keeper_player_state(t), MatchController.KeeperPlayer.GOING_BACK)
+	_run_until(func() -> bool: return m.keeper_player_state(t) == MatchController.KeeperPlayer.OFF)
+	assert_not_null(t.keeper(), "volvió el arquero")
+	assert_eq(t.keeper().base_data, gk.base_data)
+
+
+func test_keeper_back_at_kickoff_and_rival_restart() -> void:
+	var t := m.teams[1]
+	m.toggle_keeper_player(t)
+	_attack_with(t)
+	m._drive_keeper_player()
+	_run_until(func() -> bool: return m.keeper_player_state(t) == MatchController.KeeperPlayer.IN)
+	assert_null(t.keeper())
+	m._setup_restart(MatchRules.Outcome.new(MatchRules.Restart.THROW_IN, 0, Vector3(2.0, m.tuning.ball_radius, Pitch.HALF_WIDTH)))
+	assert_not_null(t.keeper(), "saca el rival: vuelve el arquero")
+	assert_eq(m.keeper_player_state(t), MatchController.KeeperPlayer.OFF)
+	assert_lt(t.keeper().flat_pos().distance_to(t.own_goal()), 2.5, "en su arco")
+
+
+func test_cpu_uses_keeper_player_when_losing_late() -> void:
+	var t := m.teams[1]
+	t.score = 1
+	m.teams[0].score = 2
+	m.clock.game_seconds = m.clock.half_seconds * 0.8
+	m.clock.half = 2
+	m._flying_cpu_t = 5.0
+	m._flying_auto(dt)
+	assert_true(t.keeper_player, "pierde por 1 al final")
+	assert_false(m.teams[0].keeper_player)

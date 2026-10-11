@@ -182,6 +182,9 @@ func _strategy_buttons() -> void:
 		# Futsal: L2 + cruceta arriba, cambio volante rápido (sale el más cansado).
 		if input.just_pressed(&"flying_sub") and Team.flying_subs():
 			_match.quick_flying_sub(team)
+		# Futsal: L2 + cruceta abajo, arquero jugador (5 contra 4 en cada ataque).
+		if input.just_pressed(&"keeper_player") and Team.flying_subs():
+			_match.toggle_keeper_player(team)
 	if held or _strategy_mute:
 		_strategy_mute = false
 		for b in STRATEGY_BUTTONS:
