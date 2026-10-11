@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **554 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **567 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -162,6 +162,21 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Futsal — F2: reglamento
+
+Detalle en `docs/FUTSAL.md` (sección Reglamento).
+
+- Reloj 2 x 20 parado (corre con la pelota en juego; 5 min reales por tiempo).
+- Lateral con el pie; saque de arco con la mano desde el área.
+- 4 segundos para sacar (si no, saca el rival) y 4 segundos del arquero con
+  la pelota en su campo; pase atrás al arquero sancionado.
+- Faltas acumuladas por tiempo en el HUD; desde la 6.ª, tiro libre sin
+  barrera desde el doble penal.
+- Área redondeada de verdad para penales e indirectos.
+- Pendiente para F3: el arquero ataja casi todo en el arco chico (en una
+  simulación CPU contra CPU salió 0-1 con 50 remates); se ajusta con la IA.
+- Tests: `test_futsal_rules.gd` (13).
 
 ## Futsal 5 contra 5 — F0 y F1
 

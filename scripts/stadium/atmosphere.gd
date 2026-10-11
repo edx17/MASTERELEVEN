@@ -82,7 +82,7 @@ func _process(dt: float) -> void:
 	# La nieve se acumula durante todo el partido (arranca en manchas y va
 	# tapando el verde); en el entretiempo sólo se limpian las líneas.
 	if conditions.is_snow() and _match != null and _match.clock != null and PitchBuilder.grass_material != null:
-		var progress := clampf(_match.clock.game_seconds / MatchClock.HALF_GAME_SECONDS, 0.0, 1.0)
+		var progress := _match.clock.half_progress()
 		PitchBuilder.grass_material.set_shader_parameter("groove_clear", 1.0 - 0.85 * progress)
 		PitchBuilder.grass_material.set_shader_parameter("snow", snow_level(_match.clock.total_game_seconds()))
 	# Banderines: flamean hacia donde sopla el viento.

@@ -20,6 +20,8 @@ const DATA := {
 			"goal_area_depth": 5.5, "goal_area_half_width": 9.16, "center_circle_radius": 9.15, "penalty_spot": 11.0,
 			"line_width": 0.12},
 		"offside": true,
+		"half_minutes": 45,
+		"rules": {"restart_limit": 6.0, "keeper_limit": 6.0},
 	},
 	"futsal": {
 		"name": "Futsal", "players": 5, "bench": 9, "minutes": 10,
@@ -30,8 +32,24 @@ const DATA := {
 		"pitch": {"half_length": 20.0, "half_width": 10.0, "goal_half_width": 1.5, "goal_height": 2.0,
 			"goal_depth": 0.9, "post_radius": 0.04, "penalty_area_depth": 6.0, "penalty_area_half_width": 7.58,
 			"goal_area_depth": 0.0, "goal_area_half_width": 0.0, "center_circle_radius": 3.0, "penalty_spot": 6.0,
-			"line_width": 0.08, "second_penalty_spot": 10.0},
+			"line_width": 0.08, "second_penalty_spot": 10.0, "rounded_area": true},
 		"offside": false,
+		# 2 tiempos de 20' con reloj parado (corre sólo con la pelota en juego).
+		"half_minutes": 20,
+		# Reglamento FIFA de futsal:
+		#  kick_in: el lateral se saca con el pie, desde la línea.
+		#  hand_clearance: saque de arco con la mano, desde el área.
+		#  restart_limit: 4 s para sacar (lateral, córner, tiro libre, saque de
+		#    arco); si no, saca el rival.
+		#  keeper_limit: 4 s del arquero con la pelota controlada en su campo.
+		#  keeper_second_touch: el arquero que la jugó no la puede volver a
+		#    tocar en su campo hasta que la toque un rival.
+		#  foul_limit: desde la falta acumulada n.º foul_limit + 1 de cada
+		#    tiempo, tiro libre directo sin barrera (desde el doble penal).
+		"rules": {"kick_in": true, "hand_clearance": true, "restart_limit": 4.0, "keeper_limit": 4.0,
+			"keeper_second_touch": true, "foul_limit": 5,
+			# Atajada (SaveModel): base y tope de la probabilidad.
+			"save_base": 0.25, "save_cap": 0.75},
 		# Pelota de bote bajo (tamaño 4): pica la mitad, rueda pegada al piso
 		# (más pareja que en el césped) y frena menos en el roce.
 		"ball": {"ground_restitution": 0.5, "bounce_friction": 0.8, "rolling_decel": 0.8, "bounce_min_speed": 1.6},
@@ -85,6 +103,15 @@ static func formation_path(fname: String) -> String:
 	if is_futsal():
 		return "res://data/formations/f5_%s.tres" % fname
 	return "res://data/formations/f_%s.tres" % fname
+
+
+static func half_minutes() -> float:
+	return float(data()["half_minutes"])
+
+
+## Regla del reglamento de la disciplina (ver DATA[...]["rules"]).
+static func rule(key: String, default: Variant = null) -> Variant:
+	return (data()["rules"] as Dictionary).get(key, default)
 
 
 static func offside() -> bool:

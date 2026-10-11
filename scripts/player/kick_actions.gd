@@ -26,6 +26,9 @@ var ball: Ball
 var tuning: Tuning
 ## Lateral en curso: los pases salen con las manos.
 var throw_in_mode: bool = false
+## Futsal, saque de arco: el arquero la tira con la mano (rodando o por el
+## aire), no la patea de volea.
+var hands_only: bool = false
 ## Presión rival sobre el pateador (0..1); la fija el partido antes de patear.
 var pressure: float = 0.0
 ## Último error aplicado en grados (depuración / tests).
@@ -66,7 +69,9 @@ func execute(kind: int, player: Footballer, dir: Vector3, power: float) -> Footb
 			ball.state.pos = player.flat_pos() + d * 0.6 + Vector3.UP * tuning.ball_radius
 			ball.state.vel = Vector3.ZERO
 			return short_pass(player, dir, power, forced)
-		return long_pass(player, dir, maxf(power, 0.4), forced)
+		# Saque de arco del futsal: largo también con la mano (un tirón alto).
+		hand_throw = hands_only
+		return long_pass(player, dir, maxf(power, 0.4) * (0.8 if hands_only else 1.0), forced)
 	match kind:
 		Kind.SHORT_PASS:
 			return short_pass(player, dir, power, forced)

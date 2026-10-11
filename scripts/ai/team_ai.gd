@@ -930,6 +930,10 @@ func _restart_taker(p: Footballer) -> void:
 			_match.order_penalty(p, randf_range(0.55, 0.85))
 			return
 		MatchRules.Restart.FREE_KICK:
+			if _match.free_kick_no_wall:
+				# Futsal, falta acumulada: sin barrera, siempre al arco.
+				_match.order_free_kick(p, KickActions.Kind.SHOT, randf_range(0.6, 0.85), null, Vector3.ZERO)
+				return
 			var goal := team.target_goal()
 			if p.flat_pos().distance_to(goal) < 28.0 and absf(p.flat_pos().z) < 18.0 and randf() < 0.6:
 				# Colocado por encima de la barrera o con comba (a la WE2002).
