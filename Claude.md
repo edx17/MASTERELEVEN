@@ -155,6 +155,11 @@ docs/      PROGRESS.md (estado), FISICA.md, REFERENCIA_WE.md, ENTRENAMIENTO.md
 - **Sesiones de Claude en la nube**: `.claude/hooks/session-start.sh` instala
   Godot 4.7.2 e importa el proyecto. Skills de Godot y de diseño de juegos
   (awesome-gamedev-agent-skills, Apache 2.0) en `.claude/skills/`.
+- **Diseño Definitivo WE** (jugador por defecto): modelo hecho en Blender
+  (`tools/blender/we_definitivo.py` → `assets/models/players/we_definitivo.glb`,
+  cargado por `WeBody`). Ver `docs/DISENO_DEFINITIVO_WE.md`. En la nube,
+  Blender se usa como módulo de Python: `pip install bpy` (5.x, Python 3.13)
+  en un venv y `python tools/blender/we_definitivo.py`.
 - **Capturas** (`tools/capture_runner.gd`, `tools/pose_sheet.gd`): con
   `xvfb-run` y `--rendering-method gl_compatibility` Claude saca fotos del
   partido, la presentación, estadios (`--stadium=N`, `--cond=`, `--shot=`) y

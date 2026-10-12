@@ -8,7 +8,7 @@ Ver `Claude.md` para visión, criterios y fases.
 Juego de fútbol en **Godot 4.7 / GDScript**, sucesor espiritual del Winning
 Eleven 2002, de **uso personal** (no se vende ni se comparte): por eso va a
 llevar países, ligas, clubes y jugadores con sus nombres reales (escudos
-generados, sin logos). **597 tests automáticos en verde** (corren solos en GitHub en cada push, que
+generados, sin logos). **599 tests automáticos en verde** (corren solos en GitHub en cada push, que
 además arma el `.exe` de Windows).
 
 | Fase / tanda | Estado | PR |
@@ -43,6 +43,7 @@ además arma el `.exe` de Windows).
 | D3 — Liga Virtual: Plantel, Dirección guardada, Calendario; escudos PNG | 🟡 Hecho, pendiente de tu prueba | #33 |
 | D4 — Liga Virtual: mercado de pases con puntos WE | 🟡 Hecho, pendiente de tu prueba | #33 |
 | D5 — Liga Virtual: noticias, historial y palmarés | 🟡 Hecho, pendiente de tu prueba | #33 |
+| Diseño Definitivo WE (etapa 1: pelados y sin cara) | 🟡 Hecho, **pendiente de tu prueba** | — |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -162,6 +163,26 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Diseño Definitivo WE (etapa 1): el jugador nuevo, hecho en Blender
+
+Pedido: un modelo nuevo copiado de las capturas de ForeverEleven / WE2002
+(no los diseños que ya había). Por ahora, todos pelados y sin cara. Detalle
+y cómo editarlo: `docs/DISENO_DEFINITIVO_WE.md`.
+
+| Qué | Cambio |
+|---|---|
+| Modelo | `tools/blender/we_definitivo.py` lo arma en Blender: ~750 triángulos, caras planas, camiseta suelta y cuadrada, short ancho, medias a la rodilla, botines en bloque, puños. Queda `tools/blender/we_definitivo.blend` para editarlo a mano. |
+| Esqueleto | El del juego (mismos huesos y pose T): usa todas las animaciones, y las propias que se hagan en Blender sobre ese Armature. Pesos rígidos (mitad y mitad en las articulaciones). |
+| Colores | Una zona por material (camiseta, manga, ribetes, short, medias, piel, botines, pelo, manos): el juego los pinta con los colores, el diseño, el número y el escudo del club. |
+| En el juego | Nuevo estilo "Diseño Definitivo WE" (Partido > Jugadores), **por defecto**: las opciones guardadas pasan a este estilo una vez y después se respeta lo que elijas. Los otros estilos siguen en el menú. |
+| Fotos | `tools/blender/we_preview.py`: pose T y pose de carrera del WE2002 (rodilla adelante a 90°, codos a 90°). |
+
+**Tests:** 599 en verde. Se agregaron:
+- el Diseño Definitivo WE es el estilo por defecto, lleva la ropa del club, es pelado, no tiene cara y llegan todas las zonas;
+- su piel apunta a huesos del juego y los pesos suman 1.
+
+**Próximo:** pelo y cara, y las animaciones propias (empezando por correr).
 
 ## Futsal — correcciones de tu prueba de la Liga Virtual
 

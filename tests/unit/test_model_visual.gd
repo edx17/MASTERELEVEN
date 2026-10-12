@@ -1,6 +1,12 @@
 extends GutTest
+
 ## Modelo humano con esqueleto (CC0): animación por velocidad, gestos sin
 ## acumulación, colores por zona y costo acotado.
+
+
+func after_each() -> void:
+	GameSettings.player_style = GameSettings.PlayerStyle.WE
+
 
 func _visual() -> ModelVisual:
 	var v := ModelVisual.new()
@@ -254,10 +260,10 @@ func test_team_kits_have_designs() -> void:
 	assert_gte(striped, 4, "varios equipos con camisetas con diseño")
 
 
-func test_classic_body_is_the_default_and_wears_the_kit() -> void:
-	# Por defecto, el cuerpo clásico (pocos polígonos, proporciones normales),
-	# con la misma ropa: el material del cuerpo con diseño y número.
-	assert_eq(GameSettings.player_style, GameSettings.PlayerStyle.CLASSIC)
+func test_classic_body_wears_the_kit() -> void:
+	# Cuerpo clásico (pocos polígonos, proporciones normales), con la misma
+	# ropa: el material del cuerpo con diseño y número.
+	GameSettings.player_style = GameSettings.PlayerStyle.CLASSIC
 	var v := ModelVisual.new()
 	add_child_autofree(v)
 	v.setup({"shirt": Color.RED, "shorts": Color.BLACK, "number": 8, "pattern": 1, "shirt2": Color.BLACK}, 9)
@@ -269,3 +275,72 @@ func test_classic_body_is_the_default_and_wears_the_kit() -> void:
 	# B15: malla más fina (siluetas, orejas, nariz), sigue siendo liviana.
 	assert_between(tris, 200, 2500, "pocos polígonos (%d)" % tris)
 	assert_ne(v._classic.mesh.surface_get_format(0) & Mesh.ARRAY_FORMAT_CUSTOM0, 0, "con la posición de reposo para la ropa")
+
+
+## Diseño Definitivo WE (por defecto): el modelo de Blender sobre el
+## esqueleto del juego, con la ropa del club, pelado y sin cara.
+func test_we_design_is_the_default_and_wears_the_kit() -> void:
+	assert_eq(GameSettings.player_style, GameSettings.PlayerStyle.WE)
+	if not ModelVisual.available() or not WeBody.available():
+		pass_test("sin modelo")
+		return
+	var v := ModelVisual.new()
+	add_child_autofree(v)
+	v.setup({"shirt": Color.RED, "shorts": Color.BLACK, "number": 8, "pattern": 1, "shirt2": Color.BLACK,
+		"hair_style": HairBuilder.Style.AFRO}, 9)
+	assert_not_null(v._classic)
+	assert_eq(String(v._classic.name), "WeBody")
+	assert_eq(v._classic.material_override, v._body_mat)
+	var body := v._skel.find_child(ModelVisual.BODY_MESH, false, false) as MeshInstance3D
+	assert_false(body.visible, "el modelo musculoso queda oculto")
+	assert_false(v.hair_node != null and v.hair_node.visible, "pelado (sin peinado)")
+	assert_false(bool(v._body_mat.get_shader_parameter("draw_face")), "sin cara por ahora")
+	var mesh: Mesh = v._classic.mesh
+	var tris: int = mesh.surface_get_array_len(0) / 3
+	if mesh.surface_get_format(0) & Mesh.ARRAY_FORMAT_INDEX:
+		tris = mesh.surface_get_array_index_len(0) / 3
+	assert_between(tris, 300, 2000, "pocos polígonos (%d)" % tris)
+	assert_ne(mesh.surface_get_format(0) & Mesh.ARRAY_FORMAT_CUSTOM0, 0, "con la posición de reposo para la ropa")
+	# Todas las zonas de la ropa del modelo llegan al shader.
+	var arr := mesh.surface_get_arrays(0)
+	var zones := {}
+	var torso := 0
+	for c: Color in arr[Mesh.ARRAY_COLOR]:
+		zones[int(round(c.r * 10.0))] = true
+		if c.g > 0.5:
+			torso += 1
+	for z in [0, 1, 2, 3, 4, 6]:
+		assert_true(zones.has(z), "zona %d" % z)
+	assert_gt(torso, 20, "torso de la camiseta (diseño y número)")
+	# El modelo mide lo mismo que el esqueleto (1,81 m, en pose T).
+	var aabb := mesh.get_aabb()
+	assert_almost_eq(aabb.end.y, 1.81, 0.03)
+	assert_almost_eq(aabb.position.y, 0.0, 0.02)
+
+
+## Cada vértice del Diseño Definitivo WE se mueve con huesos del juego (los
+## pesos suman 1) y la piel apunta a huesos existentes.
+func test_we_body_skin_maps_to_game_bones() -> void:
+	if not ModelVisual.available() or not WeBody.available():
+		pass_test("sin modelo")
+		return
+	var v := ModelVisual.new()
+	add_child_autofree(v)
+	v.setup({"shirt": Color.WHITE}, 3)
+	var data := WeBody.prepare(v._skel)
+	var skin: Skin = data["skin"]
+	var names := {}
+	for i in skin.get_bind_count():
+		names[v._skel.get_bone_name(skin.get_bind_bone(i))] = true
+	for n in ["pelvis", "spine_03", "Head", "upperarm_l", "lowerarm_r", "hand_l", "thigh_r", "calf_l", "foot_r", "ball_l"]:
+		assert_true(names.has(n), "hueso %s" % n)
+	var arr: Array = data["arrays"]
+	var w: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+	var per := w.size() / (arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
+	for i in range(0, w.size(), per):
+		var sum := 0.0
+		for j in per:
+			sum += w[i + j]
+		assert_almost_eq(sum, 1.0, 0.01)
+		if absf(sum - 1.0) > 0.01:
+			break

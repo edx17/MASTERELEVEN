@@ -162,7 +162,7 @@ const SETTINGS_PATH := ""
 const SAVED := ["match_minutes", "difficulty", "time_choice", "weather_choice", "wind_choice",
 	"pitch_choice", "pitch_wear", "stadium_choice", "game_speed", "player_label", "keeper_auto_action",
 	"stick_directions", "camera_preset", "show_pass_target", "offside", "home_team_path", "away_team_path",
-	"home_kit", "away_kit", "show_replays", "replay_chances", "player_style", "sfx_volume", "crowd_volume", "music_volume",
+	"home_kit", "away_kit", "show_replays", "replay_chances", "player_style", "player_style_version", "sfx_volume", "crowd_volume", "music_volume",
 	"show_radar", "show_score", "wc_playoff", "active_optionfile", "database", "court_surface", "gym_style", "show_offside_line", "show_ball_landing",
 	"window_mode", "resolution", "vsync", "antialias", "render_scale", "shadow_quality", "crowd_level", "fps_limit",
 	"input_source"]
@@ -177,12 +177,17 @@ var input_source: int = -1
 var random_conditions := true
 ## Repetición después de cada gol (apagada en tests y herramientas).
 var show_replays := true
-## Estilo de los jugadores: clásico (pocos polígonos, como el WE de PS1; por
-## defecto), retro (el modelo base estilo PS1, beta) o detallado (el modelo
-## con músculos).
-enum PlayerStyle { CLASSIC, RETRO, DETAILED, BLOCKS }
-const PLAYER_STYLE_NAMES := ["clásicos", "retro PS1 (beta)", "detallados", "bloques"]
-var player_style: int = PlayerStyle.CLASSIC
+## Estilo de los jugadores: Diseño Definitivo WE (por defecto: el modelo de
+## pocos polígonos hecho en Blender, ver WeBody), clásico (armado por código),
+## retro (el modelo base estilo PS1, beta), detallado (el modelo con
+## músculos) o bloques.
+enum PlayerStyle { CLASSIC, RETRO, DETAILED, BLOCKS, WE }
+const PLAYER_STYLE_NAMES := ["clásicos", "retro PS1 (beta)", "detallados", "bloques", "Diseño Definitivo WE"]
+var player_style: int = PlayerStyle.WE
+## Versión del estilo guardado: las opciones guardadas antes del Diseño
+## Definitivo WE pasan a ese estilo una vez (después se respeta lo elegido).
+const PLAYER_STYLE_VERSION := 2
+var player_style_version := PLAYER_STYLE_VERSION
 ## Repetición también de las jugadas peligrosas (remates cerca, atajadas al
 ## córner, faltas importantes).
 var replay_chances := true
@@ -249,6 +254,8 @@ func _ready() -> void:
 		player_style = PlayerStyle.DETAILED
 	if "--blocks" in OS.get_cmdline_user_args():
 		player_style = PlayerStyle.BLOCKS
+	if "--classic" in OS.get_cmdline_user_args():
+		player_style = PlayerStyle.CLASSIC
 	show_replays = persist
 	replay_chances = persist
 	if persist:
@@ -374,6 +381,10 @@ func load_settings(path: String = SETTINGS_PATH) -> void:
 	sfx_volume = clampi(sfx_volume, 0, 10)
 	crowd_volume = clampi(crowd_volume, 0, 10)
 	music_volume = clampi(music_volume, 0, 10)
+	if not cfg.has_section_key("options", "player_style_version") or player_style_version < PLAYER_STYLE_VERSION:
+		player_style = PlayerStyle.WE
+		player_style_version = PLAYER_STYLE_VERSION
+	player_style = clampi(player_style, 0, PLAYER_STYLE_NAMES.size() - 1)
 	home_kit = clampi(home_kit, 0, 1)
 	away_kit = clampi(away_kit, 0, 1)
 

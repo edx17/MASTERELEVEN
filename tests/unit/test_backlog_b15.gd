@@ -1,6 +1,11 @@
 extends GutTest
+
 ## Paso B: jugadores low-poly estilo WE mejorados — cuerpo paramétrico,
 ## identidad guardada, malla, cara, ropa y pelo.
+
+
+func after_each() -> void:
+	GameSettings.player_style = GameSettings.PlayerStyle.WE
 
 
 func _data(name: String, build: int = PlayerData.Build.AUTO, cm: int = 0) -> PlayerData:
@@ -126,6 +131,7 @@ func test_classic_mesh_has_uv_and_more_detail() -> void:
 	if not ModelVisual.available():
 		pass_test("sin modelo")
 		return
+	GameSettings.player_style = GameSettings.PlayerStyle.CLASSIC
 	var v := ModelVisual.new()
 	add_child_autofree(v)
 	v.setup({"shirt": Color.WHITE, "facial_hair": 4, "long_sleeves": true}, 7)
@@ -193,9 +199,10 @@ func test_all_hair_styles_build() -> void:
 ## B3: el cuerpo clásico muestra la malla del peinado (antes, un casquete igual
 ## para todos).
 func test_classic_body_shows_the_hairstyle() -> void:
-	if not ModelVisual.available() or GameSettings.player_style != GameSettings.PlayerStyle.CLASSIC:
+	if not ModelVisual.available():
 		pass_test("sin modelo clásico")
 		return
+	GameSettings.player_style = GameSettings.PlayerStyle.CLASSIC
 	var v := ModelVisual.new()
 	add_child_autofree(v)
 	v.setup({"shirt": Color.WHITE, "hair_style": HairBuilder.Style.QUIFF}, 5)

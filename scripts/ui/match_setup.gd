@@ -82,7 +82,7 @@ func _ready() -> void:
 				return "retro (falta el modelo)"
 			return GameSettings.PLAYER_STYLE_NAMES[clampi(GameSettings.player_style, 0, GameSettings.PLAYER_STYLE_NAMES.size() - 1)],
 		func(d: int) -> void: GameSettings.player_style = posmod(GameSettings.player_style + d, GameSettings.PLAYER_STYLE_NAMES.size()),
-		"Modelo de los jugadores. Clásicos: pocos polígonos, como el WE de PS1. Retro (beta): el modelo base estilo PS1. Detallados: el modelo con músculos. Bloques: cuadrados, con rodillas y codos que se doblan.")
+		"Modelo de los jugadores. Diseño Definitivo WE: el modelo de pocos polígonos hecho en Blender (estilo WE2002; por ahora pelados y sin cara). Clásicos: pocos polígonos, como el WE de PS1. Retro (beta): el modelo base estilo PS1. Detallados: el modelo con músculos. Bloques: cuadrados, con rodillas y codos que se doblan.")
 	# Jugar y Volver lado a lado, abajo de las opciones.
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", int(WEStyle.px(16)))

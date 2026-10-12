@@ -196,20 +196,35 @@ func setup(colors: Dictionary, seed: int) -> void:
 			mat.set_shader_parameter("fabric_tex", fabric)
 		body.material_override = mat
 		_body_mat = mat
-	# Cuerpo clásico (por defecto): pocos polígonos y proporciones normales,
+	# Cuerpo clásico y Diseño Definitivo WE (por defecto): pocos polígonos,
 	# con la misma ropa (diseño, número y escudo en la tela).
 	var blocks := GameSettings.player_style == GameSettings.PlayerStyle.BLOCKS
-	if (GameSettings.player_style == GameSettings.PlayerStyle.CLASSIC or blocks) and body != null and _body_mat != null:
+	var we := GameSettings.player_style == GameSettings.PlayerStyle.WE and WeBody.available()
+	if (GameSettings.player_style == GameSettings.PlayerStyle.CLASSIC or blocks or we) and body != null and _body_mat != null:
 		# Caras planas separadas: la ropa no se "infla" (si no, se abren).
 		_body_mat.set_shader_parameter("cloth_inflate", 0.0)
 		# Bloques: cajas rígidas por hueso (rodillas y codos se doblan).
-		_classic = BlockBody.build(_skel, _body_mat) if blocks else ClassicBody.build(_skel, _body_mat)
+		# Diseño Definitivo WE: el modelo de Blender (ver WeBody).
+		if we:
+			_classic = WeBody.build(_skel, _body_mat)
+		if _classic == null:
+			we = false
+			_classic = BlockBody.build(_skel, _body_mat) if blocks else ClassicBody.build(_skel, _body_mat)
 		# El peinado (malla de pelo) también en el cuerpo clásico (B3).
 		# Cara dibujada (ojos, cejas, boca, barba) y manga larga.
 		_body_mat.set_shader_parameter("draw_face", true)
 		_body_mat.set_shader_parameter("beard", beard)
 		_body_mat.set_shader_parameter("beard_color", beard_color)
 		_body_mat.set_shader_parameter("long_sleeves", bool(colors.get("long_sleeves", false)))
+		if we:
+			# Por ahora todos pelados y sin cara (el pelo y la cara se
+			# diseñan después en el modelo). Caras planas también en la
+			# camiseta (sin el suavizado de tela del torso).
+			_body_mat.set_shader_parameter("draw_face", false)
+			_body_mat.set_shader_parameter("cloth_smooth", 0.0)
+			_body_mat.set_shader_parameter("hair", skin_color)
+			if hair_node != null:
+				hair_node.visible = false
 		body.visible = false
 		for extra in ["Eyebrows", "Eyes"]:
 			var em := _skel.find_child(extra, false, false) as Node3D
