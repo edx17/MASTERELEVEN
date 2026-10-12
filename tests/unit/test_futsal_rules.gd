@@ -331,6 +331,48 @@ func test_flying_sub_goes_to_the_zone_and_returns_to_the_bench() -> void:
 	assert_gt(t.bench_stamina(out.base_data), float(e["stamina"]) - 0.01, "descansa en el banco")
 
 
+## El que salió en un cambio volante no vuelve a aparecer en la cancha después
+## de una repetición (la repetición lo muestra y antes quedaba parado ahí).
+func test_flying_sub_ghost_hidden_after_replay() -> void:
+	var t := m.teams[0]
+	var out := _outfield(t)
+	var in_data: PlayerData = t.next_quartet()[0]
+	m.phase = MatchController.Phase.STOPPED
+	assert_true(m.request_sub(out, in_data))
+	assert_false(t.players.has(out), "salió")
+	assert_false(out.visible)
+	out.visible = true # la repetición lo vuelve a mostrar
+	m._on_replay_finished()
+	assert_false(out.visible, "no queda un sexto jugador en la cancha")
+	var on := 0
+	for c in m.get_children():
+		if c is Footballer and (c as Footballer).visible and (c as Footballer).team == t:
+			on += 1
+	assert_eq(on, 5, "5 en la cancha")
+
+
+## Dirección del equipo en futsal: 5 titulares y 9 suplentes (los demás
+## del plantel no entran a la lista); la minicancha es del piso elegido.
+func test_team_sheet_five_starters_and_floor_colors() -> void:
+	var t := m.teams[0]
+	var sh := TeamSheet.new()
+	add_child_autofree(sh)
+	sh.open(m, t, true)
+	var caps: Array = []
+	var rows := 0
+	for c in sh._list.get_children():
+		if c is Label:
+			caps.append([(c as Label).text, rows])
+		else:
+			rows += 1
+	assert_eq(caps, [["TITULARES", 0], ["SUPLENTES", 5]])
+	assert_eq(rows, 5 + Discipline.bench_size())
+	var saved := GameSettings.court_surface
+	GameSettings.court_surface = 1
+	assert_eq(WEStyle.pitch_stripes()[1], Discipline.surface(1)[1], "pista azul")
+	GameSettings.court_surface = saved
+
+
 func test_quick_flying_sub_takes_off_the_most_tired() -> void:
 	var t := m.teams[1]
 	var tired := _outfield(t)
