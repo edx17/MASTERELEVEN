@@ -1,25 +1,34 @@
-"""MASTER ELEVEN - jugador base estilo Winning Eleven 2002 (PS1).
+"""MASTER ELEVEN - jugador estilo Winning Eleven 2002 (PS1), para Blender.
 
 Ejecutar en Blender (Scripting > Run Script). Probado en Blender 4.2.
 
-Genera un jugador modular de menos de 300 triángulos:
-  - Piezas separadas, sin skinning: Torso, Head, UpperArm/LowerArm/Hand,
-    Thigh/Calf/Boot (.L y .R). En la animación sólo rotan y se atraviesan.
-  - Origen de cada pieza en su articulación (cadera, hombro, codo, muñeca,
-    rodilla, tobillo, cuello) y jerarquía FK:
-        Player (Empty, en el piso)
-        └─ Torso (origen: pelvis)
-           ├─ Head (cuello)
-           ├─ UpperArm.L/R (hombro) ─ LowerArm (codo) ─ Hand (muñeca)
+El look sale de los jugadores del WE2002 / ISS Pro Evolution 2: cuerpo
+facetado de proporciones casi reales (cabeza apenas grande), torso en V con
+hombros anchos, mangas cortas más anchas que el brazo, short con botamangas
+acampanadas que se mueven con el muslo, medias largas hasta la rodilla,
+botines bajos, y la cara, el pelo y el número pintados en una textura chica.
+
+Reglas técnicas:
+  - Piezas separadas, sin skinning: en la animación sólo rotan y se
+    atraviesan (clipping), como en la PS1.
+  - Origen de cada pieza en su articulación y jerarquía FK:
+        Player (Empty, en el piso, entre los pies)
+        └─ Hips (cintura del short; origen: centro de la cadera)
+           ├─ Torso (camiseta; origen: cintura)
+           │  ├─ Head (cabeza y cuello; origen: base del cuello)
+           │  └─ UpperArm.L/R (hombro) ─ LowerArm (codo) ─ Hand (muñeca)
            └─ Thigh.L/R (cadera) ─ Calf (rodilla) ─ Boot (tobillo)
-  - Cabeza, manos y botines exagerados para leerse con cámara lejana.
-  - Shade Flat, un solo material con un atlas de 256x256 (filtrado Closest,
-    pixel art) y Smart UV Project de todas las piezas juntas: comparten el
-    espacio UV del atlas sin pisarse.
+  - Prismas de 4 a 8 lados con anillos, Shade Flat, menos de MAX_TRIS
+    triángulos (el script lo verifica).
+  - Un único atlas de ATLAS_SIZE x ATLAS_SIZE (filtrado Closest, pixel art).
+    Cada pieza tiene su UV cilíndrico en un rectángulo propio (.L y .R
+    comparten los mismos píxeles, como en la PS1), y el atlas sale pintado
+    con los colores del equipo, el número de espalda, la cara y el pelo.
+    Guardalo (Image > Save As) y pintalo encima.
 
 Convención de Blender: Z arriba, el jugador mira hacia -Y (vista Front,
-numpad 1) y su izquierda es +X (.L). Unidades: metros (~1,70 m de alto).
-Para Godot: exportar glTF 2.0 (+Y Up) con "Apply Modifiers" y sin "Skinning".
+numpad 1) y su izquierda es +X (.L). Unidades: metros (1,79 m de alto).
+Para Godot: exportar glTF 2.0 (+Y Up), sin "Skinning".
 """
 
 import math
@@ -29,24 +38,98 @@ import bpy
 
 # --- Parámetros ---------------------------------------------------------------
 
-ATLAS_SIZE = 256          # 128 o 256
-LIMB_SIDES = 6            # lados de brazos y piernas (6 a 8)
-HEAD_SIDES = 8            # lados de la cabeza
-MAX_TRIS = 300
+ATLAS_SIZE = 256
+MAX_TRIS = 520
 
-# Alturas de las articulaciones (m, desde el piso).
-HIP_Z = 0.88              # cadera (origen del torso y de los muslos)
-NECK_Z = 1.40             # cuello (origen de la cabeza)
-SHOULDER_Z = 1.33
-SHOULDER_X = 0.25
-HIP_X = 0.10
-THIGH_LEN = 0.41
-CALF_LEN = 0.37           # tobillo a 0,10 m: el botín apoya en el piso
-UPPER_ARM_LEN = 0.28
-LOWER_ARM_LEN = 0.25
+# Colores del equipo (RGB 0-1). Por defecto, el blanco y negro de las capturas.
+COLORS = {
+    "shirt": (0.92, 0.92, 0.90),
+    "trim": (0.10, 0.10, 0.12),      # cuello, puños y franja del pecho
+    "number": (0.08, 0.08, 0.10),
+    "shorts": (0.10, 0.10, 0.12),
+    "sock": (0.92, 0.92, 0.90),
+    "sock_trim": (0.10, 0.10, 0.12),
+    "boot": (0.06, 0.06, 0.07),
+    "boot_stripe": (0.90, 0.90, 0.88),
+    "skin": (0.86, 0.66, 0.52),
+    "skin_dark": (0.62, 0.44, 0.33),  # sombra de la cara, boca
+    "hair": (0.42, 0.26, 0.12),
+    "eyes": (0.10, 0.08, 0.07),
+}
+SHIRT_NUMBER = "5"
+CHEST_STRIPE = True
+
+# Articulaciones (m desde el piso o respecto del padre).
+HIP_Z = 0.92        # centro de la cadera: origen de Hips y de los muslos
+HIP_X = 0.09
+WAIST_DZ = 0.08     # cintura (origen del torso) sobre la cadera
+NECK_DZ = 0.50      # base del cuello sobre la cintura
+SHOULDER_X = 0.20
+SHOULDER_DZ = 0.43  # hombros sobre la cintura
+THIGH_LEN = 0.42
+CALF_LEN = 0.42     # tobillo a 0,08 m: la suela apoya en el piso
+UPPER_ARM_LEN = 0.29
+LOWER_ARM_LEN = 0.26
+
+SQ2 = math.sqrt(2.0)
 
 
-# --- Escena -------------------------------------------------------------------
+def box(z, hw, hd, cy=0.0):
+    """Anillo de 4 lados (caja) con medio ancho `hw`, media profundidad `hd`."""
+    return (z, hw * SQ2, hd * SQ2, cy)
+
+
+# --- Piezas -----------------------------------------------------------------------
+# Cada anillo: (z, radio_x, radio_y, centro_y) relativo al origen de la pieza.
+# `paint`: color de cada tramo entre anillos; `caps`: tapas (abajo, arriba).
+# `rect`: tamaño en píxeles de su lugar en el atlas.
+
+PARTS = [
+    {"name": "Hips", "parent": "Player", "joint": (0.0, 0.0, HIP_Z), "sides": 4,
+     "rings": [box(-0.09, 0.165, 0.105), box(WAIST_DZ + 0.02, 0.155, 0.10)],
+     "paint": ["shorts"], "caps": ("shorts", "shorts"), "rect": (96, 24)},
+    {"name": "Torso", "parent": "Hips", "joint": (0.0, 0.0, WAIST_DZ), "sides": 8,
+     "rings": [(-0.05, 0.150, 0.100, 0.0), (0.22, 0.180, 0.118, -0.005),
+               (SHOULDER_DZ - 0.01, 0.210, 0.112, 0.0), (NECK_DZ, 0.095, 0.075, 0.005)],
+     "paint": ["shirt", "shirt", "shirt"], "caps": ("shirt", "skin"), "rect": (128, 96),
+     "detail": "torso"},
+    {"name": "Head", "parent": "Torso", "joint": (0.0, 0.0, NECK_DZ), "sides": 8,
+     "rings": [(-0.02, 0.050, 0.050, 0.0), (0.055, 0.074, 0.086, -0.012),
+               (0.135, 0.094, 0.106, -0.006), (0.21, 0.094, 0.104, 0.0),
+               (0.285, 0.060, 0.066, 0.006)],
+     "paint": ["skin", "skin", "skin", "hair"], "caps": ("skin", "hair"), "rect": (96, 64),
+     "detail": "head"},
+    {"name": "UpperArm", "parent": "Torso", "joint": (SHOULDER_X, 0.0, SHOULDER_DZ), "sides": 6,
+     "rings": [(0.0, 0.060, 0.058, 0.0), (-0.13, 0.058, 0.056, 0.0),
+               (-0.135, 0.041, 0.040, 0.0), (-UPPER_ARM_LEN, 0.036, 0.035, 0.0)],
+     "paint": ["shirt", "skin", "skin"], "caps": ("skin", "shirt"), "rect": (48, 48),
+     "detail": "sleeve"},
+    {"name": "LowerArm", "parent": "UpperArm", "joint": (0.0, 0.0, -UPPER_ARM_LEN), "sides": 6,
+     "rings": [(0.0, 0.036, 0.035, 0.0), (-LOWER_ARM_LEN, 0.029, 0.026, 0.0)],
+     "paint": ["skin"], "caps": ("skin", "skin"), "rect": (32, 40)},
+    {"name": "Hand", "parent": "LowerArm", "joint": (0.0, 0.0, -LOWER_ARM_LEN), "sides": 4,
+     "rings": [box(-0.15, 0.040, 0.019), box(0.01, 0.032, 0.022)],
+     "paint": ["skin"], "caps": ("skin", "skin"), "rect": (32, 24)},
+    {"name": "Thigh", "parent": "Hips", "joint": (HIP_X, 0.0, 0.0), "sides": 6,
+     "rings": [(0.0, 0.088, 0.086, 0.0), (-0.17, 0.098, 0.094, 0.0),
+               (-0.175, 0.068, 0.066, 0.0), (-THIGH_LEN, 0.052, 0.050, 0.0)],
+     "paint": ["shorts", "skin", "skin"], "caps": ("skin", "shorts"), "rect": (64, 64)},
+    {"name": "Calf", "parent": "Thigh", "joint": (0.0, 0.0, -THIGH_LEN), "sides": 6,
+     "rings": [(0.0, 0.054, 0.052, 0.0), (-0.12, 0.060, 0.062, 0.006),
+               (-CALF_LEN, 0.036, 0.036, 0.0)],
+     "paint": ["sock", "sock"], "caps": ("sock", "sock"), "rect": (48, 64),
+     "detail": "sock"},
+    {"name": "Boot", "parent": "Calf", "joint": (0.0, 0.0, -CALF_LEN), "sides": 4,
+     "rings": [box(-(HIP_Z - THIGH_LEN - CALF_LEN), 0.050, 0.140, -0.050),
+               box(-0.035, 0.046, 0.115, -0.045), box(0.025, 0.038, 0.055, 0.0)],
+     "paint": ["boot", "boot"], "caps": ("boot", "sock"), "rect": (48, 32),
+     "detail": "boot"},
+]
+MIRRORED = {"UpperArm", "LowerArm", "Hand", "Thigh", "Calf", "Boot"}
+CAP_PX = 12
+
+
+# --- Escena -------------------------------------------------------------------------
 
 def clear_scene() -> None:
     if bpy.context.object is not None and bpy.context.object.mode != "OBJECT":
@@ -59,117 +142,248 @@ def clear_scene() -> None:
                 coll.remove(block)
 
 
-def link(obj: bpy.types.Object) -> bpy.types.Object:
+def link(obj):
     bpy.context.scene.collection.objects.link(obj)
     return obj
 
 
-# --- Primitivas (bmesh, con el origen ya en la articulación) ------------------
+# --- Atlas: lugares de cada pieza (estantes) --------------------------------------
 
-def lathe(name: str, sides: int, rings: list) -> bpy.types.Object:
-    """Prisma de `sides` lados con anillos [(z, radio_x, radio_y)] relativos
-    al origen. Una cara plana mira al frente (-Y). Tapas en las puntas."""
+def pack_atlas() -> dict:
+    """Rectángulos (x, y, w, h) en píxeles: la pieza y sus dos tapas."""
+    items = []
+    for p in PARTS:
+        items.append((p["name"], p["rect"]))
+        items.append((p["name"] + ":cap0", (CAP_PX, CAP_PX)))
+        items.append((p["name"] + ":cap1", (CAP_PX, CAP_PX)))
+    items.sort(key=lambda it: -it[1][1])
+    rects, x, y, shelf = {}, 0, 0, 0
+    for key, (w, h) in items:
+        if x + w > ATLAS_SIZE:
+            x, y, shelf = 0, y + shelf, 0
+        rects[key] = (x, y, w, h)
+        x += w
+        shelf = max(shelf, h)
+    assert y + shelf <= ATLAS_SIZE, "las piezas no entran en el atlas"
+    return rects
+
+
+# --- Malla (bmesh): anillos, tapas y UV cilíndrico --------------------------------
+
+def ring_angles(sides: int) -> list:
+    # Una cara plana mirando al frente (-Y).
+    return [2.0 * math.pi * i / sides + math.pi / sides - math.pi / 2.0 for i in range(sides)]
+
+
+def u_of(angle: float, theta0: float) -> float:
+    """U alrededor del cuerpo: arranca en el costado derecho del jugador (-X),
+    pasa por el frente y la izquierda y termina en la espalda; de frente y
+    de espaldas la textura se lee derecha (sin espejar)."""
+    return ((angle - theta0) % (2.0 * math.pi)) / (2.0 * math.pi)
+
+
+def part_layout(p: dict) -> dict:
+    """Bandas en V de cada tramo y U del frente / espalda (para pintar)."""
+    zs = [r[0] for r in p["rings"]]
+    z0, z1 = min(zs), max(zs)
+    bands = [((a - z0) / (z1 - z0), (b - z0) / (z1 - z0)) for a, b in zip(zs, zs[1:])]
+    angles = [((a + math.pi) % (2.0 * math.pi)) - math.pi for a in ring_angles(p["sides"])]
+    theta0 = min(angles)
+    return {"bands": bands, "theta0": theta0,
+            "u_front": u_of(-math.pi / 2.0, theta0), "u_back": u_of(math.pi / 2.0, theta0)}
+
+
+def build_mesh(p: dict, rects: dict):
+    n = p["sides"]
+    angles = ring_angles(n)
+    lay = part_layout(p)
     bm = bmesh.new()
+    uv = bm.loops.layers.uv.new("UVMap")
     loops = []
-    for z, rx, ry in rings:
-        ring = []
-        for i in range(sides):
-            a = 2.0 * math.pi * i / sides + math.pi / sides - math.pi / 2.0
-            ring.append(bm.verts.new((math.cos(a) * rx, math.sin(a) * ry, z)))
-        loops.append(ring)
-    for r0, r1 in zip(loops, loops[1:]):
-        for i in range(sides):
-            j = (i + 1) % sides
-            bm.faces.new((r0[i], r0[j], r1[j], r1[i]))
-    bm.faces.new(loops[0])
-    bm.faces.new(list(reversed(loops[-1])))
-    return _finish(name, bm)
+    for z, rx, ry, cy in p["rings"]:
+        loops.append([bm.verts.new((math.cos(a) * rx, math.sin(a) * ry + cy, z)) for a in angles])
 
+    x, y, w, h = rects[p["name"]]
 
-def tapered_box(name: str, bottom: tuple, top: tuple) -> bpy.types.Object:
-    """Caja de 8 vértices: cada tapa es (z, ancho, profundidad, centro_y)."""
-    bm = bmesh.new()
-    rects = []
-    for z, w, d, cy in (bottom, top):
-        hw, hd = w / 2.0, d / 2.0
-        rects.append([bm.verts.new(v) for v in (
-            (-hw, cy - hd, z), (hw, cy - hd, z), (hw, cy + hd, z), (-hw, cy + hd, z))])
-    b, t = rects
-    for i in range(4):
-        j = (i + 1) % 4
-        bm.faces.new((b[i], b[j], t[j], t[i]))
-    bm.faces.new(list(reversed(b)))
-    bm.faces.new(t)
-    return _finish(name, bm)
+    def to_px(u, v, rect):
+        rx0, ry0, rw, rh = rect
+        return ((rx0 + 0.5 + u * (rw - 1.0)) / ATLAS_SIZE, (ry0 + 0.5 + v * (rh - 1.0)) / ATLAS_SIZE)
 
-
-def _finish(name: str, bm: bmesh.types.BMesh) -> bpy.types.Object:
+    zs = [r[0] for r in p["rings"]]
+    z0, z1 = min(zs), max(zs)
+    for k in range(len(loops) - 1):
+        ra, rb = loops[k], loops[k + 1]
+        va = (zs[k] - z0) / (z1 - z0)
+        vb = (zs[k + 1] - z0) / (z1 - z0)
+        for i in range(n):
+            j = (i + 1) % n
+            ui = u_of(angles[i], lay["theta0"])
+            uj = ui + 1.0 / n
+            # Cara con la vuelta de la U: siempre entera, sin cruzar el borde.
+            face = bm.faces.new((ra[i], ra[j], rb[j], rb[i]))
+            for loop, (u, v) in zip(face.loops, ((ui, va), (uj, va), (uj, vb), (ui, vb))):
+                loop[uv].uv = to_px(min(u, 1.0), v, (x, y, w, h))
+    # Tapas: proyección plana en su cuadradito.
+    for c, ring in enumerate((loops[0], loops[-1])):
+        verts = ring if c == 1 else list(reversed(ring))
+        face = bm.faces.new(verts)
+        xs = [v.co.x for v in ring]
+        ys = [v.co.y for v in ring]
+        sx = max(max(xs) - min(xs), 1e-6)
+        sy = max(max(ys) - min(ys), 1e-6)
+        for loop in face.loops:
+            u = (loop.vert.co.x - min(xs)) / sx
+            v = (loop.vert.co.y - min(ys)) / sy
+            loop[uv].uv = to_px(u, v, rects[f"{p['name']}:cap{c}"])
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return bm
+
+
+def make_object(name: str, p: dict, rects: dict, mat):
+    bm = build_mesh(p, rects)
     mesh = bpy.data.meshes.new(name)
     bm.to_mesh(mesh)
     bm.free()
     for poly in mesh.polygons:
         poly.use_smooth = False  # Shade Flat
+    mesh.materials.append(mat)
     return link(bpy.data.objects.new(name, mesh))
 
 
-def limb(name: str, length: float, r_top: float, r_bottom: float, sides: int = LIMB_SIDES) -> bpy.types.Object:
-    """Brazo o pierna colgando hacia -Z desde la articulación (origen)."""
-    return lathe(name, sides, [(0.0, r_top, r_top * 0.9), (-length, r_bottom, r_bottom * 0.9)])
+# --- Textura: el atlas pintado ------------------------------------------------------
+
+DIGITS = {
+    "0": ["111", "101", "101", "101", "111"], "1": ["010", "110", "010", "010", "111"],
+    "2": ["111", "001", "111", "100", "111"], "3": ["111", "001", "111", "001", "111"],
+    "4": ["101", "101", "111", "001", "001"], "5": ["111", "100", "111", "001", "111"],
+    "6": ["111", "100", "111", "101", "111"], "7": ["111", "001", "010", "010", "010"],
+    "8": ["111", "101", "111", "101", "111"], "9": ["111", "101", "111", "001", "111"],
+}
 
 
-def attach(child: bpy.types.Object, parent: bpy.types.Object, local: tuple) -> bpy.types.Object:
-    """Emparenta sin inversa: `local` es la articulación en el espacio del padre."""
-    child.parent = parent
-    child.location = local
-    return child
+class Canvas:
+    def __init__(self, size: int):
+        self.size = size
+        self.px = [0.0] * (size * size * 4)
+
+    def put(self, x: int, y: int, c) -> None:
+        if 0 <= x < self.size and 0 <= y < self.size:
+            i = (y * self.size + x) * 4
+            self.px[i:i + 4] = (c[0], c[1], c[2], 1.0)
+
+    def fill(self, x0, y0, x1, y1, c) -> None:
+        x0, x1 = min(x0, x1), max(x0, x1)
+        y0, y1 = min(y0, y1), max(y0, y1)
+        for yy in range(int(y0), int(math.ceil(y1))):
+            for xx in range(int(x0), int(math.ceil(x1))):
+                self.put(xx, yy, c)
 
 
-# --- Jugador ------------------------------------------------------------------
-
-def build_player() -> bpy.types.Object:
-    root = link(bpy.data.objects.new("Player", None))
-    root.empty_display_type = "PLAIN_AXES"
-    root.empty_display_size = 0.3
-
-    # Torso: origen en la pelvis; más ancho en los hombros (camiseta) que en
-    # la cintura (short).
-    torso = tapered_box("Torso", (-0.06, 0.30, 0.18, 0.0), (NECK_Z - HIP_Z, 0.46, 0.22, 0.0))
-    attach(torso, root, (0.0, 0.0, HIP_Z))
-
-    # Cabeza grande: mentón angosto, ancha en los pómulos, frente un poco menor.
-    head = lathe("Head", HEAD_SIDES, [
-        (0.00, 0.075, 0.075),
-        (0.15, 0.135, 0.13),
-        (0.30, 0.11, 0.11),
-    ])
-    attach(head, torso, (0.0, 0.0, NECK_Z - HIP_Z))
-
-    for side, sx in (("L", 1.0), ("R", -1.0)):
-        upper = limb(f"UpperArm.{side}", UPPER_ARM_LEN, 0.058, 0.046)
-        attach(upper, torso, (sx * SHOULDER_X, 0.0, SHOULDER_Z - HIP_Z))
-        lower = limb(f"LowerArm.{side}", LOWER_ARM_LEN, 0.046, 0.038)
-        attach(lower, upper, (0.0, 0.0, -UPPER_ARM_LEN))
-        # Mano exagerada (casi del tamaño del antebrazo de ancho).
-        hand = tapered_box(f"Hand.{side}", (-0.13, 0.10, 0.065, 0.0), (0.0, 0.075, 0.055, 0.0))
-        attach(hand, lower, (0.0, 0.0, -LOWER_ARM_LEN))
-
-        thigh = limb(f"Thigh.{side}", THIGH_LEN, 0.088, 0.066)
-        attach(thigh, torso, (sx * HIP_X, 0.0, 0.0))
-        calf = limb(f"Calf.{side}", CALF_LEN, 0.064, 0.044)
-        attach(calf, thigh, (0.0, 0.0, -THIGH_LEN))
-        # Botín grande: la suela apoya en el piso y la punta va hacia -Y.
-        ankle_z = HIP_Z - THIGH_LEN - CALF_LEN
-        boot = tapered_box(f"Boot.{side}", (-ankle_z, 0.14, 0.32, -0.07), (0.035, 0.11, 0.15, -0.01))
-        attach(boot, calf, (0.0, 0.0, -CALF_LEN))
-    return root
+def paint_atlas(rects: dict) -> list:
+    cv = Canvas(ATLAS_SIZE)
+    cv.fill(0, 0, ATLAS_SIZE, ATLAS_SIZE, (0.5, 0.5, 0.5))
+    for p in PARTS:
+        x, y, w, h = rects[p["name"]]
+        lay = part_layout(p)
+        for (v0, v1), key in zip(lay["bands"], p["paint"]):
+            cv.fill(x, y + min(v0, v1) * h, x + w, y + max(v0, v1) * h + 1, COLORS[key])
+        for c in (0, 1):
+            cx, cy, cw, ch = rects[f"{p['name']}:cap{c}"]
+            cv.fill(cx, cy, cx + cw, cy + ch, COLORS[p["caps"][c]])
+        detail = p.get("detail")
+        if detail:
+            globals()["_detail_" + detail](cv, (x, y, w, h), lay)
+    return cv.px
 
 
-# --- Material, UV y verificación ------------------------------------------------
+def _u(rect, u):
+    return rect[0] + u * rect[2]
 
-def atlas_material() -> bpy.types.Material:
+
+def _v(rect, v):
+    return rect[1] + v * rect[3]
+
+
+def _detail_torso(cv: Canvas, r, lay) -> None:
+    v_top = lay["bands"][-1][1]
+    v_sh = lay["bands"][-1][0]
+    # Cuello: ribete arriba de todo y una V adelante.
+    cv.fill(r[0], _v(r, v_top) - 2, r[0] + r[2], _v(r, v_top) + 1, COLORS["trim"])
+    uf = _u(r, lay["u_front"])
+    for k in range(6):
+        cv.fill(uf - 5 + k, _v(r, v_top) - 3 - k, uf + 5 - k, _v(r, v_top) - 2 - k, COLORS["skin"])
+    # Franja del pecho (como la de Alemania 2002).
+    if CHEST_STRIPE:
+        vs = (lay["bands"][1][0] + lay["bands"][1][1]) * 0.5
+        cv.fill(r[0], _v(r, vs) - 2, r[0] + r[2], _v(r, vs) + 2, COLORS["trim"])
+    # Escudo a la izquierda del pecho (derecha de la imagen) y número chico.
+    vc = lay["bands"][1][1] - 0.18
+    cv.fill(uf + 7, _v(r, vc), uf + 12, _v(r, vc) + 6, COLORS["trim"])
+    # Número de espalda, grande (cada píxel de la fuente = 3x4).
+    _number(cv, _u(r, lay["u_back"]), _v(r, (lay["bands"][0][1] + v_sh) * 0.5) - 2, SHIRT_NUMBER, 3, 4)
+
+
+def _number(cv: Canvas, cx: float, cy: float, text: str, sx: int, sy: int) -> None:
+    width = len(text) * 4 * sx - sx
+    x0 = int(cx - width / 2)
+    for n, ch in enumerate(text):
+        g = DIGITS.get(ch)
+        if g is None:
+            continue
+        for row in range(5):
+            for col in range(3):
+                if g[row][col] == "1":
+                    px = x0 + n * 4 * sx + col * sx
+                    py = int(cy) + (4 - row) * sy
+                    cv.fill(px, py, px + sx, py + sy, COLORS["number"])
+
+
+def _detail_head(cv: Canvas, r, lay) -> None:
+    (n0, n1), (j0, j1), (c0, c1), (b0, b1) = lay["bands"]
+    uf = _u(r, lay["u_front"])
+    face_half = r[2] * 0.17
+    # Pelo: atrás y a los costados desde la nuca; patillas hasta la mandíbula.
+    for x in range(r[0], r[0] + r[2]):
+        d = abs(x - uf)
+        d = min(d, r[2] - d)
+        if d > face_half:
+            cv.fill(x, _v(r, c0 if d < r[2] * 0.3 else j0 + 0.05), x + 1, _v(r, b1) + 1, COLORS["hair"])
+    # Flequillo y cejas.
+    cv.fill(uf - face_half, _v(r, b0) - 2, uf + face_half, _v(r, b0) + 1, COLORS["hair"])
+    # Ojos, nariz y boca.
+    ye = _v(r, c0 + (c1 - c0) * 0.55)
+    for s in (-1, 1):
+        cv.fill(uf + s * 4 - (2 if s < 0 else 0), ye, uf + s * 4 + (0 if s < 0 else 2), ye + 2, COLORS["eyes"])
+    cv.fill(uf - 1, _v(r, c0) - 1, uf + 1, _v(r, c0) + 1, COLORS["skin_dark"])
+    ym = _v(r, j0 + (j1 - j0) * 0.55)
+    cv.fill(uf - 3, ym, uf + 3, ym + 1, COLORS["skin_dark"])
+    # Sombra del cuello bajo la mandíbula.
+    cv.fill(r[0], _v(r, n1) - 2, r[0] + r[2], _v(r, n1), COLORS["skin_dark"])
+
+
+def _detail_sleeve(cv: Canvas, r, lay) -> None:
+    v_cuff = lay["bands"][0][1]
+    cv.fill(r[0], _v(r, v_cuff) - 2, r[0] + r[2], _v(r, v_cuff) + 1, COLORS["trim"])
+
+
+def _detail_sock(cv: Canvas, r, lay) -> None:
+    v_top = 1.0  # la rodilla (arriba de la media)
+    cv.fill(r[0], _v(r, v_top) - 7, r[0] + r[2], _v(r, v_top) - 4, COLORS["sock_trim"])
+
+
+def _detail_boot(cv: Canvas, r, lay) -> None:
+    # Las tres tiras en los costados, en diagonal.
+    for side_u in (0.125, 0.625):
+        cx = _u(r, side_u)
+        for k in range(3):
+            for t in range(int(r[3] * 0.6)):
+                cv.put(int(cx - 6 + k * 4 + t * 0.35), int(r[1] + 3 + t), COLORS["boot_stripe"])
+
+
+def atlas_material(rects: dict):
     img = bpy.data.images.new(f"WE_Atlas_{ATLAS_SIZE}", ATLAS_SIZE, ATLAS_SIZE)
-    img.generated_type = "UV_GRID"  # grilla de prueba; reemplazar por el pixel art
+    img.pixels = paint_atlas(rects)
+    img.pack()
     mat = bpy.data.materials.new("WE_Atlas")
     mat.use_nodes = True
     nodes = mat.node_tree.nodes
@@ -177,43 +391,47 @@ def atlas_material() -> bpy.types.Material:
     bsdf.inputs["Roughness"].default_value = 1.0
     tex = nodes.new("ShaderNodeTexImage")
     tex.image = img
-    tex.interpolation = "Closest"  # sin filtrado: píxeles nítidos estilo PS1
+    tex.interpolation = "Closest"  # píxeles nítidos, sin filtrado
     tex.location = (-350, 300)
     mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     return mat
 
 
-def meshes() -> list:
-    return [o for o in bpy.data.objects if o.type == "MESH"]
+# --- Jugador ------------------------------------------------------------------------
 
-
-def smart_uv_all() -> None:
-    """Smart UV Project de todas las piezas a la vez (edición multiobjeto):
-    las islas se reparten en un único espacio 0-1, el del atlas."""
-    parts = meshes()
-    bpy.ops.object.select_all(action="DESELECT")
-    for o in parts:
-        o.select_set(True)
-    bpy.context.view_layer.objects.active = parts[0]
-    bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_all(action="SELECT")
-    bpy.ops.uv.smart_project(angle_limit=math.radians(66.0), island_margin=1.5 / ATLAS_SIZE)
-    bpy.ops.object.mode_set(mode="OBJECT")
+def build_player():
+    rects = pack_atlas()
+    mat = atlas_material(rects)
+    root = link(bpy.data.objects.new("Player", None))
+    root.empty_display_type = "PLAIN_AXES"
+    root.empty_display_size = 0.3
+    objs = {"Player": root}
+    for p in PARTS:
+        sides = (("L", 1.0), ("R", -1.0)) if p["name"] in MIRRORED else (("", 1.0),)
+        for suffix, sx in sides:
+            name = f"{p['name']}.{suffix}" if suffix else p["name"]
+            obj = make_object(name, p, rects, mat)
+            parent = p["parent"]
+            if parent in MIRRORED:
+                parent = f"{parent}.{suffix}"
+            jx, jy, jz = p["joint"]
+            # Sin inversa: el origen queda en la articulación, relativo al padre.
+            obj.parent = objs[parent]
+            obj.location = (jx * sx, jy, jz)
+            objs[name] = obj
+    return root
 
 
 def triangle_count() -> int:
-    return sum(len(p.vertices) - 2 for o in meshes() for p in o.data.polygons)
+    return sum(len(p.vertices) - 2 for o in bpy.data.objects if o.type == "MESH" for p in o.data.polygons)
 
 
 def main() -> None:
     clear_scene()
     build_player()
-    mat = atlas_material()
-    for o in meshes():
-        o.data.materials.append(mat)
-    smart_uv_all()
     tris = triangle_count()
-    print(f"MASTER ELEVEN: {len(meshes())} piezas, {tris} triángulos (máx. {MAX_TRIS})")
+    parts = sum(1 for o in bpy.data.objects if o.type == "MESH")
+    print(f"MASTER ELEVEN: {parts} piezas, {tris} triángulos (máx. {MAX_TRIS})")
     assert tris <= MAX_TRIS, f"El jugador tiene {tris} triángulos (máximo {MAX_TRIS})"
 
 
