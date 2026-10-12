@@ -43,7 +43,7 @@ además arma el `.exe` de Windows).
 | D3 — Liga Virtual: Plantel, Dirección guardada, Calendario; escudos PNG | 🟡 Hecho, pendiente de tu prueba | #33 |
 | D4 — Liga Virtual: mercado de pases con puntos WE | 🟡 Hecho, pendiente de tu prueba | #33 |
 | D5 — Liga Virtual: noticias, historial y palmarés | 🟡 Hecho, pendiente de tu prueba | #33 |
-| Diseño Definitivo WE (etapa 2: cara, peinados y textura de detalle) | 🟡 Hecho, **pendiente de tu prueba** | — |
+| Diseño Definitivo WE (etapa 3: 20 caras y 8 peinados) | 🟡 Hecho, **pendiente de tu prueba** | — |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -163,6 +163,15 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Diseño Definitivo WE (etapa 3): caras y peinados
+
+| Pedido | Cambio |
+|---|---|
+| Variantes de cara | Hoja de 20 caras en pixel art: 5 barbas (nada, de tres días, bigote, candado, barba) x 4 estilos de ojos, cejas y boca. La barba es la del jugador; el estilo sale de su semilla. Cejas y barba con su color. |
+| Más peinados | Largo, coleta, mohicano, copete y "pelado arriba", además de corto, rastas y afro. Cada peinado del jugador usa el bloque que más se le parece. |
+
+**Tests:** no se corrieron (pedido tuyo).
 
 ## Diseño Definitivo WE (etapa 2): cabeza, peinados y textura de detalle
 

@@ -53,6 +53,11 @@ uniform sampler2D fabric_tex : hint_normal, filter_linear_mipmap, repeat_enable;
 // (ojos, cejas, suela, cordones).
 uniform bool use_detail = false;
 uniform sampler2D detail_tex : filter_nearest_mipmap;
+// Hoja de caras (5 x 4 celdas de la región de la cabeza: columna = barba,
+// fila = estilo de ojos, cejas y boca); a = 1 - pelo (cejas y barba, con
+// beard_color). -1: la cara de la textura de detalle.
+uniform sampler2D face_tex : filter_nearest_mipmap;
+uniform int face_variant = -1;
 
 // Plano: entre la piel (3) y el pelo (5) no tiene que aparecer otra zona.
 varying flat float v_region;
@@ -270,9 +275,17 @@ void fragment() {
 		spec = 0.12;
 	}
 	if (use_detail) {
-		vec3 d = texture(detail_tex, UV).rgb;
+		vec4 d = texture(detail_tex, UV);
+		float hair_cov = 0.0;
+		if (face_variant >= 0 && UV.x < 0.5 && UV.y > 0.75) {
+			vec2 cell = vec2(float(face_variant % 5), float(face_variant / 5));
+			vec2 local = clamp(vec2(UV.x * 2.0, (UV.y - 0.75) * 4.0), vec2(0.0), vec2(0.999));
+			d = texture(face_tex, (cell + local) / vec2(5.0, 4.0));
+			hair_cov = 1.0 - d.a;
+		}
 		c *= d.r * 2.0;
 		c = mix(c, vec3(d.b), d.g);
+		c = mix(c, beard_color, hair_cov);
 	}
 	ALBEDO = c;
 	ROUGHNESS = rough;

@@ -6,7 +6,8 @@ extends RefCounted
 ## mano) y se exporta a assets/models/players/we_definitivo.glb con los
 ## mismos huesos que el cuerpo detallado: usa todas las animaciones.
 ## El .glb trae el cuerpo (WE_Definitivo) y los peinados en bloques
-## (WE_Pelo_corto, WE_Pelo_rastas, WE_Pelo_afro), cada uno su malla.
+## (WE_Pelo_corto, _rastas, _afro, _largo, _coleta, _mohicano, _copete,
+## _herradura), cada uno su malla.
 ##
 ## Cada material del modelo es una ZONA de la ropa; acá se pasa al color de
 ## vértice que lee player_body.gdshader (camiseta, short, medias, piel,
@@ -17,6 +18,9 @@ extends RefCounted
 
 const GLB_PATH := "res://assets/models/players/we_definitivo.glb"
 const DETAIL_PATH := "res://assets/models/players/we_definitivo_detalle.png"
+const FACES_PATH := "res://assets/models/players/we_definitivo_caras.png"
+## Hoja de caras: columnas = barba (0 nada ... 4 barba), filas = estilos.
+const FACE_STYLES := 4
 const BODY := "WE_Definitivo"
 
 ## Material del .glb -> [zona del shader, torso (diseño y número), ribete].
@@ -44,19 +48,41 @@ static func available() -> bool:
 ## Pieza de pelo para un peinado (HairBuilder.Style), o "" si va pelado.
 static func hair_part(style: int) -> String:
 	match style:
-		HairBuilder.Style.SHAVED, HairBuilder.Style.HORSESHOE:
+		HairBuilder.Style.SHAVED:
 			return ""
+		HairBuilder.Style.HORSESHOE:
+			return "WE_Pelo_herradura"
 		HairBuilder.Style.DREADS, HairBuilder.Style.CORNROWS:
 			return "WE_Pelo_rastas"
 		HairBuilder.Style.AFRO, HairBuilder.Style.CURLY_BAND:
 			return "WE_Pelo_afro"
+		HairBuilder.Style.LONG_PARTED:
+			return "WE_Pelo_largo"
+		HairBuilder.Style.PONYTAIL:
+			return "WE_Pelo_coleta"
+		HairBuilder.Style.MOHAWK:
+			return "WE_Pelo_mohicano"
+		HairBuilder.Style.QUIFF:
+			return "WE_Pelo_copete"
 	return "WE_Pelo_corto"
+
+
+## Celda de la hoja de caras: la barba del jugador (0-4) y un estilo de ojos,
+## cejas y boca que sale de su semilla (siempre el mismo para él).
+static func face_variant(beard: int, seed: int) -> int:
+	return clampi(beard, 0, 4) + 5 * posmod(seed * 7 + 3, FACE_STYLES)
 
 
 static func detail_texture() -> Texture2D:
 	if not _cache.has("detail"):
 		_cache["detail"] = load(DETAIL_PATH) if ResourceLoader.exists(DETAIL_PATH) else null
 	return _cache["detail"]
+
+
+static func faces_texture() -> Texture2D:
+	if not _cache.has("faces"):
+		_cache["faces"] = load(FACES_PATH) if ResourceLoader.exists(FACES_PATH) else null
+	return _cache["faces"]
 
 
 ## Malla (una superficie, con zonas, compartida por todos los jugadores) y

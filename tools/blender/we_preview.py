@@ -16,6 +16,7 @@ from mathutils import Euler, Matrix, Vector
 HERE = os.path.dirname(os.path.abspath(__file__))
 BLEND = os.path.join(HERE, "we_definitivo.blend")
 OUT = os.path.join(HERE, "preview")
+HAIRS = ("pelado", "corto", "rastas", "afro", "largo", "coleta", "mohicano", "copete", "herradura")
 
 
 def setup():
@@ -110,9 +111,9 @@ def main():
     # Cabeza con cada peinado (de 3/4).
     cam.data.ortho_scale = 0.42
     sc.render.resolution_x = sc.render.resolution_y = 300
-    for hair in ("pelado", "corto", "rastas", "afro"):
+    for hair in HAIRS:
         show_hair(hair)
-        a = math.radians(30)
+        a = math.radians(55)
         cam.location = Vector((math.sin(a) * 5, -math.cos(a) * 5, 1.71))
         cam.rotation_euler = Euler((math.radians(90), 0, a))
         sc.render.filepath = os.path.join(OUT, "cabeza_" + hair + ".png")

@@ -5,13 +5,15 @@ Winning Eleven 2002: pocos polígonos, caras planas, camiseta suelta y
 cuadrada, short ancho, medias hasta la rodilla, botines en bloque y puños.
 Es el estilo **por defecto** (Partido > Jugadores: "Diseño Definitivo WE").
 
-**Etapa 2 (esta):** cabeza con mandíbula, mentón, nariz y orejas; cara en
-pixel art; tres peinados en bloques (corto, rastas, afro; el juego elige
-según el jugador y le pone su color de pelo); short y mangas más sueltos;
+**Etapa 3 (esta):** cabeza con mandíbula, mentón, nariz y orejas; 20 caras
+en pixel art (5 barbas x 4 estilos de ojos, cejas y boca); 8 peinados en
+bloques (corto, rastas, afro, largo, coleta, mohicano, copete, pelado
+arriba) con el color de pelo del jugador; short y mangas más sueltos;
 textura de detalle (pliegues, costuras, suela, cordones).
 
 ![Blender: pose T, zancada de carrera y peinados](img/we_definitivo_blender.jpg)
 ![En el juego: hoja de poses](img/we_definitivo_juego.png)
+![Hoja de caras: columnas = barba, filas = estilo](img/we_definitivo_caras.png)
 
 ## Archivos
 
@@ -22,6 +24,7 @@ textura de detalle (pliegues, costuras, suela, cordones).
 | `tools/blender/we_preview.py` | Saca fotos del modelo (pose T y de carrera). |
 | `assets/models/players/we_definitivo.glb` | Lo que carga el juego: cuerpo y peinados (exportado del .blend). |
 | `assets/models/players/we_definitivo_detalle.png` | Textura de detalle en pixel art (256×256). |
+| `assets/models/players/we_definitivo_caras.png` | Hoja de caras (5 × 4 caras de 128×64). |
 | `scripts/player/we_body.gd` | Lo pone sobre el esqueleto del juego y le pasa las zonas al shader. |
 
 `tools/blender/` tiene `.gdignore`: Godot no importa el `.blend`.
@@ -42,10 +45,15 @@ textura de detalle (pliegues, costuras, suela, cordones).
   cuánto se pinta encima; B = el gris de esa pintura (ojos, cejas, suela,
   cordones). Así la misma textura sirve para todos los equipos. Sin marcas
   ni logos (regla del proyecto).
-- **Peinados:** objetos aparte (`WE_Pelo_corto`, `WE_Pelo_rastas`,
-  `WE_Pelo_afro`), pegados al hueso `Head`. Pelado y "pelado arriba" no
-  llevan pieza; rastas y trenzas usan rastas; afro y rulos usan afro; el
-  resto, corto.
+- **Caras:** la hoja de caras reemplaza la región de la cabeza de la textura
+  de detalle. Columna = barba del jugador (0 nada, 1 de tres días, 2 bigote,
+  3 candado, 4 barba); fila = estilo de ojos, cejas y boca, que sale de la
+  semilla del jugador (siempre el mismo). Canal A = pelo: cejas y barba van
+  con el color de barba/pelo del jugador.
+- **Peinados:** objetos aparte pegados al hueso `Head`: `WE_Pelo_corto`,
+  `_rastas` (rastas y trenzas), `_afro` (afro y rulos), `_largo`, `_coleta`,
+  `_mohicano`, `_copete` y `_herradura` (pelado arriba). Pelado: sin pieza.
+  Degradé, casco, flequillo y raya al costado usan el corto.
 - **Pesos rígidos:** cada anillo va a un hueso. En codos, rodillas, cintura,
   cuello, tobillos y hombros, el anillo de la articulación va mitad y mitad, para
   que no se abra al doblar.
@@ -89,9 +97,7 @@ en verde+azul (pintura). Si volvés a correr el script, la pisa.
 
 ## Próximos pasos
 
-1. **Más caras y peinados:** variantes de ojos, cejas y barba; más bloques
-   de pelo (largo, coleta, mohicano).
-2. **Animaciones propias** (reemplazan a las de Mixamo y a la librería
+1. **Animaciones propias** (reemplazan a las de Mixamo y a la librería
    actual), hechas en Blender sobre este Armature. Primero correr (rodilla
    adelante a 90°, codos a 90°, como el WE2002), trotar, caminar y parado;
    después pase, remate, cabezazo, barrida y arquero.

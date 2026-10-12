@@ -14,7 +14,8 @@
 #      cabeza con mandíbula, mentón, nariz y orejas; camiseta suelta, short
 #      abierto, medias, botines en bloque y puños.
 #   3. Peinados en bloques, cada uno un objeto aparte (WE_Pelo_corto,
-#      WE_Pelo_rastas, WE_Pelo_afro); el juego elige uno según el jugador.
+#      _rastas, _afro, _largo, _coleta, _mohicano, _copete, _herradura); el
+#      juego elige uno según el peinado del jugador.
 #   4. Pesos rígidos: cada anillo pegado a un hueso (codos, rodillas, cintura
 #      y cuello mitad y mitad, para que no se abran al doblar).
 #   5. Una ZONA por material. El juego pinta cada zona con los colores del
@@ -27,6 +28,10 @@
 #      cordones. Canales: R = sombreado (128 = neutro; más oscuro = pliegue),
 #      G = cuánto se pinta encima, B = gris de esa pintura (ojos, suela).
 #      Va ENCIMA de los colores del club, así sirve para todos los equipos.
+#      Aparte, la hoja de caras (we_definitivo_caras.png, 5 x 4 caras de
+#      128x64: columnas = barba 0 nada, 1 de tres días, 2 bigote, 3 candado,
+#      4 barba; filas = estilo de ojos, cejas y boca). Reemplaza la región de
+#      la cabeza; canal A = pelo (cejas y barba, con el color del jugador).
 #   7. Exporta assets/models/players/we_definitivo.glb (lo que carga el juego)
 #      y guarda tools/blender/we_definitivo.blend (para seguir editándolo a
 #      mano; la carpeta tiene .gdignore: Godot no lo importa).
@@ -54,9 +59,11 @@ REPO = os.path.normpath(os.path.join(HERE, "..", ".."))
 SKELETON_SRC = os.path.join(REPO, "assets", "models", "players", "player_body.gltf")
 OUT_GLB = os.path.join(REPO, "assets", "models", "players", "we_definitivo.glb")
 OUT_TEX = os.path.join(REPO, "assets", "models", "players", "we_definitivo_detalle.png")
+OUT_FACES = os.path.join(REPO, "assets", "models", "players", "we_definitivo_caras.png")
 OUT_BLEND = os.path.join(HERE, "we_definitivo.blend")
 BODY_NAME = "WE_Definitivo"
-HAIR_NAMES = ("corto", "rastas", "afro")
+HAIR_NAMES = ("corto", "rastas", "afro", "largo", "coleta", "mohicano", "copete", "herradura")
+FACE_COLS, FACE_ROWS = 5, 4
 TEX = 256
 
 # Colores de muestra (Francia, como la referencia). El juego usa los del club.
@@ -98,15 +105,16 @@ def to_blender(v):
     return Vector((v.x, -v.z, v.y))
 
 
-def ring(c, a, b, bones, mat, sq=0.6, back=None, tilt=0.0):
+def ring(c, a, b, bones, mat, sq=0.6, back=None, tilt=0.0, axes=None):
     """Un anillo de un tubo.
     c: centro (ejes del juego); a: medio ancho; b: medio largo hacia adelante
     (back: hacia atrás, si es distinto); bones: [(hueso, peso), ...]; mat:
     zona de la franja que empieza en este anillo; sq: qué tan "cuadrado" es
     (1 = elipse, 0.5 = caja con las esquinas cortadas); tilt: inclina el
-    anillo (adelante más alto que atrás, para el pelo)."""
+    anillo (adelante más alto que atrás, para el pelo); axes: (ea, eb)
+    propios de este anillo (tubos que se curvan, como el mohicano)."""
     return {"c": Vector(c), "a": a, "b": b, "back": b if back is None else back,
-            "bones": bones, "mat": mat, "sq": sq, "tilt": tilt}
+            "bones": bones, "mat": mat, "sq": sq, "tilt": tilt, "axes": axes}
 
 
 class Builder:
@@ -144,16 +152,21 @@ class Builder:
             loop[self.uv].uv = uvs[loop.vert]
         return f
 
-    def tube(self, name, rings, sides, ea, eb, region=None, cap_start=True, cap_end=True):
+    def tube(self, name, rings, sides, ea, eb, region=None, cap_start=True, cap_end=True, skip=None):
         """Tubo de `sides` caras entre anillos. ea / eb: ejes del anillo
         (ejes del juego) para los radios a / b. UV: u = la vuelta, v = a lo
-        largo, dentro de la región de la textura."""
+        largo, dentro de la región de la textura. skip: (de, a) en grados,
+        caras de los costados que no se arman (un tubo abierto)."""
         region = region or name
         ea = Vector(ea).normalized()
         eb = Vector(eb).normalized()
         loops = []
         for r in rings:
-            ebr = (eb + Y * r["tilt"]).normalized() if r["tilt"] else eb
+            ear, ebr = ea, eb
+            if r["axes"] is not None:
+                ear, ebr = Vector(r["axes"][0]).normalized(), Vector(r["axes"][1]).normalized()
+            if r["tilt"]:
+                ebr = (ebr + Y * r["tilt"]).normalized()
             loop = []
             for k in range(sides):
                 t = 2 * math.pi * (k + 0.5) / sides
@@ -162,7 +175,7 @@ class Builder:
                 # costados quedan planas (más "caja" que cilindro).
                 px = math.copysign(abs(ct) ** r["sq"], ct) * r["a"]
                 py = math.copysign(abs(st) ** r["sq"], st) * (r["b"] if st >= 0 else r["back"])
-                loop.append(self._vert(r["c"] + ea * px + ebr * py, r["bones"]))
+                loop.append(self._vert(r["c"] + ear * px + ebr * py, r["bones"]))
             loops.append(loop)
         dist = [0.0]
         for i in range(1, len(rings)):
@@ -180,6 +193,9 @@ class Builder:
             core = to_blender((rings[i]["c"] + rings[i + 1]["c"]) * 0.5)
             for k in range(sides):
                 k2 = (k + 1) % sides
+                mid = 360.0 * (k + 1) / sides
+                if skip is not None and skip[0] <= mid <= skip[1]:
+                    continue
                 self.face([(loops[i][k], uv(k, vs[i])), (loops[i][k2], uv(k + 1, vs[i])),
                            (loops[i + 1][k2], uv(k + 1, vs[i + 1])), (loops[i + 1][k], uv(k, vs[i + 1]))],
                           rings[i]["mat"], point=core)
@@ -322,10 +338,10 @@ def build_body(b):
 
 # --- Pelo (bloques) ------------------------------------------------------------
 
-def hair_cap(b, name, rings):
+def hair_cap(b, name, rings, cap_end=True, skip=None):
     hb = [("Head", 1.0)]
     b.tube(name, [ring((0, y, z), a, f, hb, "pelo", 0.8, back=bk, tilt=t) for y, z, a, f, bk, t in rings],
-           8, X, Z, region="pelo", cap_start=False)
+           8, X, Z, region="pelo", cap_start=False, cap_end=cap_end, skip=skip)
 
 
 CAP_SHORT = [
@@ -349,12 +365,60 @@ def build_hair(name):
             (1.897, -0.022, 0.045, 0.04, 0.05, 0.0),
         ])
         return b
+    hb = [("Head", 1.0)]
+    if name == "mohicano":
+        # Una cresta del frente a la nuca (los costados, rapados).
+        cen = Vector((0, 1.7, -0.015))
+        rings = []
+        for deg in range(25, 171, 18):
+            p = math.radians(deg)
+            d = Vector((0, math.sin(p), math.cos(p)))
+            reach = Vector((0, d.y * 0.118, d.z * (0.093 if d.z > 0 else 0.108)))
+            rings.append(ring(cen + reach + d * 0.012, 0.02, 0.028, hb, "pelo", 0.6,
+                              axes=(X, d)))
+        b.tube("pelo_mohicano", rings, 6, X, Y, region="pelo")
+        return b
+    if name == "herradura":
+        # "Pelado arriba": sólo la franja de los costados y la nuca.
+        hair_cap(b, "pelo_herradura", [
+            (1.662, -0.016, 0.093, 0.1, 0.11, 0.0),
+            (1.75, -0.017, 0.094, 0.098, 0.114, 0.0),
+            (1.778, -0.018, 0.084, 0.086, 0.104, 0.0),
+        ], cap_end=False, skip=(30, 150))
+        return b
     hair_cap(b, "pelo_" + name, CAP_SHORT)
+    if name == "largo":
+        # Cortina atrás hasta el cuello y mechones a los costados.
+        b.tube("pelo_largo_atras", [
+            ring((0, 1.74, -0.105), 0.088, 0.028, hb, "pelo", 0.5),
+            ring((0, 1.64, -0.112), 0.092, 0.03, hb, "pelo", 0.5),
+            ring((0, 1.56, -0.11), 0.086, 0.026, hb, "pelo", 0.5),
+        ], 6, X, Z, region="pelo", cap_start=False)
+        for side in (1, -1):
+            b.tube("pelo_largo_lado%d" % side, [
+                ring((0.092 * side, 1.73, -0.04), 0.018, 0.05, hb, "pelo", 0.5),
+                ring((0.098 * side, 1.64, -0.05), 0.02, 0.055, hb, "pelo", 0.5),
+                ring((0.094 * side, 1.6, -0.055), 0.018, 0.05, hb, "pelo", 0.5),
+            ], 4, X, Z, region="pelo", cap_start=False)
+    elif name == "coleta":
+        # Colita atada atrás (con la gomita del color del pelo, más oscura).
+        b.tube("pelo_coleta", [
+            ring((0, 1.725, -0.118), 0.026, 0.02, hb, "pelo", 0.6, axes=(X, Y)),
+            ring((0, 1.715, -0.145), 0.022, 0.018, hb, "pelo", 0.6, axes=(X, Y)),
+            ring((0, 1.65, -0.165), 0.028, 0.022, hb, "pelo", 0.6, axes=(X, Z)),
+            ring((0, 1.58, -0.16), 0.016, 0.014, hb, "pelo", 0.6, axes=(X, Z)),
+        ], 6, X, Z, region="pelo", cap_start=False)
+    elif name == "copete":
+        # Jopo: un bloque levantado sobre la frente.
+        b.tube("pelo_copete", [
+            ring((0, 1.8, -0.01), 0.066, 0.028, hb, "pelo", 0.6),
+            ring((0, 1.814, 0.04), 0.064, 0.03, hb, "pelo", 0.6),
+            ring((0, 1.818, 0.074), 0.056, 0.022, hb, "pelo", 0.6),
+        ], 6, X, Y, region="pelo", cap_start=False)
     if name == "rastas":
         # Trenzas en bloque que caen por atrás y a los costados.
         y, z, a, f, bk, tilt = CAP_SHORT[1]
         ebr = (Z + Y * tilt).normalized()
-        hb = [("Head", 1.0)]
         for i, deg in enumerate((185, 205, 225, 248, 270, 292, 315, 335, 355)):
             t = math.radians(deg)
             ct, st = math.cos(t), math.sin(t)
@@ -403,7 +467,7 @@ class Atlas:
         y = min(max(int((v0 + v * (v1 - v0)) * TEX), int(v0 * TEX)), int(v1 * TEX) - 1)
         return x, y
 
-    def set(self, x, y, shade=None, paint=None):
+    def set(self, x, y, shade=None, paint=None, **_kw):
         if 0 <= x < TEX and 0 <= y < TEX:
             if shade is not None:
                 self.img[y, x, 0] = shade
@@ -425,22 +489,24 @@ class Atlas:
             self.line(name, (deg0, val), (deg1, val), comp, **kw)
 
     def stamp(self, name, deg, value, comp, rows, keys):
-        """Dibujo de píxeles centrado en un punto (rows: filas de letras)."""
+        """Dibujo de píxeles centrado en un punto (rows: filas de letras, de
+        arriba hacia abajo en el modelo; en la cabeza la textura crece hacia
+        arriba, por eso se invierten)."""
         cx, cy = self.xy(name, deg, value, comp)
         h, w = len(rows), len(rows[0])
-        for ry, row in enumerate(rows):
+        for ry, row in enumerate(reversed(rows)):
             for rx, ch in enumerate(row):
                 if ch in keys:
                     self.set(cx - w // 2 + rx, cy - h // 2 + ry, **keys[ch])
 
     def save(self, path):
         arr = (np.clip(self.img, 0.0, 1.0) * 255.0 + 0.5).astype(np.uint8)
-        h, w, _ = arr.shape
+        h, w, ch = arr.shape
         raw = b"".join(b"\x00" + arr[y].tobytes() for y in range(h))
 
         def chunk(tag, data):
             return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
-        png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) \
+        png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6 if ch == 4 else 2, 0, 0, 0)) \
             + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b"")
         with open(path, "wb") as fh:
             fh.write(png)
@@ -550,6 +616,110 @@ def paint(tubes):
     return A
 
 
+# --- Hoja de caras -------------------------------------------------------------
+
+class FaceSheet(Atlas):
+    """Caras de 128x64 (la región de la cabeza) en una grilla: se pinta con
+    las mismas coordenadas que la cabeza del atlas, en la celda elegida.
+    Canal A = 1 - pelo (cejas y barba con el color de pelo del jugador)."""
+
+    def __init__(self, tubes):
+        super().__init__(tubes)
+        self.img = np.zeros((FACE_ROWS * 64, FACE_COLS * 128, 4), np.float32)
+        self.img[..., 0] = 0.5
+        self.img[..., 3] = 1.0
+        self.cell = (0, 0)
+        self.top = int(UV["cabeza"][1] * TEX)
+
+    def set(self, x, y, shade=None, paint=None, hair=None, dither=False):
+        hx, hy = x, y - self.top
+        if not (0 <= hx < 128 and 0 <= hy < 64) or (dither and (hx + hy) % 2):
+            return
+        px = self.img[self.cell[1] * 64 + hy, self.cell[0] * 128 + hx]
+        if shade is not None:
+            px[0] = shade
+        if paint is not None:
+            px[1] = 1.0
+            px[2] = paint
+        if hair is not None:
+            px[3] = 1.0 - hair
+
+    def area(self, name, deg0, deg1, y0, y1, pred, **kw):
+        for i in range(81):
+            deg = deg0 + (deg1 - deg0) * i / 80.0
+            for k in range(41):
+                y = y0 + (y1 - y0) * k / 40.0
+                if pred(deg, y):
+                    self.set(*self.xy(name, deg, y, "y"), **kw)
+
+
+def jaw_top(deg):
+    """Altura hasta donde llega la barba: baja en el centro (abajo de la
+    boca) y sube por los costados hasta las patillas."""
+    s = min(abs(deg - 90.0) / 90.0, 1.0)
+    f = min(max((s - 0.2) / 0.5, 0.0), 1.0)
+    return 1.617 + (1.672 - 1.617) * f * f * (3 - 2 * f)
+
+
+EYES = [
+    (0.034, [".DDDDD.", "WWDDDWW", ".WWDWW."]),
+    (0.033, ["DDDDD", "WDDDW"]),
+    (0.037, [".DDDDD.", "WWDDDWW", "WWDDDWW", ".WWWWW."]),
+    (0.034, ["sssssss", ".DDDDD.", "WWDDDWW"]),
+]
+BROWS = [
+    (1.727, ["hhhhhhh"], None),
+    (1.728, ["hhhhhhh", ".hhhhh."], None),
+    (1.729, ["....hhh", "hhhh..."], ["hhh....", "...hhhh"]),
+    (1.726, [".hhhhh."], None),
+]
+MOUTHS = [["mmmmmmm", ".lllll."], ["mmmmmmm", ".lllll."], ["mmmmmmmmm", "..lllll.."], ["mmmmm", ".lll."]]
+
+
+def paint_faces(tubes):
+    F = FaceSheet(tubes)
+    C = "cabeza"
+    tb = tubes[C]
+    keys = {"D": {"paint": 0.03, "hair": 0.0}, "W": {"paint": 0.85, "hair": 0.0},
+            "h": {"hair": 1.0}, "s": {"shade": 0.36}, "m": {"shade": 0.2, "hair": 0.0},
+            "l": {"shade": 0.6, "hair": 0.0}}
+    for row in range(FACE_ROWS):
+        for beard in range(FACE_COLS):
+            F.cell = (beard, row)
+            # Barba (debajo de los rasgos).
+            in_jaw = (lambda d, y: y < jaw_top(d))
+            lip = (lambda d, y: 72 <= d <= 108 and 1.631 <= y <= 1.644)
+            if beard == 1:
+                F.area(C, -15, 195, 1.572, 1.68, in_jaw, hair=0.55, dither=True)
+                F.area(C, 70, 110, 1.628, 1.646, lip, hair=0.45, dither=True)
+            elif beard == 2:
+                F.area(C, 70, 110, 1.628, 1.646, lip, hair=1.0)
+            elif beard == 3:
+                F.area(C, 70, 110, 1.628, 1.646, lip, hair=1.0)
+                F.area(C, 78, 102, 1.574, 1.616, lambda d, y: y > 1.58 or 84 <= d <= 96, hair=1.0)
+                F.area(C, 72, 108, 1.612, 1.64, lambda d, y: d <= 76 or d >= 104, hair=1.0)
+            elif beard == 4:
+                F.area(C, -15, 195, 1.572, 1.68, in_jaw, hair=1.0)
+                F.area(C, 70, 110, 1.628, 1.646, lip, hair=1.0)
+            # Rasgos.
+            dx, eye = EYES[row]
+            by, brow_l, brow_r = BROWS[row]
+            for sx in (1, -1):
+                F.stamp(C, head_deg(tb, dx * sx, 1.70), 1.70, "y", eye, keys)
+                F.stamp(C, head_deg(tb, 0.034 * sx, by), by, "y", brow_l if sx > 0 or brow_r is None else brow_r, keys)
+            F.stamp(C, 90, 1.649, "y", ["sssss"], keys)
+            F.stamp(C, 90, 1.624, "y", MOUTHS[row], keys)
+            F.line(C, (50, 1.59), (130, 1.59), "y", shade=0.45)
+            if row == 3:
+                # Surcos de la cara (un jugador más "curtido").
+                F.line(C, (78, 1.648), (72, 1.622), "y", shade=0.4)
+                F.line(C, (102, 1.648), (108, 1.622), "y", shade=0.4)
+            else:
+                F.line(C, (60, 1.64), (60, 1.6), "y", shade=0.46)
+                F.line(C, (120, 1.64), (120, 1.6), "y", shade=0.46)
+    return F
+
+
 # --- Materiales (para verlo en Blender igual que en el juego) -----------------
 
 def _sock(sockets, name, kind):
@@ -612,6 +782,7 @@ def main():
     build_body(body)
     hairs = {n: build_hair(n) for n in HAIR_NAMES}
     paint(body.tubes).save(OUT_TEX)
+    paint_faces(body.tubes).save(OUT_FACES)
     img = bpy.data.images.load(OUT_TEX)
     img.colorspace_settings.name = "Non-Color"
     materials = [make_material(n, c, img) for n, c in ZONES.items()]

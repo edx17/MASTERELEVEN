@@ -230,6 +230,12 @@ func setup(colors: Dictionary, seed: int) -> void:
 			if detail != null:
 				_body_mat.set_shader_parameter("use_detail", true)
 				_body_mat.set_shader_parameter("detail_tex", detail)
+				# Cara del jugador (barba y estilo) en la hoja de caras; las
+				# cejas y la barba, del color de pelo.
+				var faces := WeBody.faces_texture()
+				if faces != null:
+					_body_mat.set_shader_parameter("face_tex", faces)
+					_body_mat.set_shader_parameter("face_variant", WeBody.face_variant(beard, seed))
 			if hair_node != null:
 				hair_node.visible = false
 			var we_hair := WeBody.build(_skel, _body_mat, WeBody.hair_part(hair_style))
