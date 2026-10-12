@@ -92,6 +92,8 @@ var _height := 1.0
 var _build_scales := {}
 ## Peinado (HairBuilder.Style) y su malla.
 var hair_style: int = -1
+## Color del pelo del jugador (lo usa el peinado del Diseño Definitivo WE).
+var _hair_tone := Color(0.08, 0.06, 0.05)
 var hair_node: MeshInstance3D
 var recover_left := 0.0
 var side_speed := 0.0
@@ -170,6 +172,7 @@ func setup(colors: Dictionary, seed: int) -> void:
 		# Peinado con volumen (malla aparte pegada a la cabeza). Debajo, el cuero
 		# cabelludo va del color del pelo, salvo si arriba no hay pelo.
 		var hair_color: Color = colors.get("hair_color", HAIR_TONES[rng.randi() % HAIR_TONES.size()])
+		_hair_tone = hair_color
 		skin_color = skin
 		beard = int(colors.get("facial_hair", 0))
 		beard_color = colors.get("beard_color", hair_color)
@@ -217,14 +220,20 @@ func setup(colors: Dictionary, seed: int) -> void:
 		_body_mat.set_shader_parameter("beard_color", beard_color)
 		_body_mat.set_shader_parameter("long_sleeves", bool(colors.get("long_sleeves", false)))
 		if we:
-			# Por ahora todos pelados y sin cara (el pelo y la cara se
-			# diseñan después en el modelo). Caras planas también en la
-			# camiseta (sin el suavizado de tela del torso).
+			# Cara y pliegues de la textura de detalle (pixel art), peinado
+			# en bloques del modelo y caras planas también en la camiseta
+			# (sin el suavizado ni la trama de tela).
 			_body_mat.set_shader_parameter("draw_face", false)
 			_body_mat.set_shader_parameter("cloth_smooth", 0.0)
-			_body_mat.set_shader_parameter("hair", skin_color)
+			_body_mat.set_shader_parameter("use_fabric", false)
+			var detail := WeBody.detail_texture()
+			if detail != null:
+				_body_mat.set_shader_parameter("use_detail", true)
+				_body_mat.set_shader_parameter("detail_tex", detail)
 			if hair_node != null:
 				hair_node.visible = false
+			var we_hair := WeBody.build(_skel, _body_mat, WeBody.hair_part(hair_style))
+			_body_mat.set_shader_parameter("hair", _hair_tone if we_hair != null else skin_color)
 		body.visible = false
 		for extra in ["Eyebrows", "Eyes"]:
 			var em := _skel.find_child(extra, false, false) as Node3D

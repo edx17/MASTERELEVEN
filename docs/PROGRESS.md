@@ -43,7 +43,7 @@ además arma el `.exe` de Windows).
 | D3 — Liga Virtual: Plantel, Dirección guardada, Calendario; escudos PNG | 🟡 Hecho, pendiente de tu prueba | #33 |
 | D4 — Liga Virtual: mercado de pases con puntos WE | 🟡 Hecho, pendiente de tu prueba | #33 |
 | D5 — Liga Virtual: noticias, historial y palmarés | 🟡 Hecho, pendiente de tu prueba | #33 |
-| Diseño Definitivo WE (etapa 1: pelados y sin cara) | 🟡 Hecho, **pendiente de tu prueba** | — |
+| Diseño Definitivo WE (etapa 2: cara, peinados y textura de detalle) | 🟡 Hecho, **pendiente de tu prueba** | — |
 
 ### Base del juego (fases 1 a 3)
 - **Cancha y pelota**: cancha de 105×68 con arcos y red. Física propia de la
@@ -163,6 +163,21 @@ además arma el `.exe` de Windows).
    que vayan surgiendo de tus pruebas.
 
 ---
+
+## Diseño Definitivo WE (etapa 2): cabeza, peinados y textura de detalle
+
+Tu análisis del modelo de la etapa 1:
+
+| Reclamo | Cambio |
+|---|---|
+| Cabeza lisa, sin cara | Mandíbula, mentón adelantado, nuca, nariz (cuña) y orejas. Cara en pixel art: ojos, cejas, sombra de la nariz y boca. |
+| Peinados | Tres peinados en bloques, cada uno una pieza aparte: corto, rastas (trenzas que caen) y afro. El juego elige según el peinado del jugador y le pone su color. |
+| Ropa "pegada" | El short se abre abajo; la manga tiene una costura en el hombro, un pliegue y el puño más abierto; la camiseta se abre un poco en el ruedo. |
+| Sin textura | UV ordenado y una textura de detalle de 256×256 en pixel art, sin suavizar: costuras, pliegues de la axila y la cintura, entrepierna del short, elástico de las medias, suela, cordones, nudillos. Va encima de los colores del club (sirve para todos los equipos). Sin marcas ni logos. |
+| Sombreado irregular | La malla ya era toda plana: lo irregular era el ruido del render de prueba (pocas muestras). Se subieron las muestras. En el juego, la camiseta no usa el suavizado de tela. |
+| Pose de carrera | La foto de prueba ahora es una zancada: pie de apoyo en el piso debajo de la cadera y la otra rodilla adelante. En el partido sigue la animación de siempre hasta hacer las propias. |
+
+**Tests:** no se corrieron en esta ronda (pedido tuyo).
 
 ## Diseño Definitivo WE (etapa 1): el jugador nuevo, hecho en Blender
 

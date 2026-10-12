@@ -47,6 +47,12 @@ uniform sampler2D kit_tex : source_color, filter_linear_mipmap;
 // como sombreado fino de la camiseta y el short.
 uniform bool use_fabric = false;
 uniform sampler2D fabric_tex : hint_normal, filter_linear_mipmap, repeat_enable;
+// Diseño Definitivo WE: textura de detalle en pixel art por UV (sin
+// suavizar), encima de los colores del club: r = sombreado (0,5 = neutro;
+// pliegues, costuras, rasgos), g = cuánto se pinta encima con el gris de b
+// (ojos, cejas, suela, cordones).
+uniform bool use_detail = false;
+uniform sampler2D detail_tex : filter_nearest_mipmap;
 
 // Plano: entre la piel (3) y el pelo (5) no tiene que aparecer otra zona.
 varying flat float v_region;
@@ -256,12 +262,17 @@ void fragment() {
 			vec2 w = texture(fabric_tex, uv).rg - vec2(0.5);
 			float near = 1.0 - smoothstep(0.004, 0.03, fwidth(uv.x));
 			c *= 1.0 + (w.x + w.y) * 0.22 * near;
-		} else {
+		} else if (!use_detail) {
 			float weave = hash(floor(v_rest.xy * 260.0)) * 0.06;
 			c *= 0.97 + weave;
 		}
 		rough = 0.95;
 		spec = 0.12;
+	}
+	if (use_detail) {
+		vec3 d = texture(detail_tex, UV).rgb;
+		c *= d.r * 2.0;
+		c = mix(c, vec3(d.b), d.g);
 	}
 	ALBEDO = c;
 	ROUGHNESS = rough;

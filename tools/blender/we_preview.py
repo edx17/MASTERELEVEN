@@ -1,6 +1,7 @@
 # Fotos del Diseño Definitivo WE (para revisar el modelo sin abrir Blender):
-# de frente, 3/4, costado y espalda en pose T, y una pose de carrera como la
-# del WE2002 (rodilla adelante a 90°, codos a 90°) para ver cómo se dobla.
+# de frente, 3/4, costado y espalda en pose T; una zancada de carrera (un pie
+# apoyado empujando, la otra rodilla adelante, codos a 90°) para ver cómo se
+# dobla; y la cabeza con cada peinado.
 #
 #   blender --background --python tools/blender/we_preview.py
 #
@@ -22,7 +23,7 @@ def setup():
     sc = bpy.context.scene
     sc.render.engine = "CYCLES"
     sc.cycles.device = "CPU"
-    sc.cycles.samples = 12
+    sc.cycles.samples = 48
     sc.cycles.use_denoising = False
     sc.render.resolution_x = 360
     sc.render.resolution_y = 640
@@ -68,28 +69,60 @@ def rotate(arm, bone, axis, deg):
 
 
 def run_pose(arm):
+    """Zancada: la pierna derecha apoyada (debajo de la cadera, rodilla
+    apenas doblada), la izquierda en el aire con la rodilla adelante; brazos
+    opuestos, codos a 90°."""
     x, y = Vector((1, 0, 0)), Vector((0, 1, 0))
     rotate(arm, "spine_02", x, 10)
     rotate(arm, "upperarm_l", y, 75)
     rotate(arm, "upperarm_r", y, -75)
-    rotate(arm, "upperarm_r", x, -45)
-    rotate(arm, "upperarm_l", x, 40)
+    rotate(arm, "upperarm_r", x, -40)
+    rotate(arm, "upperarm_l", x, 35)
     rotate(arm, "lowerarm_r", x, -85)
     rotate(arm, "lowerarm_l", x, -80)
-    rotate(arm, "thigh_l", x, -90)
-    rotate(arm, "calf_l", x, 95)
-    rotate(arm, "thigh_r", x, 25)
-    rotate(arm, "calf_r", x, 40)
+    rotate(arm, "thigh_l", x, -50)
+    rotate(arm, "calf_l", x, 80)
+    rotate(arm, "thigh_r", x, 6)
+    rotate(arm, "calf_r", x, 14)
+    rotate(arm, "foot_r", x, -20)
+    # Apoya el pie de atrás en el piso.
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    body = bpy.data.objects["WE_Definitivo"].evaluated_get(dg)
+    me = body.to_mesh()
+    low = min((body.matrix_world @ v.co).z for v in me.vertices)
+    body.to_mesh_clear()
+    arm.location.z -= low
+
+
+def show_hair(name):
+    for o in bpy.data.objects:
+        if o.name.startswith("WE_Pelo_"):
+            o.hide_render = o.name != "WE_Pelo_" + name
 
 
 def main():
     os.makedirs(OUT, exist_ok=True)
     sc, cam = setup()
+    show_hair("corto")
     for name, angle in (("frente", 0), ("tres_cuartos", 35), ("costado", 90), ("espalda", 180)):
         shoot(sc, cam, name, angle)
+    # Cabeza con cada peinado (de 3/4).
+    cam.data.ortho_scale = 0.42
+    sc.render.resolution_x = sc.render.resolution_y = 300
+    for hair in ("pelado", "corto", "rastas", "afro"):
+        show_hair(hair)
+        a = math.radians(30)
+        cam.location = Vector((math.sin(a) * 5, -math.cos(a) * 5, 1.71))
+        cam.rotation_euler = Euler((math.radians(90), 0, a))
+        sc.render.filepath = os.path.join(OUT, "cabeza_" + hair + ".png")
+        bpy.ops.render.render(write_still=True)
+    cam.data.ortho_scale = 2.0
+    sc.render.resolution_x, sc.render.resolution_y = 360, 640
+    show_hair("rastas")
     run_pose(bpy.data.objects["Armature"])
     shoot(sc, cam, "carrera_tres_cuartos", 35)
-    shoot(sc, cam, "carrera_costado", -70)
+    shoot(sc, cam, "carrera_costado", -90)
 
 
 if __name__ == "__main__":

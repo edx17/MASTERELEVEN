@@ -8,6 +8,8 @@ Winning Eleven 2002 Remastered": estadio 3D moderno, buena iluminación y céspe
 jugadores relativamente simples, pero una lógica de partido que conserva WE2002.
 
 - NO es un clon visual de PS1: nada de gráficos pixelados ni estética retro obligatoria.
+  Excepción pedida por el dueño (octubre 2026): el Diseño Definitivo WE usa una
+  textura de detalle en pixel art (cara, pliegues), encima de los colores del club.
 - NO es "EA FC simplificado": estructura directa, pocos sistemas, bien hechos.
 - SÍ es: "Fútbol 11v11 rápido, directo y táctico, con controles sencillos y mucha
   importancia en el timing". Gameplay de WE2002 + 3D moderno + arquitectura modular.
